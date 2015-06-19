@@ -29,3 +29,5 @@
     - scigen.data: 伪论文词同现网络特征
     - test.data  : 待测论文词同现网络特征
 - testpaper:待测论文存放的文件夹
+
+## 五、原理、过程 见http://www.hrwhisper.me/scigen-detection/ ##
