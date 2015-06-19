@@ -1,0 +1,69 @@
+this paper describes the method we used for the genomics track of trec 1. bm1 model is implemented to retrieve relevant documents. we also tried to re-ranking documents based on the initial retrieval before passage retrieval. passages are retrieved based on the concepts defining in topics and concept coverage. results of submitted runs are listed and discussed. 
+ 
+1 introduction 
+the enormous amount of biological literature makes the strong expectation of  efficient retrieval ways for biological information. this motivated various research on information retrieval from large scale of information or corpus. the text retrieval conference  trec  provides a platform for testing and experiments of retrieval methods. in this year  the genomics track of trec developed a new single task that focuses on retrieval of passages with linkage to the source document. 
+ 
+1 the passage retrieval task 
+the document collection for the trec 1 genomics track consists of full-text html documents from 1 journals  containing 1 documents. there are 1 official topics  with seven topics from each generic topic template  gtt  of genomics track 1. 
+following is an example for a gtt and an instance of it: 
+gtt: find articles describing the role of a gene involved in a given disease. 
+instance: find articles describing the role of interferon-beta involved in multiple 
+sclerosis. 
+the target of this task is to submit up to 1 passages per topic that are predicted to be relevant to answering the topic question. a passage is identified by the document id pmid   the start offset into the text file in characters  and the length of the passage in characters. submitted passages from all track attendants are pooled together. then the expert judges will be presented with the text of the maximum-length legal span containing each pooled passage. they evaluate and identify the portion of presented text that contains an answer  which is used to measure performance of all submitted runs. there are three levels of retrieval performance measuring: passage retrieval  aspect retrieval  and document retrieval. according to how to generate queries from topics  runs are grouped into  automatic    manual  and  interactive . we submitted three automatic runs for the task of this year. 
+ 
+ 
+1 methods 
+we expand queries via pseudo relevance feedback. okapi bm1  is implemented to retrieve relevant documents. single words are used as features with bm1 method. we also tried to exploit document re-ranking in the retrieval process. figure 1 describes the framework of our system. 
+ 
+ 
+
+ 
+ 
+1 indexing 
+documents are indexed before experiments. all  html files are parsed into plain text files first to remove tags and other format characters. indexing is made upon the plain text files for all words  including stop words and any continuous letter combination between two delimiter characters  eg. space character. with indexing of single words  indexing of any phrase could be gotten if needed. since the offset position and length of retrieved answer for topics in the html files must be denoted in submitted results  answers retrieved from plain text files are reversed back into position and length in original html files after retrieval. 
+ 
+1 document retrieval 
+okapi bm1  is implemented to retrieve the top 1 documents for each query  where a score of each document is calculated as following formula and ranked. 
+	t¡Æ¡Ê w  1     kk1 ++1tf  tf	  kk1 ++1qtf  qtf	  	 	 1  
+q
+here w 1  is the robertson/spark jones weight of t in q: 
+	log 	 	 	 	 1  
+rocchio feedback  for bm1 is adopted. 
+1 document re-ranking 
+to re-rank retrieved documents  we use the np and vp chunks in the documents  and suppose that these chunks will contribute to the re-ranking. here  we only focus on the chunks which also occur in the queries. so  the chunks can also be referred to as query chunks. to weigh a query chunk  we consider the following three factors.  
+i  relative distribution: the ratio of document frequency of a chunk in the top k retrieved documents against the document frequency of the chunk in the whole document collection.  
+ii  chunk length: the number of words a chunk contains. iii  document ranking position: the serial number of a document in top k documents. 
+¡¡given top k retrieved documents to be re-ranked and query chunk t  the weight assigned to t is given by the following formula. 
+                              1  
+	df  t   d i   =    1	t ¡Ê d i                                                1  
+ 
+	   1	t   d i
+where di is the i-th  i=1  ...  k  document  r is the total number of documents in the whole collection c  df t c  is the number of documents which contain t in c  |t| is the length of term t.  
+ after weighting each query chunk  we can re-order top k retrieved documents by chunks tj in q and their weightings: 
+        step 1 for each document di in top k retrieved documents  calculate its re-ordered similarity value si by its initial similarity value ri in the initial retrieval; 
+	                                 w =¡Æt j ¡Êq di w t j    	 	  	 	     1  
+	  w¡Ári	 w 1 
+	                                  s i =   ri	 w=1  	 	 	 	 	 1                                      
+  
+¡¡    step 1: re-order top k retrieved documents by their new re-ordered similarity values s={s1  s1  ...  si  ...  sk}. 
+ 
+1 passage retrieval 
+considering a question as a collection of concepts  we believe that the good answer to a question should be covering all main concepts of the question. so since the target of this year's task is to locate answers for topics accurately  we define the problem of answer 
+retrieving as finding texts covering main concepts in topics within a limited range in documents. according to the topic templates used for this year's task  we noticed that there are two main concepts for each topic: gene & disease  or gene & biological process  or gene mutation & biological impact. we treated them as two main concepts and other words in the topic as the third topic. for example  given the topic  what is the role of mms1 in cancer    the two main topics are  mms1  and  cancer   and  role  belongs to the third concept. 
+to retrieve the answer of a topic from documents  we try to find text span no longer than a limited length that  covers concepts as many as possible but at least covers the two main topics.  
+to weigh and rank eligible candidate text spans  we define the text span weight ws as: 
+=
+d
+k1 + 1f
+w t = ¡Æ c i  k 1 +  1   k 1  	i   
+	concept	i	t i   1  ws =wd wtwl       1  w k1 + 1 / r      1  
+	w l =   	 	 	 	 	          1  
+here k1 and k1 are constant parameters  r is the ranking of document containing this text span after the previous document retrieving. given a concept  c is the weight preassigned for the concept  f is the frequency of all concept terms within the text span  t is the number of concept terms. l is the length of the text span. according to formulas mentioned above  wt is the weight for the text span according to it's concept coverage  wl makes the shorter text span tend to get higher weight  wd reflects the influence of ranking of containing documents. we rank text spans by their weight ws  and discard text spans with weight value smaller than a threshold value. 
+  
+1 results and discussions 
+we submitted three runs named 'i1rg1'  'i1rg1' and 'i1rg1'. in our experiments the maximum length for eligible candidate text spans was set to 1 bytes. parameters  k1  k1  c1  c1  c1  were set to  1  1  1  1  1 . table 1 lists the map of 1 runs evaluated by trec organizer. 
+ map documentmap passagemap aspect i1rg1 1 1 1 i1rg1 1 1 1 i1rg1 1 1 1 table 1: map of our submitted runs 
+to make the answer as short as possible  we only take text spans between two concept terms. the first run and second run both fetch text span begins with a term of a main concept and ends with a term of another main concept. meanwhile the third run fetch text span begins and ends with any concept term  but still terms from 1 main concepts must be contained. document re-ranking was exploited in the second run i1rg1  but not used in 
+the first and third run. from the evaluation results we found that there was little difference between runs. 
+for the task of this year  we focused on accurate text span retrieval for given topics. our method is based on the concepts defining in the topic and concept coverage of text spans. we also believe that the ranking of documents could contribute to rank candidate text spans. because of the lack of training set  we set the parameters directly. the evaluation data set generated from the track of this year would be very helpful to further investigate the efficiency of our passage retrieval method and the influence coming from document retrieval in the process. 
+ 

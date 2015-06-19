@@ -1,0 +1,103 @@
+pablo castro  
+microsoft corporation 
+one microsoft way 
+redmond  wa  1  usa pablo.castro microsoft.com sergey melnik 
+microsoft research 
+one microsoft way 
+ redmond  wa  1  usa sergey.melnik microsoft.com atul adya 
+microsoft corporation 
+one microsoft way 
+redmond  wa  1  usa adya microsoft.com 
+abstract 
+the ado.net entity framework provides a persistence layer for .net applications that allows developers to work at a higher level of abstraction when interacting with data and data-access interfaces. developers can model and access their data using a conceptual schema that is mapped to a relational database via a flexible mapping. interaction with the data can take place using a sqlbased data manipulation language and iterator apis  or through an object-based domain model in the spirit of object-to-relational mappers. 
+we demonstrate how the entity framework simplifies application development using sample scenarios. we illustrate how the data is modeled  queried and presented to the developer. we also show how the provided data programming infrastructure can result in easier-to-understand code by making its intent more explicit  as well as how it can help with maintenance by adding a level of indirection between the logical database schema and the conceptual model that applications operate on. 
+categories and subject descriptors: 
+h.1  database management   d.1  programming languages  
+general terms: algorithms  management  design  languages 
+keywords: data programming  conceptual modeling  ado.net 
+1. introduction 
+a large number of commercial software applications written today are data-centric applications. companies usually have several database server systems managing their business and operational information  and several applications built on top of them. application developers in it departments and software development companies face the challenge of creating and evolving data-centric applications in a fast and cost-effective manner. 
+some of these challenges can be addressed with tools that offer object-to-relational mapping  orm  capabilities   although the majority of these tools are focused primarily on binding relational data to objects in specific programming languages and are not wellsuited for general-purpose database development. 
+the ado.net entity framework  is a technology designed to elevate the level of abstraction at which application developers work when creating and maintaining data-centric applications. to achieve this goal  it focuses on three main areas: a  a higher-level data model for applications to operate on  b  an object services layer that exposes the application data through an object-oriented interface and processes create/read/update/delete operations on objects  and c  
+ 
+copyright is held by the author/owner s . 
+sigmod'1  june 1  1  beijing  china. acm  1-1-1/1. 
+ 
+support for the language-integrated query  linq   mechanism in the upcoming version of c# and visual basic.  
+today  most enterprise data is stored in relational databases. the entity framework provides a flexible mechanism for mapping higher-level application models to existing relational schemas. it supports various persistence strategies and helps build new applications on top of legacy databases. a prerelease of the entity framework is available for download. 
+1. what is demonstrated 
+we demonstrate how the ado.net entity framework addresses various real-world issues that application developers often encounter when creating data-centric applications.  
+1 working with a higher-level data model 
+in this section we demonstrate how a higher-level data model can help express the application semantics more explicitly. we start with the relational database schema shown in figure 1. 
+
+figure 1: sample relational schema 
+consider a hypothetical application that manages two kinds of sales orders: online orders and those from retail stores. a traditional way of discriminating the orders stored in a relational table is by convention. for example  if taxamt is null then the table row represents an online order. when the application wants to list all the store sales orders  it can use code like this  in c# and a previous version of ado.net : 
+void printorders datetime date  {   using sqlconnection con = new              sqlconnection connstring sql   {     con.open  ; 
+ 
+    sqlcommand cmd = con.createcommand  ;     cmd.commandtext =          select o.orderdate  o.totaldue 
+      from salesorder as o 
+      where o.taxamt is not null 
+      and o.orderdate    date ;           cmd.parameters.addwithvalue  date                                    date ;     dbdatareader r = cmd.executereader            commandbehavior.sequentialaccess ;     while r.read    
+      console.writeline  {1:d}: t{1}                 r  orderdate    r  totaldue   ; 
+  } 
+} 
+while the sql query shown above is relatively simple  its semantics is not obvious. specifically   o.taxamt is not null  actually means  a store sales order ; that meaning needs to be documented externally as it cannot be derived from the query without the appropriate context. 
+the ado.net entity framework operates on a higher-level entityrelationship model called the entity data model  edm    where entities are a first-class concept of the system. an entity in edm is a structure with a key. it can surface in various ways in the programming model  objects  rows/columns  etc. . entities are instances of entity types  and are contained in entity sets  somewhat analogous to tables . entity types can be derived from other entity types enabling structural inheritance. edm also has an explicit concept of an association that goes beyond a foreign key constraint in relational schemas and can be used to navigate between entities in queries and in other contexts. 
+one possible representation of the relational sales data in edm terms is shown in figure 1. the edm schema contains roughly the same elements as the relational schema shown in figure 1  but uses inheritance to model salesorders in general and storesalesorders as a subtype. the edm schema also introduces an association between salesorder and contact. the salesdb element shown in figure 1 represents the container for the entity sets contacts  which contains instances of contact  and salesorders  which contains instances of salesorder and its subtype storesalesorder . 
+in addition to the edm schema  the system needs information that describes how the various elements of the edm schema map to the underlying relational database that contains the data. that is done through a mapping specification. the mapping is specified using an xml file that can be authored by hand or using a visual tool  such as the one described in   and is compiled into data transformations that drive query and update processing . 
+
+figure 1: sample edm schema 
+for this example  we define a mapping specification that maps contacts using a trivial 1 mapping. it maps sales orders using a discriminating condition that tells the system that those rows with a null value in taxamt should be mapped to instances of the salesorder type  and the rest to instances of the storesalesorder type. 
+now the developer can target the conceptual model in the application. one way of incrementally adopting this model while leveraging the coding patterns established in previous versions of ado.net is by using the entityclient provider  an ado.net data-access provider that operates at the conceptual level and uses entity sql  a sql dialect  as its query language. for example  in c# along with the ado.net entity framework : void printorders datetime date  {   using entityconnection con = new           entityconnection connstring edm   {     con.open  ; 
+ 
+    entitycommand cmd = con.createcommand  ;     cmd.commandtext =          select o.orderdate  o.totaldue 
+      from sales.salesdb.salesorders as o 
+      where o is of  sales.storesalesorder        and o.orderdate    date ;           cmd.parameters.addwithvalue  date                                    date ; 
+ 
+    dbdatareader r = cmd.executereader            commandbehavior.sequentialaccess ;     while r.read    
+      console.writeline  {1:d}: t{1}                 r  orderdate    r  totaldue   ; 
+  } 
+} 
+note that the usage pattern for the new api is identical to that of previous releases  helping with the learning curve. also  the developer's intent can now be clearly understood from the formulation of the query; specifically  the query asks for sales orders o such that  o is of  sales.storesalesorder    i.e.  for orders that are instances of the storesalesorder entity type. 
+1 isolation from schema changes 
+here we demonstrate how having a rich mapping layer between the application's conceptual model and the database schema introduces a new level of data independence and helps with schema evolution in certain scenarios.  
+while some orms can already do this to varying degrees  they focus on mapping to objects; in contrast  the entity framework provides a general mechanism that can be used regardless of the choice of data access interface. 
+we present an example of database refactoring that affects the schema in a way that would break a traditional database application  and show how the mapping infrastructure can help avoid a code change in the application.  
+suppose that the contact table was a very large table and had a large number of contacts  not all of them sales people; in order to increase the row density in the contacts table and reduce the disk i/o for certain workloads  the database administrator decides to vertically partition the table by adding a new table salesperson with a foreign key into contact  which preserves the existing keys.  
+ 	 an application using the edm schema shown in figure 1 can use the following query to find the names of the sales people hired after a given date  regardless of how they are mapped to the underlying tables: 
+select c.firstname  c.lastname 
+from sales.salesdb.contact as c 
+where c.hiredate    date 
+after the database refactoring the developer has to adjust the mapping specification to tell the system that now the contact entities are created by joining the contact and salesperson tables and extracting the desired properties from these tables. 
+note that the conceptual schema and the application code  including queries  were not affected at all by this change. the system will exploit the new mapping to query and update the refactored tables. no database views or triggers need to be created or modified. 
+1 presenting data as objects 
+the examples shown in sections 1 and 1 execute queries against the conceptual model and return values as rows and columns using the datareader api construct. we now discuss how to use .net objects instead of rows and columns to represent entities. 
+the ado.net entity framework provides an object services layer  which enables developers to use regular .net objects to interact with the data  both for retrieval and updates. the tools included with the entity framework automatically generate .net classes to represent each declared entity type. 
+there are many options for incrementally layering the object services on top of the entityclient provider; in the interest of brevity  we show here the simplest option where entityclient is used internally and is set up automatically by the system. to follow the running example  the code excerpt below is equivalent to the one used in section 1 and obtains sales orders that were posted via a retail store after a certain date: 
+void printorders datetime date  {   using salesdb db = new salesdb    {  
+    objectquery salesorder  orders =             db.createquery salesorder        select value o 
+   from sales.salesdb.salesorders as o 
+   where o is of  sales.storesalesorder     and o.orderdate    date        new objectparameter  date   date  ; 
+ 
+    foreach salesorder o in orders          console.writeline  {1:d}: t{1}                  o.orderdate  o.totaldue ; 
+  } 
+} 
+the  value  keyword in the select clause eliminates the rowwrapper that otherwise would be generated by the system if we simply had  o  in the projection list. 
+while this version of the code has identical functionality to the earlier one  the actual code has significantly fewer database-specific constructs; it does not explicitly create and initialize a connection  nor does it need configuration information inside the program. all of this information is captured during code generation and stored in external configuration files. also  the query results are .net objects and not rows and columns.  
+ 
+ 	 
+1 language-integrated query 
+most current data-access libraries used in commercial applications expect sql queries as strings. having sql queries be represented as strings means that the compiler cannot help the developer with compile-time checking of syntactic and semantic correctness like it does for the rest of the program. 
+language-integrated query   or linq for short  is an innovation in the programming languages space that introduces query-related constructs to mainstream programming languages such as c# and visual basic. the query constructs are not processed by an external tool but instead are first-class type-checked expressions of the language itself. 
+the ado.net entity framework is fully integrated with linq. developers can formulate queries against the conceptual model using the language constructs for writing queries.  for example: 
+void printorders datetime date  {   using salesdb db = new salesdb    { 
+ 
+    var orders = from o in db.salesorders                  where o is storesalesorder                         && o.orderdate   date                  select o; 
+ 
+    foreach salesorder o in orders        console.writeline  {1:d}: t{1}    
+                   o.orderdate  o.totaldue ; 
+  } 
+} 
+in this example the query is expressed using the constructs of the c# language so the compiler can verify the syntax and the semantic correctness of the query during compilation. 
+1. acknowledgements 
+we are grateful to the dozens of engineers on the ado.net team who helped build the technology that we demonstrate here. 

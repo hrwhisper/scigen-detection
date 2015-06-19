@@ -1,0 +1,132 @@
+   our participation in trec 1 aims to adapt the use of the dfr  divergence from randomness  models with query expansion  qe  to the robust track and the topic distillation task of the web track. we focus on the robust track  where the utilization of qe improves the global performance but hurts the performance on the worst topics. in particular  we study the problem of the selective application of the query expansion. we define two information theory based functions  infodfr and infoq  predicting respectively the ap  average precision  of queries and the ap increment of queries after the application of qe. infoq is used to selectively apply qe. we show that the use of infoq achieves the same performance comparable of the unexpanded method on the set of the worst topics  but a better performance than full qe on the entire set of topics.
+1 robust track
+fub participation in the robust track deals with the adaptation of the dfr modular probabilistic framework 1  1  1  together with query expansion based on distribution analysis 1  1  1  to this new task. in the robust track there are two new evaluation measures  the number of topics with no relevant documents in the top retrieved 1  denoted by nrtopicsnorel  and map x   a measure related to the average precision of the worst x topics.
+   experiments on the collection against the queries of trec 1  trec 1 and trec 1 showed that qe deteriorates the two new robustness measures:
+1. indeed  the number of topics with no relevant retrieved documents in the top 1 ranks  nrtopicsnorel  increases when qe is activated.
+1. with a similar trend  map x  always diminishes when qe was adopted.
+1 submitted runs: qe was adopted in all queries
+at the submission time we did not have a stable and robust qe activation method to improve the performance on both the old and the new evaluation measures. although this year the description-only queries are quite long  the automatic application of qe to all queries seemed to be the safest way to achieve a higher value of map. however  qe is detrimental to both map x  and to nrtopicsnorel measures. we thus submitted 1 description-only runs with full qe to maximize global performance and one descriptiononly run with all unexpanded queries  to partially account for the worst topics.
+1 term-weighting models
+we used 1 different dfr within-document term-weighting formulas: i n b1  i n ol1  i n e ol1  i n e ob1.
+   the models i n ol1  i n e ol1 are variants of the model i n l1  while i n e ob1 is a variant of i n e b1.
+for sake of space we just report the model i n ol1:
+	tfn	|collection|   doc freq + 1
+	i n ol1 :	1	 1 
+	tfn + 1	doc freq + 1
+average document length
+	where	1
+document length
+   the value of the parameter c of the within-document term-weighting dfr models was set to 1  1  1  1 .
+1 query expansion
+the qe method was the same as used an trec-1 with very good results except for the parameter tuning and some additional expansion weight models.
+   the weight of a term of the expanded query q  of the original query q is obtained as follows:
+weight term ﹋ q   = tfqn + 汕 ﹞ infodfr term 
+maxinfodfr
+where
+  tfqn is the within-query term-frequency tfq of the term  normalized w.r.t. the maximum
+tfq
+tfqn =		 1  argmaxtfq t﹋q
+  infodfr is related to the probability of term-frequency computed by a dfr model:
+	infodfr term  =	 log1 prob freq term|topdocuments |freq term|collection   1 
+	maxinfodfr =	arg max  infodfr term 
+term﹋q
+table 1: the number of selected documents on the first-pass retrieval is 1  the number of the extracted terms for the query expansion is 1.
+parametersruns with qerun without qefub1inb1fub1ieolke1	fub1inole1	fub1ineole1fub1ineobu1dfr modelsc =1i n b1i n e ol1	i n ol1	i n e ol1		i n e ob1dfr expansion models汕 =1bo1	kl	bo1	bo1-old topics 1:11111map :11111top 1 with no rel.:111map x 11111new topics 1 : map: top 1 with no rel.: map x 1
+1 1
+11
+1 1
+11
+1 1
+11.1
+1.1
+1
+1.1all topics 1:11111map:11111top 1 with no rel.111map x 11111in particular  the dfr models used were the normalized kullback-leibler measure  kl   1  1   and the following bose-einstein statistics  bo1  1:
+	infobo1 term  =	 freq term|topdocuments  
+freq term|collection 
+	竹 =	totfreq topdocuments  ﹞		 1 
+totfreq collection 
+where topdocuments denotes the pseudo-relevant set. the other parameters were set as follows:
+  汕 = 1
+  |topdocuments| = 1 and the number of terms of the expanded query is equal to
+1.
+1 selective application of qe: new experiments
+the official results confirmed the outcomes of our preliminary investigation as shown in table 1. the unexpanded run achieved the best map x  and the lowest nrtopicsnorel  and the runs with expanded queries achieved the highest values of map and precision at 1.
+   in the following we study the problem of selectively applying qe to the set of topics. in particular in section 1 we define the function infoq which predicts when qe can be applied.
+we also establish that the sum
+info dfr q  = x info dfr term 
+term﹋q
+of formula 1 over the set of all terms of the query is correlated to the average precision  ap  of the system on that query. therefore info dfr q  can measure the topic-difficulty  that is info dfr can be an indicator of a possible low outcome of ap with a topic q.
+1 how qe affects the robust track
+consider as an example the performance of the run fub1inole1 in table 1; fub1inole1 uses the model i n ol1  see formula 1 . with full qe  we achieved an increase of map equal to +1% with respect to the baseline run. if we had an oracle telling us when to apply qe query-by-query  the performance increase would nearly double passing from +1% to +1%.
+   however  without the oracle a wrong decision of omitting the qe mechanism would seriously hurt the final map of the run. the average gain per query is ‵1 and the gain is much greater than the average loss  ‵1 . moreover  the number of cases with a successful application of qe  1 out 1  is larger than the number of the failure cases. both odds are thus in favour of the application of qe.
+   in the robust track  the success rate of the qe application was below our expectation. comparing the figueres of table 1 with those relative to all the 1 queries of the past
+trec data  we have observed a detriment of the success rate. the success rate was around 1% with all the 1 old queries of past trec data. a detriment in precision at 1 was observed for only 1% of all the 1 old queries  against 1% of the trec 1 queries .
+   in addition  the increase of map with qe using all the old 1 queries was larger  ‵ +1%  than that obtained with the new queries  ‵ +1% .
+   in the next section we propose the measure infoq to predict successful application of qe. infoq is indeed correlated to the increment of average precision after qe activation.
+1 predicting the successful application of qe with infoq
+let q be a sample of queries q and let
+	x	freq term|collection 
+	infopriorq q  =	 log1 
+totfreq collection 
+term﹋q
+infopriorq has a moderately weak negative correlation with qe  that is:
+老 apqe   ap  infopriorq  =  1
+where apqe is the average precision after the application of qe  and ap denotes the average precision of the system without qe.
+table 1: run fub1inole1 with description-only topics. the columns with  no qe  contain the number of queries to which the qe was not applied.
+old topicsbaselinerun fub1inole1 with qeruns with the oraclemapp 1map	%p 1	%map%no qep 1%no qe111	+1%1	+ 1%1+1%11+1%1new topicsbaselinerun fub1inole1 with qeruns with the oraclemapp 1map	%p 1	%map%no qep 1%no qe111	+1%1	+1%1+1%11+1%1all topicsbaselinerun fub1inole1 with qeruns with the oraclemapp 1map	%p 1	%map%no qep 1%no qe111	+1%1	+1%1+ 1%11+ 1%1infopriorq is also linearly related to the length of the query  老 querylength  infopriorq  =
+1. query length is thus a different indicator of the successful application of the qe. a short query in general requires qe  but qe can be easily harmful for long queries  but using only the query length as an indicator qe varies its behaviour for moderately long queries.
+   we now introduce infoq to deal with the selective application of qe. infoq combines infopriorq and the divergence-based function info dfr which we have already encountered in section 1. info dfr query rankings may not agree using different dfr models. a way to compare different score functions over the same set q of queries is to normalize using their standard normal scores.
+let
+infopriorq q    米infopriorq infom q    米infom   max arg
+	考infopriorq	m﹋dfr
+the function:
+	1	infopriorq   米infopriorq
+	infoq =		 1 
+	querylength	考infopriorq
+where the 米xs and the 考xs stand for the mean and the standard deviation of the x values over the sample q of queries q.
+   because the correlation factor between ap increment and infoq is negative  we need to trigger the qe when infoq is below a given threshold:
+	apply qe to query q  def infoq q    threshold	 1 
+a cautious way to smooth different info dfr values is to compare the threshold to the maximum value among all these dfr models  infopriorq included. this explain why we
+table 1: the set of queries with the highest infoq. the qe is not applied to such queries.
+qe successinfoqquery lengthtopicy11n11n11n11n11n11first compute the maximum value among the normal standard scores of infopriorq and all infom q  where m is a drf model.
+   the standard normal query-scores of info dfr may not agree  even in sign  using different dfr models. since the correlation factor is negative  and since we trigger the qe when infoq is below a given threshold  then a cautious way to smooth different info dfr values is to compare the threshold to the maximum value of all these dfr standard normal scores  infopriorq included.
+infoq has a higher correlation than infopriorq  see figure 1  with qe 老 apqe   ap  infoq  =  1
+and a smaller correlation factor with the query length1
+老 apqe   ap  infoq  = 1
+1 predicting topic difficulty with infodfr
+it is a well known evidence that the qe effectiveness is strictly related to the number of documents which are relevant for a given query in the set of the topmost documents in the ranking. if the early precision of the first-pass retrieval is high  then we have a good chance to extract good additional topic terms together with their relative query-weights. to start our investigation we have first computed the correlation factor beween
+- the number rel of relevant documents in the whole collection and the ap value over the 1 queries  and
+- between rel and the precision at 1  p 1 .
+the correlation value  1 ≒ 老 ≒ 1 indicates the degree of the linear dependence between the two pair of measurements. when 老 = 1 the correlation coefficient indicates that the
+figure 1: the number of relevant documents is inversely related to ap of the unexpanded query  老 rel ap  =  1 . queries with many relevant documents contribute little to map.
+
+two variables are independent. when instead there is a linear correlation  the correlation coefficient is either  1 or 1 . a negative correlation factor indicates that the two variables are inversely related.
+   surprisingly  both these correlation factors come out to be negative  老 rel ap  =  1 and 老 rel p 1  =  1 .
+   although in these two cases the absolute values of the correlation coefficient are not close to  1  even small values of the correlation factor are regarded very meaningful especially in large samples .
+   therefore  these values of the correlation factors seem to demonstrate that the greater the number rel of relevant documents  the less the precision  map and p 1 . an approximation line of the scatter line of the ap values for different numbers of relevant documents is produced in figure 1. the fact that the correlation factor with ap is larger than that with p 1 is due to the definition of ap. the ap measure combines recall and precision by using the number rel of relevant documents.
+   this negative correlation might appear to be counter-intuitive  since among the easiest topics there are many which possess a small number of relevant documents  and  as opposite  many difficult topics have many relevant documents. on the other hand  a possible explanation of these negative correlation factors is that a small number of relevant documents for a topic witnesses the fact that the topic is  specific  or  non-general  with respect to the content of the collection. in such a situation  common-sense says that specific queries have few relevant documents  their query-terms have few occurrences in the collection  and they thus are the easiest ones.
+figure 1: the information content info bo1 of the query within the topmost retrieved documents is linearly correlated to the ap of the unexpanded queries  老 info bo1 ap  = 1 . specific queries have a large value of info dfr.
+
+   however  a definition of the specificity based on the number of relevant documents for the query would depend on the evaluation; we rather prefer to have a different but operational definition of the query-specificity or query-difficulty.
+   the notion of query-difficulty is given by the notion of the amount of information info dfr gained after a first-pass ranking. if there is a significant divergence in the queryterm frequencies before and after the retrieval  then we make the hypothesis that this divergence is caused by a query which is easy-defined.
+	difficulty score of q =def info dfr q  of formula 1	 1 
+where dfr is a basic model  based on the binomial  the bose-einstein statistics or the kullback-leibler divergence measure . we here use the probability of bose-einstein as defined in formula  1 . note that the same weight was used by our expansion method in 1 runs out of the 1 expanded ones  fub1inb1  fub1inole1  fub1ineole1 . the kullback-leibler divergence was adopted in the run fub1ieolke1  see table 1 .
+   there are other information theoretic measures capturing the notion of term-specificity of the query. one possible choice  based on the language model  is the clarity score  but it is more difficult to implement. there is an interesting study  which found using the pearson coefficient that there is no correlation between the average precision with the original query and s average precision increment by qe. billerbeck and zobel explored a range of query metrics to predict the qe success  but  as they report  without clear success. they assert to have included into this family the similarity score of the documents fetched in the original ranking; a measure of how distinct these documents were from the rest of
+figure 1: the information content infoq of the query based on the combination of the priors and info dfr within the topmost retrieved documents is negatively correlated to the ap increase with the qe  老 ap increase rate with qe  infoq  =  1 . the first and the third quadrants contain the errors when the threshold is set to 1.
+
+the collection; specificity of the query terms; and an approximation to query clarity.
+   the goodness of info dfr is tested with the linear correlation factor with ap of the unexpanded queries. the motivation is that easy queries usually yield high ap values. to compute the difficulty score of the query we first produced a first-pass ranking as it is done in qe. we took the set topdocuments of the first 1 retrieved documents and we computed a score for each term occurring in the query. we considered the queryterms which appear at least twice in these pseudo-relevant documents. this score reflects the amount of information carried by the query-term within these pseudo-relevant documents. as shown in figure 1  info dfr has a significant correlation with the ap of the unexpanded queries 老 infobo1 ap  = 1. similarly to the negative correlation between the number of relevant documents and the ap of the unexpanded queries  which is 老 rel ap  =  1  the correlation factor between the score infoq and rel was negative   老 rel info bo1  =  1 . again  this may be explained by the fact that specific queries possess fewer relevant documents.
+   we did not find a significant correlation between info dfr and qe; that is  info dfr is not able to predict a successful application of qe in a second-pass ranking. these results show that the performance of query expansion is not directly related to query difficulty  consistent with the observation  that although the retrieval effectiveness of qe in general increases as the query difficulty decreases  very easy queries hurt performance.
+1 conclusions on the selective application of qe
+in table 1 we summarize the results on the selective application of qe. the map x  values are not reported since the new values are similar to those in the official runs; thus we focus on the other measures. we compare the performance of the 1 submitted runs with qe with the performance of the new runs under the same setting except for the selective application of qe.
+   the first remark is that the decision rule for qe activation is quite robust. the map of the new runs is greater than the map of the official runs for a large range of values of the threshold parameter   = 1 . in fact  infoq provides with a high degree of confidence the cases in which qe should be absolutely activated  which are the cases when infoq assumes very small negative values  as it can be seen in figure 1. this explains why the new value of map keeps constantly larger than the map obtained with all queries expanded. this decision method is thus safe.the behavior of precision at 1 is more variable  depending on the choice of the threshold.
+   the second observation is that selective qe positively affects the nrtopicsnorel measure. the new runs have almost the same nrtopicsnorel performance as the unexpanded runs  and this was one of the main objectives of our investigation.
+1 web track: topic distillation task
+fub participation in the topic distillation task of the web track focused on only-content analysis.
+   last year fub didn't participate in this task  although the same baseline information retrieval system was employed by the glasgow university  gu .
+   in particular  gu analysed both the absorbing model and pagerank based algorithms for link analysis on top of our baseline ir system by using different content-link score combination approaches. using the web corpus .gov some utility functions combining link and text analyses were shown to moderately improve the performance over the baseline.
+   however  no query expansion technique was employed by gu in these trec 1 experiments. as we successfully used query expansion for the  topic relevance task  at trec 1  we checked whether the same strategy was also effective for the  topic distillation task  of trec 1. the only modification we performed was to the value of the parameter c  from c = 1 to c = 1 . we found that the application of the query expansion  as it was  applied in trec 1 was still effective to the topic distillation task of trec 1. indeed  as shown in table 1 we achieved better results than those reported by the best system participating in trec 1. for topic distillation of this year we have applied exactly the same strategy as for the experiments on the trec 1 collection.
+   however  official results show that the content-only term-weighting was not effective this year. the difference in performance is probably due to a change in the type of the task  with a different assessment of the notion of relevance. judging from our results  the  topic distillation task of trec 1  looks very different from the  topic distillation task of trec 1 .
+table 1: the selective application of qe.
+parametersruns with qefub1inb1fub1ieolke1	fub1inole1fub1ineole1dfr modelsc =1i n b1i n e ol1	i n ol1i n e ol1dfr expansion models汕 =1bo1	kl	bo1bo1all topics with qe 1:1	1	11map:1	1	11top 1 with no rel.1	11topics with qe1	11infoq   1all topics with selective qe 1:1	1	11map:1	1	11top 1 with no rel.1	11topics with qe1	11infoq   1all topics with selective qe 1:1	1	11map:1	1	11top 1 with no rel.1	11topics with qe1	11baseline 1:1111map:1111top 1 with no rel.11topics with qe11acknowledgments
+the experiments were conducted using the first version of the terrier's information retrieval platform1 initially developed by gianni amati during his phd at glasgow university.

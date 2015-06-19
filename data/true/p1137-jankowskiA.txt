@@ -1,0 +1,48 @@
+the world wide web allows users to create and publish a variety of 	resources  	including 	multimedia 	ones. 	most 	of 	the contemporary best practices for designing web interfaces  however  do not take into account the 1d techniques. 
+in this paper we present a novel approach for designing interactive web applications - 1-layer interface paradigm  1lip . the background layer of the 1lip-type user interface is a 1d scene  which a user cannot directly interact with. the foreground layer is html content. only taking an action on this content  e.g. pressing a hyperlink  scrolling a page  can affect the 1d scene. 
+we introduce a reference implementation of 1lip: copernicus - the virtual 1d encyclopedia  which shows one of the potential paths of the evolution of wikipedia towards web 1. based on the evaluation of copernicus we prove that designing web interfaces according to 1lip provides users a better browsing experience  without harming the interaction. 
+categories and subject descriptors 
+h.1  information interfaces and presentation : user interfaces  
+general terms 
+design 
+keywords 
+design  web1d  wikipedia  wpf 
+1. introduction 
+the world wide web is a collection of documents and other resources linked by hyperlinks. it changes and evolves  but its definition is still the same after almost twenty years of existence. however  web science researchers work on new solutions to bring the web into a new dimension. 
+the notion of a three-dimensional internet in the context of www has already been discussed . back in the late 1s there was a huge activity concentrated on the virtual reality markup language  vrml . nevertheless  this early web standard did not generate a commercial success. the language was excessively complex; the graphics and the interaction model it generated were not attractive. despite the failure of vrml and other similar solutions  and inspired by the enormous popularity of video games along with a massive interest in second life-type products  we worked out a new way for designing interactive 1d web applications - 1-layer interface paradigm  1lip .   
+1. 1lip 
+some web designers dream about building interfaces that approach the richness of three-dimensional reality. they believe that the closer the interfaces are to the real world  the easier it will be to use them. nevertheless  user studies proved that complex and disorienting navigation and annoying occlusions can slow performance in 1d interfaces  1 . 
+ 
+figure 1. two-layer architecture of a web1d page 
+our answer to this problem is 1lip  pren. tulip . the main rationale behind this paradigm is to introduce a level of 1d-based entertainment  and couple it with well adapted 1d-based interactions. 1lip assumes that building graphical user interfaces involves the integration of two layers  see fig. 1 :  
+  the background - a 1d scene; 
+  the foreground - a 1d information and interaction layer.  
+the hypertext information  together with graphics and interaction interface  is presented on the foreground layer. this is the primary information carrier of the 1lip model.  
+the background layer introduces the entertainment aspect to the information presented in the foreground. a user cannot directly interact with the 1d scene presented in this layer. however  it is possible to  browse  the scene following predefined paths  camera moves  invoked from the interaction interface  e.g.  by clicking a hyperlink  on the foreground layer. 
+ 	1d solutions to the web  1lip avoids many problems: the presented model of 1lip builds upon well established hypertext interactions. it adds a second layer of interactive  and entertaining  1d scene related to presented information. we foresee that compared to other attempts to introduce full fledged 
+
+copyright is held by the author/owner s . 
+www 1  april 1  1  beijing  china. 
+acm 1-1-1/1 
+ 
+  users do not have to learn a new interaction model  which might be pretty hard to understand in the context of the internet hypertext environment. 
+1
+www 1 / poster paper	april 1  1 ¡¤ beijing  china  it is possible to read without the 1d scene; the information is not scattered or embedded into the 1d scene  but rather presented in a concise form familiar to the internet users. 
+  users can interact with the hypertext using simple navigation; it does not scare off those who are not accustomed to 1d interactions. 
+our approach does not rapidly change the style of interaction  from the one users were used to in classic html pages. 1lip allows users to adapt gradually to the new approach of presenting information.  
+our research derives from the concept of the augmented realty . however  instead of creating a layer over the real world  we decided to put the information html-layer on the top of the computer generated 1d scene. 
+1. copernicus - 1lip in practice 
+in order to illustrate and evaluate our idea we have implemented  using windows presentation foundation  the prototype system called copernicus  see http://copernicus.deri.ie . we have decided to build a web application that will resemble wikipedia  but which will implement the 1lip model. 
+the welcome page of copernicus is very similar to the home page of wikipedia. the major difference is that the user can notice an animation of a spinning earth instead of a sphere of puzzles. 
+ 
+figure 1. an example copernicus article 
+once the user had performed the search and chose one of the results  related to information about a specific geographical region  the camera will move to this particular place on the spinning globe. for instance: the camera will  fly  towards the island of ireland as a result of searching for  irish heritage park ; eventually  the article about the irish heritage park in williamsburg will be presented to the user  see fig. 1 . 
+the style of the content and the general layout of the article resembles wikipedia. in comparison to a classic wiki page  the background in copernicus is a 1d visualization of the place/object described in the article. users can change the font size and the transparency of the presented text using a set of sliders; they can make their reading experience more convenient by adjusting these parameters. 
+ 
+while reading an article the user can be presented with details from the 1d scene; clicking on the hyperlinks  e.g.  related to an interesting place  or scrolling the text of the article  can trigger a predefined camera movement. for example: a user reading an article about the temple of kukulcan might be interested in taking a closer look at the skull that is described as a  silent monument of a years of annihilation .  clicking the  skull  link triggers the animation. the camera will smoothly move over the 1d scene following the predefined motion path; it will stop at the top of the pyramid showing this historical artefact  see fig. 1 . 
+1. evaluation 
+our goals were to determine whether 1lip  1  has a positive effect on the visual and associative memory   1  improves the spatial cognition of presented information   1  increases the overall user's satisfaction. we have set up a simple apparatus; it consisted of four articles  two of which were about non-existing places . two articles were presented to the participants using copernicus  remaining two were presented using mediawiki. we have asked 1 participants to read these articles thoroughly  and later answer a number of questions  followed by a questionnaire. 
+the evaluation results shown that copernicus increased the users satisfaction  especially the visual memory - 1%  compared to mediawiki. although we have noticed a slight  below 1%  decrease of correct answers for the significant facts  the participants were able to recall more facts correctly when they were presented the articles in copernicus  increase by overall 1%  including 1% for the spatial information . more details about the evaluation and results can be found at: http://copernicus.deri.ie/evaluation.htm. 
+1. conclusions and future work 
+wikipedia became successful because it is written collaboratively by volunteers around the world. we are also going to give potential users opportunity for collaboration. we plan to make a content editor  conceptually similar to the one from wikipedia. the process of creating new copernicus pages will consist of writing an article and uploading a 1d model in xaml format. 
+in this article  we have presented 1lip - a new way for designing interactive 1d web applications. we introduced copernicus  a prototype application that can be placed between web 1 and web1d. the evaluation has shown that due to only a slight modification of the current web browsing  users had no problems to interact with this system. they have gained  however  by more entertaining style  which improved their spatial and overall cognition. we believe that this kind of evolution is necessary to prepare people for the full-fledged 1d internet. 

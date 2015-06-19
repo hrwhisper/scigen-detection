@@ -1,0 +1,4 @@
+we present the query-driven exploration of semistructured data and meta-data with conflicts and partial knowledge  quest  system for supporting the integration of scientific data and taxonomies in the presence of misalignments and conflicts. quest relies on a novel constraint-based data model that captures both value and structural conflicts and enables researchers to observe and resolve such misalignments in the integrated data by considering the context provided by the data requirements of given research questions.
+categories andsubjectdescriptors: h.1  heterogeneous databases ; h.1  information search and retrieval :relevance feedback; h.1  user interfaces  general terms: algorithms  experimentation
+keywords: reasoning with misaligned data  conflicts  taxonomy  relevance feedback  query processing
+1. motivation

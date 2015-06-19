@@ -1,0 +1,36 @@
+the recent introduction of interactive television provides a novel environment for the support of multimedia content. we present some ideas and initial results from an investigation  where xsl is used to automate the transformation of content developed for the web environment into a form suitable for display on interactive tv.  
+keywords 
+convergence  multimedia  digital television  mheg  itv  xsl 
+1. introduction 
+the recent introduction of set top boxes with interactive television  itv  capabilities provides a platform for applications involving interaction with multimedia content. there is already a number of competing itv application platforms on the market  using a variety of content representations. a second generation of set top boxes  stb  that aim to provide standardised platforms are being developed; with xml-based languages as a notation for content representation . one advantage of adopting xml  is its potential to enable content sharing between heterogeneous devices  as in the example that follows.  
+figure 1 illustrates a scenario where a stb shares content with a broadcaster  the web  and a remote hand held device such as a pda. an example of an application that might exploit such an environment would be a tv advertisement  where the broadcaster displays a form designed for the web on the 
+
+xhtml basic 
+figure 1: interactive tv scenario 
+viewer's television and invites them to order goods directly. the user could be given an option to transfer the form to their pda where a number of fields could be filled in automatically  e.g. name  address  credit card no. etc.  and then transferred back to the stb for return  either to the broadcaster or some third party via an internet link. 
+although there are transport mechanisms that enable xmlbased content to be exchanged between virtually any of these devices  there is no guarantee that the content developed for one device can be satisfactorily rendered on another. 
+use of extensible style sheet language  xsl   enables a document defined in one xml-defined mark-up language to be transformed into another  via xslt or xsl transformations   and to be formatted according to different display requirements using the xsl formatting objects. we are investigating the use of xsl to automate the transformation of xml based content between itv and web environments. 
+1. general transformation issues 
+the transformation of internet based content into itv content requires more than the simple process of replacing xml markup tags from one domain with their equivalents in the other. the following issues have to be considered in order to produce an effective model of the transformation process. 
+1 presentation and layout 
+the display constraints of both environments have to be considered. examples of such constraints include the availability of scrolling mechanisms  positioning method  window resizing and the screen resolution. in an itv environment  the lack of a scrolling mechanism reduces the display area to the physical screen resolution. also  the use of absolute positioning fixes the layout of text/images on the screen.  
+1 navigation models and input 
+mechanisms 
+the different physical input devices used directly influence the navigation model of the applications. environments that incorporate mouse and keyboard permit sophisticated navigation models to be incorporated in the application; whereas typical television remote controls provide minimal support for navigation and selection. navigation using such basic controls may require the user to move between several levels of context. 
+1 text  colours and images 
+these features are directly dependant on the screen capabilities of the device. the range of permissible font styles and sizes often vary between platforms. different devices use different colour schemes/palettes and correct rendering of colours has to be ensured by some means of colour mapping. images may have to be resized or recoloured and there may also be need for image format conversions. 
+1. an example 
+we are currently implementing a transformation of xhtml basic  documents into an itv environment based on mheg-1 .  mheg-1 defines an xml notation for the series of mheg standards currently used in a number of set-top-boxes.  
+the transformation involves converting content designed for a scrollable display environment with relative positioning to one that is non-scrollable and uses absolute positioning. therefore automated content transformation requires the development of algorithms to perform the translation. 
+the example presented shows how a scrollable table can be transformed into an itv environment with absolute positioning and no defined table structure. for small tables  the whole object may be displayed on a single screen; but if the table is too large to fit within the itv display constraints  the table structure has to be reorganized into a suitable form with minimal loss of information.  
+figures 1 and 1 illustrate the transformation of a table that does not fit within a single itv screen. the table structure is manipulated to be displayed across multiple screens  by duplicating each table header  with corresponding values from a single row  onto each screen. buttons are added to each screen enabling navigation to the previous and next rows of the table. 
+ 
+ 	figure 1: xhtml table 
+ 
+ 	figure 1: transformed table in mheg 
+the xsl translation process is done in two parses. the first parse performs a set of computations to determine the table size  based on the number of characters in each cell and the associated font size requirements. the values generated are then fed into a second parse that either generates the whole table on a single screen or for larger tables  splits the table and generates the individual screens. 
+this work is being undertaken as part of the epsrc funded comit  convergence of mheg with internet technologies  project. further details on comit are available at: http://www.cs.ukc.ac.uk/projects/comit/ 
+1. future work
+we have found xsl can be a useful tool for providing automated transformation of web-based material to an itv environment. we plan to continue to explore this technique to consider the transformation of itv content into xhtml basic to enable integration of pda devices. 
+we intend to investigate substituting the pda device with a mobile phone using wml. the additional communication capabilities of a mobile phone produces a similar scenario to that illustrated in figure 1  but with the possibility of producing a fully connected environment. a number of the issues in transforming web content to an itv environment are equally applicable to a mobile phone environment and we would like to work towards a fully integrated platform where content can be seamlessly exchanged between all the different environments. 
+there are limitations to the approach described  mainly due to variation between semantic models used within the various environments. currently  we use javascript to provide additional functionality where required. use of common models such as dom  level 1 events and smil 1  timing and synchronisation could provide a consistent model where integration of content across platforms is more straightforward. 

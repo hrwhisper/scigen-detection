@@ -1,0 +1,191 @@
+most of the work on xml query and search has stemmed from the publishing and database communities  mostly for the needs of business applications. recently  the information retrieval community began investigating the xml search issue to answer information discovery needs. following this trend  we present here an approach where information needs can be expressed in an approximate manner as pieces of xml documents or  xml fragments  of the same nature as the documents that are being searched.  we present an extension of the vector space model for searching xml collections via xml fragments and ranking results by relevance. we describe how we have extended a fulltext search engine to comply with this model. the value of the proposed method is demonstrated by the relative high precision of our system  which was among the top performers in the recent inex workshop. our results indicate that certain queries are more appropriate than others for the extended vector space model. specifically  queries with relatively specific contexts but vague information needs are best situated to reap the benefit of this model. finally our results show that one method may not fit all types of queries and that it could be worthwhile to use different solutions for different  applications. 
+categories and subject descriptors 
+h.1  information storage and retrieval : information search and retrieval models - retrieval models. 
+general terms 
+algorithms  experimentation. 
+keywords 
+xml search & retrieval  vector space model  xml fragments.  
+1. introduction 
+the increased interest of the information retrieval  ir  community in xml search and retrieval has become apparent 
+ 
+permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. to copy otherwise  or republish  to post on servers or to redistribute to lists  requires prior specific permission and/or a fee. sigir'1  july 1- august 1  1  toronto  canada. 
+copyright 1 acm 1-1/1...$1. 
+ 
+first with the two editions of the  xml and ir  workshop    and then with the inex evaluation initiative . one common denominator among most of the efforts presented at these meetings is the departure from the classical pure  database  view of xml. this view  up to recently  dominated the world of xml search as evidenced by xquery   the w1c xml query language  which typically1 expects  binary answers  to very specific queries. while this approach is probably appropriate for managing xml data to be exchanged between applications  this is less so for discovering narrative documents  such as articles  business reports  and web pages  or in other words to address information needs as defined in .  for the latter  new document-centric  rather than data-centric approaches are needed  as observed in . 
+ 
+the work we present here belongs to the  document-centric  school and proposes a pure information retrieval approach to xml search and retrieval.  one important characteristic of modern information retrieval and of the classical vector space model in particular  is that queries are of the same nature as the objects that are being searched. thus  when searching full-text document collections  users issue queries in free text  which in turn can be compared to documents also expressed in free text. relevance is then estimated by similarity measures such as cosine between two objects of the same nature: a query and a document. if we extrapolate this approach to the xml case  the conclusion is that one should be able to search xml collections via objects of the same nature  namely pieces of xml documents or  xml fragments .  the goal of this paper is to demonstrate the viability of such an approach. we do so by establishing two key points. first  in section 1  we define xml fragments and demonstrate that they are expressive enough to cover most xml information discovery needs. then  in section 1  we suggest an extension of the classical vector space model that supports querying via xml fragments. the idea is to use  term  context  pairs as basic indexing units and extend the similarity formula to take into account similarity between contexts as well as similarity between terms. section 1 discusses several pragmatic issues involved in implementing this model.  finally section 1 evaluates our approach and compares several possible ranking formulas via experiments we conducted on the inex collection. we show that in general  we are able to attain good results using our model. we additionally show that for a certain class of queries good results can be attained using very little structural information  while for other queries  taking into account context similarity permits to achieve higher precision. in section 1  we conclude by summarizing the contributions and findings of this research. related work is discussed as relevant throughout the paper. 
+1. xml fragments 
+1 expressing imprecise needs 
+one key element of this work is to avoid defining yet another complex xml query language but rather to represent users' needs as xml fragments. we argue here that since information needs can rarely be perfectly expressed  they should be represented in a flexible manner that leaves room for approximate matching.   
+consider for instance the following need  books about search . this need could be fully specified and expressed as the following xml fragment: 
+ book search /book  
+¡¡¡¡figure 1: query #1 in xml fragment representation the more specific need  books having a title about search  could be represented as an xml fragment such as: 
+ book  
+   title search /title  
+ /book  
+¡¡¡¡figure 1: query #1 in xml fragment representation the semantics of these queries is simply find documents that contain this fragment of xml in them. the same need can be fully expressed in xquery as follows:  
+ results    {     for $t in 
+document  library.xml  //book/title      where contains $t/text     search   
+    return $t   } 
+ /results  figure 1: query #1 in xquery 
+the xquery and xml fragment representations differ both in terms of form - the first being declarative and the latter procedural - and in terms of level of specification. 
+indeed  queries #1 and #1  express an  imprecise need rather than an exact one as query #1 does. while all 1 queries above would retrieve knuth's volume 1 in figure 1  only queries#1 and #1 would retrieve volume 1. the latter should probably be lower ranked since the book title does not contain the term  search  - only one of the chapter titles does  yet it could and should be considered relevant. 
+ 
+ book  
+    volume value = 1/  
+    year 1 /year  
+    edition value=1/  
+    title sorting and searching /title  
+    author donald e. knuth /author  
+    
+   ...  
+    chapter number=1  
+     title sorting /title     ... /chapter  
+    chapter number=1  
+    title searching /title   
+   ... /chapter  
+ /book  
+ 
+ book   
+    volume value = 1/  
+    year 1 /year  
+    edition value=1/  
+    title combinatorial algorithms /title  
+    author donald e. knuth /author  
+    chapter number=1  
+     title combinatorial searching /title  
+   ... /chapter  
+    chapter number=1 
+    title recursion /title   
+   ... /chapter  
+ /book  
+         figure 1: examples of two books in xml  in a pure ir model  it is the role of the ranking formula to assign an appropriate relevance score to both volumes. on the other end of  the structured-unstructured spectrum  one could also imagine queries of the form   book  volume value=1/  /book   that would return only the volume 1 book. we believe however that extended ir approaches  are  most effective when both kinds of information  structured and unstructured  are needed. a  good  query would be for instance the one given in figure 1  which combines structured and unstructured parts  as well as free-text and parametric values. 
+ book  
+   edition value=1/  
+   year 1 /year  
+   title search /title  
+ /book  
+         figure 1: a typical xml fragment query  the key point of our approach is that documents that are only partially relevant should receive a non-zero score  similarly to documents that contain only part of the query terms in a free-text query.  
+note that we do not claim here that users should directly express their queries in an xml fragment style. indeed  even if xml fragments are somehow user-friendlier than xquery  they still require some approximate knowledge of the dtd/schemas used in the xml collection that is being searched. we only argue that xml fragments offer more flexibility in terms of representation and approximation of users' needs.  
+many applications will probably still need to provide interface artifacts to assist users expressing the structured part of their needs  such as the exact tag names. this could be done via forms where entry fields are associated with pre-defined elements. the data entered by users in these forms could then easily be mapped into xml fragments. another less restrictive approach would consist of offering automatic completion mechanisms  where a user would start typing an element name and would get not only the possible completion in the existing dtds but also all the possible paths that embed the given elements such as proposed in   so as to select the most appropriate one s . 
+1 semantics of xml fragment queries 
+the default semantic of a query is that a document/component is considered a potential result if it contains at least one path of the query tree from the root to a leaf  or to follow the vector space model  if it has a non-null similarity with the query profile.  
+in order to allow for more control on the xml fragments yet keep their simple intuitive syntax  it is possible to decorate xml fragments with operators such as  +    -   or  phrases . phrases are applied on the content as illustrated in figure 1  with the phrase  call for papers  while +/- operators can be applied contents as well as elements or attributes as exemplified below:  
+  +: in figure 1  if  search  is prefixed with  +   knuth's volume 1 will not be returned as its title does not contain the term  search''. the query  +author donald knuth /author  returns only documents containing both  donald'' and  knuth'' under the same  author  instance. this is equivalent to querying with the fragment  author +donald +knuth /author . an example of forcing the appearance of a given element is given by query  book  +title   /title  /book   that will return only books that have a title element. 
+  -: the query   book  chapter -combinatorial searching  /title  /book   will not return knuth's volume 1  as it would without the - prefix. the query   book  -abstract   /abstract  /book   will return all books that do not contain abstracts.  
+in addition  an xml fragment can specify a target element  i.e.  an xml component expected as a target result.  for instance    target book /target   specifies that the target element to be retrieved is   book  . in this case  book elements will be returned as basic retrieval units.  
+1 limitations of xml fragments we have confirmed the expressiveness of xml fragments empirically in several domains from car reviews to medical records  and in more formal settings in the context of inex  where we exclusively used xml fragments. although the inex collection is relatively small  it represents a reasonable test bed as topics originated from 1 independent competitors/assessors. we verified that we could easily translate most of the inex topics into xml fragments.  
+ 
+ article  
+   bdy  
+     sec nonmonotonic reasoninng /sec  
+   hdr  
+     yr 1 /yr     /hdr  
+   tig  atl  
+     -calendar - call for papers  
+   /atl  /tig  
+ /article  
+¡¡¡¡figure 1: inex topic expressed as an xml fragment take for instance the inex topic 1 associated with the following task:  retrieve all articles from the years 1 that deal with works on nonmonotonic reasoning. do not retrieve articles that are calendar/call for papers . it can be translated into the fragment shown in figure 1. 
+ 
+out of the total 1 inex topics  there were only two topics that we could not express. one such topic was topic #1  which requests   find figures that describe the corba architecture and the paragraphs that refer to those figures . this type of query requires a  join  operation between two elements  or tables in database terms   figures  and  paragraphs  which should be joined through a common  figure-id  field.  this topic illustrates the major limitation of our xml fragment model  and a major restriction of most ir systems as compared to db systems.  
+in summary  while it is clear that our format is far from being as expressive as a full-fledged sql-like query language  we have confirmed the conjecture that xml fragments can express most informational needs in inex. we intend to investigate how to address join operations in our model  although this is clearly not trivial in a pure ir model.  
+1. extending the vector space 
+model 
+1 a variant of the cosine measure 
+let us remind here that in the regular vector space model  documents and queries are represented in a similar manner  so as to produce vectors in a space whose dimensions correspond each to a distinct indexing unit t. indexing units are usually words  in their base forms  or complex terms such as phrases or collocations. the coordinate of a given text x on dimension t is noted wx t  and stands for the  weight  of t in x within the given collection  where x stands for document d or query q. it is typically computed using a score of the tf x idf family that takes into account both text and collection statistics. the relevance of the document d to the query q  noted below ¦Ñ q d   is then usually evaluated by using a measure of similarity between vectors such as the cosine measure   where: 
+ 
+¦Ñ q d  =¡Æt¡Êq¡Édqw q td   wd t   1  
+ 
+we propose here to use as indexing units not single terms but pairs of the form  t c   where a term t is qualified by the context c in which it appears. in order to identify the context of appearance of a term  we borrow from the xpath model where context is represented by the path leading to the term from the xml root in the hierarchical structure of the document  or the query . thus  in query #1 shown in figure 1  the term  search  will be associated with the path  /book/title/  as its context.   
+we suggest then changing the similarity measure accordingly. thus  in formula 1 the weight of individual terms should be replaced by a weight of terms in context that we denote as wx t c  where x stands for d or q. in addition  we propose to relax the scalar product model by accounting not only for exact  term in context  matching but also for context resemblance. in other words  we suggest to increase the relevance score not only when the same  t c  pair is found in the query and the document  but also when a same term t appears in contexts related to c. thus  if we note cr  the context resemblance between contexts  we propose to use as a measure of similarity between xml fragments and xml documents: 
+     ¡Æ ¡Æ t ci  ¡Êq  t ck  ¡Êd wq t  ci  wd t ck  cr ci ck   1  ¦Ñ q d  =
+
+1 various context resemblance measures 
+various systems might choose different instantiations of the cr measure  which may have a more or less significant impact on the overall quality of retrieval. we have investigated several such instantiations as detailed below and evaluate their comparative impact on inex in section 1. some examples of cr functions are given next. 
+	=  1	ci = ck  
+  perfect 	match: 	cr ci ck    1	otherwise
+this function represents the structured extreme of the unstructured-structured spectrum. only  t c  pairs that appear both in the query and the document will contribute to the relevance score. using such a model requires that queries be perfectly specified.  
+  partial-match: 
+ 1+ | ci |
+	cr ci  ck   =  1+ | ck |	ci subsequence ofck  1  
+	  	1	otherwise
+in this model  only query terms appearing in a document under context ck that contains the query context ci as a subsequence  contribute to the similarity score. if we note |ci| the number of tags in the given query context and |ck| the number of tags in the document context  an example of subsequence-based measure is given in formula 1 above. an example of value taken by cr on inex contexts is given below:  cr  /article/bibl   /article/bm/bib/bibl/bb   = 1 = 1 
+  fuzzy match: this type of  fuzzy  match allows for an even finer grain similarity between contexts that could allow ellipsis or even inversion. an example of such a measure is given in   where similarity is evaluated by considering context as strings of elements and using string-matching techniques.  
+  flat 	 ignore 	context :  ci ck   cr ci ck   =1  
+as an extreme and reference case  we also consider a model that completely ignores contexts. any query term that appears in a document  no matter under which context  will contribute to the relevance score. in that case  formula 1 degenerates to formula 1 as long as w is additive  i.e.  ¡Æw t c  =w t  . 
+c
+1 document granularity 
+we do not discuss here how to choose the atomic unit of retrieval  i.e.  document  d  in the previous formulas. we assume that it is defined at indexing time depending on the xml collection. however  users are allowed to specify the desired target-element within the query xml fragment  see section 1 . in the examples given in figure 1  for instance  the xml collection was indexed at the element  book  level. yet  we propose to extend the xml fragment specification so that users can ask queries of the form   section search /section   target section  /target    to obtain only  section  fragments rather than full  book  documents.  we first compute relevance at the predefined  d  level. we then analyze and extract target elements as required. in a second stage  we use techniques similar to passage extraction   to return and rank the possible fragments within a relevant document  which we do not discuss here for lack of space. 
+other approaches are possible where fragment relevance is computed in a one-stage process. the  indexing node  approach   proposes to group xml elements into predefined nodes that are associated with term statistics in the inverted lists. users can search at the level of indexing nodes or of hierarchical combinations of such nodes. when combining nodes  a so-called  augmentation  technique is used to down weigh term statistics when statistics and inverted lists are propagated upward in the document tree. one limitation of this approach is that indexing nodes are predefined at indexing time and combination is possible only for nodes along the same path in the document tree. this approach has been extended in   in order to allow on-the-fly combination of the statistics of basic elements at any granularity level. the statistical information required for computing relevance score in the vector space model is thus dynamically derived at query time  depending on the scope of the query. we believe that these two pieces of work propose indeed interesting directions but still more needs to be done for appropriately representing collection statistics at every level. we intend to continue investigating these issues in future work.   
+1. implementation issues  
+we discuss below some of the key practical issues to be addressed when implementing xml fragment support in an ir system.  
+1 indexing and storage 
+in order to follow the generic scheme described in the previous section  the following tasks are conducted at indexing time:  1  the collection is parsed by an xml parser and split into  documents  according to a given predefined element  and  1  for each document a vector of   t c  pairs is extracted that forms the document profile.  
+profiles are then added to an inverted index as follows. all identified  t c  pairs are put in a lexicon. for each entry  we store global term statistics as well as the associated posting elements  which store the necessary statistics to compute the w weights of formula 1.  storing terms in context is actually equivalent to splitting the long posting list of a given term t  in a regular fulltext system  into a series of smaller lists  one for each unique  t c . this splitting allows the system to efficiently handle retrieval of occurrences of a term t under a special context c. while many storage solutions are possible to embody this model  for convenience reasons we use a storage scheme described in  that allows to store such pairs  t c  in  the lexicon  of a regular full-text information retrieval system via only minor modifications. in this storage scheme  each pair  t c  is represented as a unique key t#c  and treated as a single term token by a regular full-text engine. 
+1 retrieval 
+ at retrieval time  queries are parsed and indexed the same way documents were  so as to generate a query profile of the form { t c }. for each such  t c   the retrieval engine identifies the precise occurrences of the term t under context c in the collection  by fetching the posting list of the key  t#c.  this is all that is needed for the perfect match scheme described above  where only exact query contexts are needed.  
+for the partial and fuzzy schemes  the retrieval engine needs to be able to fetch not only the postings of  t c   represented by the key t#c  but also these of  t c'   represented by t#c'  such that c' has a non-null resemblance with c  as per formula 1. in order to do so  a simple  but not very efficient  technique is to retrieve all possible contexts under which the term t has appeared  by doing a suffix matching operation on  t# . this operation is straightforward if the lexicon is stored in a trie data structure for instance.  once all these c' are identified  the contribution of the nested sigma in formula 1 is computed as follows. first  we compute cr c c'   and for c' with a positive cr score  we fetch the postings of  t c'  so as to compute the appropriate w t c'  weights.  
+1. evaluation 
+in this section  we present the results of the experiments we conducted on the inex collection in order to evaluate several possible implementations of our model. the inex collection consists of 1 cas  content and structure  topics and 1 co  content only  topics. we focus here on the cas topics as xml fragments are precisely designed to handle a mix of contents and structure. in order to instantiate formula 1  we need to specify how to compute query and document term weights. we chose a classical scheme for wx t c  of the tf t c  x idf t c  family  where x stands for either d or q and 
+  idf t c  = log  |n|/|n t c |   with |n| = total number of documents in the collection and |n t c | = number of documents containing  t c  
+  tfx t c  is a monotonic function of the number of occurrences of  t c  in x. 
+  ||x|| represents the number of unique occurrences of  t c  in x among the 1 possible cr functions described in section 1  we report results for the fuzzy  partial  and flat schemes. the perfect match scheme was too restrictive and thus yielded very poor results. this is due to the fact that context in most inex cas topics is expressed as a partial xml path and therefore yields to no results. in addition to comparing the runs induced by the 1 schemes above  we tested 1 variations of weight functions.  the incentive being that it was not clear whether all contexts would embed enough text to obtain significant statistics either at the document level  as represented by the tf factor  or at the collection level  as represented by the idf factor . for instance  if context c is rare it might happen that a given  t c  would receive a very high idf value in spite of t being very common. in order to isolate this phenomenon  we added two variants to our schemes: 
+   merge-idf  variant: in this variant  for each  t ci  in the query   rather than looking at the idf of  each individual  t ck  occurrence  we consider the idf  of  a larger set of terms. specifically  we count the number of occurrences of t in the collection under the union of all context ck that are similar to ci. more formally  if we denote this unified context as:  
+c =¡Èk ck  where cr ci ck    1   
+we apply formula 1 with the following instantiation:  wd t ck  = tfd t ck *idf  t c  
+   merge  variant: in this variant  we use the unified context c not only for computing the idf values but for computing all the other factors as well. these values are respectively tfd t c    which represents the term frequency of t in the document under the unified context c  idf t c  which is defined as in the merge-idf variant above  and finally cr ci c  which is the context resemblance of the query context to the unified context.  the latter can be computed as the average of the cr ci ck  for instance. we thus obtain a degenerated variant of formula 1  where the iteration is performed only on the  t ci  of the query. 
+we describe below the exact details of the runs varying the cr function as well as the optional merge variants  
+1 runs 
+we tested 1 runs  1 of them under the partial match scheme  namely 
+1. partial-match: this run uses formula 1 with the cr function for partial merge specified in formula 1. 
+1. partial-match.merge-idf: this run uses the  merge-idf  variant of formula 1 with the cr function for partial merge specified in formula 1.  this is a run built for this paper that was not assessed by inex.  
+1. partial-match.merge: this run uses the  merge  variant of formula 1 and a degenerated cr function on one single unified context.  note for reference purposes that this run achieved among the best scores on cas topics in the formal inex assessment. 
+1. fuzzy-match.merge-idf: this run uses the  merge  variant of formula 1 with the more complex cr function of the fuzzy match scheme. this is a run built for this paper that was not assessed by inex. 
+1. flat  ignore context : this run was used mostly for reference purposes.  it uses cr c ck  = 1 for each ck.  this is a run built for this paper that was not assessed by inex. 
+1 analysis of the results 
+for all 1 runs  we issued 1 queries  expressed as the xml fragment representation of the cas topics. we also performed post filtering to account for structured query constraints to return only the desired target elements as required by the inex procedure.  
+the 1 runs resulted in five associated recall/precision curves computed using the inex-provided utilities  which are plotted in figure 1.  
+ 
+   figure 1: plot of our 1 runs on the inex 1 collection the first point to notice is the relatively high average precision for all runs. in fact  according to the unofficial results  our runs are among the highest scoring ones at inex. the surprising point though is that our reference run   #1 called  flat  above  that was not even submitted to inex yields the best results on average. this result could conceivably indicate that on average  traditional full-text text ranking methods are best for xml search at least for documents embedding large chunks of text. first  there seems to be almost no difference between the partial-match and the fuzzymatch runs in most cases  which indicates that for inex-like queries  	complex 	context 	resemblance 	measures 	do 	not significantly impact the quality of the results. 
+our interpretation is that when queries are well formed and contexts are accurate  even if under-specified   simple context resemblance measures such as subsequence are sufficient. more complex similarity measures should be reserved to error-prone queries. a more important finding though was that the flat run was not uniformly superior on all topics. indeed it gave significantly better results on topics 1  1 & 1  while it gave poorer results on topics 1 and 1  as shown in figures 1 and 1. in these figures  the histogram bars represent for each topic  from left to right respectively  runs 1  partial   1  fuzzy-match merge idf   1  partial match-merge-idf   1  partial match-merge  and 1 
+ flat . 
+in order to understand this phenomenon  we examined the xml fragments associated with these topics as shown in figure 1. one clear commonality between topic 1  1 and 1 is that they are composed of a nearly free text part and a highly structured or precise part. the free-text part consists of a generic requirement for some content to appear either under  bdy  or  sec  -- both large portions of text that cover most of the document. the second part of the query is a precise constraint that is well handled by the target-element post filtering and does not require context resemblance.  these queries are thus dominated by the free text part and are indeed best served by the flat method. 
+partial-match.merge
+figure 1: average precision by inex topics of all 1 runsat the other extreme  topics 1 & 1 impose precise constraints on contexts and require that the free-text part appears in specific contexts  namely  atl  abs  and  st  for topic 1 and  atl  for topic 1.  
+ 
+figure 1: precision for  free-text-oriented  topics 
+ 
+since these contexts are quite small  methods that consider context boundaries and use context-sensitive lexicon statistics better identify good matches for the query. methods that ignore context  such as the flat run  are not sensitive enough to these distinctions. 
+ 
+figure 1: precision for  context-oriented  topics 
+ 
+in most of the other topics  all runs exhibited similar performance  with in general pretty good average precision  except for topics 1  1  1. the latter topics do not specify a target element and expect the system to identify the best target for the query. as we do not support this feature at this stage  we followed our regular model and only returned relevant candidates at the document level and thus got a very low score. we intend to work on this specific feature in the near future. 
+ 
+topic 1 
+ pdt   yr 1 /yr  /pdt  
+ sec internet search engine /sec  
+ 
+topic 1 
+ yr 1  1  1  1  1 /yr  
+ bdy xml electronic commerce /bdy  
+ 
+topic 1 
+ fm  au jones smith /au  /fm   bdy software engineering and process improvement /bdy  
+ 
+ 
+ 
+topic 1 
+ atl experience results problems /atl  
+ abs experience results problems /abs   st experience results problems /st  +  extreme 
+programming  experiences results 
+  
+topic 1 
+ atl content-based retrieval of video databases /atl  
+figure 1: xml fragments for topics 1  1  1  1  1 
+ 
+the reader should note that the assessments were not performed in a uniform manner as they were distributed among participants. more importantly the number of cas topics is rather small and may therefore not suffice to reach clear conclusions as studied in . we will have to further explore our methods on other collections to verify these results. 
+ 
+1. conclusion 
+we have presented here an approach for xml search that focuses on the informational needs of users and therefore addresses the search issue from an ir viewpoint. in the same spirit as the vector space model where free-text queries and documents are objects of the same nature  we suggest that query be expressed in the same form as xml documents  so as to compare  apples and apples . we have presented an extension of the vector space model that integrates a measure of similarity between xml paths  and have defined a novel ranking mechanism derived from this model.  we evaluated several implementations of our model on the inex collection and obtained good evidence that the use of xml fragments with an extended vector space model is a promising approach to xml search. by sticking to the well known and tested model where the query and document are of the same form  we were able to achieve very high precision on the inex topics. the initial results also indicate that queries that are well specified in terms of the required contexts  are best situated to reap the benefit of more complex context resemblence measures and statistics. however  these results should still be considered as initial due to the limited set of queries studied here. a deeper analysis and more than a few  almost  anecdotal   queries should be discussed as soon as larger test collections become available. finally  we are convinced that one method will not fit all types of queries and that it could be worthwhile to use different solutions for different types of applications. 
+1. acknowledgments 
+we are grateful to andrei broder for his feedback on xml fragments and to the anonymous reviewers for their suggestions. 

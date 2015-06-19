@@ -1,0 +1,157 @@
+for trec-1  we participated in the adhoc and manual web tracks and in both the site-finding and cross-lingual tracks.  for the adhoc track  we did extensive calibrations and learned that combining similarity measures yields little improvement.  this year  we focused on a single highperformance similarity measure.  for site finding  we implemented several algorithms that did well on the data provided for calibration  but poorly on the real dataset.  for the cross-lingual track  we calibrated on the monolingual collection  and developed new arabic stemming algorithms as well as a novel dictionary-based means of cross-lingual retrieval.  our results in this track were quite promising  with seventeen of our queries performing at or above the median.  
+ 
+1 introduction 
+for iit at trec-1  we focused on the adhoc tasks  both automatic and manual   the site finding task  and the arabic cross-lingual tasks.  for the adhoc tasks  our system is quite different from last year.   we calibrated with different fusion approaches and found that a single similarity measure outperformed our other approaches.  we also worked with the netowl entity tagger to improve our phrase recognition.  in the manual track  we developed a new user interface to assist our manual user.  
+ 
+our results for the arabic cross-lingual track were quite promising.  we developed a new stemmer and made use of a dictionary-based algorithm that requires the translation of the term to be equivalent when going from arabic-english and from english-arabic.   
+finally  we participated in the web site finding track.  we tested a variety of simple approaches  but unfortunately  our results were not very impressive.  we are conducting failure analysis on this track to include in the final paper.   
+ 
+1 adhoc 
+for trec-1's ad-hoc task  we focused on effectiveness for short queries.  we did a variety of calibrations after trec-1 on the utility of fusion of various ir approaches.  we found that when the stop word lists and parsers are kept constant and effective ranking strategies are used   essentially similar result sets occur for a variety of similarity measures and improvements in average precision due to fusion are negligible.  we published this result   and for trec-1  focused on a single similarity measure.   
+ 
+in this section  we briefly describe our query-processing techniques: the use of automatic statistical phrase weighting based on query length and the use of entity tagging for query terms.  in the last section  we present our trec 1 ad-hoc results including some of our results from fusion.  
+1 query processing  
+many different strategies are used to improve the overall effectiveness of an ir system.  several examples are automatic term weighting  1  1  and relevance feedback .   phrases are frequently suggested as a means for improving the precision of an ir system.  prior research with phrases has shown that weighting phrases as importantly as terms can cause query drift  and a reduction in precision.  to reduce query drift  static weighting factors are applied to a phrase reducing the contribution of importance to a documents ranking.  these static weighting factors were shown to yield slight improvements in effectiveness   1  1 .  this year we applied two techniques to improve phrase processing.  the first is an automatic phrase-weighting algorithm based on the query length and the second is entity tagging using sra's netowl tagger to determine what phrases to use for search. 
+1 automatic statistical phrases weighting based on query length 
+statistical phrases are frequently identified at index time by identifying two term pairs that occur at least fix this  x times and do not cross stop words or punctuation.  twenty-five is commonly used as a threshold for the number of documents a phrase must occur in before it is considered a statistical phrase . 
+ 
+while the use of phrases is a precision enhancing technique  their na ve usage generally reduces ir effectiveness.  when multiple phrases are evaluated for a given query  the likelihood of query drift increases.  this drift is caused by phrases overemphasizing a given document that does not contain a breadth of the attributes but only a highly weighted phrase.  for an example query of  oil company law suits   the phrases:   oil company    company law  and  law suits  will overemphasize documents not containing all the terms or phrases and cause nonrelevant documents to receive a higher ranking.  this overemphasis causes query drift and the precision of a system decreases.  to correct this  we introduce a damping factor of  exp -
+1*delta*querylength  and apply it to the actual contribution any phrases can supply to a given document.  in equation 1 the complete weighting for a phrase is given. 
+ 
+¡Æ1+     .1 +.1 +docsizeln 1+ ln tf  / avgdocsize  *exp -1*delta *querylength     *nidf *qtf 
+equation 1:  phrase ranking algorithm 
+ 
+where: 
+  tf = frequency of occurrences of the term in the document 
+  qtf = frequency of occurrences of the term in the query 
+  docsize = document length 
+  avgdoclength = average document length 
+  n = is the number of documents in the collection 
+  n = is the number of documents containing the word 
+  nidf = log n+1/n  
+ 
+our hypothesis is that as the number of phrases increase for a query  the likelihood of query drift due to a highly weighted phrase increases.  thus  by adaptively weighting phrases based on query length  we can improve precision by reducing the likelihood of drift. we ran tuning experiments with the trec 1  1 and 1 short  title only  queries.  we measured the effectiveness of the various runs with no phrases and phrases with various static weights and dynamic weights.   
+ 
+by keeping the phrase weight set to one  equivalent to the weight given to terms  our average precision is reduced by almost 1%.  other researchers have experienced this same result  1  1 .  by reducing our phrase weight by a factor of .1 and .1 our effectiveness improves.  while other groups have chosen a fixed static weight of 1  short queries continue to improve to 1.  table 1 shows the average precision for phrase weights of 1  .1  and .1.  our adaptive phrase weighting enables us to avoid tuning for phrases. a dynamic weighting based on query length determines the likelihood that the phrase will contribute to the weight.  our dynamic approach yields an improvement of 1% over the statically tuned approach on average for the 1 queries.  all iit runs this year use the given phrase weighting approached described above. 
+ 
+
+ 	no phr pwt - 1 pwt - .1 pwt - .1 pwt - sig no- .1 no- sig t1 	1% 1% 1% 1% 1% 1% 1% t1 	1% 1% 1% 1% 1% 1% 1% t1 	1% 1% 1% 1% 1% 1% 1% avg 1% 1% 1% 1% 1% 1% 1% 
+table 1: phrase weighting evaluation runs  short queries  
+ 
+1 ad-hoc trec 1 experiments  
+our overall results for trec-1 ad hoc experiments are summarized in the following chart. 
+ 
+above median at median   below median 1 1 1  
+for all queries  we used our new weighted statistical phrase processing.  in addition  for indexing  we used a modified porter stemmer and conflation class stemming system.  this year's baseline title only experiment was iit1t.  for our submitted run  we used a modified pivoted document length ranking strategy.  we used rocchio positive feedback using 1 terms from the top 1 documents selected in pass one and each new query term was given a factor of .1.  in addition  we used the trec disks 1 for collection enrichment with rocchio positive feedback of 1 terms from the top 1 documents and a weighting of 1.  our run with feedback and collection enrichment is shown in figure 1 below.   
+ 
+
+figure 1: title only runs  
+1 query entity tagging 
+ 
+we also tested the impact of using an entity tagger over statistical phrases.  tagging a large document collection is difficult with existing entity-taggers because they are not designed for scalability.  we were able to tag queries very quickly.  the idea was to take the entities tagged in the query and derive two-term phrases from these entities.  hence  a query with  federal housing authority  that has this tagged as a single entity would result in the phrases  federal housing  and  housing authority  to be derived from this tag.   
+ 
+we encountered several problems with this approach.  many queries are not long enough for entity taggers to accurately tag the query terms.  worse  not all queries contain entities that provide useful knowledge of which phrases to use for query processing.  to further examine our strategy we used the description of the query instead of only the short titles.  only five of the fifty queries contained entities that were tagged by the netowl tagger that could be used for query processing.  the five queries and their tags are shown in table 1.  when an entity was encountered  all terms within it were combined as phrases.  for query 1  edmund hillary  is identified as a useful phrase  for query 1   j. robert oppenheimer  is found  and for query 1  booker t. washington  is identified as a single phrase.   finally  query 1 has  federal housing authority .  because our index includes only two term phrases  we generate two term phrases from these entities.  future work will focus on tagging the entities in the corpus for indexing.  that way  washington as a name will be distinguished from washington as a place in both the queries and the index and can be used as a filter.   
+ 
+ 
+query 1: who is/was  person type= person  firstname= edmund  lastname= hillary  gender= male  edmund hillary /person   query 1: find biographical data on  person type= person  firstname= j. robert  lastname= oppenheimer  gender= male  j. robert oppenheimer /person . query 1: what did  person type= person  firstname= alexander 
+graham  lastname= bell  gender= male  alexander graham bell /person  invent  query 1: what biographical data is available on  person type= person  firstname= booker t.  lastname= washington  gender= male  booker t. washington /person   query 1: find documents describing the  entity type= entity  
+subtype= government  federal housing administration /entity    entity type= entity  subtype= government  fha /entity  : when and why it was originally established and its current mission. table 1: entity tagged queries  
+1 summary  
+for trec-1's ad-hoc task  we focused on effectiveness for short queries for the web track.  this year we focused on query processing techniques and fusion approaches.  our initial results are both positive and negative in nature with an overall strong performance in the adhoc title-only task  thirty-two queries of fifty were judged over the median.    
+ 
+1 manual task 
+for the manual web track  iit expanded upon work from prior years.  our overall results are summarized in the following chart. 
+ 
+above median at median  below median 1 1 1  
+research focused on the use of concepts and manual relevance feedback.   additionally  a new user interface was developed.   as with previous years  we implemented required and scoring concepts.  all fifty topics had at least one required concept.  a concept is represented as a set of words from which a document must contain at least one word.  eighteen topics contained two required concepts  documents must contain at least one entry from each list.  forty-six topics have scoring concepts  or concepts that contribute to relevance but do not identify new documents.  table 1 summarizes our experiments related to concepts.  while the use of multiple required concepts only provided a modest boost to average precision  the probability of achieving the best average precision doubled.  the median average precision for all teams was 1 for our topics with two required concepts  while the median was 1 for topics where we used one topic  indicating the two concept topics were somewhat more difficult. 
+ 
+ 
+required concepts number 
+of queries in set avg 
+precision best at or above 
+median  not best below median 1 1 1 1 1 1 1 1 1 1 1 1  
+table 1: average precision for manual queries 
+ 
+we also tested the effect of manual relevance feedback.  manual relevance feedback involved reading some number of documents and selectively modifying queries based upon what was read.  to do this  we split the topics into three groups.  for the most  top  group  we read at least 1 documents per topic  with a maximum of 1.  for the middle group we read between 1 and 1 documents.  finally  we read from zero to 1 documents for the group with minimal relevance feedback.  we reviewed a little under 1% of returned documents.  table 1 summarizes the results for manual relevance feedback.  it can be seen that reading numerous documents had an impact on whether or not we had the best query.    
+ 
+documents read number of 
+queries in set avg 
+precision best avg precision at or above 
+median  not best below median 1+ 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1  
+table 1 manual relevance feedback results 
+ 
+final results were re-ranked based upon user assessment.  user assessed  relevant  documents contained all elements of topic   probably relevant  contained most elements  or loosely addressed all elements.  documents assessed  probably not relevant  contained some reference to the topic but did not seem related  while  not relevant  were completely unrelated.  table 1 below shows our in-house assessments of the result documents.   
+ 
+user 
+assessment documents ranking adjustment relevant 1 ranked above all other documents returned probably relevant 1 relevance score boosted by 1 probably not relevant 1 relevance score lowered by 1 not relevant 1 relevance score lowered by 1  
+table 1 relevance assessments from our manual user 
+ 
+ 
+1 homepage finding 
+this year our group participated in the new site finding task.   for a baseline run  we indexed the title terms from the document collection and ran an initial query pass using our basic adhoc retrieval strategy.  in addition  the source url's for each result document were cleaned to remove extraneous words and characters so they would adhere to a typical url format.  after having retrieved the results from our initial query pass  we used three techniques to augment and improve the result set:  tand  co-occurrence boosting  url-folding. 
+1 tand initial results at thirty percent 
+the results from the initial query pass were tand'ed.  in order for a candidate result document to remain in the result set  it had to contain a minimum of thirty percent of the query terms.  this technique was used as a coarse-grained filter  eliminating result documents that had little chance of being relevant.  we arrived at thirty percent and all other thresholds by calibrating with the training site-finding set.  
+ 
+1 boosting on result co-occurrence 
+along with our primary title-only index  we created several other indexes that were used for a form of collection enrichment.  these included: 
+ 
+  odp descriptions - we crawled the hierarchy of the open directory project  www.dmoz.org  and created an index of the description terms for each entry. 
+  odp anchor text - an index of the anchor text used for hyperlinks in the open directory project 
+  first-1 - an index of the first one hundred terms from each document in the wt1g. 
+ 
+after the tand'ing of the result sets from the initial query pass was complete  we ran a query pass against each of these three indexes  and used the following algorithm to  boost  results in the initial result set: 
+ 
+  for the top thirty results from the odp description query  we checked the url for the result document in question against the result set from our initial query pass.    
+  if it was present in the initial query pass  the score for the document in the initial result set was increased by 1% 
+  if it was not present in the initial query pass  but a document with the same url was confirmed to exist in the wt1g collection  that document was added to the initial result set with the unmodified weight from the odp description result set. 
+  this process was repeated for the two additional indexes in the following order  with the following parameters: 
+  odp anchor text: examined the top sixty results and boosted matches by 1%   first-1: examined the top sixty results and boosted matches by 1% 
+ 
+tand'ing and boosting improved our baseline mean reciprocal rank by approximately 1%.  it should be noted that the order in which the boosting indexes were queried is very important  as potential results could have been boosted multiple times depending on which source located them first. 
+ 
+the order in which the boosting indexes were queried  and the various boosting factors and number of results examined were determined experimentally by performing a large number of calibrations using the supplied training data for the homepage finding task.  essentially  the numbers describe the measure of confidence we placed in the ability of each source to yield relevant results.  we found that the odp indexes  potentially due to the large amount of human oversight and interaction  were trustworthy.  by contrast  the index of the first one hundred terms was shown to be less likely to contain highly relevant results  probably due to the presence of large quantities of  noise  information that is often present in the first terms of a web page  such as advertisements  etc.  
+1 folding 
+the final technique we used on the boosted result set was our url-folding algorithm.  the idea here is to combine results from the same site in the ranked list so as to order them in a reasonable way.   we refer to pages on a web site in terms of parent-child relationships.  a parent page is shallower in the site hierarchy  e.g.; ir.iit.edu  while a child page is deeper  e.g.; ir.iit.edu/researchers .  folding took place as follows: 
+ 
+a. parent occurs higher in the result set than child:  child is removed from result set and parent's score is increased 
+b. child occurs higher than parent: parent score is increased  but child is left in its original position of the result set. 
+ 
+relevance score modifications were performed for each parent according to the following equation: 
+ 
+sp =sp + ln ¡Æsc  
+equation 1: parent weight incrementation 
+ 
+after experimenting with this scheme  we found a paradox:  many parent pages had too many children above them in the rankings  but increasing the increments by which parents were weighted caused parents with many children to be ranked too highly.  to provide finer-grained tuning of how parents had their ranks increased  we added a final step to our algorithm that occurred after all folding had been completed.  in this step  we moved parent pages that had unfolded child pages of within 1% of the parent's score just above those unfolded children in the result ranking.  we also guaranteed that parent pages had at most three unfolded children above them in the ranking  regardless of their relevance. 
+ 
+after attending trec  we performed some failure analysis on our techniques  in an effort to discover why there was such a large disparity between our performance on the training queries  and our performance on the supplied topics.  this failure analysis revealed some deficiencies in our query and document parsers  and also confirmed that there is a high degree of overlap in the improvements observed from our boosting and folding techniques. 
+ 
+our experimental results for both the training data and the actual homepage topics for each approach are shown in table 1. the improvements resulting from our post-conference failure analysis are also included.  all values express the mean reciprocal rank over the query set. 
+ 
+query set baseline baseline + boosting baseline + 
+folding  iit1st  baseline + boost + fold  iit1stb  training data .1 .1 .1 .1 homepage topics .1 .1 .1 .1 topics - improved .1 .1 .1 .1  
+table 1   results of site finding task  mrr   
+ 
+1 arabic monolingual and cross-lingual track 
+for the cross-lingual arabic information retrieval  our automatic effort concentrated on the two categories; english-arabic cross-language information retrieval  clir  and monolingual information retrieval. for the english-arabic clir we used two types of dictionary-based query translation: machine-readable dictionary  mrd  and machine translation  mt . the firstmatch  fm  technique is used for term selection from a given entry in the mrd . 
+1 monolingual 
+for the monolingual run  we used two stemming algorithms. the first algorithm is root-based  and second is light stemming. in the root-based algorithm  the main aim is to detect the root of the given word.  when no root is detected  the algorithm retains the given word intact. the rootbased algorithm is aggressive. for example  the root of office  library  book  and write is the same  thus  the root-based algorithm places these in the same conflation class. accordingly  a light-stemming algorithm is developed. it is not as aggressive as the root-based algorithm. the idea of this technique is to strip out the most common affixes to the arabic words. for example  it returns the plural  dual to their singular form except for irregular pluralization. 
+ 
+our monolingual run is described in table 1.  this run did reasonably well  with 1 queries above the median  1 at the median and three below.   
+ 	 
+average precision      best median worst iit1mlr above at below best worse 1 1 1 1 1 1 1 1 1  	 
+table 1 monolingual run using light stemming  
+ 
+1 english-arabic cross-language information retrieval 
+we conducted our experiments by using two approaches for query translation. the first approach is the machine-readable dictionary  mrd . the second approach is machine translation   mt . in mrd realm  we use the first match in the bilingual dictionary as the candidate translation of the source query term. this approach ignores many noise terms introduced by the mrd.  almawrid english-arabic is used for the translation process .  
+ 
+in mt realm  the translation was performed on every field of the topic individually. we performed our experiment by using a commercial mt system product. it is called al-mutarjim al-arabey. it is developed by ata software technology ltd . the post-translation expansion technique is used to de-emphasize the extraneous terms that are introduced to the source query after translation. 
+ 
+our cross-lingual run is described in table 1.  our run has 1 queries above the median  zero at the median and eight below.  there are 1 queries where our run is the best. 
+ 
+ 
+ 
+ 
+average precision      best median worst iit1xma above at below best worse 1 1 1 1 1 1 1 1 1  
+table 1 clir result using mutarjim al-arabey mt system 
+ 
+ 

@@ -1,0 +1,291 @@
+although integrity constraints have long been used to maintain data consistency  there are situations in which they may not be enforced or satisfied. in this paper  we present conquer  a system for efficient and scalable answering of sql queries on databases that may violate a set of constraints. conquer permits users to postulate a set of key constraints together with their queries. the system rewrites the queries to retrieve all  and only  data that is consistent with respect to the constraints. the rewriting is into sql  so the rewritten queries can be efficiently optimized and executed by commercial database systems.
+¡¡we study the overhead of resolving inconsistencies dynamically  at query time . in particular  we present a set of performance experiments that compare the efficiency of the rewriting strategies used by conquer. the experiments use queries taken from the tpc-h workload. we show that the overhead is not onerous  and the consistent query answers can often be computed within twice the time required to obtain the answers to the original  non-rewritten  query.
+1. introduction
+¡¡integrity constraints have long been used to maintain data consistency. data design focuses on developing a set of constraints to ensure that every possible database reflects a valid  consistent state of the world. however  integrity constraints may not be enforced or satisfied for a number of reasons. in some environments  checking the consistency of constraints may be too expensive  particularly for workloads with high update rates. hence  the database may become inconsistent with respect to the  unenforced  integrity constraints. when data is integrated from multiple sources  each source may satisfy a constraint  for example a key constraint   but the merged data may not  if the same key value exists in multiple sources . more generally  when data is exchanged between independently designed sources with different constraints  the exchanged data may not satisfy the
+
+ supported in part by nserc and cito awards.
+permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are
+not made or distributed for profit or commercial advantage  and that copies bear this notice and the full citation on the first page. to copy otherwise  to republish  to post on servers or to redistribute to lists  requires prior specific permission and/or a fee.
+sigmod 1 june 1  1  baltimore  maryland  usa.
+copyright 1 acm 1-1/1 $1.
+constraints of the destination schema.
+¡¡one strategy for managing inconsistent databases is data cleaning . data cleaning techniques seek to identify and correct errors in the data and can be used to restore the database to a consistent state. data cleaning  when applicable  may be very successful. however  these techniques are semi-automatic at best  and they can infeasible or unaffordable for some applications. furthermore  committing to a single cleaning strategy may not be appropriate for some environments. a user may wish to experiment with different cleaning strategies  or may desire to retain all data  even inconsistent data  for tasks such as lineage tracing. finally  data cleaning is only applicable to data that contains errors. however  the violation of a constraint may also indicate that the data contains exceptions  that is  clean data that simply does not satisfy a constraint.
+¡¡in this work  we take an approach that is applicable to databases with both errors and exceptions. we propose a system  conquer  for managing inconsistent data.1 in conquer  a user may postulate a set of integrity constraints  possibly at query time  and the system retrieves all  and only  the query answers that are consistent with respect to the constraints. in order to do this  conquer rewrites the query into another sql query that retrieves the consistent answers. we illustrate the semantics of consistent query answering and conquer's rewriting strategy with an example  and provide precise definitions in section 1
+¡¡example 1. consider the database of figure 1  which contains information about customers and their account balances. assume that a user specifies that the key of the customer relation should be custkey. note that the database violates this key constraint  perhaps because its data has been integrated from many operational sources. consider a query that retrieves information about customers whose account balance is over 1.
+q1: select custkey
+from customer where acctbal   1
+¡¡if we execute this query over the instance of figure 1  we obtain {c1 c1 c1 c1}. this cannot be considered a  consistent  answer for the following reasons. first  it may be the
+
+1conquer stands for consistent querying.
+	custkey	acctbal
+t1c1t1c1t1c1t1c1t1c1figure 1: inconsistent instance of the customer relation
+case that customer c1 has an account balance below 1  tuple t1 . however  c1 is included in the answer because it appears in another tuple  t1  which does satisfy the query. second  customer c1 appears in the answer twice. since we consider custkey to be the key of the relation  we do not expect to have repeated values in the answer.
+¡¡in this case  we would expect {c1 c1} to be the  consistent  answer for query q1. the reason is that c1 appears in a single tuple of the database  which satisfies the query and does not violate the key constraint. even though c1 appears in two tuples  which therefore violate the key constraint   both tuples satisfy the query.
+¡¡conquer rewrites queries in order to obtain their consistent answers. for q1  it would produce the following query rewriting:
+select distinct custkey from customer c where acctbal   1
+and not exists  select * from customer c' where c'.custkey=c.custkey and c'.acctbal ¡Ü 1 
+¡¡the rewritten query has two differences with respect to q1. first  it uses the distinct keyword to ensure that each consistent answer is returned the right number of times. in this case  this ensures that c1 appears exactly once in the answer. second  it has a nested subquery related by not exists. the purpose of this subquery is to filter out those key values that satisfy q1 in some tuples  but violate it in others. in our example  this subquery filters c1 from the answer because it appears in tuple t1 with an account balance below 1.
+¡¡we will use a common definition of consistent query answer based on the notion of repair . for keys  a repair is a subset of the inconsistent database containing exactly one tuple per key value. a repair is one possible  cleaned  version of the database. a query answer is then consistent if it is an answer to the query in every repair. in contrast  for monotone queries  queries without negation such as the query of example 1   the original query executed on an inconsistent database returns a set of possible answers. a possible answer is an answer to the query in at least one repair. in the next section  we will give a precise definition of consistent answers for arbitrary queries and constraints  not just keys .
+¡¡in the absence of user input to decide between tuples that violate a constraint  conquer provides the option of retaining all tuples  rather than forcing the user to remove  or ignore  the inconsistent data. furthemore  our approach is orthogonal to any cleaning that may be done on the database.
+in particular  conquer can be used interactively by users to understand where the data is potentially inconsistent. for example  if we take the difference between the result of the original and rewritten queries of example 1  we can detect that customer c1 satisfies the query but is not a consistent answer. this may indicate that its data should be cleaned. as another example  a user may not be too concerned if there are multiple tuples for a customer that differ on address  something that can be corrected with a specialized data cleaning tool for addresses like trillium1   provided that other important information  such as the market segment  is consistent.
+summary of results. the main contributions of our work are the following:
+  we present algorithms for rewriting sql queries into sql queries that return only consistent answers. our approach is fully declarative  requiring no procedural pre- or post-processing. this enables us to apply our techniques to much larger databases than any of the existing consistent query answering systems.
+  we consider not only select-project-join  spj  queries  but also sql's bag semantics and queries with aggregation. our rewritings for these features are novel contributions  and are needed to enable practical use in analysis queries over an integrated and potentially inconsistent data warehouse.
+  we present a rewriting that works over the unchanged  inconsistent  database and a second rewriting that makes use of annotations attached to tuples indicating whether the tuple is known to be consistent. such annotations are appropriate for high performance environments where the inconsistent data represents valuable data that cannot be removed. we show how such annotations can be exploited using query optimizations specific to the semantics of consistent query answering. these optimizations are highly effective and would not be found by a standard optimizer.
+  we present a performance study using the data and queries of the tpc-h decision support benchmark. our study highlights the overhead of dynamically  at query time  resolving inconsistencies when off-line cleaning is not possible  or not appropriate for the application . we consider different degrees of inconsistency  we experiment with databases in which up to 1% of the database may be inconsistent  and database sizes to understand the applicability of our approach.
+¡¡in the next section  we precisely define consistent query answering. our query rewriting strategy for queries without aggregation is presented in section 1. in section 1  we consider queries with aggregation. in section 1  we present an optimization of the rewritings that exploits precomputed information about constraint violations. in section 1  we present a performance study which uses queries from the tpc-h decision support benchmark. in section 1  we consider related work in the area of consistent query answering. we close the discussion in section 1 with some conclusions and directions for future work.
+1. preliminaries
+¡¡throughout this paper  we take an unorthodox view of constraints. the constraints that we consider do not restrict the valid database instances. rather  they constrain the set of valid  in our terminology consistent  answers that can be obtained when posing a query on the database. to avoid confusion  we will refer to such constraints as query constraints. in this paper  we will consider sets of query constraints which consist of at most one key constraint per relation of the query.
+¡¡let r be a relational schema  and d be a database over r. we are given a set of query constraints ¦²  where the database may be inconsistent with respect to ¦². we use a common definition for consistent query answer that is based on the concept of a database repair  defined by arenas et al. . a repair dr of d is an instance of r such that dr satisfies the query constraints of ¦²  and dr differs minimally from d. in this case  minimality is defined with respect to symmetric difference between d and dr  denoted as
+  	 .
+¡¡dfn 1  repair  . let d be a database. a database dr is a repair of d with respect to ¦² if dr satisfies ¦² and there is no database d1 satisfying ¦² where   d d1      d dr .
+¡¡notice that repairs need not be unique. in fact  even for keys there may be an exponential number of them. intuitively  each repair corresponds to one possible way of  cleaning  the inconsistent database. for keys  a repair will be a subset of d that contains exactly one tuple for each key value in d.
+¡¡example 1. in our example of figure 1  we have the following four repairs:  
+. each repair is a con-
+sistent database that is as close as possible to the inconsistent database of figure 1.
+¡¡the notion of repair is used to give a precise meaning to query answering over inconsistent databases . in particular  a consistent query answer is required to appear in the result of a query on every repair of the inconsistent database.
+¡¡dfn 1  consistent query answer . let d be a database  q be a query  and ¦² be a set of query constraints. the consistent query answers for q on d are defined as the set
+	 	q dr 
+dr is a repair of d wrt ¦²
+¡¡in contrast to consistent answers  we could also consider possible answers  where a possible answer is an answer on some repair  that is  it is the union of the answers to q over all the repairs . note that when ¦² includes only key constraints and q is a monotone query  the original query q on d returns the set of possible answers.
+¡¡for set semantics  we are only concerned with finding the set of tuples that occur in the query result for every repair. under bag semantics  the multiplicity of a tuple in the consistent query answer is the minimum multiplicity from any repair.
+¡¡our approach to compute consistent answers is based on query rewriting. specifically  given an sql query q and a set of key query constraints ¦²  we will rewrite q into another sql query qc that retrieves the consistent answers for q. the rewriting is done independently of the data  and works for every inconsistent database. some rewriting strategies for limited classes of queries have been proposed in the literature  1  1 . the strategy presented in this paper is motivated by our previous work on rewriting conjunctive queries into first-order logic queries . in sections 1 and 1  we consider not only conjunctive queries  that is  spj queries with set semantics   but also queries with aggregation and bag semantics.
+¡¡in this paper  we consider sets ¦² of query constraints that consist of at most one key constraint per relation of the query. a key query constraint declares a set of attributes x as the key of a relation. each attribute in x is a key attribute  all other attributes of the relation are non-key attributes.
+¡¡to define the class of queries that can be handled by conquer  we first introduce the notion of a join graph .
+¡¡dfn 1  join graph . let q be a sql query. the join graph g of q is a directed graph such that:
+  the vertices of g are the relations used in q; and
+  there is an arc from ri to rj if a non-key attribute of ri is equated with a key attribute of rj.
+¡¡we present query rewritings for tree queries. such queries can have two kinds of joins. first  they can have joins between key attributes. second  they can have joins from nonkey attributes of a relation  possibly a foreign key  to the primary key of another relation. arguably  these two types of joins are the most commonly used in practice  and certainly the most common in standards like tpc-h .
+¡¡dfn 1  tree query . we say that a select-project-joingroup-by query q is a tree query if  1  every join condition of q involves the key of at least one relation;  1  the join graph of q is a tree. we consider only queries containing equi-joins  no inequality joins . the selection conditions may contain comparisons  e.g.     or functions. each relation may be used at most once in the query. the query may contain aggregate expressions.
+¡¡note that the previous definition restricts the non-key to key joins of the query to be acyclic  and does not permit non-key to non-key joins  since every join must involve the key of a relation .
+1. join queries
+¡¡in this section  we present conquer's rewriting strategy for tree queries without aggregation or grouping. in section 1  we will consider a larger class of queries that includes aggregation. we illustrate the rewriting approach with the next example.
+¡¡example 1. consider a query q1  which retrieves the orders placed by customers with an account balance over 1.
+q1: select o.orderkey
+from customer c  order o where c.acctbal 1 and o.custfk=c.custkey order	customer
+
+orderclerkcustkeyfks1o1alic1s1o1joc1s1o1alic1s1o1alic1s1o1patc1s1o1alic1s1o1alic1s1o1alic1
+custacctkeybalt1c1t1c1t1c1t1c1t1c1figure 1: an inconsistent database with order and customer relations
+with candidates as  
+select distinct o.orderkey from customer c  order o
+where c.acctbal 1 and o.custfk=c.custkey  
+filter as   select o.orderkey from candidates cand join order o on cand.orderkey=o.orderkey left outer join customer c on o.custfk=c.custkey
+where c.custkey is null or c.acctbal¡Ü1 
+select orderkey from candidates cand where not exists  select * from filter f where cand.orderkey = f.orderkey 
+figure 1: the rewriting for query q1
+¡¡the query constraints are that orderkey should be the key of relation order  and custkey should be the key of relation customer. we will consider the database of figure 1  where both relations are inconsistent with respect to the query constraints.
+¡¡the consistent query answers for q1 on the database are {o1 o1 o1}. the reason that order o1 is not a consistent answer is that c1  the customer that placed order o1  is not known  for certain  to have an account balance over 1. the order o1 is not a consistent answer because it might have been placed either by customer c1 or c1  the latter of which is not a tuple in the customer relation.
+¡¡in figure 1  we show a query rewriting that computes the consistent answers for q1. notice that there are two subqueries named candidates and filter. candidates corresponds to the original query q1  except that it uses the distinct keyword. the reason for this is that orderkey is a key  and therefore its values appear exactly once in every repair. in this case  the result of applying candidates to the database is {o1 o1 o1 o1 o1}. the query filter returns the orders that should be  filtered out  from the result of candidates because they are not consistent answers. in this case  filter returns {o1 o1}. the order o1 is returned by filter because tuple s1 joins with tuple t1  which corresponds to a customer whose account balance is below 1  c.acctbal¡Ü1 in the filter . the order o1 is in filter because o1 appears in tuple s1. this tuple does not satisfy the join condition of q1 because c1 does not appear in rewith candidates as  
+select distinct o.orderkey  o.clerk from customer c  order o
+where c.acctbal 1 and o.custfk=c.custkey  
+filter as   select o.orderkey from candidates cand
+join order o on cand.orderkey = o.orderkey left outer join customer c on o.custfk=c.custkey
+where c.custkey is null or c.acctbal¡Ü1
+union all
+select orderkey from candidates cand group by orderkey having count *    1 
+select clerk from candidates cand where not exists  select * from filter f where cand.orderkey = f.orderkey 
+figure 1: the rewriting for query q1
+lation customer. notice that filter computes a left-outer join between order and customer. since tuple s1 does not join with any tuple of customer  o1 appears together with a null value for attribute custkey in the left-outer join. therefore  the condition c.custkey is null is satisfied  and o1 is returned by the filter.
+¡¡the rewriting  finally retrieves the orders in the result of candidates that are not in filter  i.e.  they are not filtered out . in this case  it returns {o1 o1 o1}  which is the consistent answer.
+¡¡to generalize the previous example to an algorithm for tree queries  we must consider how to handle projection. note that query q1 returns the key of the relation at the root of the join graph. but if we modify it to return other attributes instead  we must augment the rewriting. we illustrate this in the next example.
+¡¡example 1. consider a query q1 which retrieves the clerks who have processed orders for customers with a balance over 1.
+q1 : select o.clerk
+from customer c  order o where c.acctbal 1 and o.custfk=c.custkey
+¡¡note that the only difference with query q1 of the previous example is that we are projecting on clerk instead of orderkey. we will again consider the inconsistent database of figure 1  and the key query constraints orderkey and custkey.
+¡¡a query rewriting qc1 that computes the consistent answers for q1 is given in figure 1. note that in the candidates subquery  we project not only on clerk but also on orderkey. the reason is that the  filtering  must be done based on the key of the relation. in general  we will filter using the key attributes of the relation at the root of the join graph of the query  order in this case . if we apply candidates over the database we get { o1 ali   o1 jo   o1 ali   o1 pat   o1 ali    o1 ali }. as in the previous example  the tuples for o1 and o1 should be filtered out. additionally  in this case  we should filter out the tuples for o1. the reason is that the clerk of o1 may be jo in some repairs  and ali in others. hence  o1 should not contribute its clerks to the consistent query answer of q1. this is captured with the second subquery of filter in figure 1.
+¡¡the rewriting  finally takes the tuples of the result of candidates whose order is not retrieved by filter  and projects on the clerk attribute. the final result is {ali ali}  which is the consistent answer. notice that the rewriting computes not only the fact that ali is a consistent answer  but also the correct multiplicity.
+¡¡in figure 1  we give the rewriting algorithm rewritejoin for tree queries without aggregation. the subquery candidates corresponds to the original query  except for its select clause. first  this clause uses the distinct keyword. second  it projects on the key attributes of the root relation of the join graph  denoted as kroot . we will call the values computed by candidates the candidates for the consistent answers.
+¡¡we assume that all tuple variables have the name of the relations of the original query. this condition can be relaxed  as long as tuple variables are used consistently in the expressions nsc  loj and kj. furthermore  for notational convenience  we take the liberty of treating vectors of attributes as if they were a single attribute.
+¡¡the first subquery of filter returns the set of candidates that are not present in the query answer from at least one repair. to ensure that filter considers all candidates  there is an inner join between candidates and the relation at the root of the join graph  rroot . the relation rroot is joined with the rest of the relations of the original query  expression loj . since we want to be able to detect the cases in which non-key to key joins are not satisfied  we need to perform a left-outer join rather than an inner join. this can be done in our case because we are considering queries whose join graph is a tree. in particular  the left-outer join of the relations is obtained starting at the relation at the root of the join graph  tree   and recursively traversing it in the direction of its arcs  that is  from a relation joined on a non-key attribute to a relation joined on its key . we denote the expression with loj  and present the procedure to construct it in figure 1.
+¡¡we can now explain the where clause of the first subquery of filter. first  it contains an expression kj that consists of the key-to-key joins of the query. these joins do not need to be considered in the left-outer join loj. to understand why  notice that if a candidate satisfies a key-to-key join  then it must satisfy it in every repair  since every key value appears in every repair . second  the subquery checks whether there is a tuple which does not satisfy a join of the original query. this is done by checking whether there is a null value in the left-outer join. finally  it checks whether there is some selection condition of the original query that is not satisfied  expression nsc .
+¡¡the second subquery of filter takes care of the projected attributes of the original query  as explained in example 1. finally  the query rewriting returns the tuples for the candidates that were not filtered out. rewritejoin is a correct query rewriting algorithm for tree queries without aggregation  as stated in the next theorem.
+rewritejoin q ¦²  given a query q of the form
+select s
+from rroot r1 ... rm
+where kj and nkj and sc order by o
+where
+rroot is the relation at the root of the join graph kj is a conjunction of key-to-key join predicates
+nkj is a conjunction of nonkey-to-key join predicates
+sc is a conjunction of selection predicates
+let
+kroot be the attributes of the key of rroot
+k1 ... km be the attributes of the keys of r1 ... rm nsc be the negation of the selection predicates sc of q
+loj be the left outer-join of the join graph of q  obtained as shown in figure 1
+the rewriting qc of q is the following:
+with candidates as   select distinct kroot  s
+from rroot  r1 ... rm
+where kj and nkj and sc 
+filter as   select kroot from candidates c join rroot on c.kroot = rroot.kroot left outer joinloj
+wherekj and
+ r1.k1 is null or ... or rm.km is null or nsc 
+union all
+select kroot from candidates c group by kroot having count *  1 
+select s from candidates c
+where not exists  select * from filter f
+where c.kroot = f.kroot 
+order by ofigure 1: query rewriting algorithm for queries without aggregation
+¡¡theorem 1. let q be a tree query without aggregate operators  and ¦² be a set of query constraints containing at most one key constraint per relation. then  the rewriting rewritejoin q ¦²  computes the consistent query answers for q wrt ¦² on every database d.
+1. aggregation queries
+¡¡in this section  we present conquer's rewriting strategy for tree queries that may have grouping and aggregation. the obvious extension of the semantics of consistent answers is to return values for the aggregate expressions that hold in every repair. however  as we motivate in the next example  this may be overly restrictive in some cases.
+¡¡example 1. consider a query q1 that retrieves the sum of all account balances in the customer relation. again  custkey is the key query constraint.
+loj t :
+let r be the relation at the root of t
+if t is a leaf then return else
+let t1 ... tm be the subtrees of the root of t for i = 1 to m
+let ni be non-key attrs of r that are equated with the key ki of ri
+return  r1 on r.n1 = r1.k1 left outer join ...
+left outer join rm on r.nm = rm.km
+left outer join loj t1  left outer join ...
+left outer join loj tm  figure 1: left outer-join of join graph t
+custnationmktacctkeykeysegmentbalt1c1n1building1t1c1n1building1t1c1n1building1t1c1n1banking1t1c1n1banking1figure 1: inconsistent instance of customer
+q1 : select sum acctbal  as sumbal
+from customer
+¡¡we will consider the inconsistent database of figure 1. in this case  there are four repairs:  and 
+repair d1r  the sum of account balances is 1; in
+1; in 1; and in the consistent query answers to q1 are empty. in fact  it suffices to have one customer with two  inconsistent  account balances in order to have an empty answer for the aggregation on all customers.
+¡¡arenas et al.  proposed to return bounds for the aggregate expressions  rather than exact values. for instance  in the previous example we can say that 1 ¡Üsumbal¡Ü 1. in order to consider such ranges  we need to slightly modify the semantics of consistent query answers to what we call range-consistent query answers.
+we will consider sql queries of the following form:
+select g agg1 e1  as e1 ... aggn en  as en
+fromf wherew group by g
+where g is the set of attributes we are grouping on  and agg1 e1  ... aggn en  are aggregate expressions with functions agg1 ... aggn  respectively. we will assume that the select clause renames the aggregate expressions to e1  ...  en. notice that we are focusing on queries where all the attributes in the group by clause appear in the select clause. this is a restriction because  in general  sql queries may have some attributes in the group by clause which do not appear in the select clause  although not vice versa .
+¡¡in the definition of range-consistent query answers  we will give a range for each value of g that is a consistent answer. therefore  we will use a query qg that consists of q with all the aggregate expressions removed from the select clause:
+qg: select g fromf wherew group by g
+¡¡we now introduce the definition of range-consistent query answers  and illustrate it with an example.
+¡¡dfn 1  range-consistent query ans . let d be a database  q be a query  and ¦² be a set of query constraints. we say that  t r  is a range-consistent query answer for q on d if
+1. t is a consistent answer for qg on d  where qg is query q with all the aggregate expressions removed; and
+1. r =  mine1 maxe1 ... minen maxen   and for each i such that 1 ¡Ü i ¡Ü n:
+  minei ¡Ü ¦°ei ¦Òg=t q dr    ¡Ü maxei for every repair dr; and
+  ¦°ei ¦Òg=t q dr    = minei  for some repair dr; and
+  ¦°ei ¦Òg=t q dr    = maxei  for some repair dr.
+¡¡example 1. consider the following query  which retrieves the total account balance for customers in the building sector  grouped by nation. again  custkey is a key query constraint.
+q1: select nationkey  sum acctbal  from customer where mktsegment = 'building' group by nationkey
+let qg be query q1 with its aggregate expression removed.
+qg: select nationkey
+from customer where mktsegment = 'building' group by nationkey
+¡¡consider again the database of figure 1. it is easy to see that nation n1 is the only consistent answer to qg. therefore  the range-consistent answer consists of a range of values for n1.
+   recall that there are four repairs for the database:  and {t1 t1 t1}. the result of applying q1 on the repairs is the following: ;
+; and
+the consistent answers to q1 is the set { n1 1 }  because the sum of the account balances for customers in the building sector and nation n1 is:
+  between 1 and 1  in every repair;
+  1 in repair;
+  1 in repair.
+¡¡before presenting the rewriting that computes the rangeconsistent query answers  let us illustrate the approach with some examples.
+¡¡example 1. suppose that we want to obtain a rewriting that computes the range-consistent answers for query q1 of the previous example. we are going to obtain upper and lower bounds for the account balance of each customer  and then sum the account balances. as in the previous section  we are going to filter some of the customers. we will use the filter for qg  which can be obtained using the algorithm rewritejoin of figure 1. intuitively  the filter retrieves the customers which appear in some tuple that does not satisfy qg.
+¡¡consider again the database of figure 1. when we apply the filter to the customer table  c1 and c1 are filtered out. the customer c1 is not filtered because its two tuples  t1 and t1  satisfy query and	 contributes an account balance of 1. in	 and contributes 1. therefore  it contributes a minimum of 1 and a maximum of 1. we can capture this with the following query:
+with unfilteredcandidates as   select custkey  nationkey  min acctbal  as minbal  max acctbal  as maxbal
+from customer c where mktsegment = 'building'
+and not exists  select * from filter where c.custkey=filter.custkey 
+group by custkey  nationkey 
+¡¡the result of applying unfilteredcandidates to the inconsistent database is { c1 n1 1 }. notice that the filter is necessary because we would otherwise get the tuple  c1 n1 1  in the result  which states that customer c1 contributes an amount of 1 in every repair. this is not correct  since in repairs and   i.e.  the repairs where t1 appears   customer c1 does not satisfy query qg and therefore does not contribute to the sum of account balances. therefore  c1 contributes a minimum of 1 and a maximum of 1. this is captured with the following query:
+with filteredcandidates as  
+select custkey  nationkey  1 as minbal  max acctbal  as maxbal
+from customer c where mktsegment = 'building'
+and exists  select * from filter where filter.custkey=c.custkey 
+and exists  select * from qgcons where qgcons.nationkey=c.nationkey 
+group by custkey  nationkey 
+¡¡the result of filteredcandidates is { c1 n1 1 }. in addition to checking that the customer is filtered  we check that the nation  i.e.  the attribute in the group by of the original query  appears in the result of the consistent answers to qg  denoted as qgcons in the query . this is necessary because we do not want to retrieve ranges for the nations that are not consistent answers.
+¡¡finally  we obtain the range-consistent answers by summing up the lower and upper bounds for each nation in the result of filteredcandidates and unfilteredcandidates  as follows:
+select nationkey  sum minbal  sum maxbal 
+from  select * from filteredcandidates union all select * from unfilteredcandidates 
+group by nationkey
+¡¡in the previous example  all the numerical values were positive. the following example shows how to produce a rewriting that deals with negative values as well.
+¡¡example 1. consider query q1  and a database with the following customer relation. the only difference with the relation of figure 1 is that the account balance in tuple t1 is negative.
+custnationmktacctkeykeysegmentbalt1c1n1building1t1c1n1building1t1c1n1building-1t1c1n1banking1t1c1n1banking1¡¡the repairs are the same as in the previous example. the result of applying q1 on the repairs is the following:
+;
+and the range-consistent answer to q1 is { n1 1 }.
+¡¡as in the previous example  customer c1 is unfiltered  and customers c1 and c1 are filtered. also  c1 contributes to the upper and lower bound of account balances  and c1 does not contribute to any of them. on the other hand  the account balance of customer c1 in tuple t1 contributes to the lower bound of the sum of account balances  as opposed to the upper bound in the previous example. this is because in the repairs where customer c1 appears in tuple t1  the total account balance is reduced rather than increased. in the repairs where customer c1 does not satisfy query qg  i.e.  t1 is in the repair  the contribution to the total account balance is zero. we capture this with the following query:
+with filteredcandidates as  
+select custkey  nationkey  min acctbal  as minbal 
+       1 as maxbal from customer c where mktsegment = 'building'
+and exists  select * from filter where filter.custkey=c.custkey 
+and exists  select * from qgcons where qgcons.nationkey=c.nationkey 
+group by custkey  nationkey 
+¡¡notice that the only difference with filteredcandidates from the previous example is that there is a value of zero in maxbal  instead of minbal.
+¡¡the full rewriting rewriteagg for tree queries  with aggregation and grouping  is given in figure 1. the query qgcons retrieves the consistent answers to qg. it is not included in the figure because it can be obtained by applying
+rewriteagg q ¦² 
+given a query q of the form select g  agg1 e1  as e1 ... aggn en  as en fromf wherew group by g
+let
+rroot be the relation at the root of the join graph of q  kroot be the attributes of the key of rroot  qg be query q with all the aggregate expressions removed
+qgcons be the query that obtains the consistent answers for qg  using rewritejoin
+filter be the filter subquery of qgcons
+the rewriting qrc of q is the following:
+with unfilteredcandidates as  
+select kroot  g  min e1  as mine1  max e1  as maxe1 
+...  min en  as minen  max en  as maxen
+from f where w and not exists  select * from filter where f.kroot = filter.kroot 
+group by kroot  g  
+filteredcandidates as   select kroot  g 
+case when mine1   1 then 1 else min e1  as mine1  case when maxe1   1 then max e1  else 1 as maxe1 
+... 
+case when minen   1 then 1 else min en  as minen  case when maxen   1 then max en  else 1 as maxen from f where w and exists  select * from filter where f.kroot = filter.kroot 
+and exists  select * from qgcons where f.g = qgcons.g 
+group by kroot  g   
+select g  agg1 mine1   ...  aggn minen   ...  agg1 maxe1   ...  aggn maxen 
+from  select * from filteredcandidates union all
+select * from unfilteredcandidates 
+group by gfigure 1: rewriting for queries with aggregation
+the rewriting algorithm rewritejoin of the previous section. recall that in the examples we obtained lower and upper bounds for each customer and nation. the customer was the key attribute of the relation at the root of the join graph  denoted by kroot in the algorithm . the nation was the attribute we were grouping on  denoted with g . thus  in the algorithm we obtain bounds for the attributes kroot and g. we take the liberty of denoting by f.kroot=filter.kroot and f.g=qgcons.g the join between all the attributes of kroot and g  associated to the appropriate relations of f  with the corresponding attributes of filter and qgcons. the query unfilteredcandidates obtains the bounds for the values of kroot that are not filtered  and therefore contribute to both bounds. the query filteredcandidates obtains the bounds for the values that are filtered  and therefore may contribute zero to some of the bounds. the case statements are used to select the appropriate upper order	customer
+
+orderclerkcustconskeyfks1o1alic1ys1o1joc1ns1o1alic1ns1o1alic1ns1o1patc1ns1o1alic1ns1o1alic1ns1o1alic1y
+custacctconskeybalt1c1nt1c1nt1c1yt1c1nt1c1nfigure 1: annotated version of the database of figure 1
+and lower bounds  depending on whether they are positive or negative values. this generalizes the strategy presented in example 1 for negative values. the final result is obtained by aggregating the upper and lower bounds from unfilteredcandidates and filteredcandidates using the aggregation functions of the original query.
+¡¡theorem 1. let q be a tree query that may contain aggregate expressions  with functions max  min  sum   and ¦² be a set of query constraints containing at most one key constraint per relation of the query. then  the rewriting rewriteagg q ¦²  computes the range-consistent query answers for q with respect to ¦² on every database d.
+1. annotated databases
+¡¡if the query constraints are known in advance  conquer can process the database offline in order to store information about constraint violations. in particular  it can annotate every tuple of the database with a flag that states whether the tuple  might  violate a key constraint. this flag is then used to produce optimized query rewritings. note that a standard query optimizer would not be able to exploit the annotations because it is unaware of their semantics  and the semantics of consistent query answering in general .
+¡¡in figure 1  we show an annotated version of the database of figure 1. the annotations are made assuming that the attribute orderkey is the key of the order relation  and custkey is the key of the customer relation. note that the schema of every relation is augmented with an attribute cons that stores the annotation. if the value of cons in a tuple is 1  then the tuple satisfies the key constraint; a value of 1 indicates that it might violate the constraint. we illustrate the optimized rewriting with the next example.
+¡¡example 1. we will consider again query q1 from example 1  which retrieves the orders placed by customers with an account balance over 1. the query constraints are again that orderkey and custkey are keys of their relations. we assume that conquer knows them in advance  and has produced the annotated database of figure 1.
+q1: select orderkey
+from customer c  order o where c.acctbal 1 and o.custfk=c.custkey
+¡¡note that tuples s1 and t1 have a value of 1 in their cons attributes  meaning that they do not violate any constraint.
+if we join s1 with t1  we get a tuple that satisfies query q1. furthermore  it is easy to see that this will be the only tuple in the result for order o1. thus  it must be a consistent answer.
+¡¡in general  if a tuple is produced from the join of tuples that satisfy the constraints  it is a consistent answer. thus  it is not necessary to consider it in the filter subquery of the rewriting. note  however  that this is not the case even if some  but not all  of the tuples that are joined satisfy the constraints. for example  consider the join of tuple s1  annotated with 1  and tuple t1  annotated with 1 . if we join them  we get a tuple that satisfies q1. however  it is not a consistent answer because the result of joining s1 with another tuple  t1  does not satisfy the query.
+¡¡to keep track of the join of tuples violating a constraint  we augment the candidate subquery of the rewriting with an addition attribute conscand. this is a numerical attribute that calculates the number of tuples involving  in this case  an order that joins with tuples violating a constraint. if this value is greater than zero  the tuple might not be in the consistent answer. the candidates subquery for this example is the following:
+select o.orderkey
+sum  case when  c.cons='n' or o.cons='n'  then 1 else 1 end   as conscand
+from customer c  order o where c.acctbal 1 and o.custfk=c.custkey   group by o.orderkey
+¡¡in the rewriting presented in section 1  the filter subquery joins all tuples of candidates with the relation at the root of the tree  order in this case . then  it performs a  possibly costly  left-outer join with all other relations of the original query. we can now avoid joining all tuples of candidates because we can select only those whose value of conscand is greater than zero. this is because a value of zero in this attribute means that the tuple is known to be in the consistent answer and  therefore  cannot be filtered out. the following is the filter subquery for this example.
+select o.orderkey from candidates cand join order o on cand.orderkey=o.orderkey left outer join customer c on o.custfk=c.custkey where cand.conscand 1 and c.custkey is null or c.acctbal¡Ü1
+¡¡note that the only difference with the filter of figure 1 is that we add the condition cand.conscand 1 to the where clause. although it is up to the query optimizer to perform this selection before the joins  the results of the next section show that it consistently chooses the appropriate strategy. the final subquery of the rewriting is the same as in figure 1. that is  it returns the orders from candidates which do not appear in filter.
+1. experimental evaluation
+¡¡in this section  we report results for the experiments that we performed in order to quantify the overhead of the rewritings produced by conquer. the experiments use realistic queries  taken from the tpc-h specification  and large databases.
+1 setup
+¡¡the experiments were performed on a dell optiplex 1l pc with a 1 ghz intel pentium 1 cpu and 1 gb of ram  1 % of which was allocated to the database manager . the queries were run on db1 udb version 1.1 under windows xp professional.
+¡¡we present experimental results for six queries taken from the tpc-h specification  which are representative of a variety of features supported by our approach. for example  they all have aggregation  and range from one to six joins.1we focus on queries 1  1  1  1  1  and 1 of the standard. in figure 1  we summarize the main characteristics of these queries. for each query  we give the number of relations in the from clause  the selectivity  high means more tuples satisfy the query   the number of attributes in the select clause  and the number of those attributes which are in aggregate expressions. the queries in the tpc-h specification are parameterized  and the standard suggests values for these parameters. in the experiments  we used the suggested values in all the queries. the selectivity we report in figure 1 takes these parameters into account.
+relationsselectivityprojattrsaggrattrsq1high1q1low1q1low1q1low1q1low1q1low1figure 1: queries used in the experiments
+¡¡the tpc-h specification assumes that databases are consistent with respect to the primary keys of the schema. for the experiments  we assumed that primary keys are not part of the schema  but are rather specified as query constraints. the rewritings that we produced take these query constraints into account.
+¡¡we experimented with a number of  inconsistent  databases  considering the following parameters:
+  the size s of the database. we considered databases of 1 and 1 mb  and 1 and 1 gb. a database of 1 gb has 1 million tuples.
+  the percentage p of the database that is inconsistent. for example on a 1 gb instance  1 million tuples  where p is 1%  there are 1 million tuples that violate the key constraints of the query. we created the databases in such a way that every relation has the same value of p as the entire database. we experimented with values of p of 1  1  1  1  1  and 1. we deliberately consider high values of p to test the limits of our approach.
+  the number of tuples n that share a common key value
+ and hence violate the key constraint   for every key
+value in the inconsistent portion of the database. for example  if n = 1  then every key value in the inconsistent portion of the database appears in exactly two tuples. we experimented with values of n ranging from 1 to 1. note that p and n together determine the level of inconsistency of the database.
+¡¡since the tpc-h data generator  dbgen  creates instances that do not violate the primary key constraints  we developed a simple program that generates inconsistent databases. the program works as follows. suppose that we want to generate an inconsistent database of 1 gb where p = 1% and n = 1. the program first invokes the tpc-h data generator and creates a consistent instance of size 1 gb. then  it selects two sets of tuples of size 1 gb from the database. the tuples are selected randomly from a uniform distribution. one of the sets is used to draw the key values of the conflicting tuples that the program will introduce to the database; the other set is used to obtain non-key values. for each query q  we used conquer to generate a rewritten query that takes annotations into account  and another which does not assume an annotated database. in the following  we will say that the queries produced by the former strategy are annotation-aware.
+¡¡our rewritings contain some common subexpressions specified with the with clause  such as candidates and filter . in the experiments  we found that running times improve considerably when the results of these subexpressions are temporarily stored rather than computed several times for the same query. for some queries  the db1 optimizer realized that materialization was the best strategy  but for others it did not. so to have a consistent comparison  we materialized all common subexpressions using temporary tables. we include the materialization time in the query running times. furthermore  we ensured that these materialized results were not cached across runs of the queries.
+¡¡we created indices for the query constraints and for the annotations  the attribute cons . notice that  since we consider databases that violate the key query constraints  they cannot be defined as unique keys. for each index  we created statistics using the db1 runstats command.
+1 experimental results
+¡¡in figure 1  we compare the running times of all queries with the rewritings produced by conquer.1 the results correspond to a 1 gb database with 1% of inconsistency and n = 1. although the rewritten queries are more expensive  the overhead is reasonable if we take into account that  in general  consistent query answering is much more onerous than standard query answering  1  1 .
+¡¡we calculate the overhead of the rewritten queries as  where to and tr are the running times of the original and rewritten queries  respectively. for the annotation-aware rewritings of all queries except q1  the overhead is below 1 times the running time of the original query. for the ones that do not use annotations  the overhead is less than 1 for all queries except q1. we will justify the high over-
+
+figure 1: running time for all queries on a 1 gb database
+head of the rewritings of q1 momentarily. of the two rewriting strategies  the one that is annotation-aware consistently produces more efficient rewritings. the difference in the running times of the two rewritings ranges from 1%  q1  to 1%  q1 . we will shortly show a study where the savings of the annotation-aware rewritings are even greater.
+¡¡we argue that the overhead of the rewritten queries is dominated by the size of the answer to the original query  without considering grouping . this is certainly the case in the database used for the experiments of figure 1  where the rewritings for q1 have the largest overhead. if we remove all grouping from q1  we get a result set of 1 million tuples. the size of the result set for all the other queries is below 1 tuples. we justify our conjecture in terms of the query rewriting algorithm rewriteagg of figure 1. in that figure  note that the rewritten queries are obtained as the union of two queries: unfilteredcandidates and filteredcandidates. the former selects tuples that are not in filter. the latter selects tuples that are in filter and in qgcons. qgcons is the query that obtains the consistent answers for the original query without aggregation and grouping. thus  it is obtained with the algorithm rewritejoin of figure 1. in this algorithm  the rewritten query returns the tuples in the result of candidates which are not in the result of filter. note in figure 1 that filter focuses solely on tuples that come from the result of candidates. in turn  candidates is obtained from the original query  without grouping and aggregation  except for some changes to its select clause.
+¡¡we also studied the effect of the amount of inconsistency in the database. here  we report results for one query  q1  that is representative of the trend that we observed on the other queries as we varied the values of p and n for databases of 1 gb. in figure 1  we present the running times for databases with a varying percentage p of inconsistency  from 1 to 1%  for a fixed n = 1. we can observe that p has little influence on the running time of the original query and the rewriting that is unaware of annotations. the size of the result set of q1 remains constant as we vary the value of p because all databases are of the same size. this is yet another evidence that the size of the result set of the original query has a considerable impact on the running time of the rewritten queries.
+¡¡the annotation-aware rewriting is considerably influenced by p. in figure 1  the overhead of the annotation-aware rewritings ranges from 1  for p = 1%  to 1  for p = 1% . the reason for this is that the annotation-aware rewriting is designed to focus as much as possible on the consistent portion of the database  and thus benefits if the database has a low value of p. note that on the totally consistent database  the running times of the original query and its annotation-aware rewriting are very close  the overhead is 1 . thus  this rewriting is particularly useful for databases that are almost consistent  i.e.  the value of p is close to zero .
+
+figure 1: running time of q1 over p
+¡¡in figure 1  we present the running times for q1 over databases with varying values of n and a fixed p = 1%. note that the value of n has little influence on the running time of any of the two alternative rewritings.
+
+figure 1: running time of q1 over n
+¡¡finally  we studied the scalability of our approach. for this  we employed databases of 1 mb  1 mb  1 gb  and 1 gb. to ensure a consistent comparison  we present results for databases where the total number of tuples violating the constraints is kept constant. in particular  in figure 1 we present results for databases with 1 inconsistent tuples. thus  the values of p are 1  1  1  and 1 for the 1 gb  1 gb  1 mb and 1 mb databases  respectively. in all databases  we kept n = 1. in the figure  we report the running time of the annotation-aware rewritings for queries 1  1  and 1. it can observed that the running times grow in a linear fashion with the size of the database.
+
+figure 1: running time of the rewritten queries over database size
+1. related work
+¡¡there has been considerable work on the semantics and complexity of consistent query answering. we do not review all of this work  but instead concentrate on results that are the most related to building practical consistent query answering systems. the computational complexity of the consistent query answering problem has been thoroughly studied in the literature  for different classes of queries and constraints  1  1 . in the case of spj queries with one key query constraint per relation  the problem is known to be co-np complete in general  1  1 . however  there remain large practical classes of queries for which the problem is much easier to compute.
+¡¡first-order query rewritings are relevant in our context because queries in first-order logic can be translated into sql. arenas et al.  were the first to propose a first-order rewriting algorithm  which is applicable to a class of queries called quantifier-free. this class is quite restricted as it requires all attributes to appear in the select clause  and hence prohibits most projections   unless an attribute has been equated to another attribute that is in the select clause. this work was the foundation for hippo   which  to the best of our knowledge  is the only existing system for consistent query answering on large databases. however  the approach taken by hippo is quite different from conquer. first  hippo is not based on query rewriting. rather  it takes the more procedural approach of producing a java program which computes the consistent answers. although the program does interact with a rdbms back-end  most of the processing is done by processing a main memory  conflict-graph  data structure that contains all the tuples that violate the constraints. hippo extends the select-join query class of arenas et al.  to consider union  disjunction   an operation we are not considering.
+¡¡the rewriting algorithm presented in this paper is motivated by our previous work on rewriting conjunctive queries  that is  spj queries with set semantics  into first-order logic queries . in the current work  we consider not only conjunctive queries but also spj queries with aggregation  grouping  and bag semantics. furthermore  in our previous work  we were not concerned with the running time of the rewritten queries. in principle  first-order queries can be translated into sql. however  the queries produced in  have a high level of nesting  proportional to the number of relations in the query  and are therefore very inefficient. the rewriting algorithm in our current work produces sql queries with at most one level of nesting and  as shown in section 1  reasonable running times.
+¡¡our work on aggregation is inspired by   which was the first to propose the use of ranges as a semantics for consistent query answering for aggregate expressions  but considers queries with just one aggregated attribute and no grouping. we extend these results to consider general aggregation queries with grouping.
+¡¡there are a number of systems for consistent query answering that rewrite queries into powerful logics. infomix  1  1  is a notable example of such an approach. in infomix  queries are rewritten into disjunctive logic programs. such programs are computationally more expensive than sql  but also more expressive and permit rewritings over a very rich class of query constraints. for example  infomix considers general functional  inclusion  and exclusion query constraints. these systems focus on expressiveness  more than efficiency and scalability  and therefore address a different design point than the one we are considering. to give an idea of the scale of the difference  one of the few experimental studies available in the literature  reports results for databases with at most 1 tuples violating key query constraints  over a database of 1 tuples . in contrast  one of our experiments was performed on a database with 1 million inconsistent tuples  over a total of 1 million tuples . results for hippo have also only been reported for a database of up to 1 tuples. hippo constructs an in-memory conflict graph which may limit the number of possible conflicts than can be considered  1  1 .
+¡¡finally  it is worth noting that the semantics of consistent query answers is similar to that of certain answers that is widely accepted as an important semantics for data integration . for certain answers  the set of possible worlds are the legal instances of a global database  rather than the repairs of an inconsistent database.
+1. conclusions
+¡¡we have presented the conquer system that  given a set of key query constraints  rewrites sql queries to sql queries that return only the consistent answers. we use a strong semantics for  consistent . an answer is consistent if every repair supports the answer. such a semantics is useful for identifying potential inconsistencies in a database. however  our rewritings extend naturally to a semantics based on voting  find answers supported by at least two repairs   or a semantics under which each tuple is given a probability of being correct . we are currently experimenting with rewritings which return the most probable answer over an inconsistent database in which each tuple is assigned a probability of being consistent.
+¡¡acknowledgements. we thank nick koudas  mariano consens  periklis andritsos  and denilson barbosa for their feedback and help.

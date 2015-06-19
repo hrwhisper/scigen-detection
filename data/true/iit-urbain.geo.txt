@@ -1,0 +1,156 @@
+ 
+for the trec-1 genomics track ad-hoc retrieval task  we report on the development of a scalable information retrieval engine based on a relational data model for the integration of structured data and text.  
+our objectives are to meet the need for the integrated search of heterogeneous data sets of biomedical literature and structured data found in biological databases  and to demonstrate the efficacy of using a relational database for a large biomedical information retrieval application. 
+utilizing pivoted document normalization  pn    pseudo relevance feedback  1  1   and without performing stemming or domain specific normalization of biological terms  we received a mean average precision  map  of 1 that places our results at the median of 1 genomics track ad-hoc retrieval participants. 
+subsequent to our participation in trec  we have added a new gene/protein term normalization scheme  and have evaluated additional retrieval strategies including: bm1   pivoted unique normalization   and language models utilizing absolute discounting  dirichlet  and jelinek-mercer smoothing techniques  1  1  1 . 
+with the addition of porter stemming   gene/protein term normalization  and the bm1 probabilistic retrieval strategy  we received a map of 1 that places us among the top results for official manual runs reported for the trec genomics track. 
+ 
+1. introduction 
+ 
+since biomedical research involves the use and integration of such a wide variety of different types of data  including structured descriptions and classifications of disease  drug interactions  protein descriptions  gene sequences  genus species  and study type  the integration of heterogeneous data sets  textual literature  and associated meta-data is required to improve search precision  1  1  1 . unfortunately  these data sets are fragmented into many heterogeneous types  formats  vocabularies and databases. most information retrieval systems have been developed utilizing custom inverted index structures that make integrated search across biomedical literature text and structured databases difficult.  
+furthermore  many top performing participants in past trec genomics ad-hoc retrieval tasks have had success improving retrieval performance through utilization of external databases to normalize variations in biomedical terms  1  1 . 
+to address the need to integrate structured data with text  we explore the use of an information retrieval engine based on a standard relational database management system  rdbms  for the trec-1 genomics track ad-hoc retrieval task. 
+the genomics ad-hoc retrieval task utilizes a corpus of 1 1 medline citations  ~1gb  and 1 query topics drawn from 1 categories of information needs of molecular biology researchers . 
+ 
+1. relational data model 
+ 
+the mainstream approach in the development of information retrieval systems uses a customized inverted index to represent text with additional custom software required to integrate disparate structured and unstructured data sources. 
+to facilitate the integration of structured and unstructured biomedical data  we developed a new retrieval engine based on a relational information retrieval approach to provide a foundation for our research efforts  1  1 . 
+a relational information retrieval approach uses relations to model an inverted index. storing the full text in a relational environment integrates the search of unstructured data with the traditional structured data search of rdbms. 
+our relational model implements an inverted index as a set of relational database tables: index  postinglist  documents. an indexstats table is created for capturing corpus wide statistics to support various normalization schemes  and a query table is created for storing the current topic.  
+ 
+figure 1: relational model 
+ 
+all search queries are implemented using sql with the aggregate sum function implementing the similarity coefficient.  
+ 
+the following query implements a standard cross-product cosine with pn normalization: 
+ 
+select p.docid  max d.docnum  docnum         sum i.idf* 1+ln q.tf  *idf* 1+ln p.tf  *d.norm    as sc  from index i  postinglist p  documents d  query q where p.docid=d.docid and   i.termid=p.termid and   i.term=q.term group by p.docid order by sc desc; 
+ 
+the performance of different retrieval strategies can be evaluated by modifying the aggregate sum in the select clause. 
+pre-computed normalization values can be easily updated with sql. the following sql updates the documents table for pivoted vector length normalization: 
+ 
+update documents set norm  
+= 1/ 1+  1/avgdoclen *len  ; 
+ 
+different term weighting schemes can be implemented for title  abstract  and mesh terms by modifying the sum equation as follows: 
+select p.docid  max d.docnum  docnum   sum i.idf* 1+ln q.tf  *idf* 
+ w1* 1+ln p.tftitle   + 
+ w1* 1+ln p.tfabs   + 
+ w1* 1+ln p.tfmesh      
+*d.norm    as sc ... 
+ 
+in addition  by loading the treceval qrels file containing listings of relevant and non-relevant documents into a database table  sql reports can be generated to evaluate queries  relevant documents  and documents retrieved. 
+ 
+1. system description 
+ 
+indexing  retrieval  and analysis applications were developed in java and the system utilizes the oracle 1i standard edition database. the system is platform and database independent. trec retrieval runs were performed on a 1ghz pentium 1 pc with 1 gb of main memory. 
+ 
+1. indexing 
+ 
+official trec results are reported with single term indexing  i.e.  no bi-gram phrases. stop terms were removed and no stemming was utilized. some term and abbreviation normalization was performed when parsing the input data; however no domain specific term normalization of biomedical terms including variations in gene and protein names was performed.  
+after indexing  terms occurring in more than 1% of all documents were pruned from the index to improve performance. this modification did not affect accuracy and significantly improved query execution performance. 
+subsequent indexing with bi-gram terms did not yield a statistically significant improvement in precision and significantly increased the size of the index. 
+subsequent to our official trec run we included porter stemming   and added a new gene/protein term normalization technique based on the concepts used by buttcher  et al.  in the 1 trec genomics track .  
+ 
+biological term normalization 
+gene/protein normalization requires identification of terms with mixed case  alpha-to-numeric  or numeric-to-alpha character transitions that are not separated  separated by a space  or separated by a hyphen.  sample terms include nurr-1  apoe  nm1  and tgf-beta1. nurr1  nurr-1  and nurr 1 would all be normalized to  nurr 1'. 
+to capture additional variations  each variation of a normalized term is generated  so tgf-beta1 is first normalized to  tgf beta 1'  and each component of the normalized term is generated prior to removing stop words:  tgf beta    beta 1     tgf    beta   and  1 .  
+ 
+1. query processing 
+ 
+the title and narrative from each topic was utilized to formulate the query  and the same preprocessing  i.e.  term normalization  stop word removal  and porter stemming utilized for indexing was utilized for query processing.  each of the following retrieval strategies were executed on the same index with the same preprocessing. 
+ 
+1 pivoted normalization 
+ 
+standard normalization techniques such as cosine over penalize longer documents  i.e.  shorter documents are more likely to be retrieved and less likely to be relevant . utilizing a slope  s  adjustment  pivoted normalization adjusts the retrieval curve to more closely represent the likelihood of retrieval.  
+idf *ln 1+tfq *idf *ln 1+tfd  
+¡Æwq	doclen
+	 1  s  + s* 	 
+avgdoclen
+we received our best results with s=1. 
+ 	 	 
+1 pivoted unique normalization 
+ 
+due to very high term frequencies  standard pivoted normalization can overweight long documents . since approximately 1% of the genomics medline citations have no abstracts  utilizing distinct term counts may better represent relevance with respect to citations with and without abstracts. 
+ 
+idf *ln 1+tfq *idf *ln 1+tfd 
+
+¡Æwq  1  s *avgdistdoclen + s*distdoclen 
+ 
+we received our best results with s=1. 
+ 
+1 bm1 
+ 
+we utilized the standard bm1 probabilistic algorithm  1  1 . after several trials  we received our best results with k1.1  k1  k1  and b=1. 
+ 	 	 	 	 	 	   
+	 	 
+  df + 1 
+¡Æwq     ndf + 1         k1* 1 b  + bk1*+ 1 *doclentfd	  + tfd           k1k+1 +1 tf*qtfq      
+	 	avgdoclen	 
+ 
+1 bm1 with idf 
+ 
+utilizing the same constants used for standard bm1 term weighting  we received approximately the same result utilizing idf weighting. 
+	 	 
+	wq	   k1* 1 b  + bk1*+ 1 *tfd	        k1k+1 +1 tf*qtfq      
+¡Æ  idf   	doclen	  
+	  	avgdoclen  + tfd  
+ 
+1 language models 
+ 
+utilizing a most-likelihood-term unigram language model with uniform document priors we evaluated jelinekmercer  dirichlet  and absolute discounting smoothing. to improve performance  the where clause of the sql query was modified to only include counts for documents which included at least one term that matched a query term.  
+ 
+1.1  jelinek-mercer  
+ 
+jelinek-mercer smoothing utilizes a linear interpolation to distribute the probability mass between terms seen in the document with the likelihood of the term occurring in the collection. 
+ 
+¡Æ ln  1 ¦Ë * pml w | d  +¦Ë* p w | c   wq
+pml w | d  = tfd / doclen and the collection model 
+p w | c  represents the frequency of the term in the collection. 
+we received our best results with ¦Ë= 1 
+ 
+1.1 bayesian smoothing with dirichlet prior 
+ 
+bayesian smoothing with dirichlet prior: 
+ 
+¡Æwq ln    tfddoclen+¦Ì* p +w¦Ì| c       
+we received our best results with ¦Ì=1 . 
+ 
+1.1 absolute discounting  
+ 
+absolute discounting lowers the probability of seen words by subtracting a constant ¦Äfor seen term counts.  
+ 
+¡Æwqln max doclentfd  ¦Ä  1 +¦Ä*distdoclendoclen	  
+we received our best results with ¦Ä= 1 
+ 
+1. results 
+ 
+we first report results from preprocessing improvements  and subsequently utilize our best preprocessing methods to systematically evaluate each retrieval strategy. 
+  
+1 preprocessing 
+ 
+to evaluate stemming and biological term normalization  we utilized pn  s=1  without relevance feedback  stemming  and biological term normalization as our baseline. table 1 lists the results of our preprocessing evaluation. 
+ 
+table 1: preprocessing evaluation 
+ map improvement over baseline  baseline pn 1  + stemming 1 1% + stemming 
++term norm. 1 1% + stemming +term norm. 
++ term norm. 
+variants 1 1%  
+our first observation is the improvement in map from our official run  1  to our new baseline by excluding relevance feedback. in our official run  we utilized one feedback iteration and expanded the original query with 1 additional terms selected by ranking terms by  df*idf from the top 1 retrieved documents. after further examination of trec results  we believe the difference is due to the relatively small number of relevant documents identified per query. reducing the number of top documents  ~1  from which to select query expansion terms negates the negative effect of relevance feedback  but does not improve mean average precision. 
+stemming improved performance and the term normalization scheme dramatically improved mean average precision.  
+ 
+1 retrieval strategy evaluation 
+ 
+utilizing our best performing preprocessing  i.e.  stemming and term normalization with variants  we evaluated each retrieval strategy. results with pn used as a baseline are listed in table 1. 
+ 
+table 1: retrieval strategy evaluation 
+retrieval strategy parameter map improvement over baseline  pn s=1 1  pn unique s=1 1 1% bm1 k1.1  k1  k1  b=1 1 1% bm1 w/ idf k1.1  k1   k1   b=1 1 1% lm 
+jelinek-mercer ¦Ë= 1 1 -1% lm 
+dirichlet ¦Ì= 1 1 -1% lm 
+absolute discounting ¦Ä= 1 1 -1%  
+we consistently received the best results using bm1 for a wide range of parameters.  using the standard bm1 term weighting formula or bm1 with idf term weighting had no significant impact on results. 
+there was no significant difference between utilizing standard pivoted cosine normalization  or the pivoted unique normalization method that utilizes distinct term counts. since pivoted unique normalization is most effective in large documents and medline citations are relatively short  this is expected. 
+the performance of the language models for all smoothing techniques performed below the pn baseline. we also evaluated use of kl-divergence  to measure the crossentropy between a query model  represented by the likelihood of a term for a given query  and the unigram document model with each smoothing technique listed in table 1. kl-divergence did not improve performance. in all fairness  we utilized relatively basic models. 
+use of relevance feedback did not improve performance for any of the retrieval strategies we evaluated. 
+ 

@@ -1,0 +1,11 @@
+ s. autexier. hierarchical contextual reasoning. phd thesis  saarland university  forthcoming. 
+ c. benzmiiller  a. meier  e. melis  m. pollet  and v. sorgc. 
+proof planning: a fresh start  in proc. of the ijcar 1 j workshop: future directions in automated reasoning  siena  italy  1. 
+ c. benzmiiller and v. sorgc. oants - an open approach at combining interactive and automated theorem proving. in m. kerber and m. kohlhase  editors  symbolic computation and automated reasoning  a.k.pcters  1. 
+ a. bundy. a critique of proof planning. in a. c. kakas and f. sadri  editors  computational logic. logic programming and beyond  lncs 1  springer  1. 
+ x. huang. reconstructing proofs at the assertion level  newblock in a. bundy  editor  proc. cade-1  lnai 1  springer  1. 
+ e. melis and j. siekmann. knowledge-based proof planning. articial intelligence journal  1 :1  1. 
+ j. siekmann et al. proof development with omega. in a. voronkov  editor  proc. cade-1  lnai 1  springer  1. 
+ q. b. vo  c. benzmiiller  and s. autexier. an approach to assertion application via generalized resolution. seki report sr1  saarland university  february 1. http://www.ags. uni-sb.de/ omega/pub/poetscript/sr-1 - 1. ps. gz 
+
+1 	poster papers 

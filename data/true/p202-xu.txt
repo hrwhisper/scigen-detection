@@ -1,0 +1,165 @@
+in this paper  we propose a new data clustering method called concept factorization that models each concept as a linear combination of the data points  and each data point as a linear combination of the concepts. with this model  the data clustering task is accomplished by computing the two sets of linear coefficients  and this linear coefficients computation is carried out by finding the non-negative solution that minimizes the reconstruction error of the data points. the cluster label of each data point can be easily derived from the obtained linear coefficients. this method differs from the method of clustering based on non-negative matrix factorization  nmf   in that it can be applied to data containing negative values and the method can be implemented in the kernel space. our experimental results show that the proposed data clustering method and its variations performs best among 1 algorithms and their variations that we have evaluated on both tdt1 and reuters-1 corpus. in addition to its good performance  the new method also has the merit in its easy and reliable derivation of the clustering results.
+categories and subject descriptors
+h.1  information storage and retrieval : information search and retrieval-clustering
+general terms
+algorithms
+keywords
+document clustering  concept factorization  dimension reduction  data representation
+1.	introduction
+¡¡data clustering is a fundamental and enabling tool that has a broad range of applications. the task of finding good
+permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. to copy otherwise  to republish  to post on servers or to redistribute to lists  requires prior specific permission and/or a fee.
+sigir'1  july 1  1  sheffield  south yorkshire  uk.
+copyright 1 acm 1-1/1 ...$1.
+clusters in a given data set has been the focus of considerable research from many research communities  and many clustering algorithms have been proposed in the past years. generally  clustering methods can be categorized as agglomerative and partitional. agglomerative clustering methods group the data points into a hierarchical tree structure using bottom-up approaches. the procedure starts by placing each data point into a distinct cluster and then iteratively merges the two most similar clusters into one parent cluster. on the other hand  data partitioning methods decompose the data set into a given number of disjoint clusters which are usually optimal in terms of some predefined criterion functions. in this paper  we will only consider partitional methods.
+¡¡among the partitional clustering methods  perhaps k-means is the most widely used algorithm. k-means produces a cluster set that minimizes the sum of squared distances between the data points and their corresponding cluster centers. some other partitional clustering algorithms such as naive bayes or gaussian mixture model define a probabilistic cluster model and try to find the model by maximizing the likelihood of the data. one major common problem of these three methods is that there are many local optimal solutions for the these criterions and the final clustering result depends heavily on the initial partition. usually  multiple random tries are performed and the one attaining the best criterion score are selected.
+¡¡in recent years  spectral clustering has emerged as one of the most effective data clustering tools. many of these methods can be viewed as modelling the given data set using an undirected graph in which each data point is represented as a node  and each edge  i j  is assigned a weight wij to reflect the similarity between data points i and j. the data clustering task is accomplished by finding the best cuts of the graph that optimize a predefined criterion function. the optimization of the criterion function usually can be transformed to an eigen-problem and the clustering result can be derived from the obtained top eigenvectors. many criterion functions  such as the ratio cut   average association   k-means   normalized cut   min-max cut   etc  have been proposed along with the corresponding eigen-problem for finding their approximate optimal solutions. as spectral clustering methods rely on the eigen-decomposition technique  the solution is guaranteed to be global optimal in terms of the defined criterion for the transformed problem. this is the reason why  although as approximate solution  the spectral clustering can often produce better result than direct optimization  e.g. k-means  of the criterion functions.
+one major drawback of these spectral clustering algorithms is that the negative values appeared in eigen-factorization make the factorization hard to interpret and the obtained eigen-vectors have no direct relationship with the semantic structure of the data set. usually  traditional clustering method such as k-means has to be applied in the eigen-space to find the final set of data clusters.
+¡¡ proposed a cluster model in which each document is represented as a non-negative linear combination of the cluster centers and the cluster centers are constrained to be nonnegative. given this model  a matrix factorization algorithm called non-negative matrix factorization  nmf   was used to find the parameters of the model. one advantage of nmf over the spectral method is that the factorization result of nmf has better semantic interpretation and the clustering result can be easily derived from it. however  there are still some limitations of nmf. first  it requires that the cluster centers to be non-negative. although this is perhaps an appropriate constraint for text document  it is not desirable for many other data involving negative numbers. second  because of the non-negative constraint on the cluster centers  the nmf algorithm has to be performed in the original feature space of the data points  so that it can not be kernelized and the powerful idea of the kernel method cannot be applied to nmf. we refer readers to  for an introduction on kernel based algorithms.
+¡¡in this paper  we propose a new data clustering method called concept factorization that strives to address the problems while inheriting all the strengths of the above nmf method. this new data clustering method models each cluster as a linear combination of the data points  and each data point as a linear combination of the cluster centers. with this model  the data clustering task is accomplished by computing the two sets of linear coefficients  and this linear coefficients computation is carried out by finding the non-negative solution that minimizes the reconstruction error of the data points. because the linear coefficients in our proposed method carry clear semantic meanings  the cluster label of each data point can be easily derived from these coefficients. our experimental evaluations show that the proposed data clustering method and its variations surpass the representative spectral clustering methods not only in data clustering accuracies  but also in the easy and reliable derivation of the clustering results.
+1.	the proposed method
+¡¡we model the data clustering problem from the following perspective. in the given data set  each underline concept/cluster can be characterized by associating the data points that possess the similar concepts  which can be expressed by a linear combination of the entire data points. the vector resulted from this linear combination represents the common  principal concept characterized by the associated data points. on the other hand  each data point can be approximated by a linear combination of all the concepts  where each linear coefficient defines the degree of overlap between the corresponding data point and the concept. because it is more natural to consider that a concept or document is formed by addition rather than subtraction of a set of properties  we demand that the two sets of the linear coefficients be positive. the key difference of the proposed method with nmf is that each concept found by nmf is constrained to be non-negative and not necessary to be a linear combination of data points. this key difference limits the usage of nmf to only non-negative data. and we will see in the rest of this section that representing each concepts as a linear combination of data points allows the computation to be formulated in kernel space so that a suitable kernel can be chosen to improve the power of the algorithm.
+¡¡we note that the above formulation of clustering have some similarities with  and . the major difference is that in  and   the concept centers are obtained by a separate clustering algorithm  and then the document vectors are projected to the fixed cluster centers. so the main focus of their research is to obtain new representation of documents given the cluster centers  rather than improving existing clustering algorithms. however  both of the problems of obtaining concept center and new document representation are addressed by the new clustering algorithm described in this paper. we will see that these two problems can be solved jointly according to a single criterion.
+¡¡let xi be the m-dimensional feature vector representing the data point i where i = 1 ... n  rc be the center of concept c where c = 1 ... k. translating the statements at the beginning of this section into mathematics  we have
+ 1 
+ 1 
+where wic is a non-negative association weight indicating to which degree data point i is related to concept c  and vic is a non-negative number showing the projection value of xi onto the base  concept center  rc. replacing rc in eq. 1  with eq. 1   we have
+		 1 
+¡¡we form the m ¡Á n data matrix x =  x1 x1 ... xn  using the feature vector of data point i as the i'th column  the n¡Ák association matrix w =  wic  using the association weights wic  and the n¡Ák projection matrix v =  vic  using the projection values vic. from eq. 1  we have
+	x ¡Ö xwvt	 1 
+eq. 1  can be interpreted as the approximation of the original data set x using the clustering result defined by the matrices w and v. note that eq. 1  is in fact a form of factorization of the data matrix x into x  w  and v. this factorization process enables us to discover the distinct concepts  cluster centers  within the given data set as well as the cluster membership of each data point. therefore  we call this concept factorization  cf .
+¡¡our goal is to find a cluster set that minimizes the squared error j between x and its approximation.
+	 xwv	 1 
+with the above formulation  we turn the data clustering problem into the computation of w and v that minimize the criterion function j. define k = xtx  and use the property   we have
+tr  x   xwvt t x   xwvt  
+	1	t t	t
+	=	tr  i   wv   k i   wv   
+1
+	1	t	t	t
+	=	tr k   1vw k + vw kwv  
+1
+kwvtv    1 
+where the last step of derivation has used the matrix property tr ab  = tr ba .
+¡¡fixing v  j becomes a quadratic form of w which can be denoted as j w . similarly  fixing w  we get the quadratic form j v . since quadratic optimization is a well studied problem  our strategy is to optimize w and v alternatively so that we can leverage on the existing quadratic programming algorithms. in   sha et al derived a multiplicative update algorithm that computes the non-negative solution for minimizing the general quadratic form.
+¡¡theorem  : define the non-negative general quadratic form as
+	1	t	t
+	f y   = y ay + b y	 1 
+                       1 where y =  yi  is an m ¡Á 1 vector in which each element yi satisfies yi ¡Ý 1  a is an arbitrary m ¡Á m symmetric semipositive definite matrix  and b =  bi  is an arbitrary m ¡Á 1 vector. let a = a+   a   where a+ and a  are two symmetric matrices whose elements are all positive. then the solution y that minimizes f y   can be obtained by the following iterative update
+		 1 
+where  ¡¤ i denotes the i'th element of the resultant m ¡Á 1 vector.
+¡¡to apply the above theorem to minimizing our criterion function j  we need to identify the corresponding a and b term in object function j. fixing v  the two coefficients for the quadratic form j w  can be obtained by taking the second order derivative with respect to w  and by taking the first order derivative with respect to w at w = 1  respectively. let k = k+ k  where k+ and k  are symmetric matrices whose elements are all positive  the computation of the two coefficients becomes
+		 1 
+		 1 
+where the two terms at the right hand side of eq. 1  corresponds to a+ and a  respectively. substituting a and bi in eq. 1  with terms at the right-hand side of the above two equations  respectively  we obtain the multiplicative updating equation for computing each element wij of w:
+		 1 
+where p+ = k+wvtv and p  = k wvtv. for the case that matrix k is comprised of all positive elements  i.e.
+k  = 1   we get a compact equation as follows:
+ kv ij
+	wij ¡û wij 	 1 
+pij
+similarly  we can compute each element vij of v by applying the above theorem to the quadratic form j v . fixing w  we get
+
+	 kw ij	 1 
+where ¦Äik is equal to 1 if and equal to 1 otherwise. the update rule for v is:
+	 	 kw 1ij + 1q+ijq ij
+	¡û	 1 
+1qij
+where q+ = vwtk+w and q  = vwtk w. the compact form of the update rule in the case of non-negative k is:
+	ij	ij	 1 
+qij
+notice that the solution to minimizing the criterion function j is not unique: if w and v are the solution to j  then  wd  vd 1 will also form a solution for any positive diagonal matrix d. to make the solution unique  we further require that = 1  which is equivalent to requiring wctkwc = 1. this requirement of normalizing w can be achieved by1:
+v ¡û v diag wtkw  1	 1 
+w ¡û w diag wtkw   1	 1 
+¡¡the above algorithm is derived with the standard kernel matrix k = xtx. in fact each element kij of k is nothing but the inner product  between the data points i and j. in addition to the standard kernel matrix  this algorithm can be readily applied to any kernel matrix k in which kij is defined by an arbitrary kernel function kij = k xi xj   which amounts to performing the algorithm in the high-dimensional  or even infinite-dimensional  space defined by the kernel function. this capability of using any kernel functions for defining the kernel matrix k  as will be demonstrated in section 1  dramatically increases the power of the proposed method for achieving high data clustering accuracy for certain data corpora.
+¡¡the immediate result of the above algorithm is a set of coefficients w and v. each column of w corresponds to one concept represented by a weighted combination of the documents in the data set. each row vector of v is a new representation of the original document vector whose each element corresponds to one cluster/concept defined by w. if the data set has a clear cluster structure  i.e.  there is only one obvious way to cluster it and there is no overlap among the clusters   then we expect that the factorization result directly relates to the cluster structure and each concept found by the algorithm corresponds to one actual cluster
+
+1
+ when normalizing matrix w  matrix v needs to be adjusted accordingly so that wvt does not change.
+if the number of concept vectors is same as the number of clusters. in this case  usually only one coefficient in each vi is significantly different from zero and corresponds to the cluster that the document belongs to. although both w and v can be used to derive the cluster label for each data point  we choose to use v in our algorithm. in our model  a cluster is modelled as a linear combination of the data points  defined by w  whereas a data point is modelled as a linear combination of the cluster centers  defined by v . in the case that a data point i happens to overlap the center of a particular cluster c  the weight wic could take a large value  while weights wjc for other data points could be close to zero. if the cluster labels are to be derived from w  small values close to zero will make the cluster labels of the corresponding data points undeterminable. in contrast  as row i of v indicates the similarity between data point i and each of the cluster centers  data point i can be simply assigned to the cluster with which it is the most similar.
+¡¡in summary  our data clustering algorithm is composed of the following steps1:
+1. given a data set  construct the data matrix x in which column i represents the feature vector of data point i.
+1. construct the kernel matrix k using an appropriate kernel function k xi xj .
+1. fixing v  update matrix w to decrease the quadratic form j w  using eq. 1 .
+1. fixing w  update matrix v to decrease the quadratic form j v  using eq. 1 .
+1. normalize w using eq. 1  and eq. 1 .
+1. repeat step 1  1 and 1 until the result converges.
+1. use matrix v to determine the cluster label of each data point. more precisely  examine each row i of matrix v. assign data point i to cluster x if x = argmax  vic . c
+1.	performance evaluations
+¡¡in this section  we describe the data corpora used for the performance evaluations  unveil the data clustering accuracies of the proposed method and its variations  and compare the results with 1 other representative clustering methods and their variations.
+1	data corpora
+¡¡we applied the proposed data clustering method to the text clustering problem  and conducted the performance evaluations using the tdt1 and the reuters1 document corpora. these two document corpora have been among the ideal test sets for document clustering purposes because documents in the corpora have been manually clustered based on their topics and each document has been assigned one or more labels indicating which topic/topics it belongs to.
+
+1
+ in our implementation  at step 1 and 1  we limit each scaling of wij and vij within the range of 1 and 1 in order to avoid local optimum.
+1
+nist	topic	detection	and	tracking	corpus	at
+http://www.nist.gov/speech/tests/tdt/tdt1/index.htm
+1
+ reuters-1 distribution 1 at http://kdd.ics.uci.edu/ databases/reuters1/reuters1.html
+table 1: statistics of tdt1 and reuters corpora.
+tdt1reutersno. documents1no. docs. used1no. clusters1no. clusters used1max. cluster size1min. cluster size1med. cluster size1avg. cluster size1the tdt1 corpus consists of 1 document clusters  each of which reports a major news event occurred in 1. it contains a total of 1 documents from six news agencies such as abc  cnn  voa  nyt  pri and apw  among which 1 documents have a unique category label. the number of documents for different news events is very unbalanced  ranging from 1 to 1. in our experiment  we excluded those events with less than 1 documents  which left us with a total of 1 events. the final test set is still very unbalanced  with some large clusters more than 1 times larger than some small ones.
+¡¡on the other hand  reuters corpus contains 1 documents which are grouped into 1 clusters. compared with tdt1 corpus  the reuters corpus is more difficult for clustering. in tdt1  each document has a unique category label  and the content of each cluster is narrowly defined  whereas in reuters  many documents have multiple category labels  and documents in each cluster have a broader variety of content. in our test  we discarded documents with multiple category labels  and removed the clusters with less than 1 documents. this has lead to a data set that consists of 1 clusters with a total of 1 documents. table 1 provides the statistics of the two document corpora.
+¡¡we use the term-frequency vector to represent each document. let w = {f1 f1 ... fm} be the complete vocabulary set of the document corpus after the stop-words removal and words stemming operations. the term-frequency vector ai of document di is defined as
+
+where tji  idfj  n denote the term frequency of word fj ¡Ê w in document di  the number of documents containing word fj  and the total number of documents in the corpus  respectively. in addition  ai is normalized to unit euclidean length. using ai as the i'th column  we construct the m¡Án data matrix x. by applying the algorithm described in section 1  we obtain the cluster set for the given document corpus.
+1	evaluation metrics
+¡¡we use the normalized mutual information  as our evaluation metric. given the two sets of document clusters
+  their mutual information metric mi 	  is defined as:
+mi 	 1  where  denote the probabilities that a document randomly selected from the data set belongs to cluster ci and   respectively  and  denotes the joint probability that this randomly selected document belongs to both clusters ci and at the same time. the probabilities in
+eq.1 can be calculated as:  
+  where n ci  and   are the number of documents in cluster ci and  respectively   is the number of documents in both cluster ci and  and n is the total number of documents. mi   takes values between zero and max h      where h c  and h  are the entropies of   respectively. it reaches the maximum max h     when the two sets of document clusters are identical  whereas it becomes zero when the two sets are completely independent. another important character of mi   is that  for each ci ¡Ê c  it does not need to find the corresponding counterpart in c  and the value keeps the same for all kinds of permutations. to simplify comparisons between different pairs of cluster sets  instead of using mi    we use the following normalized metric   which takes values between zero and one:
+
+	mi 		 1 
+1	performanceevaluationsandcomparisons
+¡¡we have conducted comprehensive performance evaluations by testing our method and comparing it with 1 other representative data clustering methods using the same data corpora. the algorithms that we evaluated are listed below.
+1. traditional k-means  km .
+1. spherical k-means  skm . the implementation is basedon .
+1. gaussian mixture model  gmm . the implementationis based on .
+1. naive bayes clustering  nb . this is an unsupervisedversion of the naive bayes model for document classification .
+1. gaussian mixture model followed by the iterative cluster refinement method  gmm+dfm  .
+1. spectral clustering algorithm based on average association criterion  aa  . as shown in   the spectral clustering algorithm based on k-means criterion is equivalent to aa. the cluster determination from the eigen-vectors follow the implementation described in
+.
+1. spectral clustering algorithm based on normalized cutcriterion  nc  . as shown in   nc can be considered as a variation of the aa spectral clustering algorithm that applies certain weighting scheme to the given data set. same as aa  we follow the treatment of  to derive clusters from eigenvectors.
+1. spectral clustering based on ratio cut criterion  rc 
+.
+1. spectral clustering based bipartite normalized cut  bp 
+ 
+1. clustering based on non-negative matrix factorization nmf  .
+1. clustering by concept factorization  the algorithm proposed in this paper  cf .
+¡¡in addition to their original forms  we also implemented the normalized-cut weighted form  ncw  suggested by   whenever this weighting scheme is applicable. ncw weighting has effect of automatically balance the effects of clusters with very different size so it can help the clustering algorithms to achieve better result when dealing with unbalanced data set. the weighted form of cf is derived in appendix a.
+¡¡for the algorithms to which the kernel method can be applied  i.e. km  skm  nc  aa  rc and cf   we also implemented their kernelized version and test their performance using square of the cosine similarity as the kernel.
+¡¡the evaluations were conducted for the cluster numbers ranging from 1 to 1. for each given cluster number k  1 test runs were conducted on different randomly chosen clusters from the corpus  and the final performance scores were obtained by averaging the scores from the 1 test runs  i.e.  for each k  1 document sets for arbitrary k clusters were selected from the corpus . for algorithms whose result is affected by initialization  i.e. km  skm  nb  gmm  nmf and cf   each test run consists of 1 sub-runs among which the result of the best sub-run in terms of the corresponding clustering criterion is selected. table 1 and 1 show the evaluation results using the tdt1 and the reuters corpus  respectively. for each k  the performance values that are within 1x standard deviation of best one are shown in bold font.
+¡¡our finding can be summarized as follows: regardless of the data corpora  cf-ncw always has the best performance. the use of nc weighting usually improve the clustering performance  nc vs. aa  km-ncw vs. km  cf-ncw vs. cf  with the kernel k-means as the only exception. the improvement becomes more obvious for the tdt1 than the reuters. with linear kernel  the performance of cf and cf-ncw are similar with  yet consistently better than that of nmf and nmf-ncw respectively  which is in accordance with our expectation. for the tdt1 corpus  using the kernel function improves the clustering performance for aa  nc  cf and cf-ncw by at least 1%  whereas it works negatively for the reuters corpus.  has the effect that brings little change to small distances while amplifying large distances.
+¡¡the results show that the kernel k-means performs very poorly compared to other kernelized clustering algorithms. this is particularly strange because the spectral k-means algorithm  aa and nc  performs reasonably well despite they are the approximate solution to k-means criterion. we hypothesize that the poor performance of kernel k-means is because it is very prone to local optimal solution. to test this hypothesis  we use the correct clustering result as the initial partition. with such initial condition  the final result of kernel k-means is correct and the sum of squared distance is smaller than those resulted from random initializations. in the contrary  although theoretically cf could have the same problem of local optima as k-means  in practice  its performance is quite well.
+¡¡these experimental results verify the fact that clusters in tdt1 are more compact and focused than clusters in reuters. the results show that the use of different kernels can lead to significantly different results and suggest that higher order kernel functions are effective for the data sets that consist of narrowly-defined clusters  while lower order kernel functions should be used for the data sets that consist of clusters with a broader variety of contents.
+1	further analysis of the factorization result
+¡¡in this subsection  we pick up three clustering methods  nc  nmf-ncw and cf-ncw to further study their characteristics through experiments. we conducted document clustering using these three methods on a data set that consists of three clusters from tdt1 corpus1  and plotted the data set in the spaces defined by the projection matrix v from cf-ncw and nmf-ncw  and the space defined by the three eigenvectors from nc  respectively. figure 1 a    b  and  c  show the data distributions in the three spaces in which data points belonging to the same cluster are depicted by the same symbol. the three figures in  a  plot the data points in the space of v1-v1  v1-v1  and v1-v1  respectively  where v1 v1 v1 are the three column vectors of v from cf-ncw   b  plot the data points in the space of v1-v1  v1-v1  and v1-v1  respectively  where v1 v1 v1 are the three column vectors of v from nmf-ncw   and the three figures in  c  plot the data points in the space of e1-e1  e1-e1  and e1-e1  respectively  where e1 e1 e1 are the three eigenvectors from nc method. clearly  cfncw with linear kernel and nmf-ncw produce qualitatively same representation: each axis corresponds to one single cluster  and all the data points belonging to the same cluster spread along the same axis. for these two methods  determining the cluster label for each data point is as simple as finding the axis with which the data point has the largest projection value. however  with nc method  although the three eigenvectors do separate the data points belonging to the different clusters  there is no direct relationship between the axes  eigenvectors  and the clusters. traditional data clustering methods such as k-means have to be applied in this eigenvector space to find the final set of data clusters.
+¡¡furthermore  we tested the kernelized cf-ncw using the same data set. the squared cosine similarity was used as the
+kernel in the test  and the result was plotted in figure 1 d . as observed from the figure  with this new kernel  the data points belonging to different clusters are further separated in the v1-v1-v1 space  and the data points belonging to the same cluster are distributed much closer to the corresponding axis. this is the ideal data representation which makes the task of data clustering easy and straightforward.
+¡¡in summary  it can be concluded that cf data clustering method proposed in this paper:
+1. has inherited the strength of nmf method  i.e.  thecharacter that it projects the data set into a space where each axis corresponds to a single cluster. this character makes the derivation of the clustering result from the projection space very straightforward.
+1. has addressed the problems of nmf method: it isapplicable to positive as well as negative data sets  and can be combined with the kernel method to further
+
+1
+ the topic ids of the three clusters are 1  1 and 1.
+improve data clustering performances for certain data sets.
+the implication brought by these advantages is that we can expect cf method to be applicable to a wide range of data corpora  and to produce the best data clustering results with a variety of experimental settings.
+1.	conclusions and future work
+¡¡in this paper  we derived a new clustering algorithm called concept factorization based on matrix factorization formulation of clustering. our method preserves the merit of nonnegative matrix factorization that the factorization result has direct relationship with the underline structure of the document set  while at the same time it has the advantage that it is not restricted to non-negative data type and can be kernelized. our experiments show that the proposed algorithm performs best among all the algorithms compared on tdt1 and reuters-1 corpus. and the experiment results show that the use of different kernel can lead significant different result for all the different kernel clustering algorithms.
+¡¡although cf is derived from the point view of clustering and is applied to clustering successfully in this paper  however  we believe that cf is a general technique for obtaining a new representation of the given data  which can be widely applied to other areas of text processing such as text retrieval. more future work on these new applications of cf is certainly worthwhile.
+appendix a.	weighted cf
+¡¡in this appendix  we give the solution to the weighted cf. let each data point has weight ¦Ãi  the weighted sum of the squared error is:
+ xwvit t xi   xwvit 
+tr  x   xwvt ¦£ x   xwvt  t
+	1/1
+	=	tr  x¦£	  x¦£	x¦£
+1
+	1/1
+	=	tr  x¦£	  x¦£	x¦£
+1
+tr  i
+1
+	=	tr  i	  	 1 
+1
+where ¦£ be the diagonal matrix consists ofw 
+v =	v and k
+¡¡notice that the above equation has the same form as eq. 1  in section 1  so the same algorithm can be used to find the solution.

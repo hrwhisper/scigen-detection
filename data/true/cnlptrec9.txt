@@ -1,0 +1,145 @@
+this paper describes a question answering system that automatically finds answers to questions in a large collection of documents. the prototype cnlp question answering system was developed for participation in the trec-1 question answering track. the system uses a two-stage retrieval approach to answer finding based on keyword and named entity matching. results indicate that the system ranks correct answers high  mostly rank 1   provided that an answer to the question was found. performance figures and further analyses are included. 
+ 
+1. introduction 
+question answering is not typically found in traditional information retrieval systems. in information retrieval  the system presents the user with a list of relevant documents in response to the query. the user then reviews these documents in search of the information that prompted the original search. it is not surprising therefore that  especially for short questions  people tend to ask their peers or forego the answer rather than expending time and effort with an information retrieval system.  ideally  question answering helps users in their information finding task by providing exact answers rather than a ranked list of documents that may contain the answer.  
+ 
+the trec question-answering track fosters question-answering research. question-answering systems are not as well developed as information retrieval systems  especially for domain independent questions. as first-time participants  the center for natural language processing  cnlp  developed a question- answering system to deal with domain independent questions. 
+ 
+the cnlp question answering system uses a two-stage retrieval approach to answer-finding based on keyword  entity  and template matching  see figure 1 . in answering a question  the system first creates a logical query representation of the question that is used for the initial information retrieval step. additional modules take the retrieved documents for further processing and answer finding. answer finding uses two different approaches after which answer triangulation takes place to select the most likely answer. the first approach to answer finding is based on keyword and entity matching and the second on template matching. currently only the keyword and entity matching answer-finding approach has been implemented. a detailed system overview can be found in section 1. 
+ 
+1. problem description 
+participants in the question-answering track were provided with 1 questions that originated from search engine logs. the initial question set of 1 questions was reduced to 1 questions after 1 questions were discarded by the national institute for standards and technology  nist . 
+the remaining questions were mostly fact-based and required short answers only  see figure 1 . 
+the base set of questions consisted of 1 questions. for 1 questions  slight variations were created resulting in an additional 1 questions. answers to all 1 questions had to be retrieved automatically from approximately 1 gigabytes of data. sources of the data were: ap newswire 1  1 mb   wall street journal 1  1 mb   san jose mercury news 1 
+ 1 mb   financial times 1  1 mb   los angeles times 1  1  1 mb   foreign broadcast information service 1  1 mb . 
+ 
+
+figure 1. cnlp question answering system  shaded areas not part of trec-1 system . 
+ 
+for each question  up to five ranked answer submissions were permitted  with the system producing the most likely answer ranked first. the maximum length of the answer string for a retrieval run was either 1 bytes or 1 bytes. an response to a question consisted of the question number  the document id of the document containing the answer  rank  run name  and the answer string itself. the submitted answer strings were evaluated by nist's human assessors for correctness.  
+ 
+ trec-1 question answering questions base question 1: who was jane goodall  question variants 1: what is jane goodall famous for  
+1: what is jane goodall known for  
+1: why is jane goodall famous  
+1: what made jane goodall famous  answer string  1 bytes  1  ap1  1  1 sut1c1 for her 1 years of chimpanzee research figure 1. examples of trec-1 questions. 
+ 
+1. system overview 
+the prototype of the cnlp question-answering system consists of four different processes: question processing  document processing  paragraph finding  and keyword and entity based answer finding. each of the processes is described in detail below.  
+ 
+1 question processing 
+during question processing  the system converts the question into a logical query representation used for first stage information retrieval and the system determines the focus of each question used for answer finding. question processing takes place in our language-to-logic or l1l module. the l1l process for the question-answering track is optimized for retrieval using the altavista search engine  see section 1   and includes a focus recognizer. for example  the question  what was the monetary value of the nobel peace prize in 1   results in the following output: 
+ 
+altavista query:  monetary value*  + nobel peace prize*  1* question focus:  money|numb 
+ 
+the l1l module converts a natural language query or question into a generic logical representation  which can be interpreted by different search engines. the conversion from language to logic takes place based on an internal query sublanguage grammar  which has been developed by cnlp. prior to conversion  query processing such as stemming  stopword removal  and phrase and named entity recognition take place. we experimented with query expansion for first stage retrieval but experienced a slight drop in the results. based on these results query expansion was left out of the trec-1 question-answering system. 
+ 
+question focus recognition aims to determine the expected answer by analyzing the question. for example  consider the question:  what is the monetary value of the nobel peace prize in 1   the questioner is obviously looking for a monetary value and that is the focus of the question. determining the question focus  also referred to as question type  answer type or asking point  helps to narrow the possible answers for which the system will look. 
+ 
+the system uses two strategies to determine the question focus: the question  and  if that strategy fails  the cnlp named entity hierarchy. the first strategy tries to find the focus of the question based on clues found directly in the question itself. if the beginning of a question resembles any of a set of clues it is clear what focus is intended. for example  if a question contains the words  which capital city  then the focus is  city . however  it is impossible to predict all possible questions and to have a program that deals with any question. if the system cannot assign a focus to a question using example question phrases  the system then moves to the named entity hierarchy clues. the system incorporates one or more clue words for each of the hierarchy classes. for example  the words hurricane or storm in a question might indicate that the questioner is looking for a weather event. the  why  focus is an exceptional case since it does not indicate a particular topic but rather a place in the sentence where an answer might be found  e.g. after the word  because  . the performance of the focus recognition capability is analyzed in section 1. 
+ 
+1 document processing for first stage retrieval 
+we used two different retrieval approaches for first stage retrieval: boolean and probabilistic. the entire trec-1 question answering document collection has been indexed using altavista search engine 1  which is a modified version of the software that runs the search engine at http://www.altavista.com.  altavista 1 indexes all words and does not use stemming. the document collection consisted of 1 documents with the average number of words per document being less than 1. indexing this collection took approximately 1 days using a dual pentium iii  1mhz  with 1mb ram  running windows 1 server. altavista also provides the search developer's kit  sdk . the sdk's interoperability api allows programs to read data from indexes created by the search engine. a batch process takes the l1l query representations and the index directory of document collection as input. for each question  the program returns up to 1 documents.  
+ 
+for our probabilistic runs we used the smart retrieval runs as provided by nist. the smart information retrieval system  originally developed by salton  uses the vector-space model of information retrieval that represents query and documents as term vectors.  all vectors have t components where t is the number of unique terms  or stems  in the collection. a comparison of the boolean and probabilistic first stage retrieval approaches can be found in section 1. 
+ 
+1 paragraph finding 
+the system uses paragraphs rather than documents for its second stage retrieval. based on the trec question-answering guidelines and last year's questions  we assumed that the desired answers were going to be short and factual  less than 1 bytes long . also  the answer context  which identifies an answer as belonging to a certain question  is usually a small part of the original document.  paragraphs  which are much shorter than documents  have the added benefit of cutting down costly processing time. paragraph detection is based on text indentations.  
+ 
+1: what is the highest mountain in the world  question focus: mnt  mountain    nc cat=numb  two|cd  /nc   cn  three-person|jj team|nns  /cn  of|in  np cat=geoadj id=1  
+american|np  /np   |   np cat=geoadj id=1  soviet|np  /np  and|cc  cn   np cat=geoadj id=1  chinese|np  /np  climber|nns  /cn  will|md attempt|vb to|to reach|vb the|dt top|nn of|in  nc cat=dist  1-foot|jj  /nc   np cat=mnt id=1  mount|np everest|np  /np   |  the|dt world|nn 's|pos  cn  highest|jjs mountain|nn  /cn   |  on|in  nc cat=time  may|np 1|cd  /nc  .|. figure 1. example of tagged paragraph  ap1  with answer  mount everest.  
+ 
+in the paragraph finding stage  we aimed to select the most relevant paragraphs from the retrieved documents from the first stage retrieval step. paragraph selection was based on keyword occurrences in the paragraphs. the top 1 most relevant paragraphs were selected for each question. after selection  the paragraphs were part of speech tagged and categorized by 
+ !metamarker tm using cnlp's categorization rules  see figure 1 . the quality of selected paragraphs and the system's categorization capabilities directly impact later processing such as co-reference resolution  currently not implemented   and answer finding. 
+ 
+1 keyword and entity based answer finding 
+the keyword and entity based answer finding process took the tagged paragraphs from the paragraph finding stage and identified different paragraph windows within each paragraph. a weighting scheme was used to identify the most promising paragraph window for each paragraph. these paragraph windows were then used to find answer candidates based on the question focus. all answer candidates were weighted and the top 1 were selected. 
+ 
+1. 1. paragraph-window identification and selection 
+paragraph windows were selected by examining each occurrence of a question keyword in a paragraph. each occurrence of a keyword in relation to the other question keywords was considered to be a paragraph window. a keyword that occurred multiple times thus resulted in multiple paragraph windows  one for each occurrence. a weight for each window was determined by the position of the keywords in the window and the distance between them. an alternative weighting formula was used for single-word questions. the window with the highest score was selected to represent that paragraph. the process was repeated for all 1 paragraphs resulting in an ordered list of paragraph windows - all potentially containing the answer to the question. 
+ 
+1.1 answer candidate identification 
+answer candidates were identified in each paragraph window based on the question focus. each paragraph window can have multiple answer candidates. if the question focus matched any of the categorized named entities  complex nominals  or numeric concepts in the window  they were considered to be answer candidates. if none of the categorized entities matched the question focus  the system translated the focus into a more general tag. for example  if the question focus called for a city and the paragraph did not have a city tag  the system then looked for a named entity in that paragraph. naturally these matches received lower weights than entities that directly matched the question tag. if there was no question focus assigned to the question  the system reverted to an alternative strategy and picked the sentence with the largest number of question keywords and looked for named entities. in identifying the different answer candidates  the required window sizes of 1 or 1 bytes were also generated. 
+ 
+ 1.1 answer-candidate scoring and answer selection 
+the system used a weighting scheme to assign a weight to each answer candidate. the weight was based on the keywords  presence  order  and distance   whether the answer candidate matched the question focus  and punctuation near the answer candidate. this resulted in a pool of at least 1 candidates for each query. the 1 highest scoring answer candidates were selected as the final answers for each question. the answer strings were formatted according to nist specifications of either 1 bytes or 1 bytes depending on the run. this process was repeated for all 1 questions resulting in an answer file of 1  1  lines that were submitted to nist. 
+ 
+1. results 
+our submission for the question-answering track consisted of four different runs. the sut1bn1c runs use our l1l module  see section 1  with the altavista retrieval system for the first-stage retrieval  whereas the sut1c1c runs used the smart  provided by nist . each of these runs had a 1 byte as well as a 1 byte answer string submission. a system bug caused our 1 byte answers to be about 1 bytes shorter  see table 1   which caused a slight drop in results. the program only extended the number of answer bytes on the right-hand side of the answer string but failed to do so on the left-hand side. 
+ 
+averages over 1 questions   strict evaluation : sut1 bn1 sut1 p1c1 sut1 bn1 sut1 p1c1 allowed answer length in bytes 1 1 1 1 average response length in bytes 1 1 1 1 mean reciprocal rank  1 questions  1 1 1 1 questions with no answer found 1  1%  1  1%  1  1%  1  1%  questions above the median1 1  1%  1  1%  1  1%  1  1%  questions on the median 1  1%  1  1%  1  1%  1  1%  questions below the median 1  1%  1  1%  1  1%  1  1%  table 1. question answering results for all four runs. 
+ 
+the measure used for evaluation in the question-answering track is the mean reciprocal answer rank. for each question  a reciprocal answer rank is determined by evaluating the top five ranked answers starting with one. the reciprocal answer rank is the reciprocal of the rank of the first correct answer. if there is no correct answer among the top five  the reciprocal rank is zero. since there are only five possible ranks  the mean reciprocal answer ranks can be 1  1  1  1  1  or 1. the mean reciprocal answer ranks for all the questions are summed together and divided by the total number of questions to get the mean reciprocal rank for each system run.   
+ 
+as is to be expected  the 1 byte runs have a much larger number of questions without an answer than the 1 byte runs. in all four runs  for most questions the system performance equaled the median reciprocal rank of all runs. the majority of the remaining questions were placed above the median.  
+ 
+answer ranks sut1 bn1 ¡¡sut1 p1c1 sut1 bn1 sut1 p1c1 correct answer ranked 1 1  1%  1  1%  1  1%  1  1%  correct answer ranked 1 1  1%  1  1%  1  1%  1  1%  correct answer ranked 1 1  1%  1  1%  1  1%  1  1%  correct answer ranked 1 1  1%  1  1%  1  1%  1  1%  correct answer ranked 1 1  1%  1  1%  1  1%  1  1%  no correct answer found  rank 1  1  1%  1  1%  1  1%  1  1%  total 1 1 1 1 table 1. answer rank distribution of question answering results. 
+  
+the strength of our system lies in answer ranking. consistently across all four runs  the majority of the correct answers were ranked first. unfortunately  in all four runs we had trouble locating the answers to the questions. 
+ 
+1. analysis 
+this section examines retrieval performance of first stage retrieval  the language-to-logic module  and question focus assignment as well as exact answer finding and the effect of question variants on system performance. overall analysis based on the probabilistic 1 byte run  sut1c1  shows that the system retrieves at least one relevant document for each of  1 questions. in the paragraph finding stage we extract paragraphs from 1 of these documents. out of these 1 paragraphs  1 paragraphs contain a possible correct answer. however  for only 1 questions we find that correct answer in these paragraphs. thus  it appears that the answer scoring mechanism and entity tagging  need further refinement.  
+ 
+1 first stage retrieval 
+the analysis of the first stage retrieval was based on the list of relevant documents provided by nist. we used two different first stage retrieval approaches  a boolean approach using our l1l module with altavista  and a probabilistic approach using the smart runs  see section 1 . 
+  
+analysis shows that the retrieval performance of both systems is very similar except for the retrieved number of relevant documents  which is larger for smart  see table 1 . this difference is probably caused by a number of altavista query representations that had a large number of mandatory terms and failed to retrieve a single document. 
+ 
+although the smart retrieval system retrieves more relevant documents  the performance of the two first-stage retrieval models in question answering is very similar. smart performed slightly better in the 1 byte runs  see table 1 .
+ 
+ boolean probabilistic questions without any retrieved documents 1 1 questions without any relevant retrieved documents 1 1 questions for which relevant documents are unknown1 1 1 questions with relevant retrieved documents 1 1 total number of questions for first stage retrieval 1 1 total number of documents retrieved 1 1 number of known relevant documents 1 1 total number of relevant documents retrieved 1 1 average precision1 1 1 table 1. first stage retrieval performance. 
+  
+1 question representation 
+logical question representations are one of the things created in the question processing stage 
+ see section 1 . the question representation analysis is based on the probabilistic 1 byte run  sut1c1 . a close examination of the question representations created by our languageto-logic module showed that for 1  1%  questions  the representation was correct  although 1  1%  representations could stand to be improved. 1  1%  question representations had one or more problems. the most frequently occurring problems were: part-ofspeech tagging errors; difficulties with query length  single word questions and very long questions   and; keyword selection problems  see figure 1 . 
+ 
+problem count problems with description 1 
+ 
+1 
+ 
+ 
+1 
+ 
+ 
+1 part-of-speech errors: wrong tags lead to bad phrases and non-content words being added to query query length: single word queries provide little information for answer finding  long queries with many mandatory terms hinder retrieval misplaced wildcards: wildcards placed on final terms of multi-word terms only  or in the wrong place of  single terms creating bad stems keyword selection problems: content words such as numbers erroneously filtered out figure 1. question representation problems. 
+ 
+it is clear that the part-of speech tagger had trouble dealing with the unusual phrase structure presented by questions. other problems  such as the single word queries  are a direct result of the phrasing of the original question. question expansion for second-stage retrieval might be a solution for this problem. keyword selection is an l1l problem that needs to be adjusted to keep numbers  and possibly adjectives  that specify the answer  i.e. who was the first russian astronaut to walk in space  . 
+ 
+the query representation problems were expected to have a negative impact on answer finding but further analysis showed that this was not the case  see table 1 . even with a problematic question representation  the system was still able to find answers for 1 questions while for 1 questions that did have correct query representations  no correct answers were found. this means that query representation alone only accounts for part of the error. 
+ 
+ correct representation problematic representation answer correct 1  1%  1  1%  answer incorrect 1  1%  1  1%  total 1 1 table 1. question representation correctness and question answering ability.  
+ 
+1 question focus 
+as described in section 1  we determined the focus based on the question clues or named entity 
+hierarchy clues. the question focus analysis is based on the probabilistic 1 byte run 
+ sut1c1 . out of 1 answerable questions  our system determined a question focus for 1  1%  of the questions. out of these 1 questions  1 questions  1%  had a correct focus  and 1 questions  1%  had an incorrect focus. for 1  1%  questions  our system could not determine a focus. 
+ 
+ correct question focus incorrect question focus no determinable question focus rank 1 1  1% 1  1% 1  1%  rank 1 1  1% 1  1% 1  1%  rank 1 1  1% 1  1% 1  1%  rank 1 1  1% 1  1% 1  1%  rank 1 1  1% 1  1% 1  1%  rank 1 1  1% 1  1%  1  1%  total 1 1 1 table 1. answer rank distribution of question focus status. 
+ 
+out of all the questions that ranked the correct answer first  1 questions  1%  had a correct question focus. it appears that a correct focus aids in answer ranking. when looking at the questions with an incorrect query focus  1  we see that most of these questions  1  or 1%  failed to retrieve an answer at all. we can conclude that it pays to have a determinable focus as long as this focus is correct. however  finding the correct query focus is not a guarantee for finding the answer since 1 questions  1%  with a correct focus did not retrieve a correct answer. 
+ 
+a closer examination of questions with an incorrect question focus shows that 1 of these questions are erroneously assigned a  person  focus. 1 of the erroneous person focus questions are of the  who is colin powell  type. unlike questions such as  who created the muppets   the answer to  who is  person name   questions is not a person's name but rather a description of that person. additional problems with the person focus were questions looking for groups of people  i.e. cultures  sports teams  rather than individual persons  or other entities than persons  i.e. companies  cartoon characters .  
+ 
+1 question variants 
+as described in section 1  nist included 1 question variants which are re-wordings of a set of 1 questions  see figure 1 . the question variants analysis is based on the probabilistic 1 byte run  sut1c1 . these question variants allowed us to study the effect of question formulation on system performance. for 1 out of the 1 question sets  the query variation caused no difference in performance. the majority of these questions did not retrieve correct answers no matter how the questions were posed to the system. 
+ 
+1 question sets did show differences in retrieval performance. for 1 sets  the performance differences originated entirely in additional question terms being either present or missing. for 1 sets  the differences in performance were partially due to divergence of question terms. some question terms would guarantee a correct answer  whereas others would throw the results off. the majority of the questions are rather short  so each question term has a relatively large influence on finding the answer. the query variant results indicate that query expansion could have a large impact on system performance. although we experimented with query expansion for first stage retrieval  we did not have enough time to explore it in the answer-finding stage. 
+ 
+for 1 sets  some of the differences in system performance appear to be caused by a different or missing question focus. in eight question sets  some of the differences in performance were caused by the question focus being incorrect. additional question words mislead the system in choosing the wrong question focus. in sets where the question focus is either missing  different  or incorrect  the well-performing counterpart questions did have the correct or more exact focus  and the variant questions  without the exact clue  experienced a drop in rank or a failed attempt to find the answer. these findings indicate that having a correct question focus is of importance  which supports findings of the question focus analysis  section 1 . 
+ 
+in seven question sets  some of the differences were caused by inconsistencies in the answer judgments. certain answers would be judged to be correct for some questions  whereas for others the same answer would be judged to be incorrect. 
+ 
+1 exact answer finding 
+although plans for an  exact answer  run were abandoned by nist  we examined the system's exact answer-finding capabilities for the probabilistic 1 byte run  sut1c1 . the majority of the exact answers that our system produced were judged correct  1 or 1%   and only 1  1%  of the answers were produced by the context of the answer window  see table 1 . this indicates that our system had quite a high answer-finding accuracy when a correct answer was contained in the retrieved document. 
+ 
+ question answered at rank ... number of q. judged correct exact correct answer string found answer produced by context words in the 1-byte window rank 1 1 1 1 rank 1 1 1 1 rank 1 1 1 1 rank 1 1 1 1 rank 1 1 1 1 total 1 1  1%  1  1%  table 1. rank distribution of correctly answered questions and our system performance 
+ 
+ 
+1. conclusions and future research 
+the performance of the cnlp question answering system is highly encouraging. the majority of the correct answers are ranked first and the majority of question representations and assigned question foci were accurate. the prototype system also does well at exact answer finding. however  for a large number of questions no correct answers are found. it appears that the current system does not capitalize on the large number of relevant documents found in the first retrieval stage. 
+ 
+further research is needed to refine the weighting in the paragraph selection and answer finding stages  and to improve the query sublanguage grammar to increase question focus assignment robustness. in addition  a new morphological analyzer needs to be implemented and the part-ofspeech tagger needs to be trained on question phrase structure  to improve question representations. a more detailed study of the categorization performance and coverage is also in order. time also needs to be spent on researching and implementing a second approach to answer finding based on template matching. 
+ 
+acknowledgements 
+we would like to thank catie christiaanse  michelle monsour  and eileen allen for creating the necessary categorization rules in a very limited time frame. we would also like to thank hassan 
+bolut  and wen-yuan hsiao for their engineering support. lastly we would like to thank lois elmore for keeping us all in line. 
+ 

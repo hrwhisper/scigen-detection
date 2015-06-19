@@ -1,0 +1,261 @@
+mining frequent structural patterns from graph databases is an interesting problem with broad applications. most of the previous studies focus on pruning unfruitful search subspaces effectively  but few of them address the mining on large  disk-based databases. as many graph databases in applications cannot be held into main memory  scalable mining of large  disk-based graph databases remains a challenging problem. in this paper  we develop an effective index structure  adi  for adjacency index   to support mining various graph patterns over large databases that cannot be held into main memory. the index is simple and efficient to build. moreover  the new index structure can be easily adopted in various existing graph pattern mining algorithms. as an example  we adapt the well-known gspan algorithm by using the adi structure. the experimental results show that the new index structure enables the scalable graph pattern mining over large databases. in one set of the experiments  the new disk-based method can mine graph databases with one million graphs  while the original gspan algorithm can only handle databases of up to 1 thousand graphs. moreover  our new method is faster than gspan when both can run in main memory.
+categories and subject descriptors: h.1  database applications : data mining
+general terms: algorithms  performances.
+keywords: graph mining  index  graph database  frequent graph pattern.
+1. introduction
+　mining frequent graph patterns is an interesting research problem with broad applications  including mining struc-
+
+ this research is supported in part by nsf grant iis1 and national natural science foundation of china  no. 1 . all opinions  findings  conclusions and recommendations in this paper are those of the authors and do not necessarily reflect the views of the funding agencies.
+permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. to copy otherwise  to republish  to post on servers or to redistribute to lists  requires prior specific permission and/or a fee.
+kdd'1  august 1  1  seattle  washington  usa.
+copyright 1 acm 1-1/1 ...$1.
+tural patterns from chemical compound databases  plan databases  xml documents  web logs  citation networks  and so forth. several efficient algorithms have been proposed in the previous studies  1  1  1  1  1  1   ranging from mining graph patterns  with and without constraints  to mining closed graph patterns.
+　most of the existing methods assume implicitly or explicitly that the databases are not very large  and the graphs in the database are relatively simple. that is  either the databases or the major part of them can fit into main memory  and the number of possible labels in the graphs  is small. for example   reports the performance of gspan  an efficient frequent graph pattern mining algorithm  on data sets of size up to 1 kb  using a computer with 1 mb main memory. clearly  the graph database and the projected databases can be easily accommodated into main memory.
+　under the large main memory assumption  the computation is cpu-bounded instead of i/o-bounded. then  the algorithms focus on effective heuristics to prune the search space. few of them address the concern of handling large graph databases that cannot be held in main memory.
+　while the previous studies have made excellent progress in mining graph databases of moderate size  mining large  disk-based graph databases remains a challenging problem. when mining a graph database that cannot fit into main memory  the algorithms have to scan the database and navigate the graphs repeatedly. the computation becomes i/obounded.
+　for example  we obtain the executable of gspan from the authors and test its scalability. in one of our experiments1  we increase the number of graphs in the database to test the scalability of gspan on the database size. gspan can only handle up to 1 thousand graphs. in another experiment  we increase the number of possible labels in graphs. we observe that the runtime of gspan increases exponentially. it finishes a data set of 1 thousand graphs with 1 seconds when there are only 1 possible labels  but needs 1 hours for a data set with the same size but the number of possible labels is 1! this result is consistent with the results reported in .
+　are there any real-life applications that need to mine large graph databases  the answer is yes. for example  in data integration of xml documents or mining semantic web  it is often required to find the common substructures from a huge collection of xml documents. it is easy to see applications with collections of millions of xml documents. there are hundreds of even thousands of different labels. as another example  chemical structures can be modeled as graphs. a chemical database for drug development can contain millions of different chemical structures  and the number of different labels in the graphs can easily go to up to 1. these large databases are disk-based and often cannot be held into main memory.
+　why is mining large disk-based graph databases so challenging  in most of the previous studies  the major data structures are designed for being held in main memory. for example  the adjacency-list or adjacency-matrix representations are often used to represent graphs. moreover  most of the previous methods are based on efficient random accesses to elements  e.g.  edges and their adjacent edges  in graphs. however  if the adjacency-list or adjacency-matrix representations cannot be held in main memory  the random accesses to them become very expensive. for disk-based data  without any index  random accesses can be extremely costly.
+　can we make mining large  disk-based graph databases feasible and scalable  this is the motivation of our study.
+　since the bottleneck is the random accesses to the large disk-based graph databases  a natural idea is to index the graph databases properly. designing effective and efficient index structures is one of the most invaluable exercises in database research. a good index structure can support a general category of data access operations. particularly  a good index should be efficient and scalable in construction and maintenance  and fast for data access.
+　instead of inventing new algorithms to mine large  diskbased graph patterns  can we devise an efficient index structure for graph databases so that mining various graph patterns can be conducted scalably  moreover  the index structure should be easy to be adopted in various existing methods with minor adaptations.
+　stimulated by the above thinking  in this paper  we study the problem of efficient index for scalable mining of large  disk-based graph databases  and make the following contributions.
+  by analyzing the frequent graph pattern mining problem and the typical graph pattern mining algorithms  taking gspan as an example   we identify several bottleneck data access operations in mining large  diskbased graph databases.
+  we propose adi  for adjacency index   an effective index structure for graphs. we show that the major operations in graph mining can be facilitated efficiently by an adi structure. the construction algorithm of adi structure is presented.
+  we adapt the gspan algorithm by using the adi structure on mining large  disk-based graph databases  and achieve algorithm adi-mine. we show that adi-mine outperforms gspan in mining complex graph databases and can mine much larger databases than gspan.
+  a systematic performance study is reported to verify our design. the results show that our new index structure and algorithm are scalable on large data sets.
+　the remainder of the paper is organized as follows. we define the problem of frequent graph pattern mining in section 1. the idea of minimum dfs code and algorithm gspan
+		t1	t1
+figure 1: subgraph and dfs codes
+are reviewed in section 1  and the major data access operations in graph mining are also identified. the adi structure is developed in section 1. the efficient algorithm adi-mine for mining large  disk-based graph databases using adi is presented in section 1. the experimental results are reported in section 1. the related work is discussed in section 1. section 1 concludes the paper.
+1. problem definition
+　in this paper  we focus on undirected labeled simple graphs. a labeled graph is a 1-tuple g =  v e l l   where v is a set of vertices  e   v 〜 v is a set of edges  l is a set of labels  and l : v “e ★ l is a labeling function that assigns a label to an edge or a vertex. we denote the vertex set and the edge set of a graph g by v  g  and e g   respectively.
+　a graph g is called connected if for any vertices u v （ v  g   there exist vertices w1 ... wn （ v  g  such that { u w1   w1 w1  ...  wn 1 wn   wn v }   e g .
+　frequent patterns in graphs are defined based on subgraph isomorphism.
+	definition 1	 subgraph isomorphism . given graphs
+g =  v e l l  and . an injective function is called a subgraph isomorphism from g to
+g if  1  for any vertex	  ; and  1  for any edge  u v  （ e   f u  f v   （ e and
+
+　if there exists a subgraph isomorphism from  then g is called a subgraph of g and g is called a supergraph of
+g  denoted as.
+　for example  the graph g in figure 1 b  is a subgraph of g in figure 1 a .
+　a graph database is a set of tuples  gid g   where gid is a graph identity and g is a graph. given a graph database gdb  the support of a graph   denoted as
+for short  is the number of graphs in the database that are supergraphs of g  i.e. .
+　for a support threshold min sup  1 ＋ min sup ＋ |gdb|   a graph g is called a  − minsup. in many applications  users are only interested in the frequent recurring components of graphs. thus  we put a constraint on the graph patterns: we only find the frequent graph patterns that are connected.
+problem definition. given a graph database gdb and a support threshold minsup. the problem of mining frequent connected graph patterns is to find the complete set of connected graphs that are frequent in gdb.
+1. minimum dfs code and gspan
+　in   yan and han developed the lexicographic ordering technique to facilitate the graph pattern mining. they also propose an efficient algorithm  gspan  one of the most efficient graph pattern mining algorithms so far. in this section  we review the essential ideas of gspan  and point out the bottlenecks in the graph pattern mining from large disk-based databases.
+1 minimum dfs code
+　in order to enumerate all frequent graph patterns efficiently  we want to identify a linear order on a representation of all graph patterns such that if two graphs are in identical representation  then they are isomorphic. moreover  all the  possible  graph patterns can be enumerated in the order without any redundancy.
+　the depth-first search tree  dfs-tree for short   is popularly used for navigating connected graphs. thus  it is natural to encode the edges and vertices in a graph based on its dfs-tree. all the vertices in g can be encoded in the pre-order of t. however  the dfs-tree is generally not unique for a graph. that is  there can be multiple dfs-trees corresponding to a given graph.
+　for example  figures 1 c  and 1 d  show two dfs-trees of the graph g in figure 1 a . the thick edges in figures 1 c  and 1 d  are those in the dfs-trees  and are called forward edges  while the thin edges are those not in the dfs-trees  and are called backward edges. the vertices in the graph are encoded v1 to v1 according to the pre-order of the corresponding dfs-trees.
+　to solve the uniqueness problem  a minimum dfs code notation is proposed in .
+　for any connected graph g  let t be a dfs-tree of g. then  an edge is always listed as  vi vj  such that i   j. a linear order   on the edges in g can be defined as follows.
+given edges e =  vi vj  and if  1  when both forward edges  i.e.  in dfs-tree t  
+ ;  1  when both e and e are backward edges  i.e.  edges not in dfs-tree  or
+ ;  1  when e is a forward edge and e is a backward edge ; or  1  when e is a backward edge and e is a forward edge .
+　for a graph g and a dfs-tree t  a list of all edges in e g  in order   is called the dfs code of g with respect to t  denoted as code g t . for example  the dfs code with respect to the dfs-tree t1 in figure 1 c  is code g t1  =
+ 
+where an edge  vi vj  is written as  vi  vj  l vi   l vi vj   l vj    i.e.  the labels are included. similarly  the dfs code with respect to the dfs-tree t1 in figure 1 d  is
+
+　suppose there is a linear order over the label set l. then  for dfs-trees t1 and t1 on the same graph g  their dfs codes can be compared lexically according to the labels of the edges. for example  we have code g t1    code g t1  in figures 1 c  and 1 d .
+　the lexically minimum dfs code is selected as the representation of the graph  denoted as min g . in our example in figure 1  min g  = code g t1 .
+　minimum dfs code has a nice property: two graphs g and g are isomorphic if and only if moreover  with the minimum dfs code of graphs  the probinput: a dfs code s  a graph database gdb and minsup output: the frequent graph patterns method:
+if s is not a minimum dfs code then return; output s as a pattern if s is frequent in gdb; let c =  ; scan gdb once  find every edge e such that e can be concatenated to s to form a dfs code
+	and	 is frequent;;
+sort the dfs codes in c in lexicographic order; for each in lexicographic order do call ; return;
+
+figure 1: algorithm gspan.
+lem of mining frequent graph patterns is reduced to mining frequent minimum dfs codes  which are sequences  with some constraints that preserve the connectivity of the graph patterns.
+1 algorithm gspan
+　based on the minimum dfs codes of graphs  a depthfirst search  pattern-growth algorithm  gspan  is developed in   as shown in figure 1. the central idea is to conduct a depth-first search of minimum dfs codes of possible graph patterns  and obtain longer dfs codes of larger graph patterns by attaching new edges to the end of the minimum dfs code of the existing graph pattern. the anti-monotonicity of frequent graph patterns  i.e.  any super pattern of an infrequent graph pattern cannot be frequent  is used to prune.
+　comparing to the previous methods on graph pattern mining  gspan is efficient  since gspan employs the smart idea of minimum dfs codes of graph patterns that facilitates the isomorphism test and pattern enumeration. moreover  gspan inherits the depth-first search  pattern-growth methodology to avoid any candidate-generation-and-test. as reported in   the advantages of gspan are verified by the experimental results on both real data sets and synthetic data sets.
+1 bottlenecks in mining disk-based graph databases
+　algorithm gspan is efficient when the database can be held into main memory. for example  in   gspan is scalable for databases of size up to 1 kb using a computer with 1 mb main memory. however  it may encounter difficulties when mining large databases. the major overhead is that gspan has to randomly access elements  e.g.  edges and vertices  in the graph database as well as the projections of the graph database many times. for databases that cannot be held into main memory  the mining becomes i/o bounded and thus is costly.
+　random accesses to elements in graph databases and checking the isomorphism are not unique to gspan. instead  such operations are extensive in many graph pattern mining algorithms  such as fsg   another efficient frequent graph pattern mining algorithm  and closegraph   an efficient algorithm for mining frequent closed graph patterns .
+　in mining frequent graph patterns  the major data access operations are as follows.
+op1: edge support checking. find the support of an edge  lu le lv   where lu and lv are the labels of vertices and le is the label of the edge  respectively;
+op1: edge-host graph checking. for an edge e	=
+ lu le lv   find the graphs in the database where e appears;
+op1: adjacent edge checking. for	an	edge	e	=
+ lu le lv   find the adjacent edges of e in the graphs where e appears  so that the adjacent edges can be used to expand the current graph pattern to larger ones.
+　each of the above operations may happen many times during the mining of frequent graph patterns. without an appropriate index  each of the above operations may have to scan the graph database or its projections. if the database and its projections cannot fit into main memory  the scanning and checking can be very costly.
+　can we devise an index structure so that the related information can be kept and all the above operations can be achieved using the index only  and thus without scanning the graph database and checking the graphs  this motivates the design of the adi structure.
+1. the adi structure
+　in this section we will devise an effective data structure  adi  for adjacency index   to facilitate the scalable mining of frequent graph patterns from disk-based graph databases.
+1 data structure
+　the adi index structure is a three-level index for edges  graph-ids and adjacency information. an example is shown in figure 1  where two graphs  g1 and g1  are indexed.
+1.1 edge table
+　there can be many edges in a graph database. the edges are often retrieved by the labels during the graph pattern mining  such as in the operations identified in section 1. therefore  the edges are indexed by their labels in the adi structure.
+in adi  an edge e =  u v  is recorded as a tuple
+ l u  l u v  l v   in the edge table  and is indexed by the labels of the vertices  i.e.  l u  and l v   and the label of the edge itself  i.e.  l u v . each edge appears only once in the edge table  no matter how many times it appears in the graphs. for example  in figure 1  edge  a d c  appears once in graph g1 and twice in graph g1. however  there is only one entry for the edge in the edge table in the adi structure.
+　all edges in the edge table in the adi structure are sorted. when the edge table is stored on disk  a b+-tree is built on the edges. when part of the edge table is loaded into main memory  it is organized as a sorted list. thus  binary search can be conducted.
+1.1 linked lists of graph-ids
+　for each edge e  the identities of the graphs that contain e form a linked list of graph-ids. graph-id gi is in the list of edge e if and only if there exists at least one instance of e in gi. for example  in figure 1  both g1 and g1 appear in the list of edge  a d c   since the edge appears in g1 once and in g1 twice. please note that the identity of graph gi
+
+	g1	g1
+	edges	graph ids  on disk  adjacency  on disk 
+
+figure 1: an adi structure.
+appears in the linked list of edge e only once if e appears in gi  no matter how many times edge e appears in gi.
+　a list of graph-ids of an edge are stored together. therefore  given an edge  it is efficient to retrieve all the identities of graphs that contain the edge.
+　every entry in the edge table is linked to its graph-id linked list. by this linkage  the operation op1: edge-host graph checking can be conducted efficiently. moreover  to facilitate operation op1: edge support checking  the length of the graph-id linked list  i.e.  the support of an edge  is registered in the edge table.
+1.1 adjacency information
+　the edges in a graph are stored as a list of the edges encoded. adjacent edges are linked together by the common vertices  as shown in figure 1. for example  in block 1  all the vertices having the same label  e.g.  1  are linked together as a list. since each edge has two vertices  only two pointers are needed for each edge.
+　moreover  all the edges in a graph are physically stored in one block on disk  or on consecutive blocks if more space is needed   so that the information about a graph can be retrieved by reading one or several consecutive blocks from disk. often  when the graph is not large  a disk-page  e.g.  of size 1k  can hold more than one graph.
+　encoded edges recording the adjacency information are linked to the graph-ids that are further associated with the edges in the edge table.
+1 space requirement
+　the storage of an adi structure is flexible. if the graph database is small  then the whole index can be held into main memory. on the other hand  if the graph database is large and thus the adi structure cannot fit into main memory  some levels can be stored on disk. the level of adjacency information is the most detailed and can be put on disk. if the main memory is too small to hold the graphid linked lists  they can also be accommodated on disk. in the extreme case  even the edge table can be held on disk and a b+-tree or hash index can be built on the edge table.
+	theorem 1	 space complexity . for graph database
+	 	the	space	complexity	is
+ 	i=1	  i | .
+proof. the space complexity is determined by the following facts.  1  the number of tuples in the edge table is equal to the number of distinct edges in the graph database  which is bounded by;  1  the number of entries in the graph-id linked lists in the worst case is the number of edges in the graph database  i.e. again; and  1  the adjacency information part records every edge exactly once.
+
+　please note that  in many application  it is reasonable to assume that the edge table can be held into main memory. for example  suppose we have 1 distinct vertex labels and 1 distinct edge labels. there can be up to 1 〜 1‖1〜1 = 1〜1 different edges  i.e.  all possible combinations of vertex and edge labels. suppose up to 1% edges are frequent  there are only less than 1 million different edges  and thus the edge table can be easily held into main memory.
+　in real applications  the graphs are often sparse  that is  not all possible combinations of vertex and edge labels appear in the graphs as an edge. moreover  users are often interested in only those frequent edges. that shrinks the edge table substantially.
+1 search using adi
+　now  let us examine how the adi structure can facilitate the major data access operations in graph pattern mining that are identified in section 1.
+op1: edge support checking once an adi structure is constructed  this information is registered on the edge table for every edge. we only need to search the edge table  which is either indexed  when the table is on disk  or can be searched using binary search  when the table is in main memory .
+in some cases  we may need to count the support of an edge in a subset of graphs. then  the linked list of the graph-ids of the edge is searched. there is no need to touch any record in the adjacency information part. that is  we do not need to search any detail about the edges. moreover  for counting supports of edges in projected databases  we can maintain the support of each edge in the current projected database and thus we do not even search the graph-id linked lists.
+op1: edge-host graph checking we only need to search the edge table for the specific edge and follow the link from the edge to the list of graph-ids. there is no need to search any detail from the part of adjacency information.
+op1: adjacent edge checking again  we start from an entry in the edge table and follow the links to find the list of graphs where the edge appears. then  only input: a graph database gdb and minsup output: the adi structure method:
+scan gdb once  find the frequent edges;
+initialize the edge table for frequent edges; for each graph do
+remove infrequent edges; compute the mininmum dfs code ; use the dfs-tree to encode the vertices; store the edges in the graph onto disk and form
+the adjacency information;
+for each edge do
+insert the graph-id to the graph-id list associated with the edge;
+link the graph-id to the related adjacency
+　　information; end for
+end for
+
+figure 1: algorithm of adi construction.
+the blocks containing the details of the instances of the edge are visited  and there is no need to scan the whole database. the average i/o complexity is o logn + m + l   where n is the number of distinct edges in the graph  m is the average number of graph-ids in the linked lists of edges  and l is the average number of blocks occupied by a graph. in many applications  m is orders of magnitudes smaller than the n  and l is a very small number  e.g.  1 or 1 .
+　the algorithms for the above operations are simple. limited by space  we omit the details here. as can be seen  once the adi structure is constructed  there is no need to scan the database for any of the above operations. that is  the adi structure can support the random accesses and the mining efficiently.
+1 construction of adi
+　given a graph database  the corresponding adi structure is easy to construct by scanning the database only twice.
+　in the first scan  the frequent edges are identified. according to the apriori property of frequent graph patterns  only those frequent edges can appear in frequent graph patterns and thus should be indexed in the adi structure. after the first scan  the edge table of frequent edges is initialized.
+　in the second scan  graphs in the database are read and processed one by one. for each graph  the vertices are encoded according to the dfs-tree in the minimum dfs code  as described in  and section 1. only the vertices involved in some frequent edges should be encoded. then  for each frequent edge  the graph-id is inserted into the corresponding linked list  and the adjacency information is stored. the sketch of the algorithm is shown in figure 1.
+cost analysis
+there are two major costs in the adi construction: writing the adjacency information and updating the linked lists of graph-ids. since all edges in a graph will reside on a disk page or several consecutive disk pages  the writing of adjacency information is sequential. thus  the cost of writing adjacency information is comparable to that of making a
+
+ a  the graph and the adjacency-lists
+1 a1 b1 d1 c1 a1a1d1 ba1b1 d1b1d1 cd1d1 b  the adjacency-matrix
+figure 1: the adjacency-list and adjacency-matrix representations of graphs.
+copy of the original database plus some bookkeeping.
+　updating the linked lists of graph-ids requires random accesses to the edge table and the linked lists. in many cases  the edge table can be held into main memory  but not the linked list. therefore  it is important to cache the linked lists of graph-ids in a buffer. the linked lists can be cached according to the frequency of the corresponding edges.
+　constructing adi for large  disk-based graph database may not be cheap. however  the adi structure can be built once and used by the mining many times. that is  we can build an adi structure using a very low support threshold  or even set minsup = 1 the index is stored on disk. then  the mining in the future can use the index directly  as long as the support threshold is no less than the one that is used in the adi structure construction.
+1 projected databases using adi
+　many depth-first search  pattern-growth algorithms utilize proper projected databases. during the depth-first search in graph pattern mining  the graphs containing the current graph pattern p should be collected and form the pprojected database. then  the further search of larger graph patterns having p as the prefix of their minimum dfs codes can be achieved by searching only the p-projected database. interestingly  the projected databases can be constructed using adi structures. a projected database can be stored in the form of an adi structure. in fact  only the edge table and the list of graph-ids should be constructed for a new projected database and the adjacency information residing on disk can be shared by all projected databases. that can save a lot of time and space when mining large graph databases that contain many graph patterns  where many projected databases may have to be constructed.
+1	why is adi good for large databases 
+　in most of the previous methods for graph pattern mining  the adjacency-list or adjacency-matrix representations are used to represent graphs. each graph is represented by an adjacency-matrix or a set of adjacency-lists. an example is shown in figure 1.
+1
+ if min sup = 1  then the adi structure can be constructed by scanning the graph database only once. we do not need to find frequent edges  since every edge appearing in the graph database is frequent.
+　in figure 1 a   the adjacency-lists have 1 nodes and 1 pointers. it stores the same information as block 1 in figure 1  where the block has 1 nodes and 1 pointers.
+　the space requirements of adjacency-lists and adi structure are comparable. from the figure  we can see that each edge in a graph has to be stored twice: one instance for each vertex.  if we want to remove this redundancy  the tradeoff is the substantial increase of cost in finding adjacency information . in general  for a graph of n edges  the adjacency-list representation needs 1n nodes and 1n pointers. an adi structure stores each edge once  and use the linkage among the edges from the same vertex to record the adjacency information. in general  for a graph of n edges  it needs n nodes and 1n pointers.
+　then  what is the advantage of adi structure against adjacency-list representation  the key advantage is that the adi structure extracts the information about containments of edges in graphs in the first two levels  i.e.  the edge table and the linked list of graph-ids . therefore  in many operations  such as the edge support checking and edge-host graph checking  there is no need to visit the adjacency information at all. to the contrast  if the adjacency-list representation is used  every operation has to check the linked lists. when the database is large so that either the adjacency-lists of all graphs or the adjacency information in the adi structure cannot be accommodated into main memory  using the first two levels of the adi structure can save many calls to the adjacency information  while the adjacency-lists of various graphs have to be transferred between the main memory and the disk many times.
+　usually  the adjacency-matrix is sparse. the adjacencymatrix representation is inefficient in space and thus is not used.
+1. algorithm adi-mine
+　with the help from the adi structure  how can we improve the scalability and efficiency of frequent graph pattern mining  here  we present a pattern-growth algorithm adimine  which is an improvement of algorithm gspan. the algorithm is shown in figure 1.
+　if the adi structure is unavailable  then the algorithm scans the graph database and constructs the index. otherwise  it just uses the adi structure on the disk.
+　the frequent edges can be obtained from the edge table in the adi structure. each frequent edge is one of the smallest frequent graph patterns and thus should be output. then  the frequent edges should be used as the  seeds  to grow larger frequent graph patterns  and the frequent adjacent edges of e should be used in the pattern-growth. an edge e is a frequent adjacent edge ofis an adjacent edge of e in at least min sup graphs. the set of frequent adjacent edges can be retrieved efficiently from the adi structure since the identities of the graphs containing e are indexed as a linked-list  and the adjacent edges are also indexed in the adjacency information part in the adi structure.
+　the pattern growth is implemented as calls to procedure subgraph-mine. procedure subgraph-mine tries every frequent adjacent edge e  i.e.  edges in set fe  and checks whether e can be added into the current frequent graph pattern g to form a larger pattern g. we use the dfs code to test the redundancy. only the patterns g whose dfs code is minimum is output and further grown. all other patterns g are either found before or will be found later at other input: a graph database gdb and minsup output: the complete set of frequent graph patterns method:
+construct the adi structure for the graph database if
+it is not available;
+for each frequent edge e in the edge table do output e as a graph pattern; from the adi structure  find set fe  the set of
+frequent adjacent edges for e;
+　call subgraph-mine e fe ; end for
+procedure subgraph-mine
+parameters: a frequent graph pattern g  and the set of frequent adjacent edges fe // output the frequent graph patterns whose
+　　// minimum dfs-codes contain that of g as a prefix method:
+for each edge e in fe do
+let g be the graph by adding e into g; compute the dfs code of g; if the dfs code is
+not minimum  then return;
+output g as a frequent graph pattern;
+update the set fe of adjacent edges; call subgraph-mine ;
+end for
+return;
+
+figure 1: algorithm adi-mine.
+branches. the correctness of this step is guaranteed by the property of dfs code .
+　once a larger pattern g is found  the set of adjacent edges of the current pattern should be updated  since the adjacent edges of the newly inserted edge should also be considered in the future growth from g. this update operation can be implemented efficiently  since the identities of graphs that contain an edge e are linked together in the adi structure  and the adjacency information is also indexed and linked according to the graph-ids.
+differences between adi-mine and gspan
+at high level  the structure as well as the search strategies of adi-mine and gspan are similar. the critical difference is on the storage structure for graphs-adi-mine uses adi structure and gspan uses adjacency-list representation.
+　in the recursive mining  the critical operation is finding the graphs that contain the current graph pattern  i.e.  the test of subgraph isomorphism  and finding the adjacent edges to grow larger graph patterns. the current graph pattern is recorded using the labels. thus  the edges are searched using the labels of the vertices and that of the edges.
+　in gspan  the test of subgraph isomorphism is achieved by scanning the current  projected  database. since the graphs are stored in adjacency-list representation  and one label may appear more than once in a graph  the search can be costly. for example  in graph g1 in figure 1  in order to find an edge  c d a   the adjacency-list for vertices 1 and 1 may have to be searched. if the graph is large and the labels appear multiple times in a graph  there may be many adjacency-lists for vertices of the same label  and the adjacency-lists are long.
+　moreover  for large graph database that cannot be held into main memory  the adjacency-list representation of a graph has to be loaded into main memory before the graph can be searched.
+　in adi-mine  the graphs are stored in the adi structure. the edges are indexed by their labels. then  the graphs that contain the edges can be retrieved immediately. moreover  all edges with the same labels are linked together by the links between the graph-id and the instances. that helps the test of subgraph isomorphism substantially.
+　furthermore  using the index of edges by their labels  only the graphs that contain the specific edge will be loaded into main memory for further subgraph isomorphism test. irrelevant graphs can be filtered out immediately by the index. when the database is too large to fit into main memory  it saves a substantial part of transfers of graphs between disk and main memory.
+1. experimental results
+　in this section  we report a systematic performance study on the adi structure and a comparison of gspan and adimine on mining both small  memory-based databases and large  disk-based databases. we obtain the executable of gspan from the authors. the adi structure and algorithm adi-mine are implemented using c/c++.
+1 experiment setting
+　all the experiments are conducted on an ibm netfinity 1 machine with an intel piii 1mhz cpu  1m ram and 1g hard disk. the speed of the hard disk is 1 rpm. the operating system is redhat linux 1.
+　we implement a synthetic data generator following the procedure described in . the data generator takes five parameters as follows.
+d:the total number of graphs in the data sett:the average number of edges in graphsi:the average number of edges in potentially frequent graph patterns  i.e.  the frequent kernels l:the number of potentially frequent kernelsn:the number of possible labels　please refer to  for the details of the data generator. for example  a data set d1kn1t1 means that the data set contains 1k graphs; there are 1 possible labels; the average number of edges in the frequent kernel graphs is 1; the average number of edges in the graphs is 1; and the number of potentially frequent kernels is 1. hereafter in this section  when we say  parameters   it means the parameters for the data generator to create the data sets.
+　in   l is fixed to 1. in our experiments  we also set l = 1 as the default value  but will test the scalability of our algorithm on l as well.
+　please note that  in all experiments  the runtime of adimine includes both the adi construction time and the mining time.
+1 mining main memory-based databases
+　in this set of experiments  both gspan and adi-mine run in main memory.
+1.1 scalability on minimum support threshold
+　we test the scalability of gspan and adi-mine on the minimum support threshold. data set d1kn1t1 is used. the minimum support threshold varies from 1% to 1%. the results are shown in figure 1 a .
+　as can be seen  both gspan and adi-mine are scalable  but adi-mine is about 1 times faster. we discussed the result with mr. x. yan  the author of gspan. he confirms that counting frequent edges in gspan is time consuming. on the other hand  the construction of adi structure is relatively efficient. when the minimum support threshold is set to 1  i.e.  all edges are indexed  the adi structure uses approximately 1m main memory and costs 1 seconds in construction.
+1.1 scalability on database size
+　we test the scalability of gspan and adi-mine on the size of databases. we fix the parameters n = 1  i = 1  t = 1 and l = 1  and vary the number of graphs in database from 1 thousand to 1 thousand. the minimum support threshold is set to 1% of the number of graphs in the database. the results are shown in figure 1 b . the construction time of adi structure is also plotted in the figure.
+　both the algorithms and the construction of adi structure are linearly scalable on the size of databases. adi-mine is faster. we observe that the size of adi structure is also scalable. for example  it uses 1m when the database has 1 thousand graphs  and 1m when the database has 1 thousand graphs. this observation concurs with theorem 1.
+1.1 effects of data set parameters
+　we test the scalability of the two algorithms on parameter n-the number of possible labels. we use data set d1kn1i1l1  that is  the n value varies from 1 to 1. the minimum support threshold is fixed at 1%. the results are shown in figure 1 c . please note that the y -axis is in logarithmic scale.
+　we can observe that the runtime of gspan increases exponentially as n increases. this result is consistent with the result reported in .1 when there are many possible labels in the database  the search without index becomes dramatically more costly. interestingly  both adi-mine and the construction of adi structure are linearly scalable on n. as discussed before  the edge table in adi structure only indexes the unique edges in a graph database. searching using the indexed edge table is efficient. the time complexity of searching an edge by labels is o logn   where n is the number of distinct edges in the database. this is not affected by the increase of the possible labels. as expected  the size of the adi structure is stable  about 1m in this experiment.
+　we use data set d1kn1t1l1 to test the scalability of the two algorithms on parameter t-the average number of edges in a graph. the minimum support threshold is set to 1%. the results are shown in figure 1 d .
+　as the number of edges increases  the graph becomes more complex. the cost of storing and searching the graph also increases accordingly. as shown in the figure  both algorithms and the construction of adi are linearly scalable.
+　we also test the effects of other parameters. the experimental results show that both gspan and adi-mine are not sensitive to i-the average number of edges in potentially frequent graph patterns-and l-the number of potentially frequent kernels. the construction time and space cost of adi structures are also stable. the reason is that the effects of those two parameters on the distribution in the data sets are minor. similar observations have been reported by previous studies on mining frequent itemsets and sequential patterns. limited by space  we omit the details here.
+1 mining disk-based databases
+　now  we report the experimental results on mining large  disk-based databases. in this set of experiments  we reserve a block of main memory of fixed size for adi structure. when the size is too small for the adi-structure  some levels of the adi structure are accommodated on disk. on the other hand  we do not confine the memory usage for gspan.
+1.1 scalability on database size
+　we test the scalability of both gspan and adi-mine on the size of databases. we use data set d1k-1mn1t1. the number of graphs in the database is varied from 1 thousand to 1 million. the main memory block for adi structure is limited to 1m. the results are shown in figure 1 a . the construction time of adi structure is also plotted. please note that the y -axis is in logarithmic scale. the construction runtime of adi structure is approximately linear on the database size. that is  the construction of the adi index is highly scalable. we also measure the size of adi structure. the results are shown in figure 1 b . we can observe that the size of the adi structure is linear to the database size. in this experiment  the ratio
+size of adi structure in megabytes is about 1. when the number of graphs in thousands
+database size is 1 million  the size of adi structure is 1m  which exceeds the main memory size of our machine. even in such case  the construction runtime is still linear.
+　as explained before  the construction of adi structure makes sequential scans of the database and conducts a sequential write of the adjacency information. the overhead of construction of edge table and the linked lists of graphids is relatively small and thus has a minor effect on the construction time.
+　while gspan can handle databases of only up to 1 thousand graphs in this experiment  adi-mine can handle databases of 1 million graphs. the curve of the runtime of adi-mine can be divided into three stages.
+　first  when the database has up to 1 thousand graphs  the adi structure can be fully accommodated in main memory. adi-mine is faster than gspan.
+　second  when the database has 1 to 1 thousand graphs  gspan cannot finish. the adi structure cannot be fully held in main memory. some part of the adjacency information is put on disk. we see a significant jump in the runtime curve of adi-mine between the databases of 1 thousand graphs and 1 thousand graphs.
+　last  when the database has 1 thousand or more graphs  even the linked lists of graph-ids cannot be fully put into main memory. thus  another significant jump in the runtime curve can be observed.
+1.1 tradeoff between efficiency and main memory consumption
+
+ a  scalability on	 b  scalability on size	 c  scalability on n	 d  scalability on t
+	1 1 1	d1kn1t1	d1kn1i1l1	d1kn1t1l1
+	min sup = 1%	min sup = 1%	minsup = 1%
+ 1 1 1 1 1
+number of graphs  thousand  1 1 1 1 1
+number of graphs  thousand 	 1	 1	 1	 1	 1	 1 1
+size of available main memory  m  a  scalability on size b  size of adi structure c  runtime vs. main memoryd1k-1mn1t1d1k-1mn1t1d1kn1t1min sup = 1%min sup = 1%min sup = 1%figure 1: the experimental results of mining main memory-based databases.
+
+figure 1: the experimental results of mining large disk-based databases.　it is interesting to examine the tradeoff between efficiency and size of available main memory. we use data set d1kn1t1  set the minimum support threshold to 1%  vary the main memory limit from 1m to 1m for adi structure  and measure the runtime of adi-mine. the results are shown in figure 1 c . in this experiment  the size of adi structure is 1m. the construction time is 1 seconds. the highest watermark of main memory usage for gspan in mining this data set is 1m. gspan uses 1 seconds in the mining if it has sufficient main memory.
+　when the adi structure can be completely loaded into main memory  1m or larger   adi-mine runs fast. further increase of the available main memory cannot reduce the runtime.
+　when the adi structure cannot be fully put into main memory  the runtime increases. the more main memory  the faster adi-mine runs.
+　when the available main memory is too small to even hold the linked lists of graph-ids  the runtime of adi-mine increases substantially. however  it still can finish the mining with 1m main memory limit in 1 hours.
+1.1 number of disk block reads
+　in addition to runtime  the efficiency of mining large diskbased databases can also be measured by the number of disk block read operations.
+　figure 1 a  shows the number of disk block reads versus the minimum support threshold. when the support threshold is high  e.g.  1% or up   the number of frequent edges is small. the adi structure can be held into main memory and thus the i/o cost is very low. as the support threshold goes down  larger and larger part of the adi structure is stored on disk  and the i/o cost increases. this curve is consistent with the trend in figure 1 a .
+figure 1 b  shows the number of disk block reads versus the number of graphs in the database. as the database size goes up  the i/o cost increases exponentially. this explains the curve of adi-mine in figure 1 a .
+　we also test the i/o cost on available main memory. the result is shown in figure 1 c   which is consistent with the trend of runtime curve in figure 1 c .
+1.1 effects of other parameters
+　we also test the effects of the other parameters on the efficiency. we observe similar trends as in mining memorybased databases. limited by space  we omit the details here.
+1 summary of experimental results
+　the extensive performance study clearly shows the following. first  both gspan and adi-mine are scalable when database can be held into main memory. adi-mine is faster than gspan. second  adi-mine can mine very large graph databases by accommodating the adi structure on disk. the performance of adi-mine on mining large disk-based databases is highly scalable. third  the size of adi structure is linearly scalable with respect to the size of databases. fourth  we can control the tradeoff between the mining efficiency and the main memory consumption. last  adi-mine is more scalable than gspan in mining complex graphs-the graphs that have many different kinds of labels.
+1. related work
+		 1	 1
+	 1	 1	 1	 1	 1	 1	 1	 1	 1	 1	 1	 1	 1	 1	 1	 1	 1 1 1
+	min sup  % 	number of graphs  thousand 	size of available main memory  m 
+ a  # blocks vs. support threshold	 b  # blocks vs. database size	 c  # blocks vs. main memory size
+	d1kn1t1	d1k-1mn1t1	d1kn1t1
+	minsup = 1%	min sup = 1%
+figure 1: the number of disk blocks read in the mining.　the problem of finding frequent common structures has been studied since early 1s. for example   1  1  study the the problem of finding common substructures from chemical compounds. subdue  proposes an approximate algorithm to identify some  instead of the complete set of  frequent substructures. however  these methods do not aim at scalable algorithms for mining large graph databases.
+　the problem of mining the complete set of frequent graph patterns is firstly explored by inokuchi et al. . an apriorilike algorithm agm is proposed. kuramochi and karypis  develop an efficient algorithm  fsg  for graph pattern mining. the major idea is to utilize an effective graph representation  and conduct the edge-growth mining instead of vertex-growth mining. both agm and fsg adopt breadthfirst search.
+　recently  yan and han propose the depth-first search approach  gspan  for graph mining. they also investigate the problem of mining frequent closed graphs   which is a non-redundant representation of frequent graph patterns. as a latest result  yan et al.  uses frequent graph patterns to index graphs.
+　as a special case of graph mining  tree mining also receives intensive research recently. zaki  proposes the first algorithm for mining frequent tree patterns.
+　although there are quite a few studies on the efficient mining of frequent graph patterns  none of them addresses the problem of effective index structure for mining large diskbased graph databases. when the database is too large to fit into main memory  the mining becomes i/o bounded  and the appropriate index structure becomes very critical for the scalability.
+1. conclusions
+　in this paper  we study the problem of scalable mining of large disk-based graph database. the adi structure  an effective index structure  is developed. taking gspan as a concrete example  we propose adi-mine  an efficient algorithm adopting the adi structure  to improve the scalability of the frequent graph mining substantially.
+　the adi-mine structure is a general index for graph mining. as future work  it is interesting to examine the effect of the index structure on improving other graph pattern mining methods  such as mining frequent closed graphs and mining graphs with constraints. furthermore  devising index structures to support scalable data mining on large disk-based databases is an important and interesting research problem with extensive applications and industrial values.
+acknowledgements
+we are very grateful to mr. xifeng yan and dr. jiawei han for kindly providing us the executable of gspan and answering our questions promptly. we would like to thank the anonymous reviewers for their insightful comments  which help to improve the quality of the paper.

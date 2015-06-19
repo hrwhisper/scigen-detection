@@ -1,0 +1,31 @@
+recently  the ims learning resource meta-data specification  was released  paving the way for efficient repurposing of educational multimedia in a multitude of learning environments. the goal of the current project is the development of a national repository of multimedia that supports all levels of health sciences education and that is in accordance with the ims specifications.  an n-tiered  distributed database system will facilitate the discovery  exchange  and implementation of digital multimedia. 
+keywords 
+xml  distributed objects  metadata  education  ims. 
+1. introduction 
+in a recent survey among health science educators   respondents rated the desirability and likelihood of a large number of scenarios in future computer-based education.  the scenario  by 1  curricular materials for students and faculty will be delivered on websites  was rated the most likely future development and also one of the most desirable outcomes.  in fact  despite some initial skepticism   the world wide web has already become a ubiquitous vehicle for the delivery of medical courseware.  as a result  digital multimedia-including images  video  and animations-have become indispensable for teaching health sciences. 
+the current trend is that educators develop their own collections of digital multimedia.  the irony of this trend is that in spite of emerging internet technologies that make searching and sharing of digital media easier than ever  an extraordinary amount of effort is being expended on duplicating these collections. furthermore  these collections employ a variety of technologies that hinder interoperability.  it would be easier to share such digital multimedia if a standard metadata scheme were collaboratively developed and disseminated among medical educators.   
+ 
+the ims learning resource meta-data specification  is a widely supported standard that defines a mechanism to assign educational materials with descriptive metadata.  it defines metadata fields  permissible values  and xml bindings.  the key capabilities of ims include its object-oriented design  an extendible metadata model  and its non-proprietary nature.  these characteristics will allow educational multimedia  including those for the health sciences  to evolve  expand  and interoperate with a multitude of educational systems .   
+ 
+ 
+1. ndmlhs 
+with support of the national science foundation and the national library of medicine  the inception of national digital multimedia library for health science education  ndmlhs  was realized in fall of 1. the main goals of the ndmlhs are  1  to develop a national repository of digital multimedia that is freely accessible through the web and that supports all levels of health sciences education;  1  to expand the ims learning resource meta-data specification to accommodate idiosyncratic metadata describing multimedia used in health science education;  1  to develop xml import and export tools that interface with ims-compliant course management systems;  1  to plan for an online peer-review system that would address the quality assurance of the repository.  
+ 
+ 
+ 
+figure 1. n-tiered system architecture for national digital multimedia library for the health sciences. 
+ 
+1 n-tiered system architecture 
+in the overall design of the n-tiered system architecture  interoperability and scalability were given high priority.  the three tiers  depicted in figure 1  have relatively independent functionality:  1  rendering and user interface;  1  operations and analysis;  1  data storage and management.  each of the tiers employs a different set of technologies emphasizing nonproprietary interaction between tiers. 
+ 
+1 possible applications 
+figure 1 shows a possible application of the object-oriented organization of education materials.  with xml multimedia can be re-purposed in a flexible manner and can be seamlessly integrated in a variety of learning environments that support different learner communities.   
+ 
+ 
+ 
+figure 1.  repurposing of educational objects in different learning environments.  educational objects  such as images  movies and text  that are stored in repositories can be retrieved across institutions over the internet.  imscompliant xml metadata will facilitate the implementation of the objects in a multitude of learning applications. 
+ 
+1 significance 
+to our knowledge  this project is the first  large-scale initiative to develop an xml standard for medical educational materials that is in accordance with the ims learning resource metadata specification.  preparing for this project in 1  working groups representing a consortium of medical colleges  see appendix  achieved a consensus of how medical multimedia ought to be cataloged.  this consensus was a crucial step towards the subsequent development of a broadly accepted xml metadata standard that is in compliance with ims.  furthermore  the national library of medicine has lent support for this project and will host the multimedia repository.  once implemented  the ndmlhs could significantly improve the access to high-quality multimedia  aiding educators in the health sciences field-particularly those with limited institutional resources.   
+1. acknowledgments 
+this project has been made possible by a grant from the national science foundation  nr. iis-1  and with the assistance of the office of high performance computing and communications of the national library of medicine.  the authors gratefully acknowledge david alvarado and deborah hile for their valuable contributions to this project.  we also thank jamie kravitz for his graphical assistance. 

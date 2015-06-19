@@ -1,0 +1,153 @@
+in mining graphical data the default euclidean distance is often used as a notion of similarity. however this does not adequately capture semantics in our targeted domains  having graphical representations depicting results of scientific experiments. it is seldom known a-priori what other distance metric best preserves semantics. this motivates the need to learn such a metric. a technique called learnmet is proposed here to learn a domainspecific distance metric for graphical representations. input to learnmet is a training set of correct clusters of such graphs. learnmet iteratively compares these correct clusters with those obtained from an arbitrary but fixed clustering algorithm. in the first iteration a guessed metric is used for clustering. this metric is then refined using the error between the obtained and correct clusters until the error is below a given threshold. learnmet is evaluated rigorously in the heat treating domain which motivated this research. clusters obtained using the learned metric and clusters obtained using euclidean distance are both compared against the correct clusters over a separate test set. our results show that the learned metric provides better clusters. 
+categories and subject descriptors general terms keywords 
+i.1  artificial intelligence : learning - parameter learning.  
+algorithms  experimentation. 
+distance metric  clustering  semantic graphical mining. 
+1. introduction 
+experimental results in scientific domains are often represented graphically. such graphs depict the functional behavior of process parameters hence incorporating semantics. in this paper  we use the term  graph  to mean such a graphical representation. in mining graphs with techniques such as clustering  the measure for comparison is typically euclidean distance  see e.g. 1  which often poses problems. for example  in the domain of heat treating of materials which motivated this work  graphs are used to plot the heat transfer versus temperature during the rapid cooling of a material  see e.g. 1 . critical regions on these graphs represent significant physical phenomena in the domain. any algorithm  based for instance on euclidean distance  that considers two graphs as similar  relative to other graphs  although their critical regions differ is considered semantically incorrect  1 . likewise in several scientific domains  there could be significant features on graphs. knowledge of these features and their relative importance may at best be available in a subjective form  but not as a metric. this motivates the development of a technique to learn distance metrics that capture the semantics of the graphs.  
+    hinneburg et al  propose a learning method to find the relative importance of dimensions for n-dimensional objects. however  their focus is on dimensionality reduction and not on domain semantics. in  they learn which type of position-based distance is applicable for the given data starting from the formula of mahalanobis distance. however they do not deal with graphical data and semantics. keim et al.  overview various distance types for similarity search over multimedia databases. however no single distance measure encompassing several types is proposed. linear regression  and neural networks  could possibly be used for learning a domain-specific distance metric for graphs. however these techniques do not achieve accuracy acceptable in our targeted domains . genetic algorithms  if used for feature selection in graphs also give the problem of insufficient accuracy. this is due to lack of domain knowledge . fourier transforms  if used to represent the graphs do not preserve the critical regions in the domain due to the nature of the transform . hence they are not accurate enough in capturing semantics. accuracy in this context is measured by evaluating the effectiveness of a given metric in mining unseen data .  
+　　we propose an approach called learnmet to learn a distance metric for graphs incorporating domain semantics. the input to learnmet is a training set with correct  i.e.  given by domain experts  clusters of graphs over a subset of the experimental data. 
+
+p ermission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. to copy otherwise  to republish  to post on servers or to redistribute to lists  requires prior specific permission and/or a fee. mdm/kdd 1 chicago  august 1  chicago  illlinois  usa copyright 1 acm - mdm 1 - 1-1-x...$1. 
+the steps of our approach are:  1  guess initial metric guided by domain knowledge;  1  use that metric for clustering with an arbitrary but fixed clustering algorithm;  1  evaluate accuracy of  obtained clusters by comparing them with correct clusters;  1  adjust metric based on error between obtained and correct clusters  if error is below threshold or if execution times out then terminate and go to step  1   else go to step  1 ; and  1  once terminated  output the metric giving error below threshold  or minimum error so far as the learned metric. learnmet is evaluated using a distinct test set of correct clusters of graphs provided by experts. the learned metric is used to cluster the graphs in the test set. the obtained clusters are compared with correct clusters in the test set. the closer the obtained clusters match the correct clusters  the lower the error. the clusters obtained using the default notion of euclidean distance  are also compared with the correct clusters. the difference in the error denotes the effectiveness of the learned metric. the learnmet metric consistently outperformed the euclidean metric in our experiments. learnmet is also evaluated by integrating it with the autodomainmine system designed for computational estimation of process parameters in scientific experiments . this is explained in section 1.   
+1. distance metrics 
+we describe distance metric types relevant to our domains. let a  a1 a1...an  and b  b1 b1...bn  be two n-dimensional objects.      position-based distances: they refer to absolute position of objects  see e.g. 1 . examples are: 
+euclidean distance: as-the-crow-flies distance between objects.     
+n
+       deuclidean  a b  = ‘ ai  bi  1 
+i=1
+manhattan distance: city-block distance between objects.   
+n
+       dmanhat tan  a  b  =‘| ai  bi |     
+i=1
+     statistical distances: this refers to distances based on statistical features  see e.g. 1 . examples are: mean distance: distance between mean values of the objects:          dmean a b  = | mean a   mean b  | maximum distance: distance between maximum values:              dmax a b  = | max a   max b  | 
+in addition to these  we introduce the concept of critical distance for graphs as applicable to our targeted domains . 
+　　critical distances: given graphs a and b  a critical distance is a distance metric between critical regions of a and b where a critical region represents the occurrence of a significant physical phenomenon. they are calculated in a domain-specific manner. 
+ 
+figure 1: critical distance examples 
+       one example of critical distance as shown in figure 1 is the leidenfrost distance  1  in heat treating.  this is for leidenfrost points  see e.g. 1  which denote the breaking of the vapor blanket around a part in heat treatment. it is calculated as 
+dlf  a b  =  atlf  btlf  1 +  ahlf  bhlf  1 where tlf is 
+the temperature at leidenfrost point and hlf is the heat transfer coefficient at that point . another critical distance is the boiling point distance dbp a b   1 . this is the distance between points on the graphs corresponding to the boiling points  see e.g. 1  of the respective cooling media in heat treatment.  
+dbp a  b  =  atbp  btbp 1 +  ahbp  bhbp 1 where tbp is temperature and hbp is heat transfer coefficient at boiling point.  
+1. the learnmet strategy 
+to give details of learnmet  a distance metric is first defined.  
+　　distance metric in learnmet: a learnmet distance metric d is a weighted sum of components  where each component can be a position-based  a statistical  or a critical distance metric. the weight of each component is a numerical value indicating its relative importance in the domain.  
+thus 	a 	learnmet 	distance 	metric 	is 	of 	the 	form 
+d=w1dc1 +.....+wmdcm where each dci is a component  wi is its weight  and m is number of components. as required in our application domain  d should be a metric so that clustering algorithms requiring the notion of similarity to be a distance metric can be used; indexing structures such as b+ trees for metrics can be applied; and pruning in similarity search can be performed using triangle inequality. conditions for d to be a metric are stated as a theorem below.   
+theorem 1: if each component dci is a distance metric and 
+                                       m each weight wi −1 then d=‘widci is a distance metric  
+i=1
+i.e.  it satisfies the metric properties.   
+the proof of this theorem is straightforward and can be found in . in our targeted domains  conditions in theorem 1 are satisfied. since our graphs involve interval-scaled variables and the fundamental distance types applicable to these are metrics  see e.g. 1   this is sufficient to say that each dci is a metric.  also  we consider only non-negative weights. 
+     the learnmet steps are discussed in the subsections below. 
+1 initial metric step 
+domain experts are asked to identify components  i.e.  distance metrics  applicable to the graphs that will serve as building blocks for the learning of a new metric. if the experts know the relative importance of the components  this information is used to assign initial weights. an initial weight heuristic is proposed. 
+      initial weight heuristic: assign initial weights to the components in the learnmet distance metric based on the relative importance of the components on the graphs in the domain. 
+if the components' relative importance is unknown  random weights are assigned. initial weights are on a scale of  1 to 1. 
+1: initial metric step 
+  given: domain expert input on distance types 
+  for each distance type assign a component to  d  
+  if relative importance of components is available           then use  initial weight heuristic  
+  else assign random weights to  components 
+1 clustering step 
+using d as the distance metric  k clusters are constructed using an arbitrary but fixed clustering algorithm  e.g.  k-means    where k is the number of clusters in the training set.  
+ 1: clustering step 
+  given: a training set consisting of a collection of graphs and a correct  k-clustering of them  
+  select 	an 	arbitrary 	but 	 	fixed 	clustering  algorithm 
+  set number of clusters  to  k   constant  
+  cluster graphs using d=w1dc1 +...+wmdcm 
+1 cluster evaluation step 
+the clusters obtained from the algorithm  i.e.  the  predicted  clusters  are evaluated by comparing them with correct clusters in the training set  i.e.  the  actual  clusters. an example of predicted and actual clusters is shown in figure 1.         ideally  the predicted clusters should match the actual clusters. any difference between predicted and actual clusters is considered an error. to compute this error  we consider pairs of graphs and introduce the following notation. 
+     true/false positive/negative pairs of graphs: given a pair of graphs i and j  we say that: 
+   i j  is a true positive  tp  pair if i and j are in the same actual  cluster and in the same predicted cluster. 
+   i j  is a true negative  tn  pair if i and j are in different actual clusters and in different predicted clusters.   
+   i j  is a false positive  fp  pair if i and j are in  different actual clusters but in the same predicted cluster. 
+   i j  is a false negative  fn  pair if i and j are in the same actual cluster but in different predicted clusters. 
+　　figure 1 includes examples of each of these kinds of pairs:  g1 g1  is a true positive pair;  g1 g1  is a true negative pair;  g1 g1  is a false positive pair; and  g1 g1  is a false negative pair. the error measure of interest to us is failure rate which is defined below. 
+　　success and failure rates: let tp  tn  fp and fn denote the number of true positive  true negative  false positive and false negative pairs respectively. also let sr denote the success rate and fr =  1 - sr  denote the failure rate  as defined below: 
+sr=tp+ftpp++ttnn+fn    ÷fr=tp+ffpp++tfnn+fn 
+ 
+    figure 1: predicted and actual clusters 
+　　in our domain  false positives and false negatives are equally undesirable. hence  our definition of failure rate weighs them equally.  
+   given a number g of graphs in the training set  the total number of pairs of graphs is gc1 =g! 1! g  1 ! . thus  for 1 graphs there are 1 pairs  for 1 graphs  1 pairs  etc. we define an epoch in learnmet as one run of all its steps. that is  a complete training cycle.  
+　　overfitting: to avoid overfitting in learnmet  we use an approach analogous to incremental gradient descent  1  1 . instead of using all pairs of graphs for evaluation  a subset of pairs is used called ppe or pairs per epoch. in each epoch  a distinct combination of pairs is used for evaluation and weight adjustments. thus there is enough randomization in every epoch. if ppe = 1  then we have a total of  1 =1〜1 distinct pairs for learning  1  1 . thus in each epoch 1 distinct pairs can be used. this still gives a large number of epochs with distinct pairs for learning. this incremental approach reduces the time complexity of the algorithm and helps avoid overfitting. determining the best ppe value is an optimization problem. also in learnmet  the random seed is altered in the clustering algorithm in different epochs as an additional method to avoid overfitting.  
+　　ideally  the error i.e.  failure rate in an epoch should be zero. however  in practice a domain-specific error threshold  t  is used.         
+       error threshold: a domain-specific error threshold  t  is the extent of error allowed per epoch in the domain  where error is measured by failure rate. 
+        distance between a pair of graphs: the distance d ga gb  between a pair of graphs ga and gb is the weighted sum of components in the graphs using metric d.  thus  d ga gb  =w1dc1 ga gb  +....+wmdcm ga gb   given this  consider fn pairs  e.g.   g1 g1  and  g1 g1 .  these pairs are in the same actual cluster. however they are predicted to be in different clusters. since predicted clusters are obtained with the metric d  the  average  distance d ga gb  for these pairs is greater than it should be. conversely  for fp pairs in different actual  same predicted clusters  e.g.   g1 g1   the  average  distance d ga gb  is smaller than it should be. 
+    average fn and fp distances d fn and d fp:  
+d   fn =  1/ fn ‘fn d ga  gb   where  ga gb  denotes fn pairs. 
+i=1
+d  fp=  1/ fp ‘fp d ga gb  where  ga gb  denotes fp pairs.  
+i=1
+ 
+1: cluster evaluation step  
+  set  ppe  to the desired number of pairs of graphs from 	the 	training 	dataset 	to 	be 
+considered in an  epoch 
+  randomly select ppe pairs of graphs  
+  set the error threshold  t  
+  identify the  tp    tn    fp     fn   from   ppe   pairs  
+  calculate failure rate  fr  
+  if  fr   t  then return  clustering is accurate  
+  else calculate d fn   d fp  
+1 weight adjustment step 
+if the result of the evaluation does not indicate that the clustering is accurate  then the distances d fn and d fp are used to make weight adjustments to reduce the error in clustering. consider the error in fn pairs. to reduce the average error d fn  the weights of one or more components in the metric used to calculate the distance in the present epoch is decreased. for this we propose the fn heuristic.  
+       fn heuristic: decrease the weights of the components in the metric d in proportion to their contributions to the distance d fn. that is  for each component:  
+　　　　　　　　　　　　　　　　fn wi '=wi  dd  fncfn i where d   fnci =  1/ fn ‘i=1 dci  ga  gb   
+      conversely  consider fp pairs. to reduce their error  we increase d fp. this is done by increasing the weights of one or more components in the metric using the fp heuristic. 
+       fp heuristic: increase the weights of the components in the metric d in proportion to their contributions to the distance d fp. that is  for each component:  wi ''=wi +dd  fpcfpi where d   fpci =  1/ fp ‘ifp 1 dci  ga  gb      
+       combining these two adjustments:      weight adjustment heuristic: 
+wi '''= max 1  wi  fn   d   fnci   +fp  d   fpci    . 
+	d   fn	d   fp
+thus d'''=w1'''dc1 +......+wm'''dcm 
+the new metric d''' obtained after weight adjustments is likely to minimize the error due to the fn and fp type pairs. if the weight of a component becomes negative  it is converted to zero as we consider only non-negative weights. clustering is done with this new metric. if the resulting error is below the threshold  then a confirmatory test using the same metric to cluster for 1 more epochs is performed  and then this step is complete.   
+1: weight adjustment step 
+  if clustering is accurate or max  epochs reached  
+             then go to  1: final metric step  
+  else apply weight adjustment heuristic to get d'''  
+  go to  1: clustering step  
+1 final metric step 
+if the weight adjustment terminates because the error is below the threshold then the metric in the last epoch is considered accurate and it is returned as output. however if termination occurs because the maximum number of epochs is reached  then the most reasonable metric to be output is the one corresponding to the epoch with the minimum error among all epochs.                                                   
+ 1: final metric step 
+  if  fr   t  then return metric d  
+  else  find epoch with minimum  failure rate 
+                     return corresponding metric d 
+convergence: learnmet is not guaranteed to converge or to yield an optimal distance metric. however  thorough experimental evaluation in our application domain has shown consistent convergence to errors below the required threshold.  
+1. experimental evaluation 
+1 evaluation of learnmet       .  
+      experimental parameters: a training set of 1 pairs of graphs in heat treating is obtained from correct clusters of 1 graphs given by experts. a distinct test set of 1 pairs of graphs is derived from 1 graphs given by experts. we select  ppe = 1  which yields 1 =1〜1 total distinct combinations of pairs. thus 1 distinct pairs are used in each epoch. experts give an error threshold of 1%  i.e.  1 for estimation. we use the same threshold for clustering. initial components in the metric are given by experts. two distinct assignments of initial weights are given by two different experts . the corresponding two metrics are denoted by de1 and de1 respectively. a third initial metric equ is obtained by assigning equal weights to all components. several experiments are run by assigning random weights to components in the initial metric . we present two experiments with randomly generated metrics called rnd1 and rnd1. see table 1.  
+table 1: initial metrics in learnmet experiments 
+ 
+      
+table 1: learned metrics and number epochs to learn 
+ 
+     observations during training: table 1 shows the metric learned in each experiment with number of epochs. figures 1 to 1 depict the behavior of learnmet during training. experiments equ  rnd1 and rnd1 take longer to converge than de1 and de1. however they all converge to approximately the same d.  
+
+figure 1: experiment de1  
+ 
+
+figure 1: experiment de1  
+ 
+
+figure 1: experiment equ 
+ 
+
+figure 1: experiment rnd1 
+ 
+
+figure 1: experiment rnd1 
+      observations during testing: the learned metric in each experiment is used to cluster graphs in the test set. these clusters are compared with correct clusters over the test set. euclidean distance  ed  is also used to cluster the graphs and the clusters are compared with the correct clusters. the observations for all the experiments are shown in figure 1. this figure depicts the accuracy  success rate  for each metric over the test set. clustering accuracies of the learned metrics are higher. 
+clustering accuracy over test set
+figure 1: test set observations 
+1 evaluation with system integration 
+     purpose of integration: learnmet has been developed mainly for the autodomainmine system  which performs computational estimation of process parameters . autodomainmine estimates the graphical result of a scientific experiment given its input conditions  using existing data to predict future trends. this technique clusters graphs from existing experiments and sends clustering output to a decision tree classifier e.g.  id1/j1  1  to learn the clustering criteria. for each graph  the input conditions of its corresponding experiment and the cluster in which it was placed are used to construct the decision tree. the tree identifies the combination of input conditions that characterize each cluster. a representative graph is also selected per cluster. when input conditions of a new experiment are submitted  the tree is traversed to predict the cluster. the representative graph of that cluster is the estimated graph for that experiment.  
+ 
+figure 1a: evaluation with autodomainmine step 1 
+ 
+ 
+　　figure 1b: evaluation with autodomainmine step 1       evaluating learnmet with autodomainmine: learnmet is evaluated by measuring the accuracy of the autodomainmine estimation with and without the learned metrics. this process is illustrated in figures 1a and 1b.   the estimation obtained from clustering using the learned metrics is compared with that from clustering using euclidean distance. another criterion for comparison is d=deuclidean +dlf +dbp which is called the autodomainmine metric denoted as adm   1 .      observations with autodomainmine: the average estimation accuracy over 1 experiments  each using 1-fold cross validation  is shown in figure 1. accuracy with each metric output from learnmet is higher than that with euclidean distance. accuracies with the learned metrics are also higher than the accuracy with the autodomainmine metric.  
+
+figure 1: evaluation results with autodomainmine 
+1.  conclusions  
+a technique called learnmet is proposed to learn a domainspecific distance metric for mining graphs. learnmet compares clusters of graphs obtained from a state-of-the-art clustering algorithm with correct clusters given by experts. an initial metric is guessed and refined with every round of clustering to give a final metric with error below a threshold. learnmet is evaluated rigorously in the heat treating domain that inspired its development. additional evaluations will be conducted in related domains.  ongoing research includes determining a good number of pairs per epoch; using normalized weights; considering scaling factors in weight adjustments; refining thresholds; and assigning suitable components to the initial metric without expert input.  
+acknowledgments 
+this work is supported by the center for heat treating excellence and by doe - itp award de-fc-1id1.  

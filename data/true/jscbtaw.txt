@@ -1,0 +1,224 @@
+the trec-1 web track evaluation experiments at the justsystem site are described with a focus  on the  aboutness  based approach in text retrieval.
+in the web ad hoc task  our trec-1 approach is adopted again  combining both pseudo-relevance feedback and reference database feedback but the setting is calibrated for an early precision preferred search.
+for the entry page finding task  we combined techniques such as search against partitioned collection with result fusion  and attribute-value basis re-ranking.
+as post-submission experiments  distributed retrieval against wt1g is examined and two different database partitioning and three database selection algorithms are combined and evaluated.
+keywords
+aboutness  pseudo-relevance feedback  reference database  fusion  attribute-value basis re-ranking  distributed retrieval  collection partitioning  database selection.
+1. introduction
+when a web page gives information to readers  readers have already understood what the information is about. information can be about anything  but should be about something in order to be  information .
+a subject concept comprehended by explicit/implicit pacts between authors and readers is the main instance of the objective position of such  about  phrases.
+in the case of artistic writings  they do not necessarily give any information but give some emotional feelings.
+even an informative document does not necessarily regard a subject concept. a curriculum vitae  for example  gives some information about someone but does not regard any subject concept. such functional documents work as information carriers according to the complex social/institutional protocols. a curriculum vitae gives information about the professional history of someone. the problem of information access here is split into 1  whose curriculum vitae it is and 1  if it is a curriculum vitae or not. a curriculum vitae of someone can be compared with that of someone else's but also with the medical examination report of this person. thus information is located in the lattice of syntagmatic and paradigmatic relations of semantics.
+information access problems against entity topics are in general the identification of the type and the entity in question  given the source of information as well as information needs.
+in the topic relevance search  aboutness is comprehended as representation of subject concepts  while in the entry page finding task  aboutness is split into  entriness  entry page or not  and entity correctness  which entity it is about  . neither  entriness  nor entity correctness can be processed as the bag of word representation.
+1. system description
+for the trec-1 web track experiments  we utilized the engine of justsystem conceptbase search tm  version 1 as the base system.
+a dual pentium iii tm  server  1mhz  running windows nt tm  server 1 with 1mb memory and 1gb hard disk was used for experiments.
+the document collections are indexed wholly automatically  and converted to inverted index files of terms.
+1 term extraction
+in order to compose possible noun phrases  queries and documents in target databases are analyzed by the same module that decomposes an input text stream into a word stream and parses it using simple linguistic rules.
+extracted units are single word nouns as well as simple linguistic noun phrases that consist of a sequence of nouns or nouns preceded by adjectives.
+1 vector space retrieval
+each document is represented as a vector of weighted terms by tf*idf in inverted index files and the query is converted in similar ways.
+similarity between vectors representing a query and documents are computed using the dot-product measure  and documents are ranked according to decreasing order of rsv.
+okapi bm1 function is utilized as the tf part of weighting function  so that the retrieval process can be considered as probabilistic ranking.
+1 passage retrieval
+since some pages are extremely long in the wt1g data set  we became aware that using passages rather than whole pages as the indexing unit is appropriate for the sake of retrieval effectiveness.
+passage delimiting is done such that each passage becomes a similar length rather than looking for thematic/discourse boundaries.
+1 phrasal indexing and weighting
+our approach consists of utilizing noun phrases extracted by linguistic processing as supplementary indexing terms in addition to single word terms contained in phrases. phrases and constituent single terms are treated in the same way  both as independent terms  where the frequency of each term is counted independently based on its occurrence.
+1 pseudo-relevance feedback and reference database feedback
+automatic feedback strategy using pseudo-relevant documents was adopted for automatic query expansion.
+the system submits the first query generated automatically from topic descriptions against the target or reference databases  and considers the top n documents from the ranked list as relevant.
+the term selection module extracts salient terms from these pseudo-relevant documents and adds them to the query vector.
+then the expanded query vector is submitted against the target databases again and the final relevance ranking is obtained.
+the whole retrieval procedure is as follows:
+1  automatic initial query construction from the topic description
+1  1st pilot search submitted against the reference database
+1  term extraction from pseudo-relevant documents and feedback
+1  1nd pilot search submitted against the target database
+1  term extraction from pseudo-relevant documents and feedback
+1  final search to obtain the final results
+  
+1 term selection
+each term in the example documents is scored by some term frequency and document frequency based heuristics measures described in .
+the terms thus scored are sorted in decreasing order of each score and cut off at a threshold determined empirically.
+in effect  the following parameters in feedback procedures should be decided:
+1  how many documents to be used for feedback 
+1  where to cut off ranked terms 
+1  how to weight these additional terms 
+these parameters are carefully adjusted using trec-1 queries  topic 1   wt1g data set and the relevance judgement file provided by nist. parameter sets for official runs are calibrated so that the early precision rather than average precision is maximized.
+1 spell variation
+when the system finds non stop-word terms from the  title  field text of topic description  it is clear that no document is returned. in such a case  the initial queries are expanded automatically by generated spell variations.
+the procedure consists of looking for similar words in the word lists extracted from the database. spelling similarity is measured by a combination of uni-gram  bi-gram and tri-gram matching scores.
+this query expansion was adopted originally for the trec-1 web track runs where the  title  field contained some spell errors.
+1 another source of  aboutness : anchor text of hyperlinks
+when we are asking what a page is talking about  sometimes anchor texts   or link texts  the texts on which a hyperlink is set   indicate an exact and very short answer.
+the anchor text is typically an explanation or denotation of the page that it is linked to. some commercial-based search engines utilize such information for advanced searches . we treat anchor texts literally as the part of the linked document.
+in total  1 1 anchor texts are added to 1 1 linked pages out of 1 1 pages in the wt1g data set. so 1% of document pages in the data set are attributed to anchor text information on top of the original page information.
+1 link structure analysis
+there seems to be a misunderstanding about the usage of pagerank like popularity-based ranking that utilizes indirect-link information propagating rank values through hyper-link networks.
+such a ranking would not help the information seeking activities of individuals unless the individuals' information needs are strongly correlated with the popularity or the collection is heavily polluted by spam pages. the situation in navigation-oriented search seems to be the same as in the subject-oriented search. in order to show the effectiveness of popularity based ranking  information needs should be arranged according to the popularity.
+instead of the popularity-based ranking  we apply adequate link analysis according to the nature of the information seeking tasks behind the evaluation model.
+1 attribute-value basis re-ranking
+our approach to the entry page finding task consists of combining the scoring results from different analysis procedures of pages. this is intended to rank the pages according to the following aspects:
+ entriness : the likelihood that the page is the entry point of a site.
+entity correctness: the likelihood that the page is about the entity indicated by the information need.
+the following four types of analyses are processed:
+-bag of words analysis
+this is mainly intended to gather candidate
+run tagindexreftermsavg. precr-precjscbtawtl1nstrong11jscbtawtl1nweak11jscbtawtl1nvastrong11jscbtawtl1nvaweak11table 1: performance of official runs
+through the experiments  we confirmed our expectation that only a small portion of each page is enough to be indexed for the entry page finding task. in fact  only 1 bytes of plain text including the title  the url  anchor texts and beginning part of the page are indexed in view of the bag of word analysis.
+  
+1. web ad hoc experiments
+we submitted four title-only automatic runs as follows:
+jscbtawtl1: title only  link run with noun phrase indexing  more weight on reference terms
+jscbtawtl1: title only  link run with noun phrase indexing  less weight on reference terms
+jscbtawtl1: title only  link run with noun phrase  adjective and verb indexing  more weight on reference terms jscbtawtl1: title only  link run with noun phrase  adjective
+
+pages to be examined precisely hereafter.
+the following three analyses are intended for rating both  entriness  and entity correctness.
+-link analysis
+this examines the number of inter-server linked  inner-server linked and inner- server linker to rate  entriness  of the page. -url analysis
+this examines url form  length and names to rate both  entriness  and entity correctness.
+ -text analysis
+this examines title  inter/inner-server anchor texts and other page extracts to rate mainly entity correctness but also  entriness  by scored pattern matching.
+
+run tagwords avg.words minwords maxphrase avg.phrase minphrase maxjscbt1wcs1
+initial1111jscbt1wcs1
+final1111jscbtawtl1
+initial1111jscbtawtl1
+final1111jscbtawtl1
+initial1111jscbtawtl1
+final1111table 1: length of queries measured by number of single word terms and phrasal terms   without spell variation expansion  
+
+and verb indexing  less weight on reference terms
+as for the link usage  we adopted the  anchor text  of the hyperlink information as we did in trec-1 .
+table 1 shows the performance of official runs and table 1 shows the length of the queries utilized in each run.
+initial queries are very short   in average  1-1 single word terms and 1-1 phrasal terms  maximum 1 single word terms and 1 phrasal terms   minimum 1 single word terms and 1 phrasal terms   and they do not contain enough terms.
+table 1 shows the performance comparison combining pseudo-relevance feedback and reference database feedback as well as with/without phrasal terms on the basis of jscbtawtl1 and jscbtawtl1 settings.
+the automatic feedback procedure contributes to 1% to 1 % of consistent improvements in average precision in all cases.
+the final queries contain 1-1 single word terms and 1-1 phrasal terms in average  maximum 1 single word terms and 1 phrasal terms  minimum 1 single word terms and 1 phrasal terms . note that we added many more terms in the final queries than we did in trec-1.
+the improvement gained by the combination of  pseudorelevance feedback and reference database feedback is 1% for n index run and 1% for nav index run. it is natural that n index runs where initial queries are shorter gained more from the feedback process. the improvement gain from combined feedback is larger than our trec-1 experiments  1% in link runs  . this is mainly caused by our approach to have taken more terms from feedback and promote some terms to the foreground.
+in trec-1  we explained our approach utilizing  foreground vs background  metaphor. in other words  foreground terms denote directly the subject concept of the information need while background terms connote the subject topic. if the weighting balance is changed in the query  the information need is also shifted.
+in order to promote some terms to the foreground  we adopted a simple voting from two sources of feedback; one is the target collection and the other is the reference collection.
+doing such calibration  we intended to make the runs  be early precision preferred rather than map preferred as our trec-1 runs. despite this  the official result showed that our system was still map and recall preferred in comparison with other systems.
+supplemental phrasal indexing runs perform better in average precision as well as in r-precision both
+run descriptionrefpfbavgprecr-precn index / sw + phrases
+ jscbtawtl1 yesyes11n index / sw + phrasesyesno11n index / sw + phrasesnoyes11n index / sw + phrasesnono11n index / single words onlyyesyes11n index / single words onlyyesno11n index / single words onlynoyes11n index / single words onlynono11nva index / sw 	+
+phrases  jscbtawtl1 yesyes11nva index / sw 	+
+phrasesyesno11nva index / sw 	+
+phrasesnoyes11nva index /
+phrases sw 	+nono11nva 	index 
+words only/ singleyesyes11nva 	index 
+words only/ singleyesno11nva 	index 
+words only/ singlenoyes11nva 	index 
+words only/ singlenono11table 1: performance comparison   title only  jscbtawtl1 parameter set  
+with/without pseudo-relevance feedback and with/without reference database feedback. the situation observed here is consistent with our experience in trec-1 web track experiments  but in this case  the effectiveness of phrasal indexing seems to be more stable.
+1. entry page finding experiments
+as table 1 shows  we submitted four entry page search runs: jscbtawep1  jscbtawep1  jscbtawep1 and jscbtawep1.
+these four runs adopt essentially the same configuration but differ in two parameters of final scoring.
+the full phrase match bonus weights and the bag of word analysis weights are changed as shown in table 1.
+run tagfull-
+matchbow wghtmrrtop1
+%nf%jscbtawep1moderlow111jscbtawep1modermed111jscbtawep1highmed111jscbtawep1moderhigh111table 1: performance of official runs of the entry page finding task
+1 the server database and the whole database
+the server database contains 1 server pages in the wt1g collection.
+in fact  this covers 1% of 1 pre-test queries  i.e.  this database contains at least one answer page against each of 1 queries out of 1 queries. it also covers 1% of 1 test queries.
+ten pages from the server database and 1 pages from the whole database are merged in the manner that the 1 pages from the server database come to the top of the rank.
+thus far  we applied normal retrieval processing  utilizing bag of word queries.
+mrr of the 1 page ranked lists against the server database accounts for 1 and that of the 1 page ranked lists against the whole database accounts for 1.
+merging them together makes mrr of 1.
+1 attribute-value basis re-ranking
+thus obtained ranked page lists of 1 pages are cut off at the top 1 pages and re-ranked by the attribute-value basis analysis modules.
+1 basic text matching and scoring in view of  entity correctness 
+text fields are scored by the matching procedure that accumulates each word matching point and adjacency point.
+such analysis is much more powerful than bag of word analysis and is equivalent to the full sub-phrase indexing against all long phrases.
+1 augmented text matching and scoring in view of  entity correctness 
+it is likely that the url text contains the entity name as the part of the server name or the directory names.
+but it is sometimes the case that the constituent words are agglutinated.  the matching is augmented in order to treat such agglutinated names.
+1 supplemented text matching andscoring in view of  entriness 
+some field are matched against pre-coded patterns as follows:
+the  interserveranchortext  field is intended to be matched with anchor texts like  go to the homepage of xxx .
+the  innerserveranchortext  field is expected to be matched with  back to the home  of xxx  .
+the  title  field is something like  welcome to the homepage of xxx .
+1 link analysis
+the number of interserver linked  normalized by maximum number of interserver linked  among the candidate pages simply indicates the  entriness  of the page.
+the entry page is also very likely to have at least one linker to the inner server pages unless his/her/their/its web site consists of only one page.
+1 score composition
+the final score is computed as the sum of the weighted scores from each analysis. each analysis weight is calibrated by the 1 pre-test topics.
+pagescore= w1s bow + w1s urltype + w1s urltext 
++ w1s interserveranchor + w1s innerserveranchor + w1s title 
++ w1s largefonts + w1s fullmatch + w1s interserverlinked 
++ w1s innerserverlinker                                              1 
+the full phrase match bonus is added only when all the constituent words of the entity name matches and prevents inclining to partial matching in many fields rather than full matching in one field.
+after such re-ranking processes  the final results of mrr 1 to 1 are obtained.
+1. distributed retrieval against wt1g
+in view of the trade-offs between efficiency and effectiveness  there might be two possibilities for large collection retrieval.
+1 centralized multi-stage search
+all the units are indexed in a system and first some important parts of each document like title and large font text parts are searched. if the user is not satisfied with the first results or he/she requests an exhaustive search through the collection  the second search looks through all the text part of the documents.
+1 distributed selective search
+the collection is partitioned by some criteria like publication date order  author's name order  original document location or content basis classification  etc.  and stored into separate databases. the search process consists of 1  selecting databases to be searched  1  distributed search in all the databases selected  1 fusion of the result lists from the selected databases  and 1  if the user requests it  the search result lists from all the databases are presented.
+many studies on distributed retrieval have been done by researchers of the ir society  but so far  web commercial search engines tend to be implemented as centralized search systems. the problem in distributed ir is the database selection; failing to properly select the target databases causes severe degradation in effectiveness. however  some studies claim that the effectiveness of a distributed search is even better than a centralized search when an adequate selection algorithm is applied.
+1 collection partitioning
+wt1g collection is partitioned in two ways.
+1.1 pre-defined directory partitioning
+each of 1 directories  wtx1 - wtx1   of distribution cd-r is utilized as a single database.
+each database is almost the same size. each database contains about 1 to 1 pages and these sizes account for 1 to 1mb in text file.
+1.1 category partitioning
+content basis classification has been done using 1 categories derived from the yahoo us categories.
+the highest two level categories of yahoo us directories were adopted and web pages linked from them were downloaded in march 1. these pages  1mb  1pages  are stored in the classifier database and each page in wt1g is submitted as a query against this classifier database. scores of the best 1 ranked   yahoo linked  pages are voted for the category from which the  yahoo linked  page is linked.  thus  for each page in wt1g  the category is decided and the wt1g pages are stored in partitioned databases.
+in this case  the database size is diverse  ranging from as small as only one page to the maximum 1 pages  1% of the whole collection . basic statistics measures of the number of pages in each database are shown in table 1.
+1 database selection
+the following three algorithms for selecting databases are examined.
+1.1 cori
+the formula proposed in  is adopted.
+df
+	 t = d t +  1-d t 	     1     
+df + k
+cw
+	k = k  1-b + b	    1 
+mean cw 
+¡¡| c | +1 log 	 
+i =	cf	                1  log | c | +1 
+p t | c  = d b+  1-d b *t*i   1 
+d t d b :1 cw : number of words in a database
+df : document frequency of the term t in the collection c
+cf : number of collections where the term t appears
+| c |  :  number  of  collections                          
+p t|c  is the weight of the term t against the collection c
+
+table 1: basic statistics of number of pages in each database of 1 category partitioning
+and the each database is ranked by the sum of this weight over all query terms. we utilized the setting of k=1 and b=1.
+1.1 simple df*icf
+this is simplest version of df*icf  an essential part of the cori method.
+df
+ df = d t + 1-d t 	     1     max df
+| c |
+	icf = log 	                 1 
+cf
+p t | c  = df*icf   1 
+d t : 1
+df : document frequency of the term t in the collection c
+max df : maximum df of the term through collections
+cf: number of collections where the term t appears
+| c |  :  number  of  collections                          
+1.1 df*avg-idf
+df*avg-idf is similar to df*icf but instead of icf  average idf of the term over all the databases is utilized.
+1 experiments
+we compared two collection partitioning and three database selection methods.  figure 1 in appendix a. shows a comparison of the combination of two partitioning and three database selection methods by using map  r-precision  precision at 1 docs  prec 1  and the number of relevant documents retrieved  rel ret . for each of the six combinations  we examined 1 runs  decreasing the number of databases to be searched from 1% down to 1% by 1% of the whole collection. for each of topic 1 to 1  the databases were selected from the top n % of the ranked database list utilizing one out of three methods. no feedback is applied in these experiments. once the databases to be searched are decided  statistics from each database selected are gathered so that a centralized search against the whole selected database is simulated. consequently  the problem of result fusion is excluded in these experiments.
+because of the essential similarity of the method  cori and simple df*icf perform very similarly even though cori seems to perform better in map and rel ret.
+after examining each database selected  we noticed that cori tends to select larger databases than other methods. in fact  when selecting 1% databases  cori searched 1% of the pages while tf*icf searched 1% of pages  see figure 1 in appendix a. .
+ content basis partitioned databases perform clearly better  especially when the portion of the collection to be searched is reduced. the most notable thing is that using a combination of content basis partitioned databases and cori or df*icf  the early precision prec 1  is even getting better when reducing the number of databases.
+ df*icf especially marked the best prec 1 when searching only 1% of pages out of the whole collection 1% by database numbers .
+1. conclusions
+trec-1 	web 	track 	evaluation 	experiments 	at
+justsystem group are described.
+the following conclusions are drawn from these experiments:
+1 we modified our trec-1 approach  i.e.  longer vectors with background down-weighting and promoting some terms to the foreground  seem to perform well.
+1  a three stage approach  i.e.  bag of word analyses  result fusion and attribute-value basis re-ranking  is successfully applied to the entry page finding task.
+1  a distributed selective search performs better than a centralized search in early precision when an adequate database selection method and collection partitioning are applied.
+1  a simple df*icf database selection method performs as well as the cori method.
+1  a distributed selective search performs better with content basis category partitioning of the collection than  near  random partitioning.
+1 distributed selective search is possibly a good option in early precision preferred retrieval tasks against very large collections.
+in future work  we will examine better partitioning methods by equalizing the number of pages in each database of content basis category partitioning.

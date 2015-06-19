@@ -1,0 +1,44 @@
+this paper describes navigation planning  a novel information gathering method that generates a plan for guiding concept understanding in the www. it also has the ability to generate operators during planning from web pages. for understanding a concept  it is a useful way to utilize a search engine for gathering relevant web pages. however the gathered web pages are fractions of knowledge explaining a target concept directly. to cope with this problem  we propose navigation planning to generate a sequence of web pages by which a user systematically understand a concept.
+keywords
+information gathering  ai planning
+1. introduction
+accessible information through the internet increases explosively as the www becomes widespread. in this state  the www is getting useful for a user who wants to understand a target concept because he/she can browse helpful web pages to understand the target concept. however  in general  this task is very hard because a user may not know where such web pages are  and has to search them over the vast www search space. a practical solution to the problem is to utilize a search engine with the target concept as a query. however  since the retrieved web pages are not filtered sufficiently  a user has to select useful ones from them. furthermore  since in most cases the retrieved web pages include concepts that a user does not understand  he/she must search the useful web pages for them using a search engine again. thus we consider web pages obtained by a search engine are fractions of knowledge explaining a target concept directly. this browsing task is repeated until a user understands the target concept  and wastes time. we deal with the task as planning  and propose navigation planning to automatically generate a sequence of web pages which can guide a user to systematically understand a target concept.
+1. navigation planning
+navigation means a task that indicates useful web pages to a user for guiding his/her concept understanding. the sequence of web pages is called a plan  and navigation planning means automatic generation of the plan. we can summarize the task in the following. this procedure is iterated until terminated by the user.
+1. search web pages using a search engine.
+1. understand the pages retrieved by the search engine.
+1. select unknown concepts in the web pages.
+1. go to step1 with unknown concepts as target concepts.
+we consider the above procedure classical planning by the following correspondence.
+  action: understanding concepts in a web page.
+  state: a user's knowledge state described with a set of words describing concepts which he/she knows.
+  initial state: a user's initial knowledge state.
+  goal state: a target concept described with a set of words which a user wants to understand.
+  operator: u-op url  defined by the followings.
+- label: url of the web page
+- condition: c = {c1  ，，，  ci}  where c means the condition words which are necessary to understand the pages.
+- effect: e = {e1  ，，，  ej}  where e is effect words which a user obtains by understanding the page.
+this framework contains a significant problem which has not been dealt in planning. it is that the u-op url  operators are not given in advance. because it is impossible for a human designer to generate the operators from all web pages in the www. hence the operators need to be automatically generated from web pages when they are necessary.
+1 automatic operator generation
+we develop a method to extract condition and effect words from a web page for generating an operator. since the words are assumed to be written in a web page  the problem is how to extract them from a web page.
+using tag structure
+various methods to extract keywords from text have been studied. though most methods are based on the occurrence frequency of words  one of the most effective methods is to utilize the structure in text. since a web page is described in a html format   we can utilize tag structures.
+prime candidates for condition words are words linked to other web pages  i.e. the words between  a href=url 
+ a  navigation planning as       backward beam search
+figure 1: navigation planning.
+and  /a   because this tag is a sign of reference to relevant topics  which are important for understanding the current web page in many cases.
+since a title in a web page describes words which a user can acquire by reading the page  the words between  title  and  /title  are candidates for effect words. in the same way  headings describe knowledge which a user can obtain by reading a section. thus the words between  hn  and  /hn  are also candidates for effect words.
+keygraph: a keyword extraction method
+extraction of condition and effect words using only tag is not sufficient. because not all linked words are condition words  and not all condition words are linked. thus we need another method to assist it  and keygraph is selected.
+keygraph is a fast method for extracting keywords representing the asserted core idea in a document. keygraph composes clusters of terms  based on co-occurrences between terms in a document. each cluster represents a concept on which the document is based  i.e. condition words   and terms connecting clusters tightly are obtained as author's assertion  i.e. effect words . furthermore the likelihood for condition and effect words can be computed by keygraph  and used for weight of an operator. another merit of keygraph is that it does not employ a corpus.
+the extraction of condition and effect words using tag structure and keygraph are integrated.
+1 planning procedure
+we develop navigation planning procedure. fig.1 shows the overview of navigation planning. it uses backward beam search from a goal state  fig.1 a  . the node expansion  fig.1 b   includes the search for related web pages with a search engine and the generation of operators.
+we fully implemented a navigation planning system. fig.1 shows a plan  depth = 1  with the target concept  concept formation . in this plan  the first page directly explains the target concept  and the third and fourth page explain  ilp  and  mlj  which are unknown concepts included in the first page.
+figure 1: plan for  concept formation .
+1. experimental evaluations
+we made experiments for evaluating our navigation planning. using human subjects and their selected target concepts  we investigated the number of web pages which were necessary for a user to understand a target concept. as a result  we verified navigation planning outperformed a popular search engine metacrawler.
+furthermore we made experiments for investigating advantage of planning over gathering fractions of knowledge like web pages using a search engine. in these experiments  more difficult target concepts were selected to emphasize the difference of them  and gradual increase of user's knowledge with reading each page was investigated. as a result  we found out navigation planning is significantly more effective than a search engine in the view of systematic and deep understanding of a concept.
+by these experimental results  we conclude that navigation planning contributes to increase user's knowledge until he/she deeply understands a goal concept  by reading multiple but small number of pages.
+1. conclusion
+we proposed navigation planning  a information gathering method that generates a plan guiding a user to understand a concept in the www. it also has ability to generate operators during planning from web pages. search for useful web pages for a user to understand goal concepts was formalized in a planning framework  and an operator corresponding to understanding of a web page was defined with condition and effect words. then we described the whole planning procedure and verified effectiveness of navigation planning experimentally.

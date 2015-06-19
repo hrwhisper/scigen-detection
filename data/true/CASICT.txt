@@ -1,0 +1,189 @@
+　　cas-ict took part in the trec conference for the first time this year. we have participated in three tracks of trec-1. for adaptive filtering track  we paid more attention to feature selection and profile adaptation. for web track  we tried to integrate different ranking methods to improve system performance. for qa track  we focused on question type identification  named entity tagging and answer matching. this paper describes our methods in detail.  
+keywords: trec-1  filtering  web track  qa 
+ 
+1. introduction 
+　　cas-ict took part in the trec conference for the first time this year. among the total six tracks of trec-1  we choose three of them: filtering  web and qa. 
+　　for filtering track  we undertook the adaptive filtering subtask. our model is still based on vector representation and computation. a topic-term relevance function is defined to guide feature selection. for profile adaptation  we use a rocchio-like algorithm. four runs have been submitted for evaluation: three of them are optimized for t1u measure  another one for t1f measure. we use very simple optimization methods in our experiments and we do not use any other resource except the new reuters corpus. 
+　　for web track  we undertook the ad-hoc subtask. our system is based on a general-purpose search engine developed by us alone. we try to improve system performance by integrating different ranking methods. query expansion technology is used to modify the initial query. the pagerank algorithm is investigated in our experiments. four runs have been submitted and two of them use hyperlink information. 
+　　for qa track  we undertook the main subtask. we first use smart search engine to retrieve a set of documents from the trec data sets. at the same time  a question analyzer is used to analyze the given 1 questions of trec-1 and generates the question types and keyword lists. then we use gate to analyze the top 1 retrieved documents and extract the named entities from them. finally  an answer extractor extracts the relevant answers from the named entities. three qa runs have been submitted for evaluation.  
+ 
+1. filtering 
+　　in the filtering task  we undertook the adaptive filtering subtask  which we think  is more interesting and realistic than the other two subtasks. 
+1 problem description 
+this year the filtering task has 1 topics  which are exactly the categories in reuters corpus. 
+the total documents for this task  new reuters corpus  are divided into two parts: 1 documents for training  training set  and the remaining about 1 documents for testing  testing set . all the documents are reuters everyday news  dating from august 1 to august 1. two measures are given for adaptive filtering: t1u and t1f  the former is a linear utility measure and the latter is a kind of f-measure. in the adaptive task  only two positive samples in training set are given for each topic  the goal is to retrieve relevant documents one by one from the coming testing documents stream and get maximum t1u or t1f value at the same time. 
+1 system description 
+　　our adaptive filtering system consists of two components: the initializing component and the adaptation component. the former is used to get the initial data through training and the latter is to adapt these data when retrieving testing documents. 
+1 training 
+　　in training procedure  we first process the training set for basic term statistics  this includes term tokenization  stemming and frequency counting. then we can select terms from the positive and some pseudo-negative samples. after topic processing  we can get the initial profile vector by summing up the topic and feature vectors with different weight. finally  we can compute the similarity between the initial profile vector and the positive documents to set the initial threshold. 
+1.1 training set processing 
+　　in this step  all the training documents are processed. first we tokenize each document into single words  then eliminate the stop words and some other words with low frequency in the training set  and then we stem each word using the porter stemmer http://www.cs.jhu.edu /~weiss/ . finally  we count each word's frequency tf  within each document and the word's document frequency df  across the training set. when processing the training texts  we only use the  title  and  text  fields. thus each document can be represented with its term frequency vector. meanwhile  we can get the idf statistics of the training documents. since we can't use the idf statistics of testing set  we use in the following steps the idf statistics of the training document in term weighting. ideally  we can update the idf statistics when retrieving documents from the testing documents stream. but  has indicated that doing so does not seem to improve the overall filtering performance. so we use the same idf statistics of the training documents all over our experiments. 1.1 topic set processing 
+　　this year  each topic consists of three short parts: the  num  field  the  reuters-code  field and the  title  filed. the  title  field includes only one or two words. we can't get more information from such kind of topics than from the topics of trec-1 or trec-1  which are described with more words. of the three parts  we regard the  title  field as the most important. though the  reuters-code  fields may provide some information about relationships between different topics  we do not use them at all. processing the topics is very simple  we only extract and stem the  title  field words to construct the vector for each topic. 
+1.1 term selection 
+　　to reduce the computation complexity  we apply a method for feature selection. here the features are all terms  each term is a word.  
+　　for each topic  we have two positive samples. so for all 1 topics  we have 1 positive samples. thus  of the 1 samples  each topic has two positive samples  and we can suppose the other 1 samples are negative to the topic. because one document may be relevant to more topics  our supposition is not very correct. but we try it for lack of information.  
+we define a word-topic correlation function as: 
+	cor wi tj  = log p wi | tj  p wi |  tj   	 	 	 	 	 	 	 1  
+　　where p wi|tj  means the probability that word wi exists in the relevant documents of topic tj. on the contrary  p wi |  tj  means the probability that word wj exists in non-relevant documents of topic tj. for each topic  we compute the cor value of each word in the positive two samples and choose the words with high cor values as the features. here we use maximum likelihood estimation. we compute the frequency that a word exists in the two positive documents as the estimation of p wi|tj   and the frequency that a word exists in the other  negative  documents as the estimation of p wi |  tj  . if the estimation of p wi |  tj  is equal to zero  we give the cor a big value.  
+　　after getting the feature words for each topic  we combine them to construct one feature space; the topic vector and the feature vector must be mapped into this space. 
+1.1 profile initialization 
+　　for each topic  the profile vector denoted as   p    is the weighted sum of the topic   vector denoted as t   and the feature vector denoted as f    which is the sum of the two positive documents vectors. the formula is: 
+	p  =α* f  +β*t                  	 	                 	 	 1  
+　　in our experiments  we set α=1 β=1 to give prominence to the topic words. so far  each component of the vectors is represented with tf values. then we change it by multiplying with its idf coefficient.  
+1.1 similarity computation 
+　　to compute the similarity between a topic profile  p i   and a document  d j    we use the vector cosine similarity formula:  
+	sim p i  d j  = cos p i  d j  =  p i   d j                       	 	 1  
+| pi | 〜 | dj |
+each component of the vectors is represented with tfidf value. here we use 
+tfi *log 1+ n   formula. we also try other formulae in our experiment  but the results are dfi
+almost the same. 
+1.1 initial threshold setting 
+　　we do not have good idea to set the initial threshold. according to our understanding  we believe we can't use the training documents to train the initial threshold because they are prepared for batch filtering task  not for adaptive task  we cannot use the relevance information of the other documents in training set except the two positive ones. thus we have to use a very simple method  for each topic  we choose a small fixed value as the initial threshold which is smaller than the similarity between the initial profile vector and the two positive samples. 
+ 
+1 adaptation 
+　　for each topic  after initializing the profile and the threshold  we can scan documents one by one from the testing set. if the similarity between the profile and the document is higher than the threshold  the document is retrieved and meanwhile the system can tell you the document is really relevant or not. with this information  some kind of adaptation may need to take to improve system performance. the adaptation may include threshold updating or profile updating.  
+1.1 threshold adaptation 
+　　in trec-1  two measures are defined to measure the performance of an adaptive filtering system. one is t1u  which is a linear utility; another is t1f  which is a kind of f-value. the goal of the adaptive filtering system is to get maximum t1u or t1f.  
+　　for t1u  we have two goals: one is to avoid negative t1u as far as we can  another is to improve the precision while the recall can't be greatly reduced. we only apply method for the former goal in our experiments.  
+　　for t1f  we also have two goals: one is to avoid retrieving zero documents  another is also to improve the precision while the recall can't be greatly reduced. we only apply method for the former goal  too.  1.1 profile adaptation 
+　　after retrieving more and more relevant or non-relevant documents  we can get more useful information and understand the user's interest better. thus we can adapt each profile vector  which represents each user's interest. our profile adaptation includes positive adaptation and negative adaptation. for positive adaptation  we add the document vector of the positive documents to the old profile vector. for negative adaptation  we subtract the document vector of the negative documents from the old profile vector. when retrieving the n+1 th document dn+1  we can adapt the nth profile to the n+1 th profile according the following formula: 
+	p n + 1 =  p  n +α* d  n + 1        if dn + 1 is relevant             	 	 	 1  
+ pn  β* dn + 1                              otherwise
+　　thus after retrieving n+1 documents  all the retrieving relevant documents make the positive set denoted as {d+}  the other documents set is {d-}. then the new profile vector become 
+p nd  j
+	di （{d+}	di（{d  }	  	 	 1  
+    here   {d+}“{d  } = {d1 d1  ... dn+1} {d+}”{d  } =φ
+　　formula  1  is some kind of the rocchio algorithm except one point: we do not compute the centroid vector of the positive set or negative set and regard it as one vector. in other words  we pay more attention to the retrieving documents than the initial profile vector. furthermore  we investigate the values of α and β. we found without negative feedback  the result is worse. in our experiments  we set α=1  β=1 or 1.  
+ 
+1 evaluation results and analysis 
+　　we have submitted four adaptive filtering runs: one for t1f optimization  three for t1u optimization. because we do not use complex optimization method  the results of the 1 runs are similar to each other. the evaluation results are shown in table 1. 
+table 1 shows that in each run  the results of about 1 of all topics are better than the medians  and most of the remaining results are worse. unfortunately  about 1 of the worse results are worst results and most of the worst results are zero. thus the overall performance of our runs is not high. 
+ 
+run id meant1sut1su vs. median topic nums  meant1f t1f vs. median topic nums    best  =  worst/zero   best =   worst/zero  ictadaft1ua 1 1  1 1  1 1  1 1  ictadaft1ub 1 1  1 1  1 1  1 1  ictadaft1uc 1 1  1 1  1 1  1 1  ictadaft1fa 1 1  1 1  1 1  1 1  table 1 ict adaptive filtering runs in trec-1 
+ 
+　　we focused on the worst zero results and the best results. we found  on one hand  most of the zero results belong to  small  topics  which have small amount of relevant documents in the whole testing set and we called them  hard  topics.  on the other hand  most of the best results belong to  big  topics. that is to say  our method is somehow fitful for  big  topics but not very fitful for  small  topics. this may result from two reasons: first  our feature selection method cannot find the best features of these  hard  topics from only two positive samples. second  our optimization method is too simple to satisfy different cases.  
+　　in the future work  we will pay more attention to three aspects. for feature selection  we will try more effective methods. for optimization  we will try more complex methods. for profile adaptation  we may add feature reselection module. 
+ 
+1. web track 
+1 system description 
+　　this year  the goal of the main web track is to retrieve the most relevant documents for each topic in the topic set  1  from the wt1g collection. our system is based on a general-purpose search engine which we have been developing and improving since 1. the system consists of four basic components: indexer  query generator  search agent  and search server. the indexer scans all documents of the wt1g and generates full text indexes and term statistics. the query generator analyzes the trec topics and generates real queries. the search agent submits real queries to search server and shows the return results in visible format. the search server receives queries  searches documents and returns results to the search agent  
+ 
+1 searching process 
+1.1 query construction 
+　　query generator reads trec topics  extracts valuable terms and submits them to the search system. therefore  the initial query for each topic is a set of some useful terms of the topic. 
+　　at this stage all stop words are removed. in addition to the basic stop words  we have also removed some other stop words that carry little information in the topics  such as find. while processing each topic  we only use the  title  field. 
+1.1 initial retrieval 
+　　for each initial query  the search system retrieves some documents and ranks them using formula  1 . some top ranked documents are returned as the initial search results. 
+	sq d =	t（‘q”d  1+log ft d   log 1+ nft  	 	 	 	 	 	 	 	 1  
+‘ 1+log ft d  1   ‘log1  1+ nft  
+　　where sq d is the similarity of document d and query q  ft is the number of documents in which term t occurs in wt1g  ft d is the frequency term t occurs in document d  within-document frequency   and n is the total number of documents in wt1g. 
+1.1 query expansion 
+　　after first retrieval we can get many ranked documents. then we can regard some top ranked documents as relevant. all the terms in these documents are weighted according to formula 
+ 1 . 
+　　　　　　　　k1 log k1' nn  n + nn  n  + k1 +r r log rr +r 1+.1  1  tsv = r *wt = r *  k1 + r
+	k1	log	n  	s	log	s + 1	 
+ 
+	k1 + s	n   n	k1 + s	s   s + 1
+　　where tsv means term selection value that is used to rank terms. n is the number of documents in wt1g  n is the number of documents in which term t occurs  r is the number of relevant documents  r is the number of relevant documents which contain term t  s is the number of non-relevant documents in wt1g  s is the number of non-relevant documents which contain term t in wt1g. k1'  k1  k1 are parameters. 
+some top terms with their tsvs are selected for the new query vector construction. 
+1.1 second retrieval 
+　　in this stage  the new query is submitted to the search system and new results are retrieved which are ranked by formula  1 . 
+	wq d =‘t（q wt k1 *  1  kb1  ++1 b** favrd t l* dbld dt   + fd t *  k1++1 f*q tfq t	 	 1  
+　　where ld is the length of document d  avr ld is the average document length  bd t is within-document importance of term t in document d  which includes multiple factors such as the frequency t occurs in document title  bolded text  and hyperlink text. k1 k1  k1 are parameters. 
+ 	 	 	 
+1 applying link analysis technology in web track 
+ we also investigate link analysis technology that is used to rank web pages using link information. in our experiments  we mainly use an improved pagerank algorithm. 
+1.1 basic pagerank algorithm 
+ brin & page suggested a link based search model called pagerank that first evaluated the importance of each web page based on its citation pattern. the pagerank algorithm re-ranks the retrieved pages of a traditional search scheme according to their pagerank values. 
+ in this approach  a web page will have a higher score if more web pages link to it and this value will increase if those web pages' scores increase. the pagerank value of a given web page t  denoted as pr t  can be iteratively computed according to formula  1 . 
+	pr t  =  1  d  + d *‘m= pr c ttii    	 	 	 	 	 	 	 	 	 1  
+i 1
+　　where t1  t1  ...  tm are the web pages which link to page t  d is a parameter  set to 1 as suggested by   and c ti  is the number of outgoing links for page ti.. for simplification  all the pages which link to page t are called the pre-set of t  denoted as pre-set t  and all the pages which page t links to are called the post-set of t  denoted as post-set t . 1.1 implementation of the pagerank algorithm 
+ from formula  1  we can see that computing pagerank is very simple in itself. but because the numbers of web pages is usually very large  in wt1g the number is 1 1  and the number of hyperlinks is even larger  the iteration process may be time-consuming. in order to solve this problem  we do some useful pretreatment. 
+   first  we try to get rid of all the noisy hyperlinks that have little information before iteration. meanwhile  we mark the web pages that have empty pre-set and do not participate in the iteration. 
+   second  we pretreat the post-sets of all the web pages. from formula  1  we can see that  for web page t and one page in its pre-set  tj  if c tj  is sufficiently large  the value of pr tj / c tj  will be very small  intuitively speaking  that means the influence of webpage tj to webpage t is very small in the web graph. thus for web pages like tj  we don't let them only simply take part in the iteration. a threshold is set in advance  if one page's post-set has bigger size than the threshold  we assign a fixed value as the pagerank for this page. in this way we can greatly reduce the iteration cycle in our experiments. 1.1 convergence properties 
+　　according to the probabilistic meanings of formula  1   after each time of iteration  the sum of all pages' pagerank should be equal to 1 after standardization. to avoid that the pagerank values are too small and incomparable  we introduce a new standardization method. 
+ in addition  we use formula  1  to determine whether we should stop or not after the i+1 th iteration.  
+	maxt	 pr t  i    pr t  i+1      mint	 pr t  i    pr t  i+1     δ  	 	 	 1  
+　　in order to determine whether the iteration should be stopped or not  we consider not only the decreasing tendency of all the web pages  but also the low changeability between iterations. in our experiments  after 1 times' iteration we get a relatively steady convergence results. 
+1.1 integrating ranking methods 
+　　we integrate the above ranking methods into formula  1  to get the integrated rank of one page: 
+	wd =wdc +wdl =wdc +	prwdcmax *k 	 	 	 	 	 	 	 1  
+log
+prd
+　　where wd is the final weight of a page  document   wdc is the content-based document weight computed by formula  1   wdl is the link-based document weight. prd is the pagerank value of document d computed by formula  1   prmax is the maximum pagerank value among all the documents  k is a constant greater than 1.  
+ 
+1 evaluation results 
+we have submitted four runs to nist. the results are listed in table 1.  
+ 
+technology run id  average precision 
+ non-interpolated  over all relevant docs p 1 docs r-precisionbaseline ictweb1n  1 1 1 query expansion ictweb1f  1 1 1 link analysis ictweb1nl  1 1 1 query expansion &link analysis ictweb1nfl  1 1 1 table 1 web track results 
+ 
+　　table 1 shows that our query expansion method leads to performance degradation. the reason may be that we first use such a complex query expansion method in our system and some of the parameters need to be revised in future tests. 
+　　from the above table  we have also found that the results integrated with link analysis have little difference with the benchmark. we believe the reason is not algorithm itself but the small size of the web pages set. in our experiments  we use wt1g which is a close set that doesn't link to outside  thus many informative hyperlink are not included. if the experimental data size is large enough  the results should be very good. the pagerank method offers an approach that evaluates the web pages objectively. 
+　　our future work includes three aspects: first  we will try different probabilistic retrieval models; second  we will try alternative feedback methods; third  we will try new connectivity computation methods.  
+ 
+1. questing answering track 
+1 system description 
+　　our trec-1 question answering system consists of four basic components: ir search engine  question analyzer  named entity tagger and answer extractor. figure 1 illustrates the whole architecture.  
+ 
+figure 1: architecture of the ict trec-1 qa system 
+ 
+　　we first use an ir search engine to retrieve a set of documents from the trec data sets. at the same time  a question analyzer analyzes the given 1 questions of trec-1 and generates the question type and keyword-list for each question. then we use a named entity tagger to analyze the top 1 documents retrieved by the search engine and extract the named entities from them. finally  an answer extractor determines the relevant answers from the named entities using the question type and keyword-list. 
+ 
+1 smart search engine 
+　　as we know  smart ftp://ftp.cs.cornell.edu/pub/smart  is an implementation of the vector-space model of information retrieval proposed by salton dating back in the 1's. the primary purpose of smart is to provide a framework in which one conducts information retrieval research. it is  as we heard  distributed for research purpose only. since trec-qa allows us to use search engine freely  we choose smart as our ir search engine because it is easy to use. to meet the need of our qa system  we add some new components into smart. we also use the feedback function of smart to generate a set of retrieved documents  based on which we make a run ictqa1c. but this run becomes the worst of all our three runs  which proves we failed in applying the feedback. this indicates that we need to do further research on feedback  such as using the lca  local context analysis  feedback technique. 
+ 
+1 question analyzer 
+main answer and question types what we can extract are listed in table 1. 
+answer type question type example person who/whom/what-person/which-person mr. mulroney location where/what-location/which-location orange county organization what-org/which-org/who penn central corp. money how much $1 million percent how much/what percentage 1% date when/what date aug. 1  1 number how many five duration how long 1 years distance how long/how far/how tall 1 miles area how large/how big 1 square kms measurement how heavy/how fast 1 tons currency what currency dollar nationality what nation/what language icelandic reason why/how - name what/which is are np small brain defect typical victims no answer all nil table 1 answer and question types 
+ 
+　　we determine the question type based on two rule sets. first rule set is keyword-based  which consists of some patterns as follows: 
+who : person 
+where : location 
+what day : date 
+how many : number  
+such patterns determine the question type only according to the interrogative of the question. 
+this kind of rules can be applied to the person  location  date  number types and so on. 
+the second rule set is template-based. some examples of this kind of rules are as follows: 
+what do does did  1 cost  : money 
+what person  1  : person 
+which person  1  : person 
+what is was  1's birthday  : date 
+                           what is are was were  1's employer  : organization such rules are useful to determine those questions led by  what   whose question types are hard to determine only by keyword-based rules. 
+ 
+1 named entity tagger 
+　　we use gate http://gate.ac.uk  as our named entity tagger. gate is developed by sheffield nlp group. it can extract the named entities of person  location  money  percent  date  organization and so on. but it has some obvious shortcomings  for example  it can't extract the pure number and most measurement entities. furthermore  many entities are incorrectly identified in gate. therefore  we revise the basic gate system. first  we add several new components to identify the number and measurement entities. second  we modify gate to improve the tagging correctness  mainly for the money and percent entities. as to some abstract question types  such as reason why   meaning what   method how  and so on  we apply some rules based on certain features to tag a snippet from the candidate passage as the candidate answer. 
+　　before identifying the named entities  we need to construct candidate passages using the top 1 documents retrieved by smart search engine. the algorithm is as follows: 
+step 1:parse the sentences of the documents. 
+step 1:retrieve the sentences that contain keywords in the question. 
+　　step 1:construct a candidate passage every two sentences. if one sentence is long enough  it becomes a candidate passage itself. 
+　　step 1:assign each candidate passage a initial score equal to the score ranked by smart search engine  i.e. score p =ir d   d is the document where the candidate passage p lies. 
+　　step 1:add the idf value of all matched keywords contained by a candidate passage to its score. 
+　　step 1:calculate the number of matched keywords count m  in each candidate passage p. add 1 to score p  if the number of matched keywords is less than the threshold. otherwise  add count m to score p . the threshold is defined as follows: threshold=count q  if count q 1; threshold=count q/1+1  if 1 =count q =1; threshold=count q/1+1  if count q 1; here count q is the number of keywords in the question. 
+　　step 1:calculate the size of matching window  then add 1*count m/size matching window  to score p . the size of matching window is defined as the number of keywords in the candidate passage between the first matched keyword and the last one. 
+　　step 1:re-rank the candidate passages by their final scores and output the top 1 or 1 passages to the named entity tagger. 
+ 
+1 answer extractor 
+　　the answer extractor compares the question type with each named entity in candidate passages. if a candidate passage contains a named entity matching the question type  we add 1 to the score of the passage. when there is more than one matched named entity  we only count once.  
+　　after the process above  we re-rank the candidate passages according to the named entity and question types  then output the top 1 named entities as the final answers. if the question type is unknown  we intercept a snippet with the largest density of keywords in the candidate passage to answer the question. 
+ 
+1 results and analysis 
+　　there are three subtasks in trec-1 qa: main  list and context. we only participate in the main task and submit three runs in the 1-byte category. ictqa1a uses the top 1 candidate passages for each question. both ictqa1b and ictqa1c use only top 1 candidate passages for each question  the difference is that ictqa1c uses the feedback of smart in the ir phase. the evaluation results are presented in table 1 and 1. table 1 shows the results in strict evaluation while table 1 does in lenient evaluation.  mrr means  mean reciprocal rank .   
+　　ictqa1b is better than ictqa1a  which shows that more candidate passages can't guarantee to generate better results. 
+ 
+task run correct #  strict  correct %  strict mrr strict  correct # of final answer correct % of final answer main ictqa1a 1 1% 1 1 1% main ictqa1b1 1% 1 1 1% main ictqa1c 1 1% 1 1 1% table 1 strict performance in trec-1 
+ 
+task run correct #   lenient  correct %  lenient  mrr lenient correct # of final answer correct % of final answermainictqa1a 1 1% 1 1 1% mainictqa1b 1 1% 1 1 1% mainictqa1c 1 1% 1 1 1% table 1 lenient performance in trec-1 
+ 
+　　table 1 shows some statistical results by question types. our system is pleasant for the nationality  duration  currency  location and no answer question types  but disappointing on the date  person  money and reason question types  though these question types are easy to determine. the main reason is that some bugs exist in our ranking strategy when there are too many candidate named entities matching these question types. we try to find more detailed ranking strategies to solve this problem in the future work. we also try to introduce some syntactic and semantic parsing technology to solve other problems  especially the name what is np   question type  which we badly handle in trec-1. 
+ 
+question type # of questioncorrect # correct % mrr person 1 1 1% 1 location 1 1 1% 1 money 1 1 1 1 percent 1 1 1% 1 date 1 1 1% 1 number 1 1 1% 1 duration 1 1 1% 1 measurement 1 1 1% 1 currency 1 1 1% 1 nationality 1 1 1% 1 reason 1 1 1 1 name 1 1 1% 1 no answer 1 1 1% 1 table 1 lenient performance for each question type 
+ 
+1. conclusion 
+　　this year we participate in the trec conference for the first time  the main goal is to understand the process and the ideas of the trec conference. we spend much more time on this goal than we do in system construction. we think we have achieved this goal though our results are not so satisfactory.  
+　　before attending trec-1  we have had some experiences in chinese information processing. after attending trec-1  we have got some experiences in english information processing and we will try to apply these useful experiences in our future work.  
+ 
+acknowledgements 
+ this research is supported by the national 1 fundamental research program under contact of g1. we give our thanks to all the people who have contributed to this research and development  in particular yanbo han  li guo  qun liu  hai zhuge  zhihua yu and lei cheng. 
+ 

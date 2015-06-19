@@ -1,0 +1,160 @@
+this paper presents a new process of collaborative multi-step multi-strategy classification of complex data. our goal is to be able to handle in the same system several instances of classifiers in order to make them collaborate. in this paper  we highlight how the classifiers collaborate. we present the implementation of our method dedicated to remote sensing images. finally  we validate it with a pixel based classification application.
+keywords
+complex data. collaborative clustering. classification combining. per-pixel image analysis.
+1. introduction
+　for many years data mining methods are being used on more and more complex data: intervals  distributions  histogram  fuzzy data  temporal data  images  etc.
+　many discussions are currently going on to define and formalize what should be considered as complex data. nevertheless  complex data are commonly seen as sets of strongly heterogeneous data  often unstructured which may arise from different theoretical approaches  observations  knowledge a priori  trainings  etc .
+　unfortunately  in general  in objects described by a large set of features  many features are correlated  some are noisy or irrelevent. for example  in per-pixel clustering of remote sensing images  the abundance of noisy  correlated and irrelevent bands disturb the classical clustering procedures. in fact  traditional methods are not as effective as they seem. consequently  the  traditional  process of knowledge discovery from such data becomes more and more complex. in particular  new models of classifiers  supervised or not  which are able to handle complex data of different types  numerical  symbolic or structured  are necessary.
+　a relatively recent approach can be used. it is based on the idea that the information offered by different classifiers
+permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. to copy otherwise  to republish  to post on servers or to redistribute to lists  requires prior specific permission and/or a fee.
+mdm/kdd 1 chicago  usa copyright 1 acm 1-1/1 ...$1.
+about objects are complementary . and thus the combination of different classification methods may increase their efficiency and accuracy. a single classification is produced from results of methods having different points of view: all individual classifier opinions are used to derive a consensual decision.
+　there are many different ways to combine multiple classifiers depending on the representational methodology. in  1  1   the authors divide them in:
+  multi-expert approaches like boosting  1  1  1  1   bagging  1  1  or stacked generalization  1  1  1 : the different classification methods work in parallel and give all their classifications; then the final classification is computed by a separate combiner;
+  multi-step approaches like cascading  1  1 : the methods work in a serial way; each method is trained or consulted only for the patterns rejected by the previous classifier s .
+in both cases  the approach is described as:
+  multi-strategy if different types of algorithms are used at the same time;
+  multi-representationnal if the algorithms use different data or different points of view on the data .
+　in our work  we focus on unsupervised classification. the goal of clustering is to identify subsets called clusters  or classes  from the data  where a cluster usually corresponds to objects that are more similar to each other than they are to objects from other clusters. clustering is carried out in an unsupervised way by trying to find theses subsets without having a priori knowledge on the clusters: it operates only starting from the intrinsic properties of the objects. a complete panorama of the unsupervised classification existing methods is given in  1  1 . in this case  we believe that the combination of classifiers should be able to propose a classification method that decreases the importance of the initial choices. and secondly  it should also solve some of the limitations of the methods by using the complementarity of the different classification methods used. for example  some classifiers only propose a partitioning of the data space  whereas others give a hierarchy of classes or concepts as a result. so it could be interesting to automatically produce a hierarchy of classes with the partitioning methods according to the results presented by the hierarchical methods.
+　many techniques for combining supervised classifiers exist. unfortunately  it is hard to apply the same schemes to the unsupervised case. first  these techniques are often monostrategical. secondly  the fusion of decisions is harder because there is no direct correspondence between the clusters found by the different classifiers. and finally  few of these methods are able to use different representations of data.
+　nevertheless  we believe that these traditional approaches for combining classifiers can be used and improved if the methods collaborate during the entire classification process. each method can use a different stategy and/or representation of data.
+　thus  we propose a new method including the two significant aspects:
+  the collaborative multi-strategy aspect with a classification method of complex data based on an automatic and mutual refinement of several classification results;
+  the multi-step aspect with a method which enables us to represent complex data  numeric or symbolic data  ...  and to use the preceding classes to form objects of higher level.
+　in this paper  we highlight the collaborative multi-strategy aspect. then  we present the implementation of our method dedicated to remote sensing images. we validate it with a pixel based classification application.
+1. collaborative multi-strategy classification
+　to combine p classifications {rp} using a voting method for example  it is necessary to define a correspondence function  associating to each class cki of a classification ri one class of the classification rj  for each couple  ri rj .
+　to carry out this operation in an optimal way  this function should be bijective  as it is in supervised approaches. in the case of unsupervised classification  the results may not have the same number of classes and we do not have any information about the correspondence between the different classes of the different results. we propose to carry out a pretreatment based on a collaborative process which consists in an automatic and mutual refinement of the classification results. these refinements are done to make the results of the various classifications converge  that is they should have almost the same number of classes  and all these classes should be statistically similar. in many cases  it is then possible to define a bijective correspondence function and to apply a unifying technique  such as our new voting method .
+　the entire classification process is presented in figure 1. it is decomposed in three main phases:
+1. first a phase of initial classifications is performed: classifications are computed by each method with its parameters.
+1. an iterative phase of convergence of the results whichcorresponds to alternations between two steps  as long as the convergence and the quality of the results improve:
+1 a step of evaluation of the similarity between the results and mapping of the classes;
+1 a step of refinement of the results.
+1. a phase of combination of the refined results.
+　the mechanism we propose for refining the results is based on the concept of distributed local resolution of conflicts by the iteration of four phases:
+1.1 detection of the conflicts by evaluating the dissimilarities between couples of results
+1.1 choice of the conflicts to solve;
+1.1 local resolution of these conflicts  concerning the two results implied in the conflict ;
+1.1 management of these local modifications in the global result  if they are relevant .
+1 convergence of the results
+evaluation and mapping. a class of the result of a classification rj is the corresponding class of the class cki of the result ri if it is most similar to cki. we define the similarity without using a concept of distance between objects by:
+ where αk ki j m = max {αk li j}l=1...nj
+it is evaluated by observing
+  the relationship between the size of their intersection and the size of the class itself:
+αi jk =  αi jk l l=1 ... nj where
+  and by taking into account the distribution of the data in the other classes
+　　　xnj    1 i j	i j ρk = αk l
+l=1
+refinement. during a phase of refinement of the results  several local resolutions are performed in parallel. the detection of the conflicts consists  for all the classes of all the results  in seeking all the couplesfor two classifications ri and rj  such as cki 1= ckj1 which is its corresponding class. a conflict importance coefficient is calculated according to the interclass similarity between the two classes. then a conflict is selected according to the conflict importance coefficient and its resolution is started. this conflict and all those concerning the two associated methods are removed from the list of conflicts. this process is reiterated until the list of conflicts is empty.
+　the resolution of a conflict consists in applying an operator to ri and an operator to rj. these operators are chosen according to the classes and  involved in the conflict:
+  merging of classes: the classes to merge are chosen according to the representative classes of the treated class. the representative classes of class cki from result ri compared to result rj are the set of classes from rj which have more than pcr% of their objects included in cki  pcr is given by the user .
+figure 1: collaborative multi-strategy classification process
+  splitting a class into subclasses: all the objects of one class are classified in a certain number of subclasses 
+  reclassification of a group of objects: one class is removed and its objects are reclassified in all the other existing classes.
+but  the simultaneous application of operators on ri and rj is not always relevant. indeed  it does not always increase the similarity of the results implied in the conflict treated  red queen effect :  success on one side is felt by the other side as failure to which must be responded in order to maintain one's chances of survival    and the iteration of conflict resolutions may lead to a trivial solution where all the methods are in agreement: a result with only one class including all the objects to classify  or a result having one class for each object.
+　so we defined the local concordance and quality rate which estimates the similarity and the quality for a couple of results by
+!
+where ps + pq = 1 and δki is the class quality criterion chosen by the user  1   δki 1 . for example  with methods which include a distance measure  the user can select intraclass inertia. without distance measure  it can use class predictivity  cobweb   class variance  em algorithm   ...
+　at the end of each conflict resolution  after the application of the operators  the couple of results  the two new results  the two old results  or one new result with one old result  which maximizes this rate is kept
+　after the resolution of all the conflicts  a global application of the modifications proposed by the refinement step is decided according to the improvement of the global agreement coefficient:
+
+where
+
+is the global concordance and quality rate of the result ri with all the other results.
+　then a new iteration of the phase of convergence is started if the global agreement coefficient has increased and an intermediate unified result is calculated by combining all the results.
+1 combination of the results
+　all the results tend to have the same number of classes which are increasingly similar. there are two cases:
+  it is possible to define a bijective correspondence function: it is then possible to apply a unifying technique
+as a voting algorithm  bagging or boosting   1  1  1  1  1  1  or a reclassification algorithm  stacked generalization  1  1  1  1  .
+  it is not possible: we have defined a new voting method to perform this combination of the results .
+relevant classes and nonconsensual objects. it is possible to define two new concepts which are relevant classes and nonconsensual objects.
+　the relevant classes correspond to the groups of objects of a same class  which were classified in an identical way in a majority of the results used. moreover  we can quantify this relevance by using the percentage of classifications that are in agreement.
+　these classes are interesting to highlight  because they are  in the majority of the cases  the relevant classes for the user.
+　reciprocally  a nonconsensual object is an object that has not been classified identically in a majority of results  i.e. that does not belong to any of the relevant classes. these objects often correspond to the edges of the classes in the data space  for example in remote sensing image classification they may correspond to mixed pixels .
+1. results
+1 automatic medical image segmentation
+　our system was used to segment a medical image. the data was extracted from a sequence of images of slices of a human brain  obtained by magnetic resonance. five attributes were assigned to each pixel of the image:
+  its own value  grayscale between 1 and 1 ;
+  the value of each of its 1-neighboors1.
+　two segmentations  s1 et s1  were achieved: the first  s1  with three instances of the kmeans algorithm  with 1  1 and 1 initial nodes; the second one  s1  was obtained by five instances of the kmeans algorithm  with 1  1  1  1 et 1 initial nodes. in both cases  the initial nodes were randomly choosen among the data.
+　the different coefficients found by the system are presented below:
+segmentation s1
+ni initialΓi initialni finalΓi finalm111.1m111.1m111.1Γ = 1segmentation s1
+ni initialΓi initialni finalΓi finalm111.1m111.1m111.1m111.1m111.1Γ = 1figure 1: results of the two segmentations
+
+	s1	s1
+　as shown in the two results presented in fig. 1  final results of the two hybrid classifications   the two segmentations s1 et s1 are visually very similar. moreover they both have 1 classes that are very similar  as shown by the confusion matrix between the two results  presented in table 1  and no result differs too much compared to the others  1 1 Γi 1.1 . we can suppose that these 1 classes are relevant  because they were found by two different learnings  initialized differently. this proves that the importance of the initial choices is decreased because of the collaboration between different classification methods.
+table 1: confusion matrix between the two results of s1 and s1
+s1
+c1c1c1c1c1c1c11c111c111c11	1	1	1
+s1
+　we can notice that eventhough the two segmentations did not evolve in the same way  they both found very similar results. fig. 1 shows the evolution graphs of the percentage of pixels classified identically by all the method occurrences at each step of each hybrid learning. the segmentation s1  with 1 agents  started with a less relevant result than s1  1% of pixels classified identically against 1%  but it converged faster  1 refinement steps against 1 .
+figure 1: evolution graph of the pixels classified identically by all the method occurrences during each segmentation
+
+1 per-pixel classification of remote sensing images
+　in order to make our method usable for remote sensing images analysis  we implemented the mustic system developped in the geodm project1. it was initially intended for the geographers and ecological experts to classify pixels from remote sensing images. it integrates some unsupervised classification tools for images using k-means   cobweb  or s.o.m algorithms   and the samarah module which implements the collaborative method using all of the algorithms below.
+　we have applied this system to remote sensing data from the city of strasbourg  france : spot 1 data with three channels  xs1  xs1  xs1  at standard resolution  1〜1
+pixels - 1 meters/pixel   fig. 1 
+we carried out two series of tests:
+1. because the inflexion of the curve of empirical average we have configured our system  1 experimentations  to find about 1 classes.
+1. according to the geographers from the liv1   we have configured  1 experimentations  our system to find about 1 classes.  for example  1 kmeans with 1  1 and 1 seeds or 1 kmeans and a cobweb 
+　first we present a test with 1 classes expected. the unsupervised classification methods used are :
+  m1 : k-means with 1 initial random nodes;
+  m1 : k-means with 1 initial random nodes;
+  m1 : som with a 1〜1 map;   m1 : cobweb with an acuity of 1.
+we have obtained the results 1 below:
+  r1 : 1 classes;
+  r1 : 1 classes;
+figure 1: spot image of strasbourg
+
+＜c cnes spot 1
+  r1 : 1 classes;
+  r1 : 1 classes.
+　these results were then refined according to our refining algorithm presented in . we then obtained these results  fig. 1 :
+  r1 : 1 classes;
+  r1 : 1 classes;
+  r1 : 1 classes;
+  r1 : 1 classes.
+　we applied to these results our multi-view voting algorithm and obtained the unying result presented on figure 1 a . this result is composed of 1 different classes.
+　finally we present on figure 1 b  the voting result for all the objects:
+  in white : all the methods agreed on the classification;   in gray : one method disagreed with the other ones;
+  in black : the non consensual objects  two results or more classified these objects differently .
+　secondly  we present a test with 1 classes expected. the unsupervised classification methods used are :
+  m1 : k-means with 1 initial random nodes;
+  m1 : k-means with 1 initial random nodes;
+  m1 : k-means with 1 initial random nodes.
+figure 1: the 1 classification results
+
+
+figure 1: the unified result
+
+	 a  multi-view vote	 b   non  consensual
+pixels
+　figure 1 shows  a  the initial unified classification before collaborative refinement with 1 classes and  b  the final unified classification with 1 classes.
+　in supervised classification  it is quite easy to define a classification quality by measures such as accuracy and precision. in unsupervised classification  the evaluation of quality figure 1: classified image
+
+	 a  first unification	 b  final unification
+is really a hard problem. today  no real evaluation process has been proposed  1  1 . there exists many different statistical measures that can be used to have an idea of the quality of our results. the most frequent cluster validation index proposed in the litterature is the inter-classes inertia  and cluster compactness  and the xie-beni index  . in order to evaluate the quality of our results  we first use kmeans to evaluate the intra-classes inertia according to the number of classes. we calculated an empirical average for inertia for each number of classes  see fig. 1 : we carried out the algorithm 1 times for each number of classes with a random initialization of the centers.
+figure 1: empirical inertia average
+
+　in this test  all the computations needed about 1 steps to propose their final number of classes  see fig. 1 . compared to all the executions  the inertia of our result is better than the empirical average for a same number of classes  see fig.
+1 .
+1. conclusions
+table 1: relation between number of classes found and inertia
+#classesinertiaempirical averagefirst test  1 classes expected 11	1	1	1111	1111second test  1 classes expected 11	1	1	1111　we presented a new process of collaborative multi-strategy classification of complex data which enables us to carry out an unsupervised multi-strategy classification on complex figure 1: evolution of the number of classes
+
+figure 1: comparison with empirical average
+
+data  giving a single result that is the combnaison of all the results suggested by the various classification methods and which the data model can integrate any type of attributes  numerical  symbolic or structured . moreover  any type of unsupervised classification method can easily be integrated into the system.
+　this new methodology of combination of classifiers enables many classification methods to collaborate  and allows them to refine automatically and mutually their results.
+　this enables them to converge towards a single result  without necessarily reaching it   and to obtain very similar classes. doing this  it is possible to put in correspondence the classes found by the various methods and finally to apply an unification algorithm like a voting method for example. this way  we can give to the user a single result representing all the results found by the various methods of unsupervised classification.
+　within the framework of the research on this approach  we were brought to study the theoretical bases of the integration of classification methods and the unification of classification results.
+　on one hand  we proposed the concepts allowing the combination of unsupervised classification methods extending the results on the combination of supervised methods.
+　and on the other hand  we presented a new theoretical approach to distributed multi-strategy classification  not based on the fusion of methods but on the collaboration  inspired by the multi-agent paradigm.
+　this approach is not specialized in a particular domain and allows to integrate directly any unsupervised classification method  without modification. the definition of this collaboration gave place to a theoretical study and the definition of an objective method of conflict resolution  a new concept that we introduced to represent the dissensions of classification between the methods used.
+　to quantify these disagreements  we introduced a new criterion  called similitude  which can be used as well with numerical data as with symbolic attributes  since it is based on the recovery of classes and not on a distance. this means our approach can be applied to symbolic data  obviously  only if the integrated classification methods used in this case are able to treat such data .
+　with this criterion  we proposed a new definition of the concept of relevant classes based on the similitude  we gave a method to determinate these classes within the framework of unsupervised hybrid classification.
+　finally  we proposed a theoretical solution to the problem of automatic unification of unsupervised classification by extension of the traditional voting methods.
+　further research focuses first on the possibility of the collaboration of various classification methods  where each one uses a different model from the data. in the case of remote sensing image for example  we could use various data sources on the same zone  radar  radiometry  photo... .
+　secondly  we are studying the possibility of using this collaborative approach in a multi-step process. we have applied a collaborative multi-step multi-strategy classification method on the problem of thematical urban zone extraction from remote sensing images. the first results are encouraging: we highlighted an improvement of the results at each step of the process.
+　lastly  we are interested by the integration of domain knowledge  ontology  training  ...  in our system to improve each step of the collaborative mining.

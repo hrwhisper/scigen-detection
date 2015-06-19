@@ -1,0 +1,199 @@
+online ad servers attempt to find best ads to serve for a given triggering user event. the performance of ads may be measured in several ways. we suggest a formulation in which the ad network tries to maximize revenue subject to relevance constraints. we describe several algorithms for ad selection and review their complexity. we tested these algorithms using microsoft ad network from october 1 to february 1. over 1 billion impressions  1 million combinations of triggers with ads  and a number of algorithms were tested over this period. we discover curious differences between ad-servers aimed at revenue versus clickthrough rate.  
+categories and subject descriptors 
+i.1  artificial intelligence : applications and expert systems  
+general terms 
+algorithms  experimentation. 
+keywords 
+ad serving  online advertising. 
+1. introduction 
+online advertising networks such as msn  and doubleclick  serve ads to users visiting web pages. ad inventory typically comprises millions of different ad creatives  each of which has its own unique constraints and agreements for payment.  
+constrained ad delivery has been discussed in details by . in this paper we describe an ad serving application with fewer constraints  but focus on the core problem of serving high revenue ads  and estimating ad performance statistically. 
+we also diverge from the literature in modifying the objective function. typically ad serving is conceptualized as a problem of serving the ad which will generate the highest revenue . we argue that this kind of approach has led to a proliferation of irrelevant and financially-orientated ads online - for instance  ads about  mortgage    loans   and  refinancing . we show examples of this in the final section. 
+we instead formulate the objective function as one of maximizing revenue subject to well-defined relevance constraints. this approach allows the ad server to maintain minimal standards of user experience in serving its ads. 
+we tested these algorithms live from october 1 to february 1. over 1 billion impressions  1 unique ad-trigger pairs  and 1 algorithms were tested over this period. we discover that approximate methods of estimating ad clickthrough rate are effective in production  smoothed predictions raise optimization performance although modeling performance is lower  and that explicit optimization methods are also effective but more expensive. 
+in paper is organized in six sections. section 1 gives an introduction to online advertising. section 1 defines the ad serving problem in a mathmatical way. section 1 talks about relevance prediction  ctr . section 1 proposes a solution to the ad serving optimizer. section 1 gives our experimental results  and section 1 concludes the paper. 
+1. online advertising 
+a trigger t is any user-initiated event such as a webpage impression  typed search query  length-of-time-on-page  a user with a particular profile visiting a page  or any other behavior that may be valuable to marketers. online advertising is powerful because triggering events are used to provide context for the display of the advertisement. conversion rates as high as 1% are possible for well-targeted advertisements  particularly those in query search marketing . 
+in response to a trigger  online advertisements are served to the user. if the user takes some action after their exposure to the ad such as clicking on the ad  or converting with the advertiser  then a payment event is generated and the publisher is paid by the advertiser. revenue events commonly pay per click  pay per impression and pay per acquisition. 
+the trigger  advertisement  revenue event relationship can be generalized as a variable rk t where t is the triggering event  k is the advertisement that is displayed to the user  and r is the amount the advertiser agrees to pay if a subsequent behavior is observed from 
+
+ 
+permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. to copy otherwise  or republish  to post on servers or to redistribute to lists  requires prior specific permission and/or a fee. 
+kdd'1  august 1  1  las vegas  nevada  usa. 
+copyright 1 acm 1-1/1...$1. 
+ 
+the user.  
+example 1. say that joe is advertising shoes on publisher everythingathletic.com. the triggering event is a user viewing a page everythingathletic.com/athleticfootwear.html. the advertisement joe might want to show is about nike airmax shoes. the revenue event is a click of the user on joe's advertisement - if this occurs  joe will pay a pre-arranged amount $1. 
+1. the ad serving problem 
+the ad server has a large amount of flexibility to server ads in response to a triggering event. the ad server has to respect the advertiser's pre-arranged requirements rk t  which indicates that k may be displayed in response to t. however  the ad server will want to rank different ads in a variety of ways so as to achieve adnetwork revenue and relevance goals. 
+an ad-server function ik t indicates whether ad k is displayed in response to trigger t. it is important that an advertisement be served back to the user that is optimal in terms of maximizing revenue for the advertiser  subject to reaching a threashold for clickthrough rate  ctr   for user relevance  or some other well defined metric.  
+definition 1: revenue maximization subject to relevance 
+given a set of revenue agreements rk t  find an ad selection for each trigger  ik t such that when ik t=1  ad k is displayed in response to trigger t  and no other ads are displayed. such ad selections ik t should be chosen so as to maximize ad-server revenue subject to relevance constraints.  
+	¡Æ k t k t	k t
+subject to: ¡Æik t ¡Ü p     
+k
+and ¡Æik t ¡Ü n   
+k t
+and ¡Æik tck t ¡Ýctrmin    1  
+ 1  
+ 1  
+ 1  	maximize: 	i r c	 
+and ik t ¡Ê  1     
+where  1  is a revenue function. in this function we see three variables: ck t is the probability of the payment event and rk t is the agreed upon revenue to be paid from the advertiser if a payment event is detected  and ik t is the ad-serving function which determines which of the advertisements are shown in response to a trigger t. 
+ 1  is an ad-delivery constraint. we were able to deliver p or fewer ads per trigger  and we were able to refuse to deliver ads for certain triggers if this would have a poor result on revenue or relevance. in other applications all p ads may need to be delivered so as to fit into an iframe  and so the  = would change to an = equality for these applications. we have noted that in other adserving contexts  constraints are considerably richer and may include constraints on size of ad  time of day  and so on. 
+ 1  is a maximum number of trigger-ad pairs that will be stored by the ad-serving system. this is a practical constraint  and can be set to infinity if the ad-server is able to service an unlimited number of trigger ad pairs. 
+ 1  is a relevance constraint indicating that the ads delivered are meeting a minimum level of user experience. many metrics may be used to measure relevance of advertising including revisit probability and clickthrough rate  the latter of which is reflected in the formula above. 
+ck t is the only variable which is unknown. a method for predicting trigger-ad-paymentevent probabilities from historical data is therefore needed to so that the objective function can be maximized. the next section will describe robust and computationally efficient methods for estimating the trigger-ad probabilities. 
+1. ctr prediction 
+in order to maximize revenue  the probability of the payment event ck t must be estimated statistically. the problem with this task is the cross-product of t¡Ák is extremely large and sparse. in our empirical data  out of 1 million trigger-ad possibilities  less than 1%  have any data about click in response to a trigger-ad pair - this includes single impressions with zero clicks.  
+for pairs without any impressions - or with low and potentially statistically unreliable numbers of impressions  it is necessary to estimate probability of click using some additional information.  
+we investigated a variety of approaches for predicting payment probability. these are described below. 
+1 expected ctr of advertisement 
+this algorithm  labeled as  globalctr  in the figures  works by setting the probability of click given a trigger-ad pair equal to the  click rate given the ad summed over all triggers. for instance  if customers tend to click after seeing an advertisement for britney spears music cd  the ad server would tend to assume that britney spears music cd advertisements will generate a click  even if the triggering page is something unrelated  eg. scuba diving. 
+¡Æct k
+ 1  
+t
+	ct k= pr k  =	 
+¡Æimpt k
+t
+this algorithm does not take into account the particular context of the user. although this may seem poor  it has certain advantages.  
+ a  low computational complexity: algorithm space scales with the number of ads o k  rather than with the product of ads with triggers. the ctr statistics themselves can be computed during a single pass  with accumulators for clicks  impressions  and so this scales very well on large amounts of data. 
+ b  statistics for ads are fairly dense  and so estimation is relatively easy. 
+ 
+1 expected conditional ctr 
+this method  labeled  history  in the figures  involves using empirical counts of clicks and impressions to estimate conditional ctr for each pair. a count of clicks given  t k  pair  and impressions of  t k  pairs is taken  and then the two are divided to generate conditional clickthrough rate  as shown in equation  1 . 
+accumulators can be used to record clicks and impressions for each observed  t k  pair. however  space complexity is now o t*k   and this may be impractical in some ad serving domains. 
+a further disadvantage is that the sparsity leads to overgeneralization when very low samples are available. for example  if only 1 impression and 1 click are observed for a  t k  pair  its ctr is thus estimated at 1%. in another case  if 1 impression and 1 clicks are observed  then a ctr of 1% is estimated. the vast majority of trigger-ad pairs likely have neither received an impression  nor generated a click. in our data  just 1% of all trigger-ad pairs had impressions data. 
+ct k
+	ct k = pr k | t  =	  	 1  
+impt k
+1 bayesian  prior combination with observed conditional ctr 
+this method  labeled  smoothed  in the figures  utilizes the observed conditional clickthrough rates  but weights in an a priori estimate of the clickthrough rate of the group of ads  as formulated in  1  below. the similar approach has been described elsewhere in the literature . 
+ct k = pr k | t    f  impk t   + pr a    1  f  impk t      where f  impk t   = 1  e ¦Á impk  t   
+ 1  
+and ¦Á=1 
+in our application trigger-ads are grouped into algorithm buckets a  and each of them has a certain clickthrough rate pr a . as a result  we could use the observed conditional clickthrough rate  and weigh in the algorithm clickthrough rate.  
+the weighting of the observed clickthrough rate increases with the number of impressions. with more impressions observed  more weighting is put onto the observed pair's clickthrough rate than on the algorithm's expectation for clickthrough rate. 
+1 ctr prediction based on features 
+we tested both linear regression   linear  in the figures  and decision tree   dtree  in the figures  for predicting clickthrough rate. the decision tree was similar to c1 and has been described in . 
+
+
+ 
+figure 1. response operator curve to predict ctr   1  where five algorithms mentioned in section 1 are used to predict the ctr ck t. the decision tree model gives the best result in terms of auc. the history model returns the worst auc. this acutally confirms our conclusion that the history data are so sparse and insignificant for predicting ctr. 
+ 
+ 
+ 
+ 
+ 
+ 
+
+	1
+1.1.1.1.1.1.1.1.1	1	1	1	1	1	1	1	1 actual	actual
+ 
+table 1. clickthrough rate prediction accuracy for five algorithms  globalctr history smoothed linear dtree globalctr history smoothed linear dtree  cost cost cost cost cost ctr ctr ctr ctr ctr 1th -$1 -$1 $1 -$1 -$1 -1% -1% 1% -1% -1% 1th $1 $1 $1 $1 $1 1% 1% 1% 1% 1% 1th -$1 -$1 -$1 -$1 -$1 -1% -1% -1% -1% -1% 1th $1 $1 $1 $1 -$1 1% 1% 1% 1% 1% rankcorr      1 1 1 1 1 corr      1 1 1 1 1 auc 
+ 
+ 
+      1 1 1 1 1            1
+1.1.1.1.1
+actual11111
+1.1.1.1.1
+actual1111	history	globalctr
+ 
+figure 1. clickthrough rate prediction for 1 actual deciles  x-axis  against aggregated predicted clickthrough rate  y-axis . perfect behavior would have the predictions matching the actuals exactly  and so falling along the same diagonal line.
+ 
+ 	 
+
+1 clickthrough rate prediction results 
+we used 1 months of data on trigger-ad displays and clickthroughs from october to december 1  to predict the following month of trigger-ad clickthrough results in january 1. all algorithms were scored on the same trigger-ad pairs.  
+table 1 shows spearman's correlation metric for each of the methods. this correlation statistic ranges from about 1 for the globalctr  historicalctr  smoothed methods  to a maximum of about 1 for the decision tree approach. 
+response operator curves were also created by discretizing the target clickthrough prediction into  high  clickthrough rate cases which had clickthrough rates greater than 1%  figure 1 . roc curve shows that the historical-conditional-ctr method generates very good performance initially  however  ultimately the method falls victim to a missing value problem. this is because many trigger-ad pairs that are not encountered in the training period  but generate clickthroughs in the future period. thus  the approach shows good performance initially as pairs which have been observed are selected  but then shows random performance as cases which were 1 in the historical period essentially predict 1 in the future period. 
+figure 1 shows a comparison of the algorithms across different deciles of actual clickthrough rate values. the decision tree approach out-performs the other methods. 
+1. ad server optimization 
+we next turn to the task of solving the objective function so as to find ad selections ik t. 
+1 greedy ad serving algorithm 
+in order to cope with the scale  we adopt the greedy algorithm of selecting ads with the highest value of impressions ratio that satisfies the serving constraints. this algorithm is well known for knapsack problems . because the optimization objective is clickthrough rate  this means in practice ads are ranked in a desceding way in terms of the click-to-impression ratio and selected based on the number of searches and predicted ctr so as to reach a global ctr threshold. 
+1 closeness to optimality 
+the maximum difference between optimal solution and generated solution under greedy ctr allocation is o max imp * ctr  where max imp*ctr is the maximum number of clicks per day from any trigger-advertisement. the sketch of this proof is that selecting the item with highest click-to-impression ratio necessarily is the best item to add for a given level of cost  impressions   will hold recursively until we reach a final item that is suboptimal. the final item will have the property that when we add it  there is another item which could have been added  and would have perfectly filled our knapsack up to the desired number of impressions. thus we need only find the item with largest benefit as the upper bound on the distance from optimality.  
+figures 1  right  shows distance to optimal solution for different scales of solution. as more trigger-ads are added   
+empirically the maximal benefit item was 1 clicks. as a result  if we add the top 1 ads  the worst-case distance to optimality is 1 times the number of clicks generated under the greedy solution. at 1 pairs  number of clicks being lost due to greedy drops to just 1% of the quantity obtained under the greedy solution. 
+figure 1 and 1 show cumulative clicks versus clickthrough rate  versus distance to optimal solution as more and more trigger-ads are loaded into the system. 
+1 revenue versus clickthrough rate 
+in order to examine the difference between ad-serving for revenue maximization versus ad-serving to achieve the highest clickthrough-rate  we chose to test both optimization extremes  and report on the result here. in order to achieve clicks optimization  we set rk t=1   k t; otherwise we used the objective function in section 1 unchanged.  
+1. experimental results 
+we tested these algorithms live from october 1 to february 1. over 1 billion impressions  1 unique ad-trigger pairs  and 1 algorithms were tested over this period. we deployed the following ad-serving algorithms: we noted in section 1 that the best clickthrough rate predictors  aside from decision tree and linear regression methods  were roughly history ctr  followed by global ctr  followed by smoothed ctr. the comparison of ad-serving performance using each of these predictors to inform the clickthrough rate is shown in figure 1  left . historical conditional clickthrough rate generated the highest global clickthrough rate  followed by smoothed. this is consistent with the higher accuracy of the historical method. we now turn to the relationship between clickthrough rate and revenue. 
+figure 1  right  shows the relationship between the clickthrough rate of an ad and revenue produced by the ad. higher clickthrough ads produce more revenue up until the 1th percentile of the clickthrough rates. after that  revenue produced by higherclickthrough ads actually declines. this means that there may be  hyper-relevant  ads which generate less revenue. the inverted  u  function has not to our knowledge been noted before. 
+table 1 shows the top trigger-ads selected for clickthrough rate maximization versus revenue maximization. revenue maximizer selects a disproportionate number of financially-related terms including  refinance    loan    mortgage   and so on. this bias is not apparent in the case of clickthrough rate maximization. we conjecture that this is why banner advertisements are often contextually unrelated to the page they are on  and are dominated by mortgate  loan  and refinancing creatives. 
+1. conclusion 
+we have presented a general framework for ad serving and have tested clickthrough-rate prediction algorithms experimentally in the microsoft ad network. these clickthrough rate prediction algorithms were tested experimentally within an ad-serving context  and we were able to show that higher accuracy algorithms do generate more clicks when exposed to human traffic. we also experimentally tested extreme optimization solutions - one maximizing revenue  and the other clickthrough rate - and have noted interesting differences between the results produced. our results suggest that the bias towards revenuegenerating advertisements needs to be tempered with well-defined relevance constraints.  
+ 
+	1	greedy allocation of trigger ads to ad-server
+x 1
+
+	1.1	1	1.1
+	number of trigger-ads being served	1
+x 1
+ 
+	1	greedy allocation of trigger ads to ad-server
+x 1
+
+	1	1	1	1	1	1	1
+	number of trigger-ads being served	1
+x 1
+
+figure 1.  left  greedy optimization to achieve highest clickthrough rate. trigger-ads are added in order of clickthrough rate  clicks descending. as a result  the highest clicks items are added first  and then lower clicks. because a decision tree was used with different discrete click levels  this results in a banding pattern as seen above  although other models could have also produced this banding if equal clickthrough rates were generated. despite this  the clickthrough rate is monotonically decreasing  which is needed for the greedy property to work.  right  a close-up figure shows a clickthrough rate band 
+ 
+ 
+ 
+greedy allocation of trigger ads to ad-server
+
+	1.1	1	1.1	1.1	1	1.1
+number of trigger-ads being served 1 number of pairs 1 x 1	x 1
+ 
+ 
+figure 1.  left  clickthrough rate versus number of trigger-ads being served. clickthrough rate decreases monotonically as more trigger ad pairs are added.  right  scalar distance between greedy solution and optimal solution  where distance is equal to worst case optimal solution / greedy solutin. 
+ 
+global ctr of expansion
+
+  	 
+figure 1.  left  ad-serving results for clickthrough rate maximization  using one of three algorithms. algorithms that showed better ability to predict ctr tended to do better in generating clicks in ad-serving.  right  global ctr of advertisement versus revenue generated per display. higher clickthrough rate ads generally make higher revenue  however  ads with very high clickthrough rates generate only half the revenue available  
+ 
+ 
+table 1. top revenue versus top ctr trigger ads. revenue optimization results in a large number of financially related terms being selected  shaded . clickthrough rate optimization does not show this kind of bias. we conjecture that this is why banner advertisements are often contextually unrelated to the page they are on  and are dominated by mortgate  loan  and refinancing creatives. 
+rank 	objective=revenue 	objective=clickthrough rate 
+ 	trigger 	advertisement 	trigger 	advertisement 
+1 renu 	renu eye infection 	flyingflowers 	flying flowers 
+whole life insurance no medical exam life insurance no medical exam guaranteed faxless payday loan guaranteed faxless payday loans mobile internet service mobile satellite internet personal loans bad credit bad credit loans mortgages bad credit mortgage bad credit 1 matlin 	marlin 
+1 hotter com 	hotter shoes 
+1 www american airlines 	american airline 
+1 jackson perkins roses 	jackson perkin rose 
+1 barnesandnobel 	barnes nobel com 
+1 online roulette 	roulette online 	west elm 	www westelm com 
+1 charity cars 	charity car 	maplins electronics 	maplin electronics 
+1 wheelchair lift vans 	handicap lift 	free online ganes 	free online games 
+1 customer relationship manager 	customer relationship 	toyota solaro 	toyota solara management 
+instant life insurance quotes instant life insurance quote 1nd mortgages 1nd mortgage rate compare mortgage rates best interest rates 1 matlins 	marlins 
+1 alligient airlines 	allegiant airlines 
+1 oriental training 	oriental trading 
+1 broadband phone service 	dsl broadband 	earlylearningcentre 	early learning centre 
+auto insurnace auto insurance www insurance companies insurance company 1 premier travel inns 	premier travel lodge 
+1 ll bean kids 	llbean com 
+1 chevy avalanche accesories 	chevy avalanche accessories 	active hotels 	active hotel 
+1 nextstudent com 	college loans 	stockmans bank arizona 	stockman bank 
+arizona 
+1 hp printer tech support 	hp printer 	crates barrel 	crate barrell 
+credit card consolodation credit card consolidation 1cds 	1cd 
+1 buy notes 	buying note 	loehmans plaza 	loehman plaza 
+equity line credits equity line credit nn1 home equity loans home equity paydayadvances payday advance 1 www famousfootwear 	famous footwear 
+com 
+1 http www ebay com 	ebay home 
+1 jcpenney catalog 	j c penney catalog 
+1 family planing 	family planning 	reverse look 	reverse look up 
+best buy let mortgages buy let mortgage advice bad credit rate bad credit rating auto insurance com car insurance stocks investments stock investing stock trading companies stock trading company 1 greatlakes com 	great lakes 
+1  	 
+1  	 1  	 
+
+ 
+ 
+ 
+1. acknowledgments 
+thanks to microsoft for making this research possible 

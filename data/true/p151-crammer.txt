@@ -1,0 +1,13 @@
+we describe a new family of topic-ranking algorithms for multi-labeled documents. the motivation for the algorithms stems from recent advances in online learning algorithms. the algorithms we present are simple to implement and are time and memory efficient. we evaluate the algorithms on the reuters-1 corpus and the new corpus released by reuters in 1. on both corpora the algorithms we present outperform adaptations to topic-ranking of rocchio's algorithm and the perceptron algorithm. we also outline the formal analysis of the algorithm in the mistake bound model. to our knowledge  this work is the first to report performance results with the entire new reuters corpus.
+categories and subject descriptors
+h.1  information storage and retrieval : information search and retrieval; i.1  artificial intelegence : learning-concept learning  connectionism and neural nets
+general terms
+algorithms  experimentation theory.
+keywords
+category ranking  online learning  perceptrons.
+1. introduction
+¡¡the focus of this paper is the problem of topic ranking for text documents. we use the reuters corpus  release 1  as our running example. in this corpus there are about a hundred different topics. each document in the corpus is tagged with a set of topics that are relevant to its content. for instance  a document from late august 1  discusses a bill by bill clinton to increase the minimum wage by a whole 1 cents. this document is associated with 1 topics; four of them are labour  economics  unemployment  and retail sales. this example shows that there is a semantic overlap between the topics. given a feed of documents 
+permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. to copy otherwise  to republish  to post on servers or to redistribute to lists  requires prior specific permission and/or a fee.
+sigir'1  august 1  1  tampere  finland.
+copyright 1 acm 1-1/1 ...$1.
+such as the reuters newswire  the task of topic ranking is concerned with ordering the topics according to their relevance for each document independently. the framework that we use in this paper is that of supervised learning. in this framework we receive a training set of documents each of which is provided with its set of relevant topics. given the labeled corpus  the goal is to learn a topic-ranking function that gets a document and outputs a ranking of the topics.

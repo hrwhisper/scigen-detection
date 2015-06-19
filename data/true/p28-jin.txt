@@ -1,0 +1,199 @@
+online advertising has been a popular topic in recent years. in this paper  we address one of the important problems in online advertising  i.e.  how to detect whether a publisher webpage contains sensitive content and is appropriate for showing advertisement s  on it.  
+ 
+we take a webpage classification approach to solve this problem. first we design a unique sensitive content taxonomy. then we adopt an iterative training data collection and classifier building approach  to build a hierarchical classifier which can classify webpages into one of the nodes in the sensitive content taxonomy. the experimental result show that using this approach  we are able to build a unique sensitive content classifier with decent accuracy while only requiring limited amount of human labeling effort.  
+categories and subject descriptors 
+h.1.  information systems : models and principles. h.1  information systems applications - types of systems  - 
+decision support 
+general terms algorithms keywords 
+hierarchical text classification  active learning  svm  
+logistic regression 
+ 
+1. introduction 
+online advertising has been a rapidly growing business in recent years. the most notable online advertising platform examples include internet portal sites like msn and yahoo!  which attract millions of users and generate more than tens of millions of pageviews everyday  and thus provide irresistible advertising opportunities for advertisers to advocate various brands/products. in the meanwhile  search engines such as google attracts huge amount of search users and returns both organic search result  ranked relevant web documents  and sponsored search result  paid relevant advertisements .  
+ 
+another type of advertising is called content advertising.  when a user is browsing a webpage  based on the content of the page  some dynamic relevant advertisements will show up on the page. 
+ 
+the general process of the advertisement  ad for short thereafter  delivering in a content ad system is roughly as follows. when a page is visited by a user  the page url will be sent to the ad serving server  where the page is crawled and parsed. dominant keywords or phrases will be extracted from the page  and they will be used to find relevant ad from the ad database. finally these relevant ads will be sent back to be embedded in the webpage which the user is browsing. all these processes can be done in a split of second  and the end user probably won't even notice. for example  the following figure displays a page from msn tech & gadgets domain. in this page  keywords  mp1 player  and  cell phone  are extracted and some related ads are displayed on the right side of the page  in the red rectangle box . to further speed up the whole process  some tasks such as webpage pre-caching and preparsing can be done offline.  
+ 
+
+ 
+ 
+ permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. to copy otherwise  or republish  to post on servers or to redistribute to lists  requires prior specific permission and/or a fee. 
+adkdd '1 august 1  1  san jose  california usa. 
+copyright 1 acm 1-1-1/1...$1 
+
+ 
+figure 1. example of webpage with content ad 
+ 
+imagine a user is browsing a page about certain new infiniti model at http://autos.msn.com. an advertiser for infiniti cars/suvs might be very interested to reach this user. the content ad system will extract keyword  infiniti  from the page and delivers an  infiniti q1  ad on the same page. this ad is highly related to the host page which the user is looking at and probability will get the user's interest. in the scenario  the ad successful reaches the target user because it is highly related to the content the user's interested at.  
+ 
+let's imagine another scenario. a user is visiting a news page talking about an accident on a nearby highway. unfortunately  an infiniti car was involved in the accident and severe injury occurred. in this case  it's also possible that term  infiniti  gets picked up and an  infiniti q1  ad shows up on the page. here even the ad is also highly related to the page  but because the page itself is sensitive to general public  this ad will be totally inappropriate here. the advertiser can not expect to see many clicks on this ad; instead he may worry that his ad is associated with some sensitive content  which may bring negative affect to the image of his ad.  
+ 
+one of the reasons of showing inappropriate advertisements as above is that the content ad system usually only focuses on picking up some dominant terms from the page  without trying to  understand  the topic/main point of the page. when a user is browsing a page about something sensitive such as natural disaster in the midwest  generally the user is not interested in any commercial at that point. therefore  if the ad system still picks up some terms and pushes out some related ads  these ads may even upset web users and damage advertiser's image. therefore  accurately discovering the concept/topic of a webpage is an indispensable task in content ad system.  
+ 
+in this paper  we propose a sensitive webpage detection system which uses a hierarchical classifier to classify any given page into category/subcategory in our customized sensitive content taxonomy. with this system  we are able to understand which topic a page is about  thus eliminating the chance of delivering inappropriate advertisements to a sensitive webpage. furthermore  after knowing the category information of a target page  we are able to customize our advertisement delivery approaches to better serve the advertisers and maintain good user experience at the same time.  
+ 
+the primary contributions of this paper are two-fold: first  we design a unique sensitive content taxonomy for content ad system. it can also be used for other possible applications such as content filtering systems. secondly  we propose an iterative data collection and model building approach  and using this approach we build a hierarchical sensitive webpage classifier with decent accuracy at relatively limited human labeling effort.  
+ 
+this paper is organized as follows. in section 1  we briefly go through the sensitive content taxonomy. we describe the approach of iteratively collecting training data and building a hierarchical classifier in section 1. some experiment results are reported in section 1. we conclude the paper and list future work in section 1.  
+ 
+1. sensitive content taxonomy 
+there are some well-known taxonomy widely used by researchers  such as the open directory project taxonomy 
+ http://www.dmoz.org   and yahoo taxonomy  http://www.yahoo.com . however  most of these taxonomies cover many general topics very well  but they are not granular enough to organize content which are considered as sensitive by the general public.  
+ 
+based on the business need at our company  we have designed a specific sensitive content taxonomy  we are not able to fully disclose its content due to certain policy . the taxonomy is organized as a tree structure as shown in figure 1. in the top level  we have categories such as  sexrelated . under  sex-related  category  we have subcategories like  sex-education    adult websites  and etc. each subcategory may have further child nodes. each leaf node is also manually labeled as  sensitive  or  nonsensitive . for example   adult webpage  is tagged as 
+ sensitive  and  sex education  is tagged as  nonsensitive .  
+ 
+this taxonomy provides us with great flexibility. based on business need  we can train different classifiers with different granularity  such as at category level  subcategory level or leaf level. also because each leaf level node is tagged as either  sensitive  or  nonsensitive   we can build a binary classifier which simple judges whether a given page is sensitive.  
+ 
+
+ 
+figure 1.  a portion of the sensitive content taxonomy 
+ 
+being able to hierarchically classify pages will provide great value to our business. after knowing the category of a page  we are able to customize our ad delivery method. one simple way is to stop showing any ads on a sensitive page to maintain good user experience; we can also do category matching to show some reasonable ads on some sensitive pages. for example  if a page talks about unexpected natural disaster in certain area causing huge loss  we can show disaster relief organization ads; on pages about traffic accident  we can show ads about safe driving education. in a word  with the ability of better understanding the topic of a page  we are able to deliver semantically relevant ads  without jeopardizing web users' experience or advertisers' reputation.  
+ 
+1. sensitive webpage classifier 
+after the sensitive content taxonomy is in place  the next step will be to collect training pages and build a hierarchical classifier. since the taxonomy is specially customized  it is very hard to collect large amount of training pages for building the classifier.  
+ 
+in our work  we follow the ideas of active learning  1  and combining both labeled and unlabeled document in text classification as presented in . in detail  first we hand pick a small set of high quality webpages  labeled pages   along with a large collection of unlabeled pages. we build the initial classifier only using the labeled pages. then the classifier will be applied to the unlabeled pages  to predict their class labels as well as probability values. in each iteration  unlabeled pages with high probabilities will be incorporated into the labeled pages to retrain the model  at the same time  we selectively review some unlabeled pages and move them into the training set for model retraining as well. the iterative process stops until the classifier's performance stop improving on the validation data set. the flow of the iterative process is shown in figure 1.  
+ 
+1 initial data collection  
+for each leaf node in the sensitive content taxonomy  we derive some key terms or phrases. for example  for  sex education  category   sex education  itself is a key phrase. we then apply our proprietary keyword suggestion tool on this term to get an expanded set of related terms  such as  safe sex    teen sex education . all these terms are submitted to live search  http://www.live.com  and we crawl the top n returned web documents. then we ask human labelers to pick 1 documents which are highly related to each category as our labeled pages. we also randomly collect about 1k pages from the internet and use them as unlabeled pages.  
+ 
+1 features 
+after the webpages are crawled  they will go through a text preprocessing module. the module performs the following tasks:  
+  extract useful text information from the raw html files  including: title  meta data  body text  text font  size  hyperlink and etc. 
+  identify phrases from extracted text 
+  remove stopwords  
+  other tasks 
+ 
+finally each webpage is represented as a feature vector as:  
+ 
+di = { f1 w1   f1 w1   ...} 
+where  
+di ¡Êd
+        f j ¡Êf
+here d represents the webpage collection; f denotes the whole feature set; w is a numeric number which represents the weight of a feature in a page.    
+ 
+the features we have used including  but not limited to the following:  
+  terms in title/metadata/body/hyperlink 
+  document length 
+  discriminative bigrams and trigrams extracted from our data collection 
+  text patterns 
+ 
+
+ 
+ 
+figure 1.  flow chart of the iterative training data collection and classifier building process 
+ 
+the most interesting feature is the text pattern  which is introduced by . a text pattern is defined an ordered sequence of words  similar to the notion of  regular expression  in perl language. it can either be an ordinary n gram such as  human right  or short text segment with one or more gaps  such as  prevent *{1} crime   which means words  prevent  and  crime  co-appear in a sentence  and within the distance of 1 terms. text patterns not only captures phrases  but by introducing gaps  gives us more flexibility in terms of capturing commonality in a set of similar text segments. for example  pattern  prevent * crime  will match both  prevent gang crime  and  prevent drug crime .  
+ 
+given a set of labeled webpages  we can discover a set of patterns  and compute a discriminative score for each of them. for a pattern p  with respect to a category c  we compute the discriminative score d as:  
+ 
+¡¡¡¡¡¡¡¡freq p c  v p c  =	 freq p 
+ 
+where freq p c  represents how many times pattern p appears in pages belonging to category c; freq p  denotes the total frequency of pattern p. value v p c  together with freq p  will determine how discriminative patter p is.  
+ 
+for each category  we discover the top n most discriminative text patterns whose v p c  values exceed certain threshold. these text patterns are further sent to human labelers for verification. those labeled patterns will be included in the final feature set.  
+ 
+one word about feature selection. we perform limited feature selection at each node in the taxonomy using measurement of information gain . 
+ 
+1 classifier building 
+generally  for a hierarchical taxonomy like our sensitive content taxonomy  there are two main types of classification approaches. let's use svm for example  we can build flat svm classifier  or hierarchical svm classifier  1 . flat svm classifier refers to svm classifier which ignores the hierarchical structure of the taxonomy  but only targets at classifying pages directly into one of the leaf nodes  categories . one of the most popular implementation is to build one binary svm classifier  oneversus-others  for each leaf node. for a huge taxonomy with many nodes  both the training and testing time for such classifier will be significant. on the other hand  hierarchical svm classifier takes advantage of the tree structure of the taxonomy. that is to build flat svm classifiers at each level of the taxonomy. in each level  the classifier only distinguishes categories at that level which share the same parent node. compared to flat svm classifier  hierarchical classifier is easier to train. a more elaborative comparison between these types of classifier can be found at .  
+ 
+in our work  we adopt the hierarchical classification approach. at each level  we build a classifier which distinguishes categories which share the same parent node.  
+ 
+many different algorithms have been proposed for text classification task  such as svm  k-nearest neighbor  na ve bayes  logistic regression and so on. in our work  we have experimented with 1 classifiers  e.g.  a svm classifier  use the implementation proposed in   and a logistic regression classifier  use the training algorithm introduced in  .  
+ 
+1 iterative training data collection and model building 
+in   they use expectation-maximization  em  algorithm to iteratively train the classifier using both the labeled and unlabeled data. in the e-step  classifier built from previous iteration is applied to unlabeled data to probabilistically predict the labels of unlabeled pages. in m-step  a new classifier is trained using both the labeled pages as well as  algorithm-labeled  pages. the process repeats until no improvement can be observed from retaining.  
+active learning  1  adopts a slight different idea. it aims at finding the most information unlabeled data and asking for their labels. the newly labeled data will be combined with originally labeled data to retrain the classifier.  
+ 
+in our work  we adopt a similar idea but use a simpler implementation for efficiency reason.  first we build the initial classifier using only the labeled pages. then we apply this classifier to unlabeled pages. each unlabeled page will be assigned a class label along with a probability value. for those unlabeled pages with high probability   ¦Ì1  we consider them as very similar to some pages in our original labeled data collection  so we directly incorporate them into next iteration classifier retraining. as for pages with probabilities within range  ¦Ì1  ¦Ì1   ¦Ì1   ¦Ì1   the current classifier may not be able to well handle them  but these pages might be able to provide more complementary information to the current classifier. so we ask for human labeler to get their true labels and these pages will be permanently added to the labeled data collection. due to the limited human labeling resource  during each iteration  we only label dozens of pages from each category. the iterative process is illustrated as follow.   
+ 
+ 	1. 
+ input: collection of labeled webpages dl and unlabeled webpages du.   	1. 
+ build an initial hierarchical svm/lr classifier using only the labeled pages.   	1. 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ repeat the following until classifier's performance on validation data stops improving.  
+  use current classifier to predict class label of each unlabeled page  along with the probability value which measures the class membership 
+  for those predictions with probability   ¦Ì1  assign the predicted class label to the unlabeled page. 
+  for those predictions within range  ¦Ì1  ¦Ì1   ¦Ì1   ¦Ì1   ask human labeler to get their real class labels.   	1. 
+ output: hierarchical classifier  
+ 
+figure 1. iterative training data collection and model building  
+ 
+1. experimental results 
+in this section  we report some experimental result.  
+ 
+1 data set 
+in the initial data collection step  section 1   we collect about 1 labeled webpages for each leaf category. these pages are randomly split into training and validation sets  using the ratio of 1.  we also randomly collect about 1k pages from the internet and use them as unlabeled pages. furthermore  we collect and labeled several thousand pages from msn network  http://www.msn.com  and they form the evaluation set. all the accuracy numbers below are computed based on model performance on evaluation data set.  
+ 
+1 hierarchical classifier evaluation  in figure 1  we have used two methods to incrementally increase the amount of training pages. one is to take unlabeled pages with high probabilities of belonging to a category as training pages for next iteration; the other one is to request labels of set of unlabeled pages which might provide more complementary information to the current classifier. we run the iterative learning process for 1 iterations. here report the average classification accuracy of all the leaf categories for both svm classifier and lr classifier.  
+ 
+iteration # 1 1 1 svm 1% 1% 1% lr 1% 1% 1%  
+figure 1. classifier average accuracy during each iteration 
+ 
+the accuracy of a classifier on a category is defined as:  
+ 
+accuracy category  = a/b where  
+¡¡¡¡¡¡¡¡a = # of webpages actually belong to that category and also classified into that category 
+¡¡¡¡¡¡¡¡b = # of webpages actually belong to that 
+category 
+ 
+as we can see  overall svm classifier can achieve slightly better accuracy than lr classifier using exactly the same features. the result also confirms our assumption that we expect to get better classification accuracy as we include more pages into the training process. these training pages include human labeled webpages  as well as  algorithm labeled   unlabeled  webpages.  
+ 
+as one of the future work  we expect to continue experimenting with this iterative learning process to draw a more complete picture of the relationship among number of iterations  number of training pages and classification algorithm accuracy.  
+ 
+1 binary classifier evaluation 
+in some business applications  such as in a content filtering system   we don't need to know the detailed category/subcategory of a webpage  instead we simply want to see whether the page is sensitive or not.  
+ 
+one of the advantages of our sensitive content taxonomy is that each leaf node is associated with  a binary tag saying either  sensitive  or  nonsensitive .  because of this  we can easily change our multi-class classifier into a binary classifier. one option is that  we run the hierarchical multiclass classifier first to get the leaf category of an inputted webpage. if the predicted category is tagged  sensitive   then we say this page is sensitive; otherwise  it's considered as nonsensitive. 1  
+the performance of the binary classifiers  after 1 iterations  is shown below:  
+ 
+ overall accuracy f1 	for 
+nonsensitive f1 	for 
+sensitive svm 1% 1% 1% lr 1% 1% 1%  
+figure 1. performance of binary classifiers 
+ 
+overall accuracy = 
+ # of webpages which are correctly classified  /  # of all 
+evaluation webpages  
+ 
+f1 for sensitive = 
+1*precision sensitive *recall sensitive / 
+ precision sensitive +recall sensitive   
+ 
+precision  sensitive   =  
+ # of webpages actually belong to  sensitive  and also classified into  sensitive   /  # of webpages classified into 
+ sensitive   
+ 
+recall  sensitive   =  
+ # of webpages actually belong to  sensitive  and also classified into  sensitive   /  # of webpages actually belong to  sensitive   
+ 
+definitions for f1  precision  recall for nonsensitive are similar to those of sensitive  thus we omit them here.  
+ 
+again svm classifier perform slightly better than lr classifier.  
+ 
+1. conclusion and future work 
+in this paper  we have illustrated how to build a sensitive webpage classification system which can classify given webpages using a sensitive content taxonomy  for content ad system. to build this hierarchical classifier  we have proposed a unique iterative training data collection and classifier building approach  which shares some idea with active learning and combining labeled and unlabeled data for text classification.  
+ 
+there are some questions which need further work:  
+  we acknowledge that it's almost impossible to come up with a taxonomy which can cover all aspects of sensitive content. for sensitive topics not covered in the taxonomy  our classifier is very likely to perform not well. how to build a classifier which can effective address some  unseen  sensitive topics will be an interesting topic to look into.  
+  sensitivity can be rather subjective in some cases. there are some topics which are considered as sensitive by the general public  but some topics are not so apparently sensitive.  how to model different degrees of sensitivity is another interesting problem we are investigating.  
+ 
+1. acknowledgement 
+the materials in the paper only reflect the opinions or views of the authors. they do not necessarily represent those of microsoft corporation. 
+  
+we also thank the anonymous reviewers for their constructive comments. 
+ 

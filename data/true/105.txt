@@ -1,0 +1,47 @@
+　　the bveritas system integrates and organizes news articles from english news websites based in singapore  malaysia  philippines  and thailand  plus news stories from cnn and reuters international.  the main features of the system are the following: 1  automatic clustering of news documents into themes; 1  ordering of these news clusters in a theme map; 1  extraction of meaningful labels for each cluster of news articles; 1  use of extracted labels and title words to retrieve ranked news article lists based on query words; 1  summarization of news articles; and 1  automatic generation of links to related news articles. the novel features of the system result directly from the use of a structured self-organizing map as the underlying logical structure for the news archive. 
+ 
+keywords 
+self-organizing maps  som   text classification  web-based systems  news integration system 
+ 
+1. introduction 
+　　with the shift of many mundane activities over to the web  most of the major dailies in the world  aside from news agencies like cnn and reuters international  now have online web-based versions of their printed newspapers. our bveritas system is a single portal to a number of online dailies. the system downloads news articles from several news websites and automatically organizes the news stories into themes.  the title bveritas is a play of two words - the malay word  berita  which means  news   and the latin word  veritas  which means 
+ truth .  
+　　the idea of a news integrating web service is not unique. there are a number of existing portals that provide access to news downloaded from numerous online sites. like most news portals  our system provides both topic and regional categorization  with a combination of headlines and latebreaking news. it also supports retrieval of news stories based on query words. differing from other systems  however  the bveritas system employs a self-organizing map  som  to automatically organize the news articles in a theme map. similarity between documents for clustering purposes is based on the frequency distribution of the words used. through the theme map  the system supports a wide range of services such as retrieval of news articles by query words  intuitive browsing of news archive by theme inspection  integration of searching and browsing  automatic generation of hypertext links to related news stories  and the personalization of the cluster layout to suit the browsing style and interests of readers. furthermore  our system provides such useful services as news summarization  where a user can choose the desired summarization level of news articles.  
+1. system architecture 
+　　the use of a structured self-organizing map as the logical underlying structure of the news archive is the unique feature of the bveritas system. the structured som groups together related documents into clusters and organizes the clusters of documents in a rectangular grid in such a way that clusters that are near each other have news documents that are similar.  
+ 
+
+ 
+	figure 1. 	bveritas system architecture 
+ 
+　　aside from the structured som  the other components of the bveritas system are the downloading module  database  news parsing module  classifier  summarizer  query ranking module and user interface  figure 1 . the downloading module is concerned with analyzing homepages and retrieving news articles from urls picked-up up from the news sites. it is designed to run in sessions  with downloading statuses that keep track of how far a specific news article has been processed. downloading sessions designate specific processing operations to specific computers in our network.  the database contains all raw and processed news articles  extracted keywords  various special navigational links  etc. the news parsing service groups together all the various procedures involved in preparing the news articles for further processing  such as the removal of common words  stemming  and extraction of special fields like news title  author  and date.  finally  all the interaction between the user and the database is handled by the interface module.  
+ 
+1. structured som for text archives 
+　　various preprocessing operations on the downloaded news articles  such as stop-word removal  stemming  and feature selection  are performed to prepare the news articles for som training and labeling. these standard document parsing procedures still result in far too many dimensions  in the order of 1 unique terms . fortunately  there is a fast and very effective way of drastically reducing  to just 1 or even less  the dimensions of the news document vectors using a method referred to as  random projection  .  
+ 
+1 document archives based on som 
+　　the som training algorithm has been widely studied and carefully analyzed and has been the subject of rigorous mathematical analysis leading to formal results about its convergence properties  1  1 . by far  the most prominent use of soms in text document archiving and retrieval has been the websom . the websom is capable of archiving up to 1 million text documents. other uses of som in document and news classification as well as other related techniques in document clustering have been described in .   
+　　our own som implementations using the popular reuters 1 collection and the cnn news collection  1  1  1  show that the resultant trained soms offer a radically different way of browsing through a document collection. this is consistent with claims by websom proponents .  
+　　in a som-based document archive  documents that are similar to each other are grouped together in the way any document clustering method would do it. on top of that  and this is som's main strength  document clusters are organized and laid out in a simple 1d grid in such a way that document clusters that are similar are positioned next to each other  while clusters that are less similar are positioned farther away. given this underlying spatial organization of document clusters  a user just has to view the labels extracted for each node  cluster  in the map in order to zero in on potentially interesting clusters. once an interesting document is found  the user just has to click on other documents in the same cluster as well as on documents in its vicinity  in the 1d grid .  similarly  the search for  related stories   for automatic generation of links  for a selected story can be narrowed down to a small sub-region in the map.  
+ 
+1 structured som  
+　　one drawback of soms  however  is that since training is unsupervised  the distribution of the resultant clusters can vary significantly from one som training to another.  we have thus decided to deviate from the som methodology in that we now impose a structure on the resultant trained map. the  structure  is imposed on a som by pre-assigning each node to a given class label.  
+prior to training  pre-assign each node in the map to some class label. 
+ 
+1. randomly select a training vector  x =  x1  x1  ...  xn  with class label k 
+ 
+1. from among the nodes labeled with the same class label k  find the best matching unit  mc  using an appropriate distance metric  e.g. cosine of angle between x and reference vectors  
+ 
+1. modify the weights of all units i in the winning neighborhood using the following weight update rule: 
+ mi t + 1  = mi t  +α t  x t  - mi t   
+ where t denotes the cycle number  α is the learning rate  note that the learning rate decreases and the neighborhood size shrinks as t increases  
+procedure 1.  structured som training algorithm  
+although we allow the som algorithm to freely organize news articles according to which news articles are similar and which are not  we require that news articles of a certain class label  e.g. singapore news  will only locate its clusters in a pre-designated region. procedure 1 presents the revised som training algorithm.  
+ 
+1. conclusion  
+　　we described the bveritas system  a south-east asian centric system that integrates and organizes news articles from english news websites based in singapore  malaysia  philippines  and thailand  plus news stories from cnn and reuters international. aside from the usual components of online news sites  the following are the novel features of the bveritas system: 
+  automatic clustering of news documents into groups of related news articles  from different websites  
+  automatic organization of news clusters in a 1d theme map  where the spatial proximity between clusters in the map reflects the similarity between the clusters 
+  automatic extraction of meaningful labels for each cluster of news articles 
+  automatic generation of links to related news articles. these novel features of the system directly result from the use of a structured som as the underlying structure for the news archive. we are currently designing alternative ways of producing different structure maps for different user profiles.  
+ 

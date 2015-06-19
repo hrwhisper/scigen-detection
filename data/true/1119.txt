@@ -1,0 +1,51 @@
+
+ 
+
+this paper describes how web clearinghouses can be organized so that they can effectively collaborate with each other to improve both the recall and the precision of results returned for a query. 
+keywords 
+knowledge-based  collaboration  rdf 
+1. introduction 
+the web has made available to users worldwide a huge number of high quality information resources scattered across the globe.  with more and more resources available online  people are getting increasingly reliant on the web for their information needs.  metadata describing these resources plays a critical role in the effectiveness of leveraging on these resources.  however  as pointed out in numerous sources such as   current search engine technologies are not adequate for the needs of users who require precise information to be effectively gathered from specific domains. 
+an emerging research area that has proven promising are subject-based information gateways  or sbigs  which are web clearinghouses that organize information resources pertinent to a particular domain of interest.  many research efforts  such as dienst   the resource organization and discovery in subject-based services  roads    issac  and 
+ontobroker   have pursued research in this direction.  this paper describes the research undertaken at the national university of singapore in this area. 
+1. research contributions 
+the main contribution that was accomplished by this research is the development of a scalable framework for collaborating domain specific information clearinghouses consisting of metadata describing information resources.  this framework fulfills 1 objectives that we have found lacking in current work: scalability  extensibility and accessibility.  
+1. abstract model 
+figure 1 shows the top-level abstract model of a domain specific information clearinghouse or dsic: 
+ 
+ 
+ 
+ 
+
+information
+	agents	 
+figure 1 : the abstract dsic model 
+ 
+a dsic is a web-based clearinghouse and resource repository for domain specific information resources available on the web.  it is essentially a knowledge base that stores resource metadata in the form of rdf  statements supplied by human domain experts as well as intelligent software agents.  researchers  the targeted users of the dsic who wish to find high quality qualified resources  can then make use of the dsic to locate them.  
+domain experts are subject matter experts who are familiar with the dsic's domain.  these domain experts register with the dsic as trusted information providers  after which they can submit resource metadata to the dsic based on a set of evaluation criteria such as those presented in .  
+dsic information agents are software agents that can scour the web for relevant information resources.  unlike web spiders that only index documents indiscriminately based on keywords  dsic information agents are able to extract semantic metadata that exists in web documents.  
+1. system architecture 
+this section takes a closer look at the system architecture of the dsic  as shown in figure 1. 
+
+ 
+figure 1 : system architecture of the dsic 
+knowledge base 
+the knowledge base consists of resource metadata in the form of rdf statements.  these statements are asserted as facts in the knowledge-based framework. 
+rule base 
+the rule base comprises of if ... then rules.  ontological specifications of the domain taxonomy are specified in the rule base.  additional rules given by the domain experts or discovered by the knowledge elicitation engine are also stored in the rule base.  
+knowledge discovery and acquisition engine 
+the knowledge discovery and acquisition engine deploys dsic information agents to discover and acquire new knowledge about relevant qualified resources.  the acquired knowledge is then stored in the knowledge base.  in addition  a web-based interface allows human domain experts to contribute resource metadata to the knowledge base.  this human-supplied metadata is converted from a human-readable form to a machine-understandable form before storing into the knowledge base as facts about resources.  
+knowledge retrieval engine 
+the knowledge retrieval engine organizes the knowledge base and uses it to answer users' queries.  it allows structured  precise queries over the entire information space of the knowledge base so that relevant qualified resources can be found.  
+knowledge elicitation engine 
+the knowledge elicitation engine makes use of both the rule base and the knowledge base to generate new facts  which are asserted in the knowledge base.  this allows the implicit semantics of the resources to be explicitly asserted so that the knowledge retrieval engine can answer users' queries more effectively.  in addition  the knowledge elicitation engine can also mine for association rules in the knowledge base and optionally stores these rules in the rule base.  
+1. dsic collaboration 
+researchers often have not just one  but multiple domains of interest.  moreover  there is often no clear boundary between domains  as shown in figure 1.  hence  by enabling collaboration between different dsics  we can effectively increase both the recall and the precision of the system simultaneously. 
+ 
+ 
+
+ 	figure 1 : overlapping domain resources 
+ 
+resource sharing takes place with the aid of mobile agents that communicate using the ubiquitous http.  each dsic exchanges a mobile agent with the dsic it wishes to collaborate with.  the mobile agent carries with it the rule base and a set of context specifications and resides in the destination dsic.  these context specifications  together with the rule base  enable the mobile agent to determine whether a concept term being queried for also exists as a concept term in the same context in the source dsic.  if so  the mobile agent requests the resource metadata that corresponds to the query from the source dsic and returns it to the requesting dsic.  in this way  the autonomy of each dsic participating in the collaboration is not affected.  the number of collaborating dsics can also scale effectively as each mobile agent functions autonomously to satisfy the users' queries.  
+1. conclusion 
+in this paper  we have proposed a framework for domain specific information clearinghouses to collaborate and share resources.  resources across multiple domains of interests can be located without impacting on the recall or the precision of the results.  currently  a formal mathematical model is being formulated to give a well-founded basis for the deployment of a number of collaborating clearinghouses in different domains. 

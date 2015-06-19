@@ -1,0 +1,107 @@
+for the trec 1 conference  the crm1 team considered three non-bayesian methods of spam filtration in the crm1 framework - an svm based on the  hyperspace  feature==document paradigm  a bit-entropy matcher  and substring compression based on lz1.  as a calibration yardstick  we used the well-tested and widely used crm1 osb markov random field system  basically unchanged since 1 .   the results show that the svm has a spam-filtering accuracy of about a factor of two to three better accuracy than the osb system  that substring compression is somewhat more accurate than osb  and that bit entropy is somewhat less accurate for the trec 1 test sets.
+introduction: 
+crm1 is an open-source  gpled language framework that makes it easy to construct arbitrary text modification and classification engines.  the current version of crm1 contains standard bayesian classifiers  classifiers based on word parsing to create a markov random field  orthogonal sparse bigram random fields  osb  optionally enhanced with the eddc confidence factor     littlestone's  winnow  algorithm  a linear perceptron   a k-nearest-neighbor   hyperspace   nonlinear classifier  a linear svm operating in the knn space  a bit-entropy classifier  a classifier based on lempel-ziv compression  and a three-layer neural network classifier with back-propagation training.  
+the trec spam track allows teams to enter up to four spam classifiers for formal testing against the secret nist database.  for trec 1  we chose to formally test three of the new classifiers and retain our  standard yardstick  of the 1 osb classifier as the fourth test.  the three new classifiers selected for testing were the svm operating in a one-feature-per-document space  an enhanced bitentropy classifier  with a short-range  precognition  system enabled in the codec   and a classifier based on the  lz-1 text compression algorithm  lempel and ziv  1 .
+additionally  we requested an informal run of a fourth experimental classifier based on a three-layer neural network with back-propagation  however the results of that run were not available at press time for this paper.
+testing corpora:
+the filters were tested against a battery of spam/nonspam corpora.  for 1  there were two basic corpora - a  public  test set with nonspam email from the enron corpus and recent spam  and a private  secret  corpus based on the 1 emails of a mr. x  believed to be a college professor but otherwise mr. x's identity is a secret; the emails in the mr. x corpus are never released .
+the public corpus was submitted in four different forms:
+1. an immediate form  which is an idealized case where each of the documents is classified in time sequence  and then the filter is given the correct answer and allowed to retrain itself on that document before going on to the next document;
+1. a delayed form  where the filter is not given the correct answer until some other messages are classified  and possibly trained  first;
+1. a partial form  where some subset of the messages are not allowed to be trained;
+1. an active form  where the filter is given access to all of the message texts  and is allowed to ask for the correct types of a small subset of the messages and must then classify the other messages based on just those subset 
+the mrx corpus was tested with only the  immediate  and  delayed  form.  we did not build a version for  active  testing  so we have no results in that area.
+the classifiers:  
+we tested four classifiers in the  official  runs.  all four classifiers were tested in a ssttt format  single-sided thick threshold training .  in ssttt training  the classifier runs against the text and returns a result.  if the result is incorrect  the text is trained in.  additionally  if the result is correct  but not judged correct by a sufficiently large margin  then the text is trained in as well.
+all four classifiers were trained in this way.  no classifier received  negative  or  double-sided  training  although it might be considered that the two-class c- svm implementation obtained negative training because calculation of the ideal hyperplane and support vector set requires knowledge of both classes.  the crm1 svm implementation is a single two-class svm  not a series of 1-class svms. 
+classifier details - osb: our benchmark  control  classifier is the crm1 osb classifier which was introduced in 1 and is substantially unchanged since 1.  we use the osb classifier as a wellknown benchmark to make an inter-year comparison of the difficulty of each new test set.
+the basic concepts of markov osb classification is to break the text down into words  where a word is defined as a set of printing characters separated by whitespace characters  then to assemble short pseudophrases  by skipping zero to three words  from consecutive wordsets.  for example  the text 
+  
+       gentlemen!  you can't fight in here!  this is the war room!  will break down into the feature pseudophrases:
+gentlemen! you
+gentlemen!  skip  can't
+gentlemen!  skip   skip  fight
+gentlemen!  skip   skip   skip  in
+you can't
+you  skip  fight
+you  skip   skip  in you  skip   skip   skip  here! can't fight ...
+and so on  the  skip  tokens are significant  as is case and word order; the features  you can't  and  can't you  are distinct.  there is no stop word removal  and no preloaded dictionary; everything is learned from zero.
+once these features are created  they are hashed and a lookup is done; from the ratio of times each feature is seen in the spam and nonspam corpora  a probability is calculated  heavily biased towards 1 especially when the number of seen occurrences is small  and the probabilities are combined with a normalization rule such as bayes law.  overall  the mathematical structure formed from the known feature pseudophrases is a markov random field and the text stream steps across that manifold; the combining rule measures how well the given text is modeled by the field.
+classifier details: svm : the svm classifier is a c-svm based on the well-known work of boser et al 1 and cortes and vapnik 1 .  we use an smo type decomposition   fan  chen  and lin 1  to select the working set.
+in prior work by other researchers  the typical  feature  in the svm was an individual word - typically this meant that the most common words only were used in the svm.  instead of this  we performed the svm using entire documents as single features; thus the output hyperplane of the crm1 svm is a weighting of total documents rather than single words. 
+in more detail  the crm1 svm classifier performs the osb feature creation as seen above  and then keeps the entire document's hash set as a single very large feature; this is the same behavior and code as the crm1  hyperspace  k-nearest-neighbor classifier.  to calculate the distance between any two such documents  we simply count the number of shared pseudophrase hashes  which is the number of shared pseudophrases as described above under osb.  this is the  dot  function we use in the c-svm.
+solving for the optimal svm weighting of these features is done on a pairwise basis; pairs of points are selected and the hyperplane weights are adjusted to maximise the error margin between them.  the process repeats until convergence.  the result is a set of a few documents in each class whose dotproduct weights are nonzero; these define the separation hyperplane.
+unlike the prior  hyperspace  knn code that is completely nonlinear  the current svm code produces a linear classifier.  because the svm calculation determines which support vectors  that is  documents  are significant and which are not significant  the svm code is capable of forgetting documents that are insignificant and likely to remain insignificant.
+in more detail  we implemented one type of svms called c-support vector classification  c-svc . the dual formulation of c-svc is to find        min     1   t q   - e t 
+subject to    yt = 1
+      yi = +1 or -1
+	      	      1  = i  = c  i=1 ... sizeof corpus . 
+where  e  is the vector of all ones  q is the sizeof corpus  by sizeof corpus  matrix containing the calculated distances between any two documents  that is  qij = yi * yj * kernel xi  xj  which may be intractably large and so we only calculate part of it at any one time   xi is the feature vector of document i . the decision function is 
+sgn  sum yi * i * kernel xi  xj  + b 
+  
+in order to solve the above quadratic optimization problem  we used smo-type decomposition method proposed by fan et al.  in which each iteration chooses two elements in the vector  based on second order information and only updates these two elements instead of the whole vector. but for some email corpuses  this method will choose the same element in  several times and then converge very slowly. so in our implementation  for every element in  we set a upper bound to stop it from being chosen for update too many times. 
+in our experiments  we tried different kernel functions on trec 1 : linear kernels  polynomial kernels  and a radial basis function  rbf .  our testing shows that linear kernel performs better than the other two. 
+compared with other classification methods  one advantage of svm is that the hyperplane is only determined by  a small number of support vectors   only a few elements in  vector aren't zero .  in another words  for a new email we can quickly determine whether it is spam or not by calculating the decision function. the second advantage of svm is that it can handle unbalanced datasets in which different classes have very different training sizes because the algorithm does not directly try to minimize the error rate within classes but try to separate data in a higher dimension space. 
+classifier details: bit-entropy: the bit-entropy classifier is a bit-at-a-time compression scheme. this classifier is rather unique in that not only doesn't it have any concept of a text string; it doesn't even have any concept of a byte.  during training  the serialized bits of incoming known text are used to generate a transition lattice that is later used to optimally compress the unknown text.  because the compressed text is not actually used  this classifier only calculates the absolute entropy of the result; the transition lattice that produces the best compression is the one that represents the unknown text most closely and hence was produced by members of the unknown text's class.
+to produce a compression lattice rather than a simple directed tree  we provide the ability to crosslink during the construction of the transition lattice.  specifically  if we are about to add a node  but a node with a similar prior transition history already exists  we do not allocate a new node  but instead route the current transition path to the old node.  this allows our compression lattice to have arbitrary loops and cycles as required to describe the text documents.
+as an improvement to this  we also check the tentative new node's future paths; our current system looks a minimum at 1 bits of past history and three bits of future  hence one could consider the compression coder is  three bits precognitive  .
+one advantage of this method of generating the compression lattice  on the fly  is that the amount of memory needed is quite small compared to other methods; we typically run with only one million bit nodes total and find that more than adequate for the trec public corpus.
+classifier details: substring compression: the fourth crm1 classifier tested in trec1 is the fast substring compression match   fscm   classifier.  this classifier is based on the lempel-ziv compression algorithm  commonly known as lz-1 .  in the crm1 implementation  the prior-text window is greatly expanded  with a default of one megabyte for the trec runs   a minimum compressible string length of three characters in succession  and some additional data structures are used to accellerate the processing  but in general the algorithm is unchanged.   
+for scoring  the document is deflated and for each substring match that would cause lz-1 to record a repeated substring  the number of bytes that would be compressed out is raised to the 1th power and added to the score  the 1 value is empirically determined .  futher  we do not do any huffman coding on the unrepeated substrings  as that would reflect only individual character frequencies rather than string-to-string similarities in the texts.  greater overall score implies greater overall similarity between the known and unknown texts.
+results:
+the main trec results can be summarized in the following table giving overall error rate and  1roca%  value and confidence inter 1-roca% is the area not under the roc curve expressed as a percentage.:
+test setmagnitude 
+of test set crm run 1  svm crm run 1  osb crm run 1
+ bit entropy crm run 1
+ string 
+compression mrx full1  1% 
+roca: 1
+ 1 - 1 1  1% 
+roca: 1
+ 1 - 1 1  1% 
+roca: 1
+ 1 - 1 1  1% 
+roca: 1
+ 1-1 mrx 
+delayed 
+feedback1  1%  roca: 1
+ 1 - 1 1  1% 
+roca: 1
+ 1 - 1  1  1% 
+roca: 1
+ 1 - 1 1  1% 
+roca: 1 
+ 1 - 1 public full1  1% 
+roca: 1
+ 1 - 1 1   1% 1  1% 
+roca: 1
+ 1 - 1 1  1% roca: 1  1 - 1 roca: 1
+ 1 - 1 public 
+delayed 
+feedback1  1% 
+roca: 1
+ 1 - 1 1  1% 
+roca: 1
+ 1 - 1 1  1 
+roca: 1
+ 1 - 1 1  1% 
+roca: 1
+ 1 - 1 public 
+partial 
+feedback1  1% 
+roca: 1
+ 1 - 1 1  1% 
+roca: 1
+ 1 - 1 1  1% 
+roca: 1
+ 1 - 1 1  1% 
+roca: 1
+ 1 - 1 to our mild surprise  we found that the svm did the best overall in all testing regimes  bold in the table above   in two cases  well within the error bars to be  best overall  for trec 1.
+discussion:
+we were pleasantly surprised at the good showing by the svm classifier; by any measure we see it performs better than any other crm1 classifier on the trec corpora.    1-rocas of 1 and 1 versus osb at 1 and 1  and 1 fewer total errors.  interestingly  the svm is working against the very same data representation and format as the weak-performing hyperspace knn filter of trec 1  which did only a roca  of 1  1 to 1 at trec 1.
+our canary-in-the-coal-mine standard  the 1 vintage osb classifier on the new mr x version 1  1  corpus confirmed again that spammers are not getting smarter; osb got slightly better 1-roca of 1  1 to 1  versus 1  1 to 1  for mrx version 1  1  and 1  1 to 1  for mr x version 1  1 .
+bit entropy was a losing proposition at trec 1.  the addition of  precognition  did not seem to improve performance in either roc terms or in absolute error rate over the non-precognitive version in trec 1  performance actually decreased from the trec 1 numbers  but not by a statistically significant amount .  we will continue to consider algorithmic improvements to bit entropy in the future  and for problem corpora that do not contain blank-delimited words.
+finally  the fscm  fast substring compression matching  via lz-1  did surprisingly well.  in the public full corpus  it beat osb by a strongly statistically significant amount  the error bars do not overlap ; in the private mr. x corpus  it did better than osb but not by a statistically significant amount.
+the results also as some surprises  such as some inversions between raw error rates and 1-roca 
+ the like-colored pairs above.  in particular  note the results of the mrx full corpus for bit entropy and osb versus substring compression: if one measures by 1-roca  compression is eight times better  but measuring by actual error count shows that it's almost twice worse; their confidence intervals don't even overlap.  
+     

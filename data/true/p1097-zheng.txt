@@ -1,0 +1,79 @@
+we present a demonstration of an interactive wrapper induction system  called pictor  which is able to minimize labeling cost  yet extract data with high accuracy from a website. our demonstration will introduce two proposed technologies: record-level wrappers and a wrapper-assisted labeling strategy. these approaches allow pictor to exploit previously generated wrappers  in order to predict similar labels in a partially labeled webpage or a completely new webpage. our experiment results show the effectiveness of the pictor system.
+categories and subject descriptors
+h.1.m  information storage and retrieval : miscellaneous-data extraction  wrapper generation  web
+general terms
+algorithms  design  experimentation  performance
+keywords
+pictor  information extraction  wrapper  labeling cost  wrapper assisted labeling
+1. introduction
+　many online services such as vertical search engines  require extracting web records from websites. these web records can exist in different formats. typically  in a list page  multiple records with similar structure and appearance are listed in a distinct layout. while in a detail page only a single record is typically shown.
+　wrapper induction is an effective method for such web record extraction tasks  1  1  1  1 . a wrapper can be defined as a software or program that is used to extract desired information from a source and transform it into a structured format. manually writing wrappers for web sources is a tedious  time-consuming  and error-prone job  thus lots of work has been done on how to generate wrappers automatically.
+　automatic wrapper induction methods can be divided into two groups by considering whether a manually labeling
+
+ work was done when the author was visiting microsoft research asia.
+copyright is held by the author/owner s .
+kdd'1  august 1  1  las vegas  nevada  usa.
+acm 1-1-1/1.
+process is required. some systems  1  1  1  1  attempt to generate wrappers without pre-labeled training samples. the advantage of such methods is clear: they eliminate the need of manually labeling. in practice  however  these methods are difficult to be applied in real commercial systems that demand high extraction performance. in contrast  some other systems require manually labeled examples such as training data. this category of methods can achieve excellent extraction performance  but are criticized because labeling is costly and error-prone. therefore  fully automatic methods are popular in academia and attract the most interest.
+　however  by observing some real applications  we find that manually assigned labels are important for high extraction performance: 1  labels provide more information to distinguish nodes with the same tags. 1  a wrapper with labels explicitly organizes the extracted data into a certain schema. 1  labeled training data could improve training efficiency by allowing wrapper induction algorithms to focus on the labeled parts on a page and ignore the irrelevant parts.
+　if high extraction accuracy is a requirement  how can the labeling cost be reduced  our answer is an interactive wrapper labeling and training system called pictor  which can be used to visually label sample web pages and generate wrappers simultaneously. in this system  our goal is to minimize labeling costs while being able to extract data with high accuracy. we propose record-level wrappers and a labeling strategy called wrapper-assisted labeling to utilize previously generated wrappers to help label more records of a partially labeled webpage  or a completely new webpage.
+　experiments were conducted on three kinds of websites  namely online shops  restaurant reviews and a digital library. the results indicate that our proposed approaches can achieve as high as 1% f1-value while saving 1% labeling efforts.
+1. key technologies
+　in this section  we describe two key techniques used in our pictor system.
+1 record-level wrappers
+　record-level wrappers make it possible to avoid repetitive record labeling on the same page with identical structures.
+　like many wrapper induction systems  we use a document object model   dom   tree to model a web page. the approach we use to represent and generate wrappers can be considered as a variation of work in .
+　the major difference is that we train wrappers at a record level while the system in  generates page-level wrappers.
+more specifically  when a user finishes labeling one record  the system will extract the sub-dom tree corresponding to the record  and feed it to an incremental wrapper updating process.
+　when a generated wrapper is used to extract data  it does so at the record level  instead of the whole page. in our system  a wrapper is able to match a sub-dom tree corresponding to a record of a page  then extract data from the matched sub-tree. when multiple wrappers match the same sub-tree  our system will automatically select a wrapper with the best match  minimal distance to matched sub-tree  to perform the extraction.
+1 wrapper-assisted labeling
+　applying previously generated wrappers to predict labels of similar records is the key point of our wrapper-assisted labeling strategy. this is accomplished by performing data extraction using existing wrappers. the main advantage of using wrapper-assisted labeling strategy is that it can avoid repeatedly labeling records with the same internal structure  and thus reduce the overall labeling effort. the amount of labeling effort it can save can be formalized as follows:
+　suppose we need to label a group of pages from the same template. the total number of records is nr. according to the records' internal structures  all nr records can be virtually partitioned into ns subsets. records in each subset have exactly the same internal structure. then  with a wrapper-assisted labeling strategy  we only need to label one representative record for each subset  and use the generated wrapper to automatically assign labels for the rest of the records. as a result  the maximal number of records we need to label is ns. in general  ns   nr. for example  we have done a statistical analysis of seven well-known online shopping websites. the results show that ns : nr ' 1 : 1. that is why our system can significantly save labeling costs above traditional labeling methods.
+1. demonstration
+　we plan to use several well-known websites to demonstrate the entire process of labeling and training for wrapper generation. first  we will explain how to define and load a schema for each wrapper generation task. then  we will walk through each step and explain what kinds of techniques are used. finally  we will perform a batch extraction using generated wrappers and present the results in an easy to read format. during live demonstrations  the audience will be invited to try our system for different websites.
+1 interface of pictor
+　a user-friendly interface plays an important role in achieving the goal of reducing labeling costs. as shown in figure 1  the main part of the pictor interface is an embedded web browser. this browser can be used in two different modes: browsing mode and labeling mode  a.k.a.  pictor mode  . in browsing mode  online or offline webpages can be opened for labeling. when an opened page is completely loaded  we can switch to labeling mode by clicking the switch button. figure 1 shows the main interface of our pictor system when it is under labeling mode.
+　the webpage being labeled is displayed in the main panel. while moving the mouse cursor on the webpage  a red rectangular graphic will follow the cursor indicating which web
+
+figure 1: interface of pictor
+page element is being selected. right-clicking a selected element will pop-up a context menu providing labeling options. note that there is a schema selection panel at the topright corner. users need to select a schema before labeling. a schema  in this application  specifies the structure of extracted data and provides candidate labels for the purpose of labeling. in the pictor system  we provide an editor that enables creation and modification of a schema. users can specify what kind of attributes an extracted record should contain  figure 1 .
+
+figure 1: schema editor
+　the id controller in the right panel allows users to specify a record id for each attribute they would label. the system uses this id to group attributes into a record. as shown in figure 1  the record id selected by the user will appear as a prefix in each menu item. this helps the user to clearly identify which record they are assigning labels to.
+　the bottom-left panel is a data view which displays the extracted labeled data in a tabular format. because users can see what data is being extracted through this table as they work  labeling errors are reduced.
+1 system workflow
+　given a set of sample pages  a typical workflow of page labeling and wrapper generation is shown in figure 1.
+　during the entire labeling process  each individual sample page is labeled separately. here  we use an example from www.costco.com to explain several important steps. in this
+
+figure 1: labeling and wrapper generation work flow
+example  the extraction schema is designed as follows: each record contains three fields  namely image  title  and price.
+1.1 detect applicable wrappers for a new webpage
+　given a new page  the labeling process does not always need to start from scratch. if one or more wrappers generated from other similar pages exist  they could be applied to the current page in order to predict other labels following similar patterns. note that the detection of existing applicable wrappers is automatically performed by the pictor system when it enters labeling mode.
+1.1 label a record
+　suppose no applicable wrappers exist for a given page; such a condition indicates we must start from scratch. the first thing to be done is to assign labels to a complete record.
+in the labeling mode of our system  assigning labels to a record can be easily done with a few mouse clicks as illustrated in figure 1.
+1.1 generate or update wrappers
+　after a single record is labeled  it can be used to generate or update the underlying wrappers. this process is automatically done by the system when a user clicks  update wrappers .
+1.1 apply wrappers
+　one of the most notable parts of this work is the wrapperassisted labeling strategy. the basic premise of this labeling strategy is to use previously generated wrappers to predict labels of similar records within a webpage. in figure 1  a wrapper generated from the first record is used to predict labels for the other three similar records.
+　in most cases  records in the same page are very similar  even to the point of being identical in terms of internal dom tree structure. therefore  labeling a small number of records can generate wrappers  which can in turn automatically label the remaining records without further manual labor.
+1.1 revise labels
+　in the early stages of labeling  the underlying wrappers may not be able to correctly predict all labels. for some records  they might have wrongly assigned labels  or their attributes might be not be completely labeled. for example  in figure 1  the third record has an unlabeled attribute.
+　our pictor system allows the modification of labels assigned by the underlying wrappers. in fact  the process of modifying labels of a record is nearly the same as assigning new labels. figure 1 illustrates how to append a label to a partially labeled record.
+
+figure 1: apply wrappers and revise labels
+　as we can see from figure 1  the labeling task for one page can be finished by repeating the process of labeling a new record  updating wrappers  applying wrappers  and revising labels.
+1. experiments
+　we tested the performance of our pictor system through various experiments.
+　our dataset is derived from 1 widely used  diverse  largescale websites as shown in table 1. the first eight websites are online shopping websites. the following four are restaurant review websites. the last website is the acm digital library portal. among eight shopping websites  pages from the first seven sites are all list pages and pages from yahoo.com are all detail pages. the pages from the four restaurant review websites and acm portal are all detail pages.
+　different extraction schemas are defined for the three domains. for online shopping websites  a product record contains three attributes  namely product name  product image  and product price. for restaurant review websites  the extraction schema contains review author  review time  price range  and review content. for acm portal  we are interested in extracting document title  source  where it is published   authors and their affiliations.
+　in our experiments  we use precision  recall  and f1 as measures in evaluation of data extraction results. these measures are calculated based on whether a labeled node is correctly extracted.
+experiment i: extraction quality
+this experiment is designed to show the extraction accuracy of generated wrappers. as table 1 shows  the average f1 is 1% on 1 websites.
+table 1: results on extraction performance
+websitepage #pre.rec.f1-valueamazon.com1.1.1.1ashford.com1.1.1.1circuitcity.com1.1.1.1diamond.com1.1.1.1ebags.com1.1.1.1officedepot.com1.1.1.1sears.com1.1.1.1yahoo.com1.1.1.1dine.com1.1.1.1menupages.com1.1.1.1restaurant.com1.1.1.1wcities.com1.1.1.1portal.acm.org1.1.1.1average1111experiment ii: labeling effort
+this experiment is designed to show how much labeling effort can be saved by using pictor. we use the number of records that are labeled by humans in training sets as a measure of labeling efforts. comparison results of seven online shopping websites are listed in figure 1. it shows that the average number of labeled records without using pictor is 1  whereas the average number of labeled records using pictor is 1. consequently  our system roughly saves 1% labeling cost compared to traditional labeling methods which have to label all records in training pages.
+
+figure 1: comparison on labeling efforts
+1. conclusions
+　in this demonstration  we present an interactive wrapper induction system  called pictor  designed to minimize labeling cost  yet import data with high accuracy from a website. in our pictor system  labeling efforts are reduced mainly in two aspects. 1  our system is able to reduce the labeling cost within one page  because not all data records need to be labeled manually. 1  when an unlabeled page undergoes labeling  there is a high likelihood that most of the labeling can be done automatically. experimental results on 1 widely used and diverse websites indicate that pictor can achieve as high extraction performance as 1% in terms of f1-value while saving about 1% of labeling efforts.

@@ -1,0 +1,8 @@
+multichannel publication of multimedia presentations poses a significant challenge on the generic description of the presentation content and the system necessary to convert these descriptions into final-form presentations. we present a solution based on the ximpf document model and a component based system architecture.
+categories and subject descriptors
+h.1  information interfaces and presentation : multimedia information systems; j.1  computers in other systems :  publishing ; h.1  information interfaces and presentation : hypertext/hypermedia-architectures
+general terms
+design  languages  experimentation  management
+keywords
+multimedia  multichannel publication  framework  device independence  standards  xml  interactivity
+1. introduction

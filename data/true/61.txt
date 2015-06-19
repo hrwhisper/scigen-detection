@@ -1,0 +1,49 @@
+web directories are taxonomies for the classification of web documents. this kind of ir systems present a specific type of search where the document collection is restricted to one area of the category graph. this paper introduces a specific data architecture for web directories which improves the performance of restricted searches. that architecture is based on a hybrid data structure composed of an inverted  file with multiple embedded signature files. two variants based on the proposed model are presented: hybrid architecture with total information and hybrid architecture with partial information. the validity of this architecture has been analysed by means of developing both variants to be compared with a basic model. the performance of the restricted queries was clearly improved  specially the hybrid model with partial information  which yielded a positive response under any load of the search system. keywords 
+web directory  data architecture  hybrid data structure  signature files  inverted files. 
+1 introduction 
+   ir systems appear in the web with the purpose of managing  retrieving and filtering the information available in that huge data base constituted by the www. 
+   there are three basic ways to locate information in the web: search engines  web directories and meta-searchers . web directories are an ontology of the web  and have the added value of possessing a search process combined with the navigation one  which improves the quality of the obtained results. in this case  the search is restricted to those documents linked to an area of the ontology specified by the root node to which the user has navigated. 
+   this paper examines in detail the restricted searches characteristic of web directories  from the point of view of the data structures used and the performance obtained. performance is improved by using a hybrid data model composed of an inverted file and dynamic signature files. 
+1 basic model 
+   a web directory consists of three basic components. the vocabulary stands for the key words indexed both in the documents and in the directory categories. there is a structure which represents the hierarchy of categories existing in the directory  typically composed of a directed acyclic graph. a small document file is required with the basic information about each of them  url  title and description . for representing the relationships among these three items  the inverted file structure constitutes at present the index technique which has the best performance for huge data volumes . 
+
+figure  1: data structure of the basic model 
+   figure 1 shows in a schematic way the data structures used in a basic model of web directory. this architecture is based on similar models  such as those described in      and . 
+1 restricted searches 
+   the data model explained permits to solve both the normal search process and the navigation process in an efficient way using an inverted file structure. 
+   on the contrary  the restricted search process in a category graph area requires a more elaborated access to that information. on the one hand  a standard search is carried out retrieving the results  but the key step consists of determining which resulting documents belonged to the specified graph area. two alternatives are defined for the filtering process. 
+   the first alternative consists of obtaining the list of documents associated to the specified graph area  which is combined with the list of results in order to obtain the final results. the second alternative consists of obtaining the category list from the restriction area  an easier process than obtaining the document list   and checking the results list sequentially  that is  which documents are located at the nodes of the category list. 
+   however  none of the two solutions solves efficiently the searches which obtain a great number of results and which have been restricted to a wide graph area. 
+1 hybrid architecture 
+   the problem of restricted searches lies in obtaining an inverted list of results which undergoes a filtering process based on the value of an attribute  associated categories   based on a complex hierarchical structure. 
+   a model of data structures is proposed based on the second alternative  using the dynamic signature files to filter most of the non-relevant results  and thus  the exact filtering only examines the rest of documents. 
+   in the proposed model each document must have a signature which represents each and every one of the categories it belongs to  directly or indirectly. signature files will be incorporated to inverted files  creating a hybrid scheme of inverted and signature file. 
+
+   figure  1: composed document identifiers in the hybrid data structure 
+   the inclusion of signature files in the inverted lists is due to the possibility of dynamically generating the signature files associated to each query. thus  when combination operations of inverted lists are carried out the associated signature file will be automatically obtained. therefore  a composed document identifier has been defined  built with the superimposed signature of every category to which it is associated and with a local document identifier  see figure 1 . 
+   the signature file technique applied to the directed acyclic graph of a web directory consists of associating a different signature to each category  each node in the graph   and each document shall generate its signature by means of superimposing the category signatures to which it is directly or indirectly associated. the use of superimposing codes for representing hierarchical information is described in detail at . 
+
+figure  1: data structure of the hybrid architecture 
+1 implementation 
+   two variants based on that architecture have been established. the implementations which have been carried out consist of developing a web directory prototype based on a real environment  integrated by approximately 1 categories distributed into 1 depth levels  in which more than 1 web directories have been classified. the development environment has been an ultra enterprise 1 machine with a processor at 1 mhz  1 mb memory and 1 gb storing space. 
+1 hybrid model with total information 
+   the hybrid model with total information corresponds to the direct application of the superimposing codes technique to the category graph. in this case  each and every one of the categories have an associated signature. 
+   figure 1 shows with a dotted line the new data structures or those whose size has increased. as a matter of fact  the increase in size is due to the signatures associated to the categories  specially to the new format of the document identifiers. from a global perspective  the main repercussion of the size increase required lies in the index of key words and documents  while the impact is smaller for the rest of cases. this system supports more than 1 categories and more than 1 millions of documents. 
+1 hybrid model with partial information 
+   this variant of the proposed hybrid architecture aims at reducing the size of the signatures and document identifiers  and  therefore  at reducing the storing space. in this case  the number of superimposing operations is reduced by means of applying the technique of superimposing codes only at certain levels in the graph  allowing the rest of nodes to inherit the signatures and the genetic codes of the upper levels. 
+   with regard to the increase in the required storing space  this is significantly smaller  with an approximate reduction of 1% in the required space. it should be noted that the index of key words and documents requires a 1% less storing space. this variant support more than 1 millions of documents and there is no limitation for the number of low level categories. 
+1 performance evaluation 
+   five work load situations have been considered for evaluation: void  low  medium  high and saturation. firstly  the similar performance for the normal searches have been proved. 
+   on the other side  the restricted searches have also been evaluated for the five load levels. very similar results were obtained for the void  low and medium loads  figure 1  1 and 1 . the hybrid models clearly improve performance in approximately 1%  retrieving more than 1 results . oppositely  under a high load situation  the behaviour of hybrid models varies considerably as may be seen in figure 1. in this case  the performance of the variant with total information worsens significantly whereas the partial information model keeps the 1% of 
+   
+improvement. 
+
+figure  1: response time  void load . 
+   
+
+figure  1: response time  low load . 
+1 conclusions 
+   this paper describes a hybrid data architecture composed of an inverted file and signature files  especially designed to improve the performance with searches restricted to one area in the category graph. 
+   two variants of the architecture are defined: the hybrid model with total information and the hybrid model with partial information. the second variant improves performance up to 1% with respect to the basic model under very load situation of the system. 
+   oppositely  the hybrid model with total information  due to the bigger storing space required  suffers a dramatic decline of performance under high load situations  similarly to the basic model. 
+   on the other hand  the implementations carried out have proved to be flexible enough with regard to the number of documents which the system can support  and also with regard to the number of categories in the directory. 

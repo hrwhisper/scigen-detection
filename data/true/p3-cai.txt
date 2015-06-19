@@ -1,0 +1,241 @@
+we consider the problem of document indexing and representation. recently  locality preserving indexing  lpi  was proposed for learning a compact document subspace. different from latent semantic indexing which is optimal in the sense of global euclidean structure  lpi is optimal in the sense of local manifold structure. however  lpi is extremely sensitive to the number of dimensions. this makes it difficult to estimate the intrinsic dimensionality  while inaccurately estimated dimensionality would drastically degrade its performance. one reason leading to this problem is that lpi is non-orthogonal. non-orthogonality distorts the metric structure of the document space. in this paper  we propose a new algorithm called orthogonal lpi. orthogonal lpi iteratively computes the mutually orthogonal basis functions which respect the local geometrical structure. moreover  our empirical study shows that olpi can have more locality preserving power than lpi. we compare the new algorithm to lsi and lpi. extensive experimental results show that orthogonal lpi obtains better performance than both lsi and lpi. more crucially  it is insensitive to the number of dimensions  which makes it an efficient data preprocessing method for text clustering  classification  retrieval  etc.
+categories and subject descriptors
+h.1  information storage and retrieval : content analysis and indexing-indexing methods
+general terms
+algorithms  measurement  performance  experimentation  theory
+keywords
+orthogonal locality preserving indexing  locality preserving indexing  document representation and indexing  similarity measure  dimensionality reduction  vector space model
+permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. to copy otherwise  to republish  to post on servers or to redistribute to lists  requires prior specific permission and/or a fee.
+sigir'1  august 1  1  salvador  brazil.
+copyright 1 acm 1-1/1 ...$1.
+1. introduction
+　there are two fundamental problems in document processing: how to represent the documents and how to evaluate their similarity. if we denote by document space the set of all the documents  different indexing algorithms see different structures of the document space. the vector space model  vsm  might be one of the most popular model for document representation. each document is represented as a bag of words. correspondingly  the document space is associated with a euclidean structure and the inner product  or  cosine similarity  is used as the standard similarity measure for documents. unfortunately  vsm suffers from some problems such as synonymy and polysemy.
+　data representation is fundamentally related to the problem of manifold learning  which is an emerging research area. given a set of high-dimensional data points  manifold learning techniques aim at discovering the geometric properties of the data space  such as its euclidean embedding   intrinsic dimensionality   connected components   homology   etc. particularly  learning representation is closely related to the embedding problem  while clustering can be thought of as finding connected components. finding an euclidean embedding of the document space is the primary focus of our work in this paper. manifold learning techniques can be classified into linear and non-linear techniques. for document processing  we are especially interested in linear techniques due to the consideration of computational complexity. however  our algorithm presented in this paper can be easily extended to nonlinear case. the typical linear techniques for document representation include latent semantic indexing   iterative residual rescaling   non-negative matrix factorization   and locality preserving indexing .
+　lsi is originally motivated to deal with the problem of synonymy and polysemy. the mathematics behind lsi is the singular value decomposition  svd . the basis functions obtained by svd are the eigenvectors of the matrix xxt  where x is the termdocument matrix. it would be important to note that lsi is different from principal component analysis  pca  in that xxt is generally not the data covariance matrix. in fact  this occurs only when the documents has a zero mean. one of the main advantages of lsi is that its basis functions are orthogonal. therefore  the metric structure in the lsi subspace can be well preserved. lsi received a lot of attentions during these years and many variants of lsi have been proposed .
+　lsi is optimal in the sense of preserving the global geometric structure of the document space  inner product . however  it might not be optimal in the sense of discrimination. specifically  lsi might not be optimal in separating documents with different topics. recently  lpi is proposed to discover the discriminant structure of the document space. it has shown that it can have more discriminative power than lsi. a reasonable assumption behind lpi is that  close inputs should have similar topics. the detailed discriminant analysis of lpi can be found in . different from lsi  lpi is non-orthogonal. therefore  it can not preserve the metric structure of the document space and suffers from the problem of dimensionality estimation. in fact  inaccurate estimation of the intrinsic dimensionality of the document space would drastically degrade lpi's performance. in the worst case  it can even produce worse performance than in the original representation space.
+　in this paper  we propose a new algorithm called orthogonal locality preserving indexing. orthogonal lpi is fundamentally based on lpi. it shares the same locality preserving character as lpi  but at the same time it requires the basis functions to be orthogonal. orthogonal basis functions preserve the metric structure of the document space. in fact  if we use all the dimensions obtained by orthogonal lpi  the projective map is simply a rotation map which does not distort the metric structure. therefore  the performance of orthogonal lpi is not sensitive to the number of dimensions. while for lpi  since it does not preserve the metric structure  its performance can be much worse than that in the original document space if the dimensionality is inaccurately estimated. moreover  our empirical study shows that orthogonal lpi can have more locality preserving power than lpi. since it has been shown that the locality preserving power is directly related to the discriminating power   the orthogonal lpi is expected to have more discriminating power than lpi.
+　the rest of the paper is organized as follows: in section 1  we give a brief review of lsi and lpi. section 1 introduces our algorithm. we provide a theoretical justification of our algorithm in section 1. extensive experimental results on document similarity  local structure of document space and clustering are presented in section 1. finally  we provide some concluding remarks and suggestions for future work in section 1.
+1. a brief review of lsi and lpi
+　lsi is one of the most popular algorithms for document indexing. it is fundamentally based on svd  singular value decomposition . given a set of documents {x1 ，，，  xn}   rm  they can be represented as a term-document matrix x =  x1 x1 ，，，  xn . suppose the rank of x is r  lsi decompose the x using svd as follow:
+x = uΣv t
+where Σ = diag σ1 ，，，  σr  and σ1 − σ1 − ，，， − σr are the singular values of x  u =  a1 ，，，  ar  and ai is called left singular vectors  v =  v1 ，，，  vr  and vi is called right singular vectors. lsi use the first k vectors in u as the transformation matrix to embed the original document into a k dimensional subspace. it can be easily checked that the column vectors of u are the eigenvectors of xxt. the basic idea of lsi is to extract the most representative features and at the same time the reconstruction error can be minimized. let a be the transformation vector and yi = atxi. the objective function of lsi can be stated below:
+	aopt	=	argminkx   aatxk1
+a
+	=	argmaxatxxta
+a
+with the constraint
+ata = 1
+since xxt is symmetric  the basis functions of lsi are orthogonal. it would be important to note that xxt becomes the data covariance matrix if the data points have a zero mean  i.e. xe = 1 where e =  1 ，，，  1 . in such a case  lsi is identical to principal component analysis . more details on theoretical interpretations of lsi using svd can refer to .
+　different from lsi which aims to extract the most representative features  lpi aims to extract the most discriminative features. given a similarity matrix s  lpi can be obtained by solving the following minimization problem:
+m
+1
+	t	t
+	aopt	=	argmin	a xi   a xj	sij
+a
+i=1
+	=	argminatxlxta
+a
+with the constraint
+atxdxta = 1
+where l = d   s is the graph laplacian  and dii =	j sij.
+dii measures the local density around xi. lpi constructs the similarity matrix s as:
+　　　　xti xj 	if xi is among the p nearest neighbors of xj sij =	or xj is among the p nearest neighbors of xi 1 	otherwise.
+thus  the objective function in lpi incurs a heavy penalty if neighboring points xi and xj are mapped far apart. therefore  minimizing it is an attempt to ensure that if xi and xj are  close  then yi  = atxi  and yj  = atxj  are close as well . finally  the basis functions of lpi are the eigenvectors associated with the smallest eigenvalues of the following generalized eigen-problem:
+xlxta = λxdxta
+xdxt is non-singular after some pre-processing steps on x in lpi  thus  the basis functions of lpi can also be regarded as the eigenvectors of the matrix  xdxt  1xlxt associated with the smallest eigenvalues. since  xdxt  1xlxt is not symmetric in general  the basis functions of lpi are non-orthogonal.
+　once the eigenvectors are computed  let ak =  a1 ，，，  ak  be the transformation matrix. thus  the euclidean distance between two data points in the reduced space can be computed as follows:
+
+if a is an orthogonal matrix  aat = i and the metric structure is preserved.
+1. the algorithm
+　in this section  we introduce a novel algorithm for document indexing and representation  called orthogonal lpi. the theoretical justifications of our algorithm will be presented in section 1.
+　in the document analysis and processing problems one is often confronted with the fact that the dimension of the document vector  m  is much larger than the number of documents  n . thus  the m 〜 m matrix xdxt is singular. to overcome this problem  we can apply pca to project the documents into a subspace without losing any information and the matrix xdxt becomes non-singular.
+the algorithmic procedure of olpi is stated below:
+1. pca projection: we project the document set xi into the pca subspace by throwing away the components corresponding to zero eigenvalue. we denote the transformation matrix
+of pca by wpca. by pca projection  the extracted features are statistically uncorrelated and the rank of the new data matrix is equal to the number of features  dimensions .
+1. constructing the adjacency graph: let g denote a graph with n nodes. the i-th node corresponds to the document xi. we put an edge between nodes i and j if xi and xj are  close   i.e. xi is among p nearest neighbors of xj or xj
+is among p nearest neighbors of xi. note that  if the documents have been classified into different semantic classes  one might construct an adjacency graph based on the class labels. that is  we can put an edge between two nodes if and only if they have the same class label.
+1. choosing the weights: if node i and j are connected  put
+sij = xti xj
+otherwise  put sij = 1. the weight matrix s of graph g models the local structure of the document space.
+1. computing the orthogonal locality preserving projections: we define d as a diagonal matrix whose entries are column  or row  since s is symmetric  sums of s  dii = j sji. we also define l = d   s  which is called lapla-
+cian matrix in spectral graph theory . let {a1 a1 ，，，  ak} be the orthogonal locality preserving projections  we define:
+a k 1  =  a1 ，，，  ak 1 
+t
+	 k 1 	 k 1 	t  1  k 1 
+	b	= a	 xdx  	a
+the orthogonal locality preserving vectors {a1 a1 ，，，  ak} can be iteratively computed as follow:
+  compute a1 as the eigenvector of  xdxt  1xlxt associated with the smallest eigenvalue.
+  compute ak as the eigenvector of
+ 1
+	m k  =	i    xdxt  1a k 1  b k 1 
+t
+ k 1 	t  1	t a	，  xdx  	xlx
+associated with the smallest eigenvalue of m k .
+1. olpi embedding: let wolpi =  a1 ，，，  al   the embedding is as follows:
+x ★ y = wtx
+w = wpcawolpi
+where y is a l-dimensional representation of the document x. w is the transformation matrix.
+1. justifications
+　in this section  we provide theoretical justifications of our proposed algorithm.
+1 optimal orthogonal embedding
+we begin with the following definition:
+definition 1. let a （ rm be a projective map. the locality
+preserving function f is defined as follows:
+atxlxta f a  = atxdxta the locality preserving function f a  evaluates the locality preserving power of the projective map a. directly minimizing this function will lead to the original lpi algorithm. our olpi algorithm tries to find a set of orthogonal basis vectors which minimizes the locality preserving function.
+thus the objective function of olpi is:
+atxlxta a1 = argmina atxdxta
+atxlxta ak = argmina atxdxta
+with the constraint
+atk a1 = atk a1 = ，，， = atk ak 1 = 1
+　since xdxt is positive definite after pca projection  for any a  we can always normalize it such that atxdxta = 1  and the ratio of atxlxta and atxdxta keeps unchanged. thus  the above minimization problem is equivalent to minimizing the value of atxlxta with an additional constraint as follows 
+atxdxta = 1
+note that  the above normalization is only for simplifying the computation. once we get the optimal solutions  we can re-normalize them to get a othonormal basis vectors.
+　it is easy to check that a1 is the eigenvector of the generalized eigen-problem:
+xlxta = λxdxta
+associated with the smallest eigenvalue. since xdxt is nonsingular  a1 is the eigenvector of the matrix  xdxt  1xlxt associated with the smallest eigenvalue.
+　in order to get the k-th basis vector  we minimize the following objective function:
+	t	t
+xlx ak
+		 1 
+ak xdx ak
+with the constraints:
+	atk a1 = atk a1 = ，，， = akt ak 1 = 1 	atk xdxtak = 1
+　we can use the lagrange multipliers to transform the above objective function to include all the constraints
+c k  = atk xlxtak   λ atk xdxtak   1 
+  μ1atk a1   ，，，   μk 1atk ak 1
+the optimization is performed by setting the partial derivative of c k  with respect to ak to zero:
+
+multiplying the left side of  1  by atk   we obtain
+1atk xlxtak   1λatk xdxtak = 1
+	atk xlxtak	 1 
+
+ λ = atk xdxtak
+comparing to  1   λ exactly represents the expression to be mini-
+mized.
+　multiplying the left side of  1  successively by     we now obtain a set of k   1 equations:
+μ1at1  xdxt  1 + ，，， + μk 1at1  xdxt  1ak 1
+=1at1  xdxt  1xlxtak
+μ1at1  xdxt  1 + ，，， + μk 1at1  xdxt  1ak 1
+=1at1  xdxt  1xlxtak
+，，，，，，
+μ1atk 1 xdxt  1 + ，，， + μk 1atk 1 xdxt  1ak 1
+=1atk 1 xdxt  1xlxtak
+we define:
+	μ k 1  =  μ1 ，，，  μk 1 t 	a k 1  =  a1 ，，，  ak 1 
+t
+	b k 1  = bij k 1  = a k 1 	 xdxt  1a k 1 
+bij k 1  = ati  xdxt  1aj
+using this simplified notation  the previous set of k   1 equations can be represented in a single matrix relationship
+t
+	 k 1   k 1 	 k 1 	t  1	t
+	b	μ	= 1 a	 xdx  	xlx ak
+thus
+	 1	t
+	 k 1 	 k 1 	 k 1 	t  1	t
+μ	= 1 b	a	 xdx  	xlx ak  1 
+let us now multiply the left side of  1  by  xdxt  1 xdxt  1xlxtak   1λak   μ1 xdxt  1
+  ，，，   μk 1 xdxt  1ak 1 = 1
+this can be expressed using matrix notation as
+1 xdxt  1xlxtak   1λak
+   xdxt  1a k 1 μ k 1  = 1
+with equation  1   we obtain
+	 1	t
+	i    xdxt  1a k 1  b k 1 	a k 1 
+，  xdxt  1xlxtak = λak
+as shown in  1   λ is just the criterion to be minimized  thus ak is the eigenvector of
+	 1	t
+m k  =	i    xdxt  1a k 1  b k 1 	a k 1 
+，  xdxt  1xlxt
+associated with the smallest eigenvalue of m k .
+　finally  we get the optimal orthogonal basis vectors. the orthogonal basis of olpi preserves the metric structure of the document space.
+　recall in lpi   the basis vectors of lpi is the first k eigenvectors associated with the smallest eigenvalues of the eigen-problem:
+	xlxtb = λxdxtb	 1 
+thus  the basis vectors satisfy the following constraint:
+	bti xdxtbj = 1	 i 1= j 
+the transformation of lpi is non-orthogonal. actually  it is xdxtorthogonal.
+
+figure 1: the eigenvalues of lpi and olpi
+1 locality preserving power
+　both lpi and olpi try to preserve the local geometric structure. they find the basis vectors by minimizing the locality preserving function:
+atxlxta
+	f a  = atxdxta	 1 
+f a  reflects the locality preserving power of the projective map a. in lpi  based on the rayleigh quotient format of the eigenproblem  eqn. 1    the value of f a  is exactly the eigenvalue of eqn.  1  corresponding to eigenvector a. therefore  the eigenvalues of lpi reflect the locality preserving power of lpi. in olpi  as we show in eqn.  1   the eigenvalues of olpi also reflect its locality preserving power. this observation motivates us to compare the eigenvalues of lpi and olpi.
+　fig. 1 shows the eigenvalues of lpi and olpi. the data set used for this study is the document set  air  in table 1  please see section 1.1 for details . as can be seen  the eigenvalues of olpi is consistently smaller than those of lpi  which indicates that olpi can have more locality preserving power than lpi. we also did experiments on the other 1 document sets in table 1 and get the similar results.
+　since it has been shown in  that the locality preserving power is directly related to the discriminating power  we expect that the olpi based applications on document processing can obtain better performance than those based on lpi.
+1. experimental results
+　in this section  several experiments on tdt1 data corpus were performed to show the effectiveness of our proposed algorithm. we compared our proposed algorithm orthogonal lpi with lsi and lpi.
+1 data corpus
+　the tdt1 corpus1 consists of data collected during the first half of 1 and taken from 1 sources  including 1 newswires  apw  nyt   1 radio programs  voa  pri  and 1 television programs  cnn  abc . it consists of 1 on-topic documents which are classified into 1 semantic categories. in this experiment  those documents appearing in two or more categories were removed  and only the largest 1 categories were kept  thus leaving us with 1 documents in total as described in table 1. each document is represented as a term-frequency vector. we simply removed the stop table 1: 1 semantic categories from tdt1 used in our experiments category num of doc category num of doc
+11111111111111111111word and no further preprocessing was done. each document vector is normalized to 1 and the euclidean distance is used as the distance measure.
+1 similarity evaluation
+1.1 data preparation
+　from the  title  field of 1 trec ad hoc topics  topic 1゛1   we chose 1 keywords that appear in our data collection with highest frequencies  say  qi  i = 1 ，，，  1 . for each keyword qi  let di denote the set of the documents containing qi. let d = d1 “ ，，， “ d1. finally  we get 1 document subsets and each subset contains multiple topics. note that  these subsets are not necessarily disjoint. the numbers of documents of these 1 document subsets ranged from 1 to 1 with an average of 1  and the number of topics ranged from 1 to 1 with an average of 1  table 1 . the reason for generating such 1 document subsets is to split the data collection into small subsets so that we can compare our algorithm to lsi and lpi on each subset. in fact  the keywords can be thought of as queries in information retrieval. thus  the comparison can be thought of as being performed on different queries .
+table 1: 1 document subsets
+	query	num of doc	query	num of doc
+air1impact1british1information1building1legal1control1material1cooperation1money1court1peace1decision1police1domestic1robert1drug1russia1fire1school1food1smoking1growth1technology1health1trade1history1violence1human1women1.1 similarity measure
+　the accuracy of similarity measure plays a crucial role in most of the information processing tasks  such as document clustering  classification  retrieval  etc. in this subsection  we evaluate the accuracy of similarity measure using three different indexing algorithms  i.e. olpi  lpi and lsi. the similarity measure we used is the cosine similarity.
+　for the original document set d  we compute its lower dimensional representations dolpi  dlpi and dlsi by using olpi 
+ 	 
+
+	 a 	 b 
+figure 1: the average precisions of lsi  lpi and olpi vary with the dimensionality reduction rate. the optimal performances obtained by both lpi and olpi are better than lsi. also  olpi is less sensitive to the dimensionality reduction rate than lpi.
+lpi and lsi respectively. similarly  dolpi consists of 1 subsets 
+dolpi 1  ，，，  dolpi 1. dlpi consists of 1 subsets  dlpi 1  ，，，  dlpi 1. dlsi also consists of 1 subsets  dlsi 1  ，，，  dlsi 1. we take the number of nearest neighbors for the olpi and lpi algorithm to be 1.
+　for each document subset di  or  dolpi i  dlpi i  dlsi i   we evaluate the similarity measure between the documents in di. intuitively  we expect that similarity should be higher for any document pair related to the same topic  intra-topic pair  than for any pair related to different topics  cross-topic pair . therefore  we adopted the average precision used in trec  regarding an intratopic pair as a relevant document and the similarity value as the ranking score. specifically  we denote by pi the document pair which has the i-th highest similarity value among all pairs of documents in the document set di. for each intra-topic pair pk  its precision is evaluated as follows:
+precision pk  = # of intra-topic pairs pj where j ＋ k k
+the average of the precision values over all intra-topic pairs in di was computed as the average precision of di. note that  the definition of precision we used here is the same as that used in .
+1.1 result
+　the experimental results on similarity are reported in this subsection. we compared olpi  corresponding to document set dolpi  to lpi  corresponding to document set dlpi   lsi  corresponding to document set dlsi  and the original document representation  corresponding to document set d as baseline algorithm . in general  the performance of olpi  lpi and lsi varies with the number of dimensions. we compared their results on different dimensions. figure 1 shows the average precision over 1 document sets  table 1  with different dimensionality reduction rates. in figure 1 a   the rate ranges from 1% to 1%. in figure 1 b   the rate ranges from 1% to 1%. figure 1 b  provide us with a better view of the performance changes when the dimensionality is small.
+　as can be seen from figure 1  the best performances of both lpi and olpi are better than baseline. however  the lpi is very sensitive to the dimensionality  which makes the dimensionality estimation extremely crucial in lpi. when the dimensionality is inaccurately estimated  the performance of lpi can be much worse than the baseline. the orthogonal basis functions of olpi preserve the metric structure of the document space. moreover  it has more locality preserving power  or  discriminating power  than lpi  as we have shown in figure 1. also  it can be seen that  both lpi and olpi outperform lsi when the dimensionality is small.
+　by using lpi or olpi  we can obtain an extremely low dimensional representation for documents  which might facilitate some real world applications such as clustering  classification and retrieval. and the insensitivity to the dimension makes olpi more applicable than lpi.
+1 discriminating power
+　as pointed in   lpi is an unsupervised approximation to lda algorithm which is supervised. orthogonal lpi share the similar objective function with lpi. it is intrinsically similar with lpi. thus orthogonal lpi also has discriminating power. meanwhile  the orthogonal basis in olpi make it less sensitive to the reduced dimensionality.
+　in many cases  the data points  documents  may lack of labels. specifically  for each data point  we do not know to what specific topic it is related to. however  it might be possible to discover the discriminant structure hidden in the data points. in other words  it might be possible to know if two data points are related to the same topic. in the context of learning theory  it is often assumed that if two points x1  x1 are close in the intrinsic geometry of the data space  then they are related to the same topic . in this section  we evaluate the discriminating power of olpi  lpi and lsi. the dataset we used here is the same as that used in section 1.1.
+　for each document subset  we project the documents into a subspace by using olpi  lpi  lsi and baseline algorithm. for the baseline algorithm  we simply use svd to remove those components corresponding to zero eigenvalue. in other words  the baseline algorithm preserves inner product and there is no information loss  while the dimensionality is reduced. let n denote the number of data points in the subset and c denote the number of semantic classes contained in this subset. for each semantic class  let pi denote the number of data points in the i-th class. let xji the j-th sample in the i-th semantic class. for each data point xji  we find its pi nearest neighbors in the subspace. among these pi data points  those sharing the same label as xji are called relevant examples. thus  we can compute the accuracy for xji as follows:
+accuracy xji  = # of relevant examples pi
+correspondingly  the average precision can be computed:
+
+　as before  the accuracy varies with the dimensionality reduction rates as shown in figure 1. the rate in figure 1 a  ranges from 1% to 1% and the rate in figure 1 b  ranges from 1% to 1%.
+as can be seen  the optimal performances obtained by both lpi and olpi are better than lsi. also  olpi is less sensitive to the dimensionality reduction rate than lpi. therefore  olpi can work more stably than lpi in the real world applications  such as document clustering.
+1 clustering evaluation
+　document clustering is one of most crucial techniques to organize the documents in an unsupervised manner. in this subsection  we investigate the use of indexing algorithms for document clustering.
+　we chose k-means as our clustering algorithm and compared four methods. these four methods are listed below:
+  k-means on original term-document matrix  k-means  - this
+method is treated as our baseline
+ 	 
+
+	 a 	 b 
+figure 1: the average accuracies of lsi  lpi and olpi vary with the dimensionality reduction rate. the optimal performances obtained by both lpi and olpi are better than lsi. also  olpi is less sensitive to the dimensionality reduction rate than lpi.
+  k-means after lsi  lsi 
+  k-means after lpi  lpi 
+  k-means after olpi  olpi 
+note that  the two methods lpi and olpi need to construct a graph on the documents. in this experiment  we used the same graph for these two methods and the parameter p  number of nearest neighbors  was set to 1.
+1.1 evaluation metric
+　the clustering result is evaluated by comparing the obtained label of each document with that provided by the document corpus. two metrics  the accuracy  ac  and the normalized mutual in-
+
+formation metric  mi  are used to measure the clustering performance . given a document xi  let ri and si be the obtained cluster label and the label provided by the corpus  respectively. the ac is defined as follows:
+
+where n is the total number of documents and δ x y  is the delta function that equals one if x = y and equals zero otherwise  and map ri  is the permutation mapping function that maps each cluster label ri to the equivalent label from the data corpus. the best mapping can be found by using the kuhn-munkres algorithm .
+　let c denote the set of clusters obtained from the ground truth and c＞ obtained from our algorithm. their mutual information metric mi c c＞  is defined as follows:
+
+where p ci  and p cj＞   are the probabilities that a document arbitrarily selected from the corpus belongs to the clusters ci and cj＞   respectively  and p ci cj＞   is the joint probability that the arbitrarily selected document belongs to the clusters ci as well as cj＞ at the same time. in our experiments  we use the normalized mutual
+
+information mi as follows:
+
+where h c  and h c＞  are the entropies of c and c＞  respec-
+
+tively.	it is easy to check that mi c c＞  ranges from 1 to 1.
+
+mi = 1 if the two sets of clusters are identical  and mi = 1 if the two sets are independent.
+1.1 clustering results
+　the evaluations were conducted with different number of clusters  ranging from 1 to 1. for each given cluster number k  1 tests were conducted on different randomly chosen categories  and the average performance was computed over these 1 tests. for each test  k-means algorithm was applied 1 times with different start points and the best result in terms of the objective function of k-means was recorded.
+　figure 1 shows the average accuracy and average mutual information for different number of classes  different k . both lpi and olpi reach their best performance at very low dimensionality. after the optimal dimension  the performance of lpi decreases drastically. for olpi  its performance fluctuates slightly and is always above the performance of the baseline. for lsi  the clustering performance does not outperform the baseline.
+1 discussions
+we summarize the experiments below:
+1. the low dimensionality of the document subspace obtainedin our experiments show that dimensionality reduction is indeed necessary as a preprocessing for document clustering  classification  retrieval  etc.
+1. the discriminating power and orthogonal basis functions aretwo important factors in acquiring a good document representation method. olpi combines the advantages of lsi and lpi. thus  it is expected to be a natural alternative to lpi.
+1. conclusions and future work
+　we have proposed a new algorithm for document indexing and representation  called orthogonal locality preserving indexing. the new algorithm combines the advantages of both latent semantic indexing and locality preserving indexing. as shown in our experiment results  orthogonal lpi can have as much discriminative power as the standard lpi  while it does not suffer from the problem of dimensionality estimation.
+　several questions remain unclear and will be investigated in our future work:
+1. in most of previous work on document indexing  it is assumed that the data space is connected. correspondingly  the data space has an intrinsic dimensionality. however  this might not be the case for real world data. the data space can be disconnected and different components can have different dimensionality. it remains unclear how often such a case may occur and how to deal with it.
+1. orthogonal lpi is linear  but it can be also performed in reproducing kernel hilbert space which gives rise to nonlinear maps. it is unclear if the document space is linear or nonlinear. if it is nonlinear  better performance may be obtained by nonlinear techniques. the difficulty is that the document space is always embedded in an extremely high-dimensional ambient space whose bases correspond to the terms. thus  correctly identifying the geometric structure of the document space require a large amount of sample points.

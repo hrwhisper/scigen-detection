@@ -1,0 +1,24 @@
+1. system overview
+　alvin makes use of some sampling-based schemes for both focusing the search and visualizing networks which are too big to be fully visualized.
+1 sampling a network
+　there are several ways of sampling a network  and a few of the characteristics of the original network can be preserved in the sample. given a network  any subgraph of the network can be treated as a sample of the network. clearly  there are different ways of taking a subgraph and as a result there are many different sampling strategies. we use three methods for obtaining a simple random sample of a network:  1  sampling from nodes   1  sampling from edges and  1  sampling from edges followed by adding the edges with both endpoints in the sample.
+　there is a caveat when sampling from nodes; unless the network is very  well-connected   the resulting sample would be quite sparse. in this case  sampling from edges instead may be more desirable.
+1 a model of browsing for large networks
+　the original network can be large  and visualizing a small sample that can preserve some of the desired topological properties of the network may not be feasible. to address this problem and to provide a navigation scheme  we develop
+　
+1
+
+	 a 	 b 
+figure 1:  a  the connectivity network of the world wide web at the domain level  and  b  the same network with the scc
+　
+coloured red.
+several growth processes  collectively referred to as network growth  that allows one to interactively visualize a network.
+  global growth: visualize the network without emphasizing one specific part of it.
+  local growth: narrow down the visualization to a part of the network where the user is interested in.   mixed growth: narrow down the visualization to a part of the network where the user is interested in but visualize this part in the context of the larger network.   wiring: show more interconnections of the network that is being visualized.
+　in an interactive fashion to some degree similar to web browsers  our visualization starts with a small subset of the network which may include a set of hand-picked nodes and edges or the result of a query. the visualization may proceed towards the goal by iteratively growing the initial set. this is useful for narrowing down the visualization to some of the interesting elements when the network is too large to be fully visualized. a novelty of our method is the way the network  currently displayed on canvas  is expanded. our method uses user-controllable parameters to describe how and to what degree the network must be expanded. the expanded network often has more detail about the elements being studied yet is small enough to be visualized and internalized. after a few layers of extension  the network may become too large; this may be an indication that the browsing should switch to another small subset before it can continue.
+1. evaluation and conclusions
+　alvin has been implemented and makes use of the db1 relational database as its back-end data storage and querying engine and the leda class library for drawing and layout tools. to evaluate our prototype  we ran experiments on a few different networks  including the movie database  the linkage structure of a snapshot of the web  and other synthetic networks. due to the lack of space  we cannot report our experiments here. the result shows that indeed sampling can preserve some of the topological properties of a network and this can be useful in visualizing very large networks.
+　given the limitations of the screen and the size of a sample  our proposed scheme allows the search to be localized  thus increasing the ratio of sample size to the size of the desired network and removing possible biases due to the sample size.
+　more details about our analysis and evaluations can be found elsewhere .
+acknowledgment
+this research was supported by natural sciences and engineering research council and the alberta ingenuity centre for machine learning.

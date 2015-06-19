@@ -1,0 +1,293 @@
+existing data-stream clustering algorithms such as clustream are based on k-means. these clustering algorithms are incompetent to find clusters of arbitrary shapes and cannot handle outliers. further  they require the knowledge of k and user-specified time window. to address these issues  this paper proposes d-stream  a framework for clustering stream data using a density-based approach. the algorithm uses an online component which maps each input data record into a grid and an offline component which computes the grid density and clusters the grids based on the density. the algorithm adopts a density decaying technique to capture the dynamic changes of a data stream. exploiting the intricate relationships between the decay factor  data density and cluster structure  our algorithm can efficiently and effectively generate and adjust the clusters in real time. further  a theoretically sound technique is developed to detect and remove sporadic grids mapped to by outliers in order to dramatically improve the space and time efficiency of the system. the technique makes high-speed data stream clustering feasible without degrading the clustering quality. the experimental results show that our algorithm has superior quality and efficiency  can find clusters of arbitrary shapes  and can accurately recognize the evolving behaviors of real-time data streams.
+categories and subject descriptors
+h.1  database management : database applications- data mining
+general terms
+algorithms  experimentation  performance  theory
+keywords
+stream data mining  density-based clustering  d-stream  sporadic grids
+permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. to copy otherwise  to republish  to post on servers or to redistribute to lists  requires prior specific permission and/or a fee.
+kdd'1  august 1  1  san jose  california  usa.
+copyright 1 acm 1-1-1/1 ...$1.
+1. introduction
+¡¡clustering high-dimensional stream data in real time is a difficult and important problem with ample applications such as network intrusion detection  weather monitoring  emergency response systems  stock trading  electronic business  telecommunication  planetary remote sensing  and web site analysis. in these applications  large volume of multidimensional data streams arrive at the data collection center in real time. examples such as the transactions in a supermarket and the phone records of a mobile phone company illustrate that  the raw data typically have massive volume and can only be scanned once following the temporal order  1  1 . recently  there has been active research on how to store  query and analyze data streams.
+¡¡clustering is a key data mining task. in this paper  we consider clustering multi-dimensional data in the form of a stream  i.e. a sequence of data records stamped and ordered by time. stream data clustering analysis causes unprecedented difficulty for traditional clustering algorithms. there are several key challenges. first  the data can only be examined in one pass. second  viewing a data stream as a long vector of data is not adequate in many applications. in fact  in many applications of data stream clustering  users are more interested in the evolving behaviors of clusters.
+¡¡recently  there have been different views and approaches to stream data clustering. earlier clustering algorithms for data stream uses a single-phase model which treats data stream clustering as a continuous version of static data clustering . these algorithms uses divide and conquer schemes that partition data streams into segments and discover clusters in data streams based on a k-means algorithm in finite space  1  1 . a limitation of such schemes is that they put equal weights to outdated and recent data and cannot capture the evolving characteristics of stream data. movingwindow techniques are proposed to partially address this problem  1  1 .
+¡¡another recent data stream clustering paradigm proposed by aggarwal et al. uses a two-phase scheme  which consists of an online component that processes raw data stream and produces summary statistics and an offline component that uses the summary data to generate clusters. strategies for dividing the time horizon and manage the statistics are studied. the design leads to the clustream system . many recent data stream clustering algorithms are based on clustream's two-phase framework. wang et al. proposed an improved offline component using an incomplete partitioning strategy . extensions of this work including clustering multiple data streams   parallel data streams   and distributed data steams   and applications of data stream mining  1  1  1 .
+¡¡a number of limitations of clustream and other related work lie in the k-means algorithm used in their offline component. first  a fundamental drawback of k-means is that it aims at identifying spherical clusters but is incapable of revealing clusters of arbitrary shapes. however  nonconvex and interwoven clusters are seen in many applications. sec-
+ond  the k-means algorithm is unable to detect noise and outliers. third  the k-means algorithm requires multiple scans of the data  making it not directly applicable to largevolume data stream. for this reason  the clustream architecture uses an online processing which compresses raw data stream in micro-clusters  which are used as the basic elements in the offline phase.
+¡¡density-based clustering has been long proposed as another major clustering algorithm  1  1 . we find the densitybased method a natural and attractive basic clustering algorithm for data streams  because it can find arbitrarily shaped clusters  it can handle noises and is an one-scan algorithm that needs to examine the raw data only once. further  it does not demand a prior knowledge of the number of clusters k as the k-means algorithm does.
+¡¡in this paper  we propose d-stream  a density-based clustering framework for data streams. it is not a simple switch-over to use density-based instead of k-means algorithms for data streams. there are two main technical challenges.
+¡¡first  it is not desirable to treat the data stream as a long sequence of static data since we are interested in the evolving temporal feature of the data stream. to capture the dynamic changing of clusters  we propose an innovative scheme that associates a decay factor to the density of each data point. unlike the clustream architecture which asks the users to input the target time duration for clustering  the decay factor provides a novel mechanism for the system to dynamically and automatically form the clusters by placing more weights on the most recent data without totally discarding the historical information. in addition  d-stream does not require the user to specify the number of clusters k. thus  d-stream is particularly suitable for users with little domain knowledge on the application data.
+¡¡second  due to the large volume of stream data  it is impossible to retain the density information for every data record. therefore  we propose to partition the data space into discretized fine grids and map new data records into the corresponding grid. thus  we do not need to retain the raw data and only need to operate on the grids. however  for high-dimensional data  the number of grids can be large. therefore  how to handle with high dimensionality and improve scalability is a critical issue. fortunately  in practice  most grids are empty or only contain few records and a memory-efficient technique for managing such a sparse grid space is developed in d-stream.
+¡¡by addressing the above issues  we propose d-stream  a density-based stream data clustering framework. we study in depth the relationship between time horizon  decay factor  and data density to ensure the generation of high quality clusters  and develop novel strategies for controlling the decay factor and detecting outliers. d-stream automatically and dynamically adjusts the clusters without requiring user specification of target time horizon and number of clusters. the experimental results show that d-stream can
+1. procedure d-stream
+1. tc = 1;
+1. initialize an empty hash table grid list;
+1. while data stream is active do
+1. read record x =  x1 x1 ¡¤¡¤¡¤  xd ;
+1. determine the density grid g that contains x;
+1. if g not in gridlist  insert g to grid list;
+1. update the characteristic vector of g;
+1. if tc == gap then
+1. call initialclustering grid list ;
+1. end if
+1. if tc mod gap == 1 then
+1. detect and remove sporadic grids from gridlist;
+1. call adjustclustering grid list ;
+1. end if
+1. tc = tc + 1;
+1. end while
+1. endprocedure
+figure 1: the overall process of d-stream.
+find clusters of arbitrary shapes. comparing to clustream  d-stream is better in terms of both clustering quality and efficiency and it exhibits high scalability for large-scale and high-dimensional stream data.
+¡¡the rest of the paper is organized as follows. in section 1  we overview the overall architecture of d-stream. in section 1  we present the concept and theory on the proposed density grid and decay factor. in section 1  we give the algorithmic details and theoretical analysis for d-stream. we conduct experimental study of d-stream and compare d-stream to clustream on real-world and synthetic data sets in section 1 and conclude the paper in section 1.
+1. overall algorithm of d-stream
+¡¡we overview the overall architecture of d-stream  which assumes a discrete time step model  where the time stamp is labelled by integers 1 1 ¡¤¡¤¡¤  n ¡¤¡¤¡¤. like clustream   d-
+stream has an online component and an offline component. the overall algorithm is outlined in figure 1.
+¡¡for a data stream  at each time step  the online component of d-stream continuously reads a new data record  place the multi-dimensional data into a corresponding discretized density grid in the multi-dimensional space  and update the characteristic vector of the density grid  lines 1 of figure 1 . the density grid and characteristic vector are to be described in detail in section 1. the offline component dynamically adjusts the clusters every gap time steps  where gap is an integer parameter. after the first gap  the algorithm generates the initial cluster  lines 1 . then  the algorithm periodically removes sporadic grids and regulates the clusters  lines 1 .
+1. density grids
+¡¡in this section  we introduce the concept of density grid and other associated definitions  which form the basis for the d-stream algorithm.
+¡¡since it is impossible to retain the raw data  d-stream partitions the multi-dimensional data space into many density grids and forms clusters of these grids. this concept is schematically illustrated in figure 1.
+1 basic definitions
+¡¡in this paper  we assume that the input data has d dimensions  and each input data record is defined within the
+
+figure 1: illustration of the use of density grid.
+space
+	s = s1 ¡Á s1 ¡Á ¡¤¡¤¡¤ ¡Á sd 	 1 
+where si is the definition space for the ith dimension.
+¡¡in d-stream  we partition the d dimensional space s into density grids. suppose for each dimension  its space si  i = 1 ¡¤¡¤¡¤  d is divided into pi partitions as
+	 	 1 
+then the data space s is partitioned into density grids. for a density grid g that is composed of s1 j1 ¡Á s1 j1 ¡¤¡¤¡¤ ¡Á sd jd  ji = 1 ... pi  we denote it as
+	g =  j1 j1 ¡¤¡¤¡¤  jd .	 1 
+¡¡a data record x =  x1 x1 ¡¤¡¤¡¤  xd  can be mapped to a density grid g x  as follows:
+g x  =  j1 j1 ¡¤¡¤¡¤  jd  where xi ¡Ê si ji.
+¡¡for each data record x  we assign it a density coefficient which decreases with as x ages. in fact  if x arrives at time tc  we define its time stamp t x  = tc  and its density coefficient d x t  at time t is
+	d x t  = ¦Ët t x  = ¦Ët tc 	 1 
+where ¦Ë ¡Ê  1  is a constant called the decay factor.
+¡¡definition 1.  grid density  for a grid g  at a given time t  let e g t  be the set of data records that are map to g at or before time t  its density d g t  is defined as the sum of the density coefficients of all data records that mapped to g. namely  the density of g at t is:
+.
+¡¡the density of any grid is constantly changing. however  we have found that it is unnecessary to update the density values of all data records and grids at every time step. instead  it is possible to update the density of a grid only when a new data record is mapped to that grid. for each grid  the time when it receives the last data record should be recorded so that the density of the grid can be updated according to the following result when a new data record arrives at the grid.
+¡¡proposition 1. suppose a grid g receives a new data record at time tn  and suppose the time when g receives the last data record is tl  tn   tl   then the density of g can be updated as follows:
+	d g tn  = ¦Ëtn tld g tl  + 1	 1 
+proof. let x = {x1 ¡¤¡¤¡¤  xm} be the set of all data records in g at time tl  we have:
+	.	 1 
+according to  1   we have that:
+	d xi tn 	=	¦Ëtn t xi  = ¦Ëtn tl¦Ëtl t xi 
+	=	¦Ëtn tld xi tl   for i = 1 ¡¤¡¤¡¤  m.	 1 
+therefore  we have:
+.
+
+¡¡proposition 1 saves huge amount of computation time. to update all grids at each time step requires ¦¨ n  computing time for density update at each time step. in contrast  using proposition 1 allows us to update only one grid  leading to a ¦¨ 1  running time. the efficiency improvement is significant since the number of grids n is typically large.
+¡¡moreover  proposition 1 saves memory space. we find that we do not need to save the time stamps and densities of all the data records in a grid. instead  for each grid  it suffices to store a characteristic vector defined as follows. we will explain the use of each element in the vector later.
+¡¡definition 1.  characteristic vector  the characteristic vector of a grid g is a tuple  tg tm d label status   where tg is the last time when g is updated  tm is the last time when g is removed from grid list as a sporadic grid  if ever   d is the grid density at the last update  label is the class label of the grid  and status = {sporadic  normal} is a label used for removing sporadic grids.
+1 density-based grid clusters
+¡¡we now need to decide how to derive clusters based on the density information. our method is based on the following observation.
+¡¡proposition 1. let x t  be the set of all data records that arrive from time 1 to t  we have:
+1   for any ; 1  lim	.
+proof. for a given time  is the sum of density coefficient of the t+1 data records that arrive at time steps 1 ¡¤¡¤¡¤  t  respectively. for a data record time   its density is d x t  = ¦Ët t .
+therefore  the sum over all the data records is:
+.
+also  it is clear that:
+.	 proposition 1 shows that the sum of the density of all data records in the system will never exceed . since there are grids  the average density of each grid is no more than but approaching . this observation motivates the following definitions.
+at time t  for a grid g  we call it a dense grid if
+	 	 1 
+where cm   1 is a parameter controlling the threshold. for example  we set cm = 1. we require n   cm since d g t  cannot exceed.
+at time t  for a grid g  we call it a sparse grid if
+	 	 1 
+where 1   cl   1. for example  we set cl = 1.
+at time t  for a grid g  we call it a transitional grid if
+	.	 1 
+¡¡in the multi-dimensional space  we consider connecting neighboring grids  defined below  in order to form clusters.
+definition 1.  neighboring grids  consider two den-
+sity grids  and jd1   if there exists k  1 ¡Ü k ¡Ü d  such that:
+1 ; and
+1 
+then are neighboring grids in the kth dimension  denoted as g1 ¡« g1.
+¡¡definition 1.  grid group  a set of density grids g =  g1 ¡¤¡¤¡¤  gm  is a grid group if for any two grids gi gj ¡Ê g  there exist a sequence of grids gk1 ¡¤¡¤¡¤  gkl such that gk1 = gi  gkl = gj  and gk1 ¡« gk1  gk1 ¡« gk1  ¡¤¡¤¡¤  and gkl 1 ¡« gkl.
+¡¡definition 1.  inside and outside grids  consider a grid group g and a grid g ¡Ê g  suppose g =  j1 ¡¤¡¤¡¤  jd   if g has neighboring grids in every dimension i = 1 ¡¤¡¤¡¤  d  then g is an inside grid in g. otherwise g is an outside grid in g.
+¡¡now we are ready to define how to form clusters based on the density of grids.
+¡¡definition 1.  grid cluster  gm  be a grid group  if every inside grid of is a dense grid and every outside grid is either a dense grid or a transitional grid  then g is a grid cluster.
+¡¡intuitively  a grid cluster is a connected grid group which has higher density than the surrounding grids. note that we always try to merge clusters whenever possible  so the resulting clusters are surrounded by sparse grids.
+1. components of d-stream
+¡¡we now describe in detail the key components of d-stream outline in figure 1. as we have discuss in the last section  for each new data record x  we map it to a grid g and use  1  to update the density of g  lines 1 of figure 1 . we then periodically  every gap time steps  form clusters and remove sporadic grids. in the following  we describe our strategies for determining gap  managing the list of active grids  and generating clusters.
+1 grid inspection and time interval gap
+¡¡to mine the dynamic characteristics of data streams  our density grid scheme developed in section 1 gradually reduces the density of each data record and grid. a dense grid may degenerate to a transitional or sparse grid if it does not receive no new data for a long time. on the other hand  a sparse grid can be upgraded to a transitional or dense grid after it receives some new data records. therefore  after a period of time  the density of each grid should be inspected and the clusters adjusted.
+¡¡a key decision is the length of the time interval for grid inspection. it is interesting to note that the value of the time interval gap cannot be too large or too small. if gap is too large  dynamical changes of data streams will not be adequately recognized. if gap is too small  it will result in frequent computation by the offline component and increase the workload. when such computation load is too heavy  the processing speed of the offline component may not match the speed of the input data stream.
+¡¡we propose the following strategy to determine the suitable value of gap. we consider the minimum time needed for a dense grid to degenerate to a sparse grid as well as the minimum time needed for a sparse grid to become a dense grid. then we set gap to be minimum of these two minimum times in order to ensure that the inspection is frequent enough to detect the density changes of any grid.
+¡¡proposition 1. for any dense grid g  the minimum time needed for g to become a sparse grid from being a dense grid is
+	.	 1 
+m
+proof. according to  1   if at time t  a grid g is a dense grid  then we have:
+	.	 1 
+ 
+suppose after ¦Ät time  g becomes a sparse grid  then we have:
+	.	 1 
+¡¡on the other hand  let e g t  be the set of data records in g at time t  we have e g t    e g t + ¦Ät  and:
+
+combining  1  and  1  we get:
+		 1 
+combining  1  and  1  we get:
+		 1 
+which yields:
+		 1 
+
+¡¡proposition 1. for any sparse grid g  the minimum time needed for g to become a dense grid from being a sparse grid is
+	.	 1 
+  cl
+proof. according to  1   if at time t  a grid g is a sparse grid  then we have:
+	.	 1 
+suppose after ¦Ät time  g becomes a dense grid  then we have:
+	.	 1 
+we also know that:
+	 	 1 
+e g t + ¦Ät  can be divided into those points in e g t  and those come after t. the least time for a sparse grid g to become dense is achieved when all the new data records are mapped to g. in this case  there is a new data record mapped to g for any of the time steps from t + 1 until t + ¦Ät. the sum of the density of all these new records at time t + ¦Ät is . therefore we have:
+		 1 
+now we plug  1  and  1  into  1  to obtain:
+	cm	¦Ät	1   ¦Ë¦Ät
+		¡Ü	d g t + ¦Ät  ¡Ü ¦Ë d g t  +	 
+	n 1¦Ë 	1	¦Ë
+	¦Ät	¦Ä
+	¡Ü	¦Ë cl	1   ¦Ë t
+	+	 1 
+	n 1   ¦Ë 	1   ¦Ë
+solving  1  yields:
+	 	 1 
+which results in:
+	.	 1 
+note n   cm   1 since cm   n according to  1 .	
+¡¡based on the two propositions above  we choose gap to be small enough so that any change of a grid from dense to sparse or from sparse to dense can be recognized. thus  in d-stream we set:
+
+1 detecting and removing sporadic grids
+¡¡a serious challenge for the density grid scheme is the large number of grids  especially for high-dimensional data. for example  if each dimension is divided into 1 regions  there will be 1d possible grids.
+¡¡a key observation is that most of the grids in the space are empty or receive data very infrequently. in our implementation  we allocate memory to store the characteristic vectors for those grids that are not empty  which form a very small subset in the grid space. unfortunately  in practice  this is still not efficient enough due to the appearance of outlier data that are made from errors  which lead to continual increase of non-empty grids that will be processed during clustering. we call such grids sporadic grids since they contain very few data. since a data stream flows in by massive volume in high speed and it could run for a very long time  sporadic grids accumulate and their number can become exceedingly large  causing the system to operate more and more slowly. therefore  it is imperative to detect and remove such sporadic grids periodically. this is done in line 1 of the d-stream algorithm in figure 1.
+¡¡sparse grid with d ¡Ü dl are candidates for sporadic grids. however  there are two reasons for the density of a grid to be less than dl. the first cause is that it has received very few data  while the second cause is that the grid has previously received many data but the density is reduced by the effect of decay factor. only the grids in the former case are true sporadic grids that we aim to remove. the sparse grids in the latter case should not be removed since they contain many data records and are often upgraded to transitional or dense grids. we have found through extensive experimentation that wrongly removing these grids in the latter case can significantly deteriorate the clustering quality.
+¡¡we define a density threshold function to differentiate these two classes of sparse grids.
+¡¡definition 1.  density threshold function  suppose the last update time of a grid g is tg  then at time t  t   tg   the density threshold function is
+		 1 
+¡¡proposition 1. there are the following properties of the function ¦Ð tg t .
+ 1  if t1 ¡Ü t1 ¡Ü t1  then ¦Ët1 t1¦Ð t1 t1  + ¦Ð t1 + 1 t1  = ¦Ð t1 t1 .
+ 1  if t1 ¡Ü t1  then ¦Ð t1 t  ¡Ý ¦Ð t1 t  for any t   t1 t1.
+proof.  1  we see that:
+
+ 1  let ¦¤t = t1   t1  we have
+
+
+¡¡we use ¦Ð tg t  to detect sporadic grids from all sparse grids. in the periodic inspection in line 1 of figure 1  at time t  we judge that a sparse grid is a sporadic grid if:
+ s1  d g t    ¦Ð tg t ; and
+ s1  t ¡Ý  1+¦Â tm if g has been delete before  at time tm   where ¦Â   1 is a constant.
+note that tm and tg are stored in the characteristic vector.
+¡¡in d-stream  we maintain a grid list which includes the grids that are under consideration for clustering analysis. the grid list is implemented as a hash table using doublylinked lists to resolve collision. the hash table allows for fast lookup  update  and deletion. the key of the hash table are the grid coordinates  while the associated data for each grid entry is the characteristic vector.
+¡¡we use the following rules to delete sporadic grids from grid list.
+ d1  during the periodic inspection in line 1 of figure 1  all grids satisfying  s1  and  s1  are marked as sporadic but wait until the next periodic inspection to be considered for deletion.
+ d1  in the next periodic inspection  if a grid g marked as sporadic has not received any data since last inspection  we remove g from grid list. otherwise  check if g satisfies  s1  and  s1 : if yes  we keep g marked as sporadic but do not remove it; otherwise  we reset the label to normal.
+¡¡it should be noted that once a sporadic grid is deleted  its density is in effect reset to zero since its characteristic vector is deleted. a deleted grid may be added back to grid list if there are new data records mapped to it later  but its previous records are discarded and its density restarts from zero. such a dynamic mechanism maintains a moderate size of the grids in memory  saves computing time for clustering  and prevents infinite accumulation of sporadic grids in memory. although deleting sporadic grids is critical for the efficient performance of d-stream  an important issue for the correctness of this scheme is whether the deletions affect the clustering results. in particular  since a sporadic grid may receive data later and become a transitional or dense grid  we need to know if it is possible that the deletion prevents this grid from being correctly labelled as a transitional or dense grid. we have designed the density threshold function ¦Ð tg t  and the deletion rules in such a way that a transitional or dense grid will not be falsely deleted due to the removal of sporadic grids.
+¡¡consider a grid g  whose density at time t is d g t . suppose that it has been deleted several times before t  the density is reset to zero each time  because its density is less than the density threshold function at various times. suppose these density values are not cleared and suppose all data are kept  the density of grid g would be da g t . we call da g t  the complete density function of the grid g.
+¡¡now we present several strong theoretical properties of the ¦Ð tg t  which ensure the proper functioning of the d-stream system. we will show that  if a grid can later become a transitional or dense grid  deleting it as a sporadic grid will not affect its later upgrades.
+¡¡the first question we investigate is  if a grid g is detected as a sporadic grid  is it possible that g can be non-sporadic if it has not been previously deleted from grid list  it is answered in the following result.
+¡¡proposition 1. suppose the last time a grid g is deleted as a sporadic grid is tm and the last time g receives a data record is tg. if at current time t  we have d g t    ¦Ð tg t   then we also have da g t    ¦Ð 1 t    dl.
+proof. suppose the grid g has been previously deleted for the periods of  1 t1    t1 + 1 t1   ¡¤¡¤¡¤   tm 1 + 1 tm   then the density value d g ti  i = 1..m satisfies  let t1 =  1 :
+	d g ti    ¦Ð ti 1 + 1 ti .	 1 
+thus  if all these previous data are not deleted  the complete density function satisfies:
+
+¡¡since tg ¡Ý tm + 1  by property  1  in proposition 1  we know
+¡¡ 1  the last equalities are based on successive applications of property  1  in proposition 1. 
+¡¡proposition 1 is important since it shows that deleting a sporadic grid will not cause transitional or dense grid be falsely deleted. it shows that  if g is deleted as a sporadic grid at t since d g t    ¦Ð tg t   then even if all the previous deletions have not occured  it is still sporadic and cannot be a transitional or dense grid since da g t    dl.
+¡¡proposition 1. suppose the density of a grid g at time t is d g t   and g receives no data from t + 1 to t + gap  then there exist t1   1 and t1   1 such that:
+ a  if d g t    dl  then da g t + gap    dl  for t ¡Ý t1 .
+ b  if d g t    dm  then da g t+gap    dm  for t ¡Ý t1.
+proof. we prove  a .  b  can be proved similarly. suppose the grid g has been previously deleted for the periods of  1 t1    t1 + 1 t1   ¡¤¡¤¡¤   tm 1 + 1 tm   then:
+
+since we assume that g receives no data from t+1 to t+gap 
+
+ according to  s1  	 	¦Ð 1 tm ¦Ë¦Ât/ 1+¦Â ¦Ëgap + dl¦Ëgap
+in order to ensure da g t + gap    dl  we require:
+¦Ð 1 tm ¦Ë¦Ât/ 1+¦Â ¦Ëgap + dl¦Ëgap   dl
+
+thus   a  is true for t1 satisfying:
+
+
+¡¡proposition 1 is a key result showing that  s1    s1    d1  and  d1  work together correctly. it implies that  as time extends for long enough  we will never delete a potential transitional or dense grid due to the previous removals of data. if a grid is sparse  resp. not dense   then when it is deleted  it must be sparse  resp. not dense  even considering those deleted data. note that da g t + gap  is the density of the grid upon deletion assuming no previous deletion has ever occurred. the result shows that  after an initial phase  deleting sporadic grids does not affect the clustering results.
+1 clustering algorithms
+¡¡we describe the algorithms for generating the initial cluster and for adjusting the clusters every gap steps. the procedure initialclustering  used in line 1 of figure 1  is illustrated in figure 1. the procedure adjust clustering  used in line 1 of figure 1  is illustrated in figure 1. they first update the density of all active grids to the current time. once the density of grids are determined at the given time  the clustering procedure is similar to the standard method used by density-based clustering.
+¡¡it should be noted that  during the computation  whenever we update grids or find neighboring grids  we only consider those grids that are maintained in grid list. therefore  although the number of possible grids is huge for highdimensional data  most empty or infrequent grids are discarded  which saves computing time and makes our algorithm very fast without deteriorating clustering quality.
+1. experimental results
+¡¡we evaluate the quality and efficiency of d-stream and compare it with clustream . all of our experiments are conducted on a pc with 1ghz cpu and 1m memory. we have implemented d-stream in vc++ 1 with a matlab
+1. procedure initial clustering  gridlist 
+1. update the density of all grids in gridlist;
+1. assign each dense grid to a distinct cluster;
+1. label all other grids as no class;
+1. repeat
+1. foreach cluster c
+1. foreach outside grid g of c
+1. foreach neighboring grid h of g
+1. if  h belongs to cluster
+1. if	  label all grids in
+else label all grids in;
+else if  h is transitional  label h as in c;
+until no change in the cluster labels can be made
+endprocedure
+figure 1: the procedure for initial clustering.
+1. procedure adjust clustering  gridlist 
+1. update the density of all grids in gridlist;
+1. foreach grid g whose attribute  dense/sparse/transitional  is changed since last call to adjustclustering  
+1. if  g is a sparse grid 
+1. delete g from its cluster c  label g as no class;
+1. if  c becomes unconnected  split c into two clusters;
+1. else if  g is a dense grid 
+1. among all neighboring grids of g  find out the grid h whose cluster ch has the largest size;
+1. if  h is a dense grid 
+1. if  g is labelled as no class  label g as in ch;
+1. else if  g is in cluster c and |c|   |ch|  1.	label all grids in ch as in c;
+1. else if  g is in cluster c and |c| ¡Ü |ch| 
+1. label all grids in c as in ch;
+1. else if  h is a transitional grid 
+1. if   g is no class  and  h is an outside
+grid if g is added to ch   label g as in ch;
+1. else if  g is in cluster c and |c| ¡Ý |ch| 
+1. move h from cluster ch to c;
+1. else if  g is a transitional grid 
+1. among neighboring clusters of g  find the largest one c satisfying that g is an outside grid if added to it;
+1. label;
+1. end for
+1. endprocedure
+figure 1: the procedure for dynamically adjusting clusters.
+graphical interface. in all experiments  we use cm = 1  cl = 1  ¦Ë = 1  and ¦Â = 1.
+¡¡we use two testing sets. the first testing set is a real data set used by the kdd cup-1. it contains network intrusion detection stream data collected by the mit lincoln laboratory . this data set contains a total of five clusters and each connection record contains 1 attributes. as in   all the 1 continuous attributes are used for clustering. in addition  we also use some synthetic data sets to test the scalability of d-stream. the synthetic data sets have a varying base size from 1k to 1k  the number of clusters is set to 1  and the number of dimensions is in the range of 1 to 1. in the experiments below  we normalize all the attributes of the data sets to  1  1 . each dimension is evenly partitioned into multiple segments  each with length len.
+1 evolving data streams with many outliers
+¡¡we find that the sequence order of data stream can make great effect on the clustering results. in order to validate the effectiveness of d-stream  we generate the synthetic data sets according to two different orders.
+¡¡first  we randomly generate 1k 1-dimensional data set in 1 clusters  including 1k outlier data that are scattered in the space. the distribution of the original data set is shown in figure 1. these clusters have nonconvex shapes and some are interwoven. we generate the data sequentially at each time step. at each time  any data point that has not been generated is equally likely to be picked as the new data record. therefore  data points from different clusters and those outliers alternately appear in the data stream. the final test result by d-stream is shown in figure 1. we set len = 1. from figure 1  we can see that the algorithm can discover the four clusters without user supply on the number of clusters. it is much more effective than the k-means algorithm used by clustream since k-means will fail on such data sets with many outliers. we can also see that our scheme for detecting sporadic grids can effectively remove most outliers.
+
+figure 1: original distribution of the 1k data.
+
+figure 1: final clustering results on the 1k data.
+¡¡in the second test  we aim to show that d-stream can capture the dynamic evolution of data clusters and can remove real outlier data during such an adaptive process. to this end  we order the four classes and generate them sequentially one by one. in this test  we generate 1k data points including 1k random outlier data. the data distribution is shown in figure 1. the speed of the data stream is 1k/second  which means that there are 1k input data points coming evenly in one second and the whole stream is processed in 1 seconds. we check the clustering results at three different times  including t1 = 1  t1 = 1  and t1 = 1. the clustering results are shown from figure 1 to 1. it clearly illustrates that d-stream can adapt timely to the dynamic evolution of stream data and is immune to the outliers.
+
+figure 1: original distribution of the 1k data.
+
+figure 1: clustering results at t1 = 1.
+
+figure 1: clustering results at t1 = 1.
+1 clustering quality comparison
+¡¡we test d-stream on the synthetic data set and kdd cup-1 data set described above under different grid granularity. the correct rates of clustering results at different times are shown in figure 1 and 1. in the figures  len
+
+figure 1: clustering results at t1 = 1.
+indicates the size of each partitioned segment in the normalized dimensions. for example  when len = 1  there are 1 segments in each dimension. from figure 1  the average correct rates on the synthetic data set by d-stream is above 1%. from figure 1  the average correct rate on kdd cup-1 is above 1%.
+¡¡we also compare the qualities of the clustering results by d-stream and those by clustream. due to the nonconvexity of the synthetic data sets  clustream can not get a correct result. thus  its quality can not be compared to that of d-stream. therefore  we only compare the sum of squared distance  ssq  of the two algorithms on the network intrusion data from kdd cup-1. figure 1 shows the results. we can see that the average ssq values of d-stream at various times are always less than those of clustream  which implies that data in each of the cluster obtained by d-stream are much more similar than that obtained by clustream.
+
+figure 1: correct rates of d-stream on synthetic data.
+1 time performance comparison
+¡¡we test and compare the clustering speed of d-stream and clustream. first  both algorithms are tested on the kdd
+
+figure 1: correct rates of d-stream on kdd cup1 data.
+
+figure 1: comparison of d-stream and clustream on kdd cup-1 data.
+cup-1 data with different sizes. the results are shown in figure 1. we can see that clustream requires four to six times more clustering time than d-stream. d-stream is efficient since it only puts each new data record to the corresponding grid by the online component without computing distances as clustream does. furthermore  the dynamic detection and deletion of sporadic grids save tremendous time. it can also be seen that d-stream has better scalability since its clustering time grows slower with an increasing data size. next  both algorithms are tested on the kdd cup-1 data with different dimensionality. we set the size of data set as 1k and vary the dimensionality from 1 to 1. we list the time costs under different dimensionality by the two algorithms in figure 1. d-stream is 1 to 1 times faster than clustream and scales better. for example  when the dimensionality is increased from 1 to 1  the time of dstream only increases by 1 seconds while the time of clustream increases by 1 seconds.
+1. conclusions
+¡¡in this paper  we propose d-stream  a new framework for clustering stream data. the algorithm maps each input data into a grid  computes the density of each grid  and clusters
+
+figure 1: efficiency comparison with varying sizes of data sets.
+
+figure 1: efficiency comparison with varying dimensionality.
+the grids using a density-based algorithm. in contrast to previous algorithms based on k-means  the proposed algorithm can find clusters of arbitrary shapes. the algorithm also proposes a density decaying scheme that can effectively adjust the clusters in real time and capture the evolving behaviors of the data stream. further  a sophisticated and theoretically sound technique is developed to detect and remove the sporadic grids in order to dramatically improve the space and time efficiency without affecting the clustering results. the technique makes high-speed data stream clustering feasible without degrading the clustering quality.
+1. acknowledgement
+¡¡this work is supported by microsoft research new faculty fellowship and national natural science foundation of china grant 1.

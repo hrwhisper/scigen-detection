@@ -1,0 +1,39 @@
+in this paper we use a unified relationship matrix  urm  to represent a set of heterogeneous data objects  e.g.  web pages  queries  and their interrelationships  e.g.  hyperlinks  user clickthrough sequences . we claim that iterative computations over the urm can help overcome the data sparseness problem  and detect latent relationships among heterogeneous data objects  thus  can improve the quality of information applications that require com- bination of information from heterogeneous sources. to support our claim  we present a unified similarity-calculating algorithm  simfusion. by iteratively computing over the urm  simfusion can effectively integrate relationships from heterogeneous sources when measuring the similarity of two data objects. experiments based on a web search engine query log and a web page collection demonstrate that simfusion can improve similarity measurement of web objects over both traditional content based algorithms and the cutting edge simrank algorithm. 
+categories and subject descriptors 
+h.1  information storage and retrieval : information search and retrieval; g.1  discrete mathematics : graph theory. general terms: algorithms  experimentation 
+keywords 1. problem defination 
+simfusion  information retrieval  information integration. 
+concerned with the information explosion that was gathering momentum after wwii  vannevar bush gave us a vision of linked information in 1  which has helped inspire the www . today  the success of the www  and many other information technologies  leaves us with a much larger information explosion.  to survive this challenge  we must learn to manage that information more effectively  and so must have new  more powerful models and techniques for information integration  in complex contexts.  
+authors  documents  users  metadata  and other types of entities present in scientific/scholarly domains; as well as web pages  users  queries  and other entities found in web domains; all can be considered as data objects containing information. the information may characterize content features of individual objects  as well as relationships between objects  from the same or different types of sources. in the web domain  for example  we know that users browse web pages and issue queries. queries  in  
+zhuangdong bit.edu.cn 
+ 
+turn  may lead to the referencing of web pages. these three operations  browsing  issuing  and leading to a page reference  are relationships that connect different types of objects. we also know that users are connected by their social relationships  web pages are connected by hyperlinks  and queries are connected by their content similarities. these three latter connections can be viewed as relationships within the same type of objects.  
+modern information applications  such as searching and document clustering  mainly use three approaches to represent information objects and the interrelationships involved: 
+1. spaces: vector and probability spaces implicitly use a set of features from objects  e.g.  to locate them in an n-dimensional space . 
+1. databases: relational databases operate on objects and their relationships  represented using sets of attributes   . 
+1. networks: belief  inference  and spreading activation networks  e.g.  with semantic networks  use nodes and arcs to represent objects  attribute values  and relationships  . however  most information applications being used today take only one of the three approaches to analyze one kind of relationship within the same type of objects  e.g.  document clustering  web link analysis  or only between two types of objects  e.g.  web search  collaborative filtering . these applications are hard to change. we run into problems when the users of these applications require more accurate models of reality  wherein the number of types and sub-types of objects that must be handled expand rapidly  e.g.  considering both queries and users when clustering web pages   and the relationships between different types of objects  e.g.  considering both reference and browsing relationships when analyzing behaviors associated with web pages  grow tremendously. more specifically  the problem we are facing can be stated as:  
+ how can the broad variety of heterogeneous data and relationships be effectively and efficiently combined to improve the performance of various information applications   
+1. objectives and hypothesis 
+the purpose of our research is to find effective and efficient means of combining relationships from multiple heterogeneous data sources  thus overcoming limitations of the three traditional approaches discussed above.  
+in this paper  we claim that the unified relationship matrix  urm   described in detail in section 1  can be used to represent relationships from multiple and heterogeneous 
+
+permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. to copy otherwise  or republish  to post on servers or to redistribute to lists  requires prior specific permission and/or a fee. 
+sigir'1  august 1  1  salvador  brazil. 
+copyright 1 acm 1-1/1...$1. information sources. we further claim that iterative computation  over the urm  will improve the quality and utility of information from heterogeneous sources for a variety of search related information applications. to prove this  we have focused our research on a specific information application: similarity calculation involving heterogeneous data objects.  
+the underlying hypothesis is that: relationships can be represented through matrices accurately  with either binary or real-valued weights. matrices representations of different types of relationships are sometimes complementary. a matrix representation of a single relationship may be sparse  but when reinforced by other types of relationships represented in complementary matrices  the information it contains may be more dense and helpful. we contend that matrix representation and matrix processing are effective approaches for combining relationships from difference sources. figure 1 gives a simplified illustration of our hypothesis. note that as a result of our methods  the bottom row of matrices  which can be used for various applications  is presumably of higher quality  e.g.  less sparse  due to the addition of accurate new values  and so more effective .  
+ 
+	users 	document	queries 
+ 
+	u 	u 	d 	q 	 
+	1 1 1 1 	1 x 1 1 1 	1 1 1 1 	1 1 1 1 
+u 	1 1 1  1 1 1	 d 	1 1 1  1 1 1	d 	1 1  1 1 1 x 1 1  d 	1 1 1  1 1 1 x 1
+	1 1 1 x 	1 1 1 1 	x 1 1 1 	1 1 x 1 1
+	 	u' 	u' 	d' 	 q' 
+	1 1 1 1 	1 x 1 1 1 	1 1 1 1 	x 1 1 1 
+	u' 	1 1 1  1 x 1 1	d' 	1 1 1  1 1 1	d' 	1 1  1 1 x 1 1x 1	d' 1 1 1  1 1 xx 1
+	1 1 1 x 	1 1 1 x 1 	x 1 1 1 	1 1 x 1 1
+ user collaborative  log based  cluster based modeling filtering clustering retrieval 
+ 
+figure 1: matrix representations of relationship integration 
+1. related works 
+many works have focused on using a single type of relationship when calculating the similarity of data objects. approaches that calculate the similarity of document-query objects using document-term relationships include: vector space model  vsm    generalized vector space model   latent semantic indexing   query expansion   and dynamic vector space modification . these can be viewed as variations of a general algorithm that projects documents and queries into a vector space using singular vectors; they differ in how the vectors are constructed and how weights are assigned.  

@@ -1,0 +1,115 @@
+accurate localization of mobile objects is a major research problem in sensor networks and an important data mining application. specifically  the localization problem is to determine the location of a client device accurately given the radio signal strength values received at the client device from multiple beacon sensors or access points. conventional data mining and machine learning methods can be applied to solve this problem. however  all of them require large amounts of labeled training data  which can be quite expensive. in this paper  we propose a probabilistic semi-supervised learning approach to reduce the calibration effort and increase the tracking accuracy. our method is based on semi-supervised conditional random fields which can enhance the learned model from a small set of training data with abundant unlabeled data effectively. to make our method more efficient  we exploit a generalized em algorithm coupled with domain constraints. we validate our method through extensive experiments in a real sensor network using crossbow mica1 sensors. the results demonstrate the advantages of methods compared to other state-of-the-art objecttracking algorithms.
+categories and subject descriptors
+i.1  artificial intelligence : learning; h.1  database management : database applications-data mining
+general terms
+algorithms
+keywords
+localization  calibration  tracking  sensor networks  em  crf
+1. introduction
+¡¡recently  wireless sensor networks have attracted great interests in several related research fields and industries. many tasks such as context-aware computing  and environmental monitoring can be realized with the help of wireless sensor networks  which offer
+permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. to copy otherwise  to republish  to post on servers or to redistribute to lists  requires prior specific permission and/or a fee.
+kdd'1  august 1  1  san jose  california  usa. copyright 1 acm 1-1-1/1 ...$1.
+unique advantages of being lightweight  distributed  environmentaware and network-based. object tracking  event-detection and activity recognition can now be realized in sensor networks using probabilistic algorithms 1  1 . it is a fundamental task for many of these applications to locate mobile client devices using collected wireless signals  in terms of radio-signal-strength  rss  values  from different sensor nodes that act as beacons.
+¡¡in the past  some conventional data mining technologies have been applied for solving the localization problem  1  1 . generally  some statistical models are obtained offline which can map signals to locations. these models are then used online to predict the client locations based on the real-time signal values. among the past works  many researchers have developed ranging-based algorithms for localizing mobile nodes in a wireless sensor network. one approach is multilateration  e.g.     consisting of two main steps. it first transforms the sensor readings into a distance measure. it then attempts to recover the coordinate locations in terms of relative distance to the beacon nodes. this approach relies on an ideal signal propagation model and extensive hardware support. it suffers from low accuracy problem since rsss do not follow ideal propagation patterns  especially in complex environments.
+¡¡in this paper  we address this problem using a semi-supervised statistical relational learning approach based on conditional random fields  semi-crf . we assume that a mobile sensor node moves in a sensor network environment. the rss of the mobile node can be received by several sensors in the network  which are then forwarded to a processor for tracking. it can also happens in the way that all sensors in the network are sending signals to the mobile sensor node  which performs the localization itself. in either case  we have a sequence of multi-dimensional vectors that corresponds to a trace. each vector along the trace can be labeled with a physical location coordinate  or unlabelled.
+¡¡this paper makes the following contributions. first  we identify and solve a major bottleneck in the application of data mining technologies in sensor networks. second  we present a novel semisupervised learning method for mobile-node tracking and localization by utilizing both labeled and unlabelled rss trace data. third  we introduce domain-driven heuristics for reducing the complexity of the learning procedure  which greatly improve the scalability of the statistical models. finally  we validate the proposed methods through the experiments over a real sensor network.
+1. the semi-crf algorithm for tracking and localization
+1 problem statement
+consider a two-dimensional tracking problem. our objective is
+industrial and government track short paper
+to determine the location of a mobile object yt =  ut vt  ¡Ê c as it moves in a sequence  given the observed signal vectors xt. figure 1 shows an example of the floor in one of our experimental test beds  which consists of n = 1 beacon nodes and one mobile unknown node. the localization problem can be converted to a supervised classification problem if we had sufficient labeled data for each location. however  when the labeled data are insufficient at each location  we wish to make the best use of some partially labelled or totally unlabeled rss sequences as well in our prediction. now let us formally introduce the notation of training data. in our study  the training data consist of a set of fully labelled sequences df = { x1 y1  ...  xm ym }  and a set of partially labeled  or totally unlabeled  sequences dp = { xm+1 ym+1  ...  xm+l ym+l }  where xi is a sequence of signal vectors xi1 ... ximi  i = 1 ... m +l  and yi is a sequence of corresponding locations yi1 ... yimi  i = 1 ... m +
+l. some values of yij are unknown for. a mobile robot can be employed to collect these unlabelled data by simply wandering around.
+1 linear-chain crf
+1.1 the crf model
+¡¡in this paper  we propose a statistical relational learning approach using crf to exploit the relationship between rss readings at two neighboring time points in terms of their corresponding physical distance. as a mobile object moves around  a sequence of rss values can be received  with each corresponding to a certain location. this process can be modeled by an 1-d linear-chain crf as introduced in the following section  where the states correspond to the location labels and the inputs or observations correspond to the rss readings.
+¡¡linear-chain crf models have been widely used to model sequential data. these models can be roughly viewed as conditionally-trained finite state machines . a linear-chain crf  as shown in figure 1  defines a distribution over state sequence y = y1 y1 ... yt given an input sequence x = x1 x1 ... xt by making a first-order markov assumption on states  where t is
+
+figure 1: diagram of linear-chain crf
+the length of the sequence. these markov assumptions imply that the distribution over sequences factorizes in terms of potential functions ¦µt yt 1 yt x  as:
+	 	 1 
+where the partition function z x  is the normalization constant that makes the probability of all state sequences sum to one. it is defined as follows:
+	z x  = xy¦µt yt 1 yt x .	 1 
+y t
+the potential functions ¦µt yt 1 yt x  can be interpreted as the cost of making a transition from state yt 1 to state yt at time t  similar to a transition probability in an hmm.
+¡¡computing the partition function z x  requires summing over the exponentially many possible state sequences y. by exploiting the markov assumption  however  z x   as well as the node marginal p yt|x  and the viterbi labeling  can be calculated efficiently by variants of the standard dynamic programming algorithms used in hmm.
+¡¡we assume that potentials factorize themselves according to a set of features fk that are given and fixed  so that
+
+the model parameters are a set of real weights ¦« = {¦Ëk}  one for each feature  to be defined below . the feature functions can describe any aspect of a transition from yt 1 to yt as well as yt and the global characteristics of x. for example  fk may have value 1 when the distance between yt 1 and yt is smaller than 1cm.
+1.1 parameter estimation
+¡¡the parameters ¦« can be estimated through a maximum likelihood procedure using the training data. that is  we can estimate them by maximizing the conditional log-likelihood of the labeled sequences in the training data ¦· = { x1 y1  ...  xm ym  }  which is defined as:
+m
+	l ¦«  = xlog p yi|xi;¦«   	 1 
+i=1
+where m is the number of sequences. as discussed in sutton et al. in   l ¦«  is concave in light of the convexity of the kind of functions g x  = logpi expxi.
+1.1 inference
+¡¡given the conditional probability of the state sequence defined by a crf in equation  1  and the parameters ¦«  the most probable labeling sequence can be obtained as
+	y   = argmaxp y |x;¦«  	 1 
+y
+which can be efficiently calculated using the viterbi algorithm . the marginal probability of states at each position in the sequence can be computed by a dynamic programming inference procedure similar to the forward-backward procedure for hmm . we can define the  forward values  ¦Át y|x  by setting ¦Á1 y|x  equal to the probability of starting with state y and then iterate as follows:
+	  	 1 
+where  is defined by:
+		 1 
+¦Âi y|x  can be defined similarly.p | then z x  equals to y ¦Át y x . the  backward values 
+	 .	 1 
+after that  we calculate the marginal probability of each location given the observed signal sequence:
+	.	 1 
+¡¡so far  we have introduced a linear-chain crf model for unknown mobile-node tracking. we can see that fk yt 1 yt x   in equation  1   is an arbitrary feature function over the entire observed sequences and the states at positions t and t   1. in our problem  the locations are two-dimensional continuous values. the number of possible locations are infinite large. therefore  it is extremely difficult to compute the feature of two arbitrary locations.
+¡¡fortunately  the tracking area is known in advance usually. one solution is to discretize a 1-d location space into grids. for instance  in a 1m ¡Á 1m area  we can divide it into 1 ¡Á 1 grids with
+each grid being 1 ¡Á 1cm1. this example is shown in figure 1. in this way  we can convert the known locations into such grids. in the test phase  if a mobile object is located at grid gi  we can use the coordinates of the center point in gi to represent the location of the mobile object. after limiting the location space  it is possible to use the linear-chain crf approach for tracking problem. however  a major issue is how to determine the size of the grid. this problem can be solved in two ways. first  the size often is determined by the nature of the problem itself  which is decided by the precision requirement posed by application users. another approach is to study the problem empirically  as we will do in the experimental section.
+g1g1g1g1g1g1g1g1figure 1: a demo of reduction of locations to grids
+1.1 incorporating domain constraints
+¡¡after reducing locations to grids  we can specialize the feature functions for each possible transition among different grids. that is  we can define fk yt 1 = g yt = h x  by f g h  t   1 t x . however  the number of the transition feature functions  as well as the corresponding parameters  reaches n1  n is the number of grids   which can be quite large. for instance  in the above example in figure 1  n = 1  then in the crf learning  we need to estimate 1 parameters for the potential fk yt 1 yt x . although we can still estimate the values of the parameters with large n  it will certainly increase the computational cost and run the risk of overfitting. what is worse  learning crf with more parameters requires more training data  which will increase the labelling costs. in addition  we also need to trade off the complexity of the model and its generalization capability. if we increase the grid size to reduce the computational cost  we will sacrifice the estimation accuracy.
+¡¡in this paper  we incorporate the domain constraints in the data mining process to reduce the number of parameters that need be learned. in particular  we note that a mobile object in a sensor network typically moves around in the same way  such that the likelihood of transiting between two neighboring points are roughly same. the likelihood of traveling between two distant points will also be roughly the same  although the value will be much smaller. such a domain constraint is supported by our experiments.
+¡¡to incorporate the domain constraints mentioned above  we use a so-called parameter tying technique that is designed for speech recognition  to combine similar parameters. our assumption is that the characteristics of two transitions with the same distance are alike. intuitively  in figure 1  we observe that the transitions g1   g1 and g1   g1 should happen with similar frequencies as they both transit by one grid in terms of euclidean distance. similarly  the transitions g1   g1 and g1   g1¡Ìshould happen similarly as the their euclidean distances are both 1 grids.
+¡¡from this observation  we can tie the parameters of the transition feature functions so long as they have the same transition distance  which is defined as follows: the value of the transition feature function fk yt 1 yt x  equals one if and only if dis yt 1 yt  = k  where the dis defines the distance between the two points. as expected  the number of parameters is greatly reduced by using this constraint.
+1 the semi-crf algorithm
+¡¡in this section  we introduce how to incorporate sequences whose labels are fully or partially observed in the parameter estimation of crf.
+¡¡an efficient method for parameter estimation with incomplete data can be derived by the extension of em algorithm . in this paper  we use a generalized expectation maximization  gem  algorithm to learn the parameters ¦« of crf with both fully and partially observed data . in the gem algorithm  the probabilistic optimization problem is divided into two-step iterations. the unobserved data are estimated in the e-step with the parameters obtained in the last iteration and the parameters of crf are optimized in the m-step. we first compute the log likelihood of equation  1  with expectation over the unobserved data as follows:
+l ¦«;¦«t 
+=	m p	;¦« 
+in this equation  yi u  is the unobserved locations of the i-th sequence  yi o  is the observed counterpart 
+ 
+and
+ .
+¡¡similar to equation  1   l ¦«;¦«t  is also concave. we can use the same method to optimize it. the only problem left is how to infer for partially observed sequences. we need to change equations  1  and  1  for some cases. if yt = j is observed  we directly assign 1 to ¦Át y = j|x  and ¦Ât y = j|x  and assign 1 to the other values of ¦Át and ¦Ât. if yt is not observed  we follow equations  1  and  1 . the new inference formulae are summarized in equations  1  to  1 .
+unseen
+ 1 
+industrial and government track short paper
+unseen
+ 1 
+p yt = k|x  = ¦Át y = k|x    ¦Ât y = k|x .	 1  zx
+¡¡we now summarize the semi-crf learning algorithm in table 1. there are several ways of parameter initialization. the common one is to randomly assign them values from 1 to 1. to speed up the convergence  we use an alternative that preliminarily estimates parameters with labeled data. as to the number of iterations  we will discuss it in the experimental section.
+table 1: the training algorithm for crf with both fully and partially observed data.
+algorithm semi-crf
+input: the fully and partially observed data df  dp
+output: the parameters ¦« of crfinitialize parameters ¦«1 of crf.
+¦«t = ¦«1.
+while log-likelihood has not converged
+or the max number of iterations is not reached  do
+% ====== e-step ======
+compute the expectations of the all unobserved locations  by equations  1  to  1 . % ====== m-step ====== optimize ¦« using l-bfgs.
+¡¡¦«t = ¦«. endwhile return ¦«
+figure 1: experimental test-bed
+1. experimental evaluation
+1 experimental setup
+¡¡we test the effectiveness and robustness of our location tracking algorithm for mobile sensor nodes in a sensor network based on the rss signals. our experiments are performed in the pervasive computing laboratory  figure 1  in the department of computer science and engineering at hong kong university of science and technology. the room is large enough for us to set up an experimental test-bed of 1 meters by 1 meters. in figure 1  |p1| = |p1| = 1m and |p1| = |p1| = 1m. there are three main components of our setup:
+  wireless sensor networks. we use crossbow mica1 and mica1dot to construct a wireless sensor network. we program these sensor nodes to broadcast and detect beacon frames periodically so that they could measure the rss of each other.
+  mobile robots. we try different kinds of robots that can run freely around the floor at different speeds  such as a sony aibo dogs  lego mindstorms and off-the-shelf toy cars. figure 1 shows that a sensor node is attached on top of a toy car which can be remotely controlled by radio at the speed of 1 m/s.
+  a camera array is used to record the ground truth locations of the mobile robots for our training and test data.
+¡¡we use two performance measurements to evaluate the original crf and the crf model using parameter tying  denoted by crfpt  localization algorithms. the first metric is the mean errordistance values between estimated and true locations. the second measurement is the accuracy in percentage. given an error-distance threshold ¦È  the accuracy rate is the probability that the distance between the estimated and true locations is smaller than ¦È. two more baselines in our experiments include  1  logistic regression  lr    1  support vector regression  svr . we control a mobile robot to run and stop around the test area  figure 1  for collecting data with sampling interval 1s. the data set formed a trace of length about 1m with 1 examples. for every experiment below  we randomly select a subset of the data as fully observed training data  a subset of data as partially observed training data by randomly removing the locations associated with them  and evaluate the performance on the rest. to reduce the statistical variability  we repeated the experiments for 1 times and reported the average results.
+1 convergence of semi-crf
+¡¡one question about the the semi-crf algorithm is the convergence of the em iterations. in this experiment  we use 1 fully labelled and 1 partially labelled sequential data to train the crf  where the length of each sequence is 1 and only one node is labelled in the partially labelled data. figure 1 shows the convergence rate of semi-crf. we can see that about 1 iterations are enough. in the experiments of this paper  the maximum number of iterations of the semi-crf is set to 1.
+
+figure 1: convergence rate of semi-crf
+1 semi-crf vs. baselines
+¡¡in the following experiments  we fix the training data size at 1  and tune the ratio of the labelled data from 1 to 1. in figure 1  we show the mean error performance of the four algorithms described above. as can be seen  semi-crf consistently outperforms the other algorithms in terms of mean error distance  while crf beats the remaining two baselines. one important reason is they both effectively leverage the sequential information of the mobile node. moreover  as semi-crf can also learn from the unlabelled data  it gains much better performance when there are a lot of such data with a small portion of labelled ones. we list some more information of these experiments including the accuracy performance in table 1.
+
+figure 1: vary the ratio of training set size
+table 1: performance of the tested approaches
+approachmean cm accuracy at 1cmsemi-crf11%crf11%svr11%lr11%1 impact of grid sizes
+¡¡the grid size may affect the performance of the localization algorithms. in this experiment  we fix the ratio of labelled data at 1% and vary the side length of the grids from 1cm to 1cm. figure 1 shows the experimental results of crf and semi-crf . from the figure we can see that when the grid size ranges from 1cm to 1cm  the performance of both the two methods is less sensitive than that with the grid size of 1cm and 1cm.
+
+figure 1: vary the grid size  ratio of labelled data is 1%. 
+1. conclusion and future works
+¡¡we have presented a new approach to reducing the calibration effort when tracking mobile sensor nodes in a wireless sensor network. our approach made extensive use of the sequential information of moving sensor's trajectory. these sequences provided unlabelled examples which can be used to train crf together with the manually labelled rss values. we introduce a semi-crf model to utilize such partially labelled data. by using parameter tying techniques we significantly improve the performance of semi-crf algorithm while reducing calibration effort. a sensor network was set up based on crossbow mica1 and mica1dot nodes which are used as both beacon and mobile nodes. experimental results showed that the proposed method could achieve a better performance with relatively fewer number of labelled examples.
+¡¡in the future  we plan to continue to test the semi-crf based framework in a large scale sensor network. we are also interested in introducing different factors  such as changing time and space  to see how the knowledge learned in one setting can be applied to another.

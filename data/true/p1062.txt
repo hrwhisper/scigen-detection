@@ -1,0 +1,7 @@
+we examine the difference and similarities between two online computer science citation databases dblp and citeseer. the database entries in dblp are inserted manually while the citeseer entries are obtained autonomously. we show that the citeseer database contains considerably fewer single author papers. this bias can be modeled by an exponential process with intuitive explanation. the model permits us to predict that the dblp database covers approximately 1% of the entire literature of computer science.
+categories and subject descriptors: h.1.m  information systems : modles and principles
+general terms: theory  measurement
+keywords: acquisition bias  bibliometrics  citeseer  dblp
+1. introduction
+¡¡several public databases of research papers became available due to the advent of the web  1  1  1  1  1  1 . these databases collect papers in different scientific disciplines  index them and annotate them with additional metadata. the coverage and acquisition methods of these databases greatly vary. as author and document citation rates are increasingly being used to quantify the scientific impact of scientists  publications  journals and funding agencies  it is important to understand the limitations and biases introduced by different acquisition methods.
+1. datasets

@@ -1,0 +1,260 @@
+recent works in network analysis have revealed the existence of network motifs in biological networks such as the proteinprotein interaction  ppi  networks. however  existing motif mining algorithms are not sufficiently scalable to find mesoscale network motifs. also  there has been little or no work to systematically exploit the extracted network motifs for dissecting the vast interactomes.
+¡¡we describe an efficient network motif discovery algorithm  nemofinder  that can mine meso-scale network motifs that are repeated and unique in large ppi networks. using nemofinder  we successfully discovered  for the first time  up to size-1 network motifs in a large whole-genome s. cerevisiae  yeast  ppi network. we also show that such network motifs can be systematically exploited for indexing the reliability of ppi data that were generated via highly erroneous high-throughput experimental methods.
+categories and subject descriptors
+h.1  information systems : database management-database applications  data mining
+general terms
+algorithms  experimentation  performance
+keywords
+network motif  graph mining  protein-protein interaction network
+1. introduction
+¡¡recent works in network analysis  have revealed that the topology of complex natural networks such as protein-
+
+ contact author.
+permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. to copy otherwise  to republish  to post on servers or to redistribute to lists  requires prior specific permission and/or a fee.
+kdd'1  august 1  1  philadelphia  pennsylvania  usa.
+copyright 1 acm 1-1/1 ...$1.
+protein interaction  ppi  networks are far from random. many of these networks have been shown to exhibit such common global topological features as the  small world  and  scale free  properties. it turns out that in addition to these global topological characteristics  many local topological patterns can also be detected in the large complex natural networks. for example  milo et al. discovered various significant patterns of local connections that occurred more frequently in complex networks than in randomized networks. they called these recurring local topological substructures as  network motifs . while relatively less widely studied than the global topological features  such network motifs can lead to better understanding about various classes of complex networks  as some network motifs may be particular to specific classes of networks. for example  certain triad or tetrad motifs are specific topological patterns that are found to appear in biological networks rather than in other networks . the presence of such network motifs also reveals the basic structural elements that underlie the hierarchical and modular architecture of such complex natural networks as ppi networks.
+¡¡researchers have only recently begun to employ network motifs in exploring the interactomes; for example  saito et al.  1  1  used manually derived network motifs to detect false positives in highly erroneous ppi networks  while albert et al. used them to predict ppis. these pioneering works have achieved promising results even though the network motifs used in these works were rather limited-saito et al. had used only 1 predefined network motifs of size 1 in their latest work on false positive detection   while albert et al. had used only 1 predefined small network motifs for predicting interactions. this shows that the network motifs can provide a framework for the effective dissection of the complex ppi network based on the underlying structural principles.
+¡¡as many of the relevant processes in biological networks have been shown to correspond to the meso-scale  1 genes or proteins    it would be interesting to investigate if it is advantageous to use network motifs that are of equivalent sizes. however  existing network motif discovery algorithms  1  1  are not applicable as they are mostly enumerationbased and limited to extracting smaller network motifs  up to size 1  for the following reasons:
+1. the number of network motifs candidates increases exponentially with the motif size  1  1 .
+1. interesting network motifs are typically repeated andunique   that is  the motifs occur repeatedly in the ppi network but not in the randomized networks. such motifs do not have the downward closure property and apriori algorithms are not applicable here.
+1. the graph isomorphism problem  which is the essentialtechnique to identify different network motifs  is an np problem .
+¡¡such limitations impact the applicability of motif discovery approach for biological applications  as meso-scale network motifs are beyond the reach of existing exhaustive enumeration algorithms.
+¡¡in this paper  we present an efficient graph mining algorithm called nemofinder to discover meso-scale repeated and unique network motifs in a large  genome-scale ppi network for biological applications. the proposed algorithm utilizes repeated trees to partition a network into a set of graphs. we introduce the notion of graph cousins to facilitate the candidate generation and frequency counting processes. experiment results indicate that nemofinder is scalable and outperforms existing network motif discovery methods. we also use the network motifs that are mined from the real-life biological networks to detect false positives in the highly erroneous ppi network obtained from biological experimental methods. the experimental results demonstrate that the actual meso-scale network motifs extracted from the biological interaction networks can achieve better performance than using small  predefined ones for assessing the reliability of ppis from conventional high-throughput experiments.
+¡¡the rest of this paper is organized as follows. section 1 introduces the basic concepts. section 1 describes the related work in network motif algorithms. in section 1  we describe the proposed nemofinder algorithm. section 1 presents the comparative results of using nemofinder for discovering network motifs for s. cerevisiae ppi networks. in section 1  we show how the extracted network motifs can be used to validate the interactions in a ppi network. finally  we conclude in section 1.
+1. definitions
+¡¡in this work  we model a ppi network as an undirected graph g =  v e  where each vertex in v represents a unique protein  and each edge in e between two vertices va and vb indicates that there is an interaction detected between the corresponding proteins a and b. we exclude self-loops from g here  as we are only interested to see the effectiveness of graph topology between proteins  see section 1 .
+¡¡by definition  a network motif is a frequently occurring subgraph pattern in a network  in this case  a large genomewide ppi network such as the yeast ppi network that consists of 1 vertices and 1 edges . the class of network motifs that we are interested in extracting from the interactomes are unique non-random subgraphs  that occur repeatedly in the underlying biological network.
+¡¡let fg be the number of occurrences of a subgraph g in a ppi network g. we say that g is repeated if fg is more than some user-specified value f.
+¡¡let fgrandi be the frequency of g in a randomized network grandi  for 1 ¡Ü i ¡Ü n  where n is the number of the randomized networks. let sg be the number of times fg is equal or greater than fgrandi  1 ¡Ü i ¡Ü n  over the total number of randomized networks n. we say that g is unique if its sg is more than some user specified value s.
+¡¡definition 1. network motif. a network motif g in a ppi network g is a connected  unlabelled and undirected topological pattern of inter-connections that is repeated and unique in g.
+¡¡note that it is common for proteins and their interactions in complex biological networks such as ppi networks to participate in multiple biological functional modules. it is therefore perfectly possible for multiple vertex- or edgeoverlapping subgraphs to be simultaneously active at any time. hence  during the subgraph counting process  we must consider patterns with arbitrary overlaps of vertices and edges. this results in a computationally more complex problem as the frequency of network motifs does not have the downward-closed property in this case.
+¡¡in addition  the uniqueness property of a network motif is also not downward-closed as a result of allowing vertex- and edge-overlap in the network motifs. when a motif g extends  or reduces  to its supergraph  or subgraph   the decrease
+ or increase  of fg and fgrand is non-deterministic. this means that given a network motif g  we cannot directly infer whether the supergraphs and subgraphs of g are unique. in fact  even when we have found a non-unique motif  we still have to generate its supergraphs and check for their frequencies and uniqueness. this implies that determining the uniqueness value of a motif is also computationally expensive.
+1. related work
+¡¡in terms of biological network motif mining  the pioneering work by milo et al. employed an exhaustive search algorithm that counts all the subgraphs of a given number of vertices. as such  they could only discover small network motifs in the form of 1-vertex and 1-vertex subgraphs. kashtan et al. developed a more efficient sampling method to estimate the relative frequencies of subgraphs. their method was useful for analyzing very large networks and for detecting high-order motifs since the runtime is independent of the network size. however  the sampling approach cannot be guaranteed to discover the complete set of network motifs. it also does not scale for large-size network motifs  the algorithm takes about 1 hours to find a size-1 motif in the network of transcriptional regulation of e. coli with 1 vertices and 1 edges .
+¡¡on the other hand  the computationally savvy graph mining community has also been diligent in developing various algorithms to efficiently discover frequent subgraphs. the initial algorithms  notably the agm  and fsg   were devised to find all the frequent subgraphs in a large graph database efficiently through the extension of the market basket analysis. the algorithms utilize the apriori property to discover frequent subgraphs level by level. the gspan  algorithm discovers frequent substructures by using a dfs-based canonical representation of graphs and enumerated the search space in a depth-first order. the ffsm  method improves the performance of gspan by reducing redundant subgraph candidates through a vertical search
+scheme with join and extension operations. finally  the spin  algorithm overcomes the problem of cycles in graph by generating the frequent substructures hierarchically in two steps: starting from trees  and then extending the frequent trees to graphs.
+¡¡all the above works have focused on mining subgraphs from a collection of graphs  and considered only the frequency but not the uniqueness property of subgraphs. furthermore  in these works  the frequency of a subgraph is determined by the number of global graphs that the subgraph occurs in  regardless of whether the subgraph occurs many times within a particular graph. this is computationally easier than the network motif discovery problem where the frequency of a motif is determined by the number of occurrences  including vertex- and edge-sharing ones  within one large and complex graph.
+¡¡kuramochi et al. designed two methods hsiggram and vsiggram to look for frequent subgraphs in a sparse graph. these methods first determine the number of edge-disjoint occurrences of a subgraph based on approximate and exact maximum independent set computations and then use it to prune infrequent subgraphs. however  the methods are not suitable for biological applications where a protein or an interaction can participate in multiple functional modules  in other words  the occurrences of a motif can overlap arbitrarily in a graph  which is a much more computationally challenging counting problem.
+¡¡the fpf method by schreiber et al. extends hsiggram and vsiggram to find frequent subgraphs with arbitrary overlap. fpf uses the concepts of pattern tree and generating parent to prune redundant subgraph candidate generation. however  the method is expensive as it has to perform subgraph isomorphism test for all candidates. furthermore  it is unable to prune the non-promising subgraphs as the frequency counting does not satisfy the downward closed property.
+1. nemofinder: network motif discovery algorithm
+¡¡in this work  we propose a network motif discovery algorithm called nemofinder to discover repeated and unique meso-scale network motifs in a large ppi network  algorithm 1 .
+¡¡the input to the algorithm is a ppi network g  a user defined frequency threshold f  a user defined uniqueness threshold s  and a user defined maximal network motif size k. the output of the algorithm is a set u of repeated and unique motifs from size 1 to size k. note that a subgraph with k vertices is said to be a size-k subgraph. the proposed algorithm consists of three main steps. first  we find repeated subgraphs in the ppi network  lines 1 . then we check the frequency of the repeated subgraphs in the randomized networks  lines 1 . finally  we determine the uniqueness values of the the repeated subgraphs  lines 1 .
+¡¡we illustrate the algorithm using the example graph g in figure 1. suppose we want to find all the motifs up to size 1  i.e.  k = 1  from g. we let the frequency threshold f = 1  and the uniqueness threshold s = 1.
+algorithm 1 nemofinder
+
+1: input: g - ppi network; n - number of randomized networks;
+k - maximal network motif size;
+f - frequency threshold;
+s - uniqueness threshold;
+1: output: u - repeated and unique network motif set;
+1: d ¡û  ;
+1: for motif-size k from 1 to k do
+1:	t ¡û findrepeatedtrees k ;
+1:	gdk ¡û graphpartition g t 
+1:	d ¡û d ¡È t;
+1:;
+1:	i ¡û k;
+1:	whiledo
+1:	 ;
+1:	;
+1:	i ¡û i + 1;
+1:	end while
+1: end for
+1: for counter i from 1 to n do
+1: grand ¡û randomizednetworkgeneration  ; 1: for each g ¡Ê d do
+1:	getrandfrequency g grand ;
+1:	end for
+1: end for 1: u ¡û  ;
+1: for each g ¡Ê d do
+1:	s ¡û getuniqunessv alue g ;
+1:	if s ¡Ý s then
+1:	u ¡û u ¡È {g};
+1:	end if
+1: end for
+1: return u;
+
+figure 1: example graph g.
+step 1. discover repeated subgraphs.
+¡¡the discovery of repeated size-k subgraphs in a ppi network  1   k ¡Ü k  involves the following three steps:
+step 1 find repeated size-k trees.
+¡¡algorithm nemofinder starts by finding the size-1 tree t1 in g. then the algorithm extends t1 to a size-1 tree  size-1 trees  etc.  until size-k trees are obtained. figure 1 shows all the size-1 to size-1 trees. note that we have two size-1 trees  t1  t1  and three size-1 trees  t1  t1  t1 .
+¡¡when a size-k tree tk is formed  nemofinder counts its occurrences in g. if the occurrences of tree tk is more than the user given threshold  then tk is a repeated tree  and it is added to the set tk.
+¡¡in our example  the occurrences/frequencies of the various size trees are as follows: ft1 = 1  ft1 = 1  ft1 = 1  ft1 =
+
+figure 1: size 1 to size 1 trees.
+
+1  ft1 = 1  ft1 = 1  ft1 = 1. all frequency values except for the frequency of t1 are more than the user given threshold of 1. thus we have t1 = {t1}  t1 = {t1}  t1 = {t1 t1} and t1 = {t1 t1}.
+step 1 use repeated size-k trees to partition graph.
+¡¡next  we use the size-k trees in tk to partition the graph g into a set of graphs gdk such that each graph gk j in gdk embeds a size-k tree in tk  1 ¡Ü k ¡Ü k and 1 ¡Ü j ¡Ü |gdk|.
+¡¡consider the trees t1 and t1 in figure 1. figure 1 and 1 shows the occurrences of t1 and t1 in g. we use t1 and t1 to partition the ppi network g to obtain the set of graphs gd1 = {g1 g1 g1 g1g1}  figure 1 . note that each graph in gd1 embeds the tree t1 and/or t1.
+step 1 perform graph join operation to find repeated size-k graphs.
+¡¡for each tree t in tk  we generate size-k subgraphs with k 1 edges  the rules for generating the subgraphs are given in section 1 . then we join t with each of these subgraphs to generate size-k subgraphs with k edges. the latter are added to the candidate set ck.
+¡¡figure 1 shows the 1-vertex 1-edge subgraphs  h1 ... h1  generated from the two size-1 trees t1 and t1 in t1. we join t1 with h1 and h1  and join t1 with h1  h1 and h1 to generate 1-vertex 1-edge subgraphs. figure 1 shows the subgraphs obtained after joining t1 with h1  and t1 with h1. the non-redundant subgraphs g1 and g1 are added into the candidate set c1.
+for each subgraph g ¡Ê ck  we check its occurrences in
+
+gdk. if the occurrences of g is more than the threshold f  we add g to the set dk. in our example  fg1 = 1 and fg1 = 1. thus  g1 is a repeated subgraph and is added to the set of frequent subgraphs d.
+¡¡next  we use the repeated subgraphs obtained to generate all the possible k-vertex and k-edge subgraphs. these repeated subgraphs are joined with the newly generated subgraphs to get  k+1 -edge subgraphs. the repeated  k+1 edge subgraphs are added to d. this process continues until a complete graph of k    k   1 /1 edges is obtained  or no repeated subgraph can be found.
+¡¡figure 1 shows the 1-vertex and 1-edge subgraphs  h1 and h1  generated from the repeated subgraph g1. we join g1 with h1 and h1 to get a 1-vertex and 1-edge subgraph g1  see figure 1 . since the frequency of g1 in gd1 is not more than 1  it is not a repeated subgraph and the algorithm stops.
+¡¡at the end of step 1  the algorithm outputs the set d which contains all the repeated trees and subgraphs from size-1 to size-k.
+step 1. determine subgraph frequency in randomized networks.
+¡¡next  we use the markov-chain algorithm  to generate randomized networks grandi  1 ¡Ü i ¡Ü n  by swapping randomly selected interactions  as was done in . this ensures that the randomized networks have the same singlevertex characteristics as the ppi network  i.e.  each vertex in the randomized networks has the same number of neigh-
+
+figure 1: set of graphs gd1; each graph in gd1 embeds t1 and/or t1.
+
+figure 1: generate 1-edge subgraphs from size-1 trees.
+bors as the corresponding vertex in the ppi network. we check the frequency of the subgraphs in d in each of the randomized networks grandi  1 ¡Ü i ¡Ü n . the procedure is similar to step 1.
+step 1. compute uniqueness of subgraphs.
+¡¡finally  we compute the uniqueness value for each subgraph in d based on its frequencies in the input ppi network and the randomized networks.
+¡¡nemofinder is scalable because the repeated trees naturally partitions the network into a set of graphs gd. hence  the problem of counting the frequency of a size-k subgraph g in the network is reduced to the problem of finding the number of graphs in gd that contain the subgraph g  which is naturally downward closed.
+¡¡in order to reduce the computational complexity  nemofinder adopts the idea in spin  to search for repeated trees and
+
+figure 1: examples of graph join operations for 1-edge subgraphs.
+
+	g1	h1	h1
+figure 1: generate 1-edge subgraphs from repeated 1edge subgraphs of g.
+
+	g1	h1	g1
+figure 1: examples of graph join operations for 1-edge subgraphs.
+then extend them to subgraphs. however  nemofinder differs from spin in the following:
+1. the notion of frequency in spin is different from ournemofinder. spin simply checks whether a subgraph occurs in a graph; it is not interested in counting how many times the subgraph occurs in the graph. in contrast  nemofinder considers occurrences of a subgraph in a network  including arbitrary overlaps.
+1. spin uses equivalence classes to find maximal labelledfrequent subgraphs in a set of graphs. in contrast  nemofinder is focused on discovering repeated unlabelled subgraphs from a single graph. hence  our nemofinder is able to utilize the symmetry property of unlabelled trees to further reduce the number of candidate trees enumerated.
+1 candidategenerationusinggraphcousins
+¡¡finding repeated subgraphs involves generating candidate subgraphs and frequency counting  see algorithm 1 . the standard method to generate a subgraph candidate gk from a tree tk is to add a new edge to tk and check whether the resulting graph is already in the candidate set ck. however  ck can become very large for meso-scale subgraphs  and checking whether a graph exists in ck requires graph isomorphism test which is a np problem.
+¡¡given that the network motifs are meso-scale  we use adjacency matrices to represent the subgraphs so as to facilitate the graph join operation to generate candidate subgraphs. a graph g with n vertices can be modelled using a n ¡Á n matrix m. an entry mi j in an adjacency matrix is set to 1 if there is an edge from vertex i to j  and 1 otherwise. the code of m  denoted as code m   is a sequence formed by linking the lower triangular entries of m in the following order: m1m1m1...m i j ...mn 1mn 1...mn n where
+ 1   j ¡Ü i ¡Ü n .
+¡¡we can transform any adjacency matrix into a unique representation called canonical adjacency matrix  cam  . then two subgraphs that are isomorphic to each other have the same cam  and vice versa. the canonical adjacency matrix  cam  of a subgraph g  denoted as cam g   is the adjacency matrix of g with the maximal code. the last edge entry of cam g  is the rightmost non-zero edge entry in code cam g  . by removing the edge which corresponds to the last edge entry of cam g   we obtain a subgraph of g. we call the adjacency matrix of such a subgraph as subcam g  defined as follows:
+¡¡definition 1. subcam of a graph. let cam g  be canonical adjacency matrix of a graph g. then subcam g 
+is a matrix obtained by setting the last edge entry in cam g  to 1.
+¡¡given two subgraphs g and h  if subcam g  = subcam h   then we say that h is a cousin of g. there are three types of cousin relationship between g and h:
+  type i: direct cousin h is isomorphic to a subgraph g which has the same number of vertices and edges as g  and;
+  type ii: twin cousin h is isomorphic to subgraph g;
+  type iii: distant cousin h is a disconnected subgraph.
+¡¡figure 1 shows the adjacency matrices for the size-1 trees t1 and t1 and the generated subgraphs h1 ... h1 in figure 1. from the above definitions  we see that h1 is a type i direct cousin of t1 since it is isomorphic to t1; h1 is a type iii distant cousin of t1 since it is a disconnected subgraph; h1 is a type ii twin cousin of t1 since it is isomorphic to t1; h1 is a type i direct cousin of t1 since it is isomorphic to t1; h1 is a type iii direct cousin of t1 since it is a disconnected subgraph.
+
+figure 1: adjacency matrices for the graphs in figure 1.
+¡¡we now show how the subgraph generation and frequency counting are efficiently carried out based on the cousins of a graph.
+¡¡given a repeated subgraph g of size k  we first find its set of cousins  h. then we join g with each graph h ¡Ê h to form new subgraphs of size k that have one more edge than g. let cam g  be cam of g and cam h  be cam of h  then the adjacency matrix m of the new subgraph candidate is a k ¡Á k matrix and
+	 1 
+¡¡algorithm 1 gives the pseudo code for the candidate generation procedure.
+¡¡the following theorem proves that the join operation generates the complete set of candidate subgraphs.
+algorithm 1 findrepeatedgraphs 
+
+1: input: d - set of repeated subgraphs with k vertices and i   1 edges;
+1: output:- set of repeated subgraphs with k vertices and i edges;
+1: ;
+1: ;
+1: return;
+
+algorithm 1 candidategeneration 
+
+1: input: d - set of repeated subgraphs with k vertices and i   1 edges;
+1: output: c - set of candidates with k vertices and i edges;
+1: c ¡û  ;
+1:do
+1:	h ¡û getcousin g ;
+1:	for each h ¡Ê h do
+1:	 ;
+1:	;
+1:	end for
+1: end for
+1: return c;
+
+¡¡theorem 1. given all the subgraphs g ¡Ê ck which has k vertices and l edges  l ¡Ý k 1   the join operation generates the complete set of subgraphs   where each has k vertices and l + 1 edges.
+ proof: let m be an adjacency matrix of a subgraph g ¡Ê  be the last edge entry in m  such that matrix m1 = m   {e1} is a cam of a subgraph g1. let e1 be the last edge entry in m1. since m1 is a connected graph  its corresponding subgraph g1 must be in ck.
+¡¡let m1 = m1   {e1} + {e1} and m1 be an adjacency matrix of a subgraph g1  we have. based on the definition of graph cousins  if g1 is isomorphic to g1  g1 is a type ii twin cousin of g1; if g1 is connected but not isomorphic to g1  then g1 is a type i direct cousin of g1; if g1 is disconnected  g1 is a type iii distant cousin of g1.
+   since the join operation joins g1 with all its cousins  each  is generated from ck. 
+1 frequency counting
+¡¡a straightforward method to count the frequency of a size-k subgraph g in a graph g is to check all the graph in gdk. however  this is an np-complete subgraph isomorphism problem. given that the discovery of network motifs requires checking the frequency of the candidate subgraphs in both the ppi network as well as the large number of randomized networks  it is critical for us to reduce the computational time of the frequency counting process. this can be achieved by leveraging the properties of the different types of cousins.
+¡¡theorem 1. let lx denote the set of graphs in gdk such that each graph in lx embeds x. let h be a type i direct cousin of a size-k subgraph g and g be the subgraph obtained by joining g and h. then we have  and the frequency of g is given by |lg ¡É lh|.
+proof: each graph in must embed g and h since g contains all the edges of both g and h. thus  we have lg ¡É lh.
+algorithm 1 frequencycounting k i c 
+
+1: input: gdk - set of graphs generated by partitioning g with size-k repeated trees;
+c - set of subgraph candidates with k vertices and i edges; f - frequency threshold;
+1:  - set of repeated subgraphs with k vertices and
+1: 
+1: for do
+1:	get the join parameter of and h;
+1:	lg ¡û set of graphs in gdk embedding g;
+1:	lh ¡û set of graphs in gdk embedding h;
+1:	if fg   f or fh   f then
+1:	1;
+1:= type i direct cousin then
+1:	g	g	|
+1:	= type iii remote cousin then
+1:	g	|
+1:	else if type of h = type ii twin cousin then
+1:	 ;
+1:	end if
+1:	if 
+1:	;
+1:	end if
+1: end for
+1: return d;
+
+¡¡on the other hand  each graph in lg ¡Élh embeds both g and h. hence  the graph must embed g  since each edge in g is in either g or h. thus  we have.
+therefore  we have and the frequency of g
+is given by
+let us consider t1 and h1 in figure 1. we have lt1 =
+
+{g1 g1 g1 g1} and lh1 = {g1 g1 g1 g1 g1}  see figure 1 . then  for subgraph g1 which is generated by joining t1 and h1  the graphs in gd1 that embed g1 are lg1 = lt1 ¡É lh1 = {g1 g1 g1 g1}. hence  the frequency value of g1 is 1.
+¡¡similarly  we can prove that if h is a type iii distinct cousin of a size-k subgraph g  the frequency of g  the subgraph obtained by joining g and h  is also given by |lg¡Élh|. however  if h is a type ii twin cousin of a size-k subgraph g  then h is isomorphic to g. in order to determine the frequency of the subgraph obtained by joining g and h  we have to check all the graphs in gdk that embeds g. this frequency counting involves the np-complete subgraph isomorphism test. hence  given that the same subgraph can be generated by joining g with its various types of cousins  we choose to join g with its type i or type iii cousin whenever possible to avoid the subgraph isomorphism test. algorithm 1 gives the pseudo-codes for the frequency counting process.
+¡¡for the complexity analysis of nemofinder  please refer to our technical report trc1  june 1  .
+1. performance study
+¡¡we have implemented our nemofinder algorithm in c++ and carried out experiments to compare nemofinder with existing network motif discovery algorithms such as the enumeration method   sampling method   and fpf .
+¡¡we use two real-life datasets  the uetz dataset and the original mips cygd dataset. the uetz dataset  contains 1 ppis and 1 proteins of s. cerevisiae and can be downloaded from the brite website. the mips cygd
+dataset  is the whole-genome ppi network of s. cerevisiae from the munich information center for protein sequences. after removing redundancy and orphan links  this dataset contains 1 ppis involving 1 proteins that have been detected with high-throughout genome-wide biological experimental methods.
+¡¡first  we evaluate the runtime of the four network motif discovery methods  enumeration  sampling  fpf  nemofinder  in finding network motifs of varying sizes in the uetz dataset. we set the frequency threshold to 1  the uniqueness threshold to 1  and the number of randomized networks to 1. figure 1 shows that nemofinder consistently gives the best performance  with 1- to 1-fold speed up. we also observe that only nemofinder manages to find all the motifs within a reasonable amount of time.
+
+figure 1: comparison of computational times to find network motifs of varying sizes in uetz ppi network.
+
+figure 1: comparison of computational times to find network motifs in uetz ppi network under varying frequency thresholds.
+¡¡next  we evaluate the performance of nemofinder under varying frequency thresholds. we set the uniqueness threshold to 1  the number of randomized networks to 1  and the maximal size of network motif to 1. the enumeration method and sampling method have been excluded from this experiment because they could not scale up to size-1 motifs. figure 1 indicate that nemofinder is able to achieve up to 1-fold speedup over fpf.
+¡¡we also compare the maximal motif size and the total number of identified motifs by the four algorithms to find network motifs of varying sizes in the mips dataset  which is much larger than the uetz dataset. we set the frequency threshold to 1  the uniqueness threshold to 1  the number of randomized networks is set to 1. figure 1 shows that nemofinder was able to extract network motifs up to size 1  while the maximum sizes of the motifs discovered by fpf  sampling method and enumeration method are 1  1 and 1 respectively. in addition  nemofinder was able to find a total of 1 motifs  while fpf  sampling method and the enumeration method discovered only 1  1 and 1 network motifs respectively. the limited number of network motifs found by fpf  sampling and enumeration methods was due to the limitation of the motif size that these algorithms could handle.
+
+figure 1: comparison in size and number of network motifs that can be found by four algorithms in mips ppi network.
+1. a motif application: ppi validation
+¡¡previous works in biological network motifs have focused mostly on motif discovery; there has been little or no work in showing how the network motifs can be systematically exploited. in this section  we describe how we can exploit
+the extracted network motifs in ppi validation. our results show that the inclusion of the larger meso-scale network motifs indeed leads to better results.
+¡¡technological developments in high-throughput ppi detection methods such as yeast-two-hybrid and protein chips have enabled biologists to experimentally detect ppis at the whole genome level for many organisms. for example  currently more than 1 ppis have already been detected and deposited in biological databases for s. cerevisiae. the abundant number of ppis enables scientists to analyze these organisms at the genome level. however  a significant proportion of the ppi networks obtained from high throughput biological experiments has been found to contain false positives. recent surveys have revealed that the reliability of the popular high-throughput yeast-two-hybrid assay can be as low as 1% . these errors in the experimental data may lead to spurious discoveries that can be potentially costly  e.g.  wrong drug targets for diseases.
+¡¡in a first attempt to validate detected interaction candidates  saito et al.  develop an interaction reliability index called interaction generaility  ig1 . the ig1 measure is based on the notion that the neighbors of the interacting partners are likely to also interact with each other. in other words  it uses a very simple network motif to detect false positives by noting that interactions between partners that are involved in lone star-like motifs are probably spurious. positive results from the various experiments conducted by saito et al. suggest that the use of even such a seemingly primitive network motif in dissecting genomewide ppi networks is helpful in increasing the reliability of currently erroneous experimental interaction data. in fact  the authors subsequently developed a second reliability index called ig1  that was based on 1 possible network motifs that involved a third protein c together with the candidate interacting protein pair  a b . their experimental results showed that ig1 outperformed ig1  suggesting the advantage of using more sophisticated network motifs in dissecting the experimentally derived ppi networks.
+¡¡in this section  we investigate whether using the actual network motifs can indeed give better performance than using the simple  predefined ones such as those employed in ig1 and ig1.
+1 motif strength
+¡¡we have seen how nemofinder is able to discover a much more comprehensive set of network motifs as compared to the other methods  section 1 . for it to be useful in practice  it is important that the set of network motifs can provide sufficient coverage of the vast interactome. we found that 1% of ppis in the mips dataset was indeed covered by at least one network motif discovered by nemofinder.
+¡¡first  we rank the network motifs in terms of their contribution to the ppi network with respect to their individual sizes  frequencies and uniqueness. for simplicity  we assume that the motifs are independent here. we define the strength msk g  for each motif g as:
+¡¡definition 1. motifstrength. the strength of a sizek motif g  denoted as msk g   is the frequency value of the motif times its uniqueness value over maxk  where maxk is the maximal value of s g  ¡Á f g  of all size-k motifs.
+	msk g  = s g  ¡Á f g 	 1 
+maxk
+1 evaluation based on motif strength
+¡¡having defined the motifstrength  we score each interaction in the ppi network by combining the strengths of the network motifs that contain the interaction  edge .
+¡¡definition 1. reliability index of ppi the reliability index of a ppi  a b   denoted as i a b   is the sum of the motifstrength of all the motifs that contain the edge  a b .
+		 1 
+where gi 1 ¡Ü i ¡Ü n are the motifs where edge  a b 
+occurs and k is the size of gi.
+¡¡we apply our method  as well as ig1 and ig1  on the mips cygd dataset described in section 1 to compute reliability indices for the 1 s. cerevisiae ppis in the dataset. we then compare the quality of the various reliability indices in the following three different aspects:
+1. function homogeneity. the cellular functions of the protein partners in a genuine biological interactions are likely to be similar. as such  we would expect an interactome that has been sorted with a good reliability index to exhibit a high degree of functional homogeneity in the interactions with high reliability scores. we use the comprehensive s. cerevisiae genome database  dated 1-1  at mips  as the ground truth for the proteins' functional annotations. out of the 1 proteins in the mips cygd interaction dataset  1 proteins have functional annotations and 1 interactions involve the annotated proteins.
+1. localization coherence. with the exception of the proteins involved in cellular pathways such as the signalling pathway  the cellular localizations of the protein partners in a genuine biological interactions are expected to be the same. as such  a better reliability index would exhibit a higher degree of cellular colocalization amongst the protein partners in the sorted interactions. we use the cellular localization annotations of the s. cerevisiae proteins in the mips database as the basis for comparison in our experiment.
+1. gene expression correlation. studies have shown that the average correlation coefficient of gene expression profiles that corresponds to interacting protein pairs is significantly higher than those that correspond to random pairs . as such  we can also use the degree of gene expression correlation to evaluate the relative quality of the ppi reliability indices. for gene expression correlation analysis  we downloaded the s. cerevisiae gene expression dataset from eisen's lab . the dataset comprises expression vectors from 1 experiments on 1 genes.
+¡¡figure 1 shows that as the reliability index value is increased  the proportion of interacting pairs with common cellular functions also increases  indicating an increase in the number of true positives in the filtered interaction data. the reliability indices generated using the nemofinder's network motifs show significant increases  from 1% to 1% and 1%  than those using ig1 and ig1  from 1% to only 1% and 1% respectively .
+¡¡figure 1 shows the relative performance in terms of cellular localization coherence. using the reliability indices computed by the network motifs  the proportion of interacting pairs with common cellular localization increases from
+
+	 1	 1	 1	 1	 1
+proportion of interactions left in a given threshold
+figure 1: proportion of interacting proteins with common cellular functional roles increases at different rates under different interaction reliability measures.
+1% to 1% and 1% for the nemofinder network motifs  again outperforming ig1 and ig1  from 1% to 1% and 1% .
+
+	 1	 1	 1	 1	 1
+proportion of interactions left in a given threshold
+figure 1: proportion of interacting proteins with common cellular localizations increases at different rates under different interaction reliability measures.
+¡¡the results based on gene expression correlation  shown in figure 1  exhibit a similar trend. again  the increase in the average gene expression correlation between the protein partners in the sorted ppis is much more significant when using reliability indices computed with nemofinder's network motifs  from 1% to 1% and 1%  than those generated by using ig1 and ig1  from 1% to 1% and 1% .
+¡¡these results show that the ppi reliability indices computed using the nemofinder network motifs are more reliable than those computed using ig1 and ig1  demonstrating the positive effect of using a more comprehensive set of actual network motifs against a small number of simple  predefined motifs. additionally  we also compared the performance of using motifs of different sizes. in all three evaluation experiments  the reliability indexes computed using nemofinder network motifs of sizes up to 1 consistently
+
+	 1	 1	 1	 1	 1
+proportion of interactions left in a given threshold
+figure 1: overall correlation of gene expression for interacting proteins increases at different rates under different interaction reliability measures.
+show superior performance over that computed with motifs of sizes only up to 1. this indicates that it is advantageous to include the larger motifs  justifying the need for discovering meso-scale network motifs.
+1. conclusions
+¡¡existing network motif discovery algorithms are limited to extracting smaller network motifs and cannot be employed to mine meso-scale level network motifs in large biological networks. in this paper  we have presented an efficient network motif discovery algorithm called nemofinder to discover larger-sized repeated and unique network motifs in ppi networks. the algorithm utilizes repeated trees to partition a network into a set of graphs. we have introduced the notion of graph cousins for efficient candidate generation and frequency counting. we use nemofinder to successfully extract  for the first time  up to size-1 network motifs from the whole s. cerevisiae ppi network. the network motifs discovered by nemofinder provided a good coverage of the ppis in the vast interactome.
+¡¡in this work  we also showed an example of how the network motifs can be systematically applied in the validation of the ppis in an interactome. our results confirmed that employing the larger actual network motifs derived from biological networks instead of predefined small-sized network motifs can indeed achieve better results. future work will include directed network motif discovery and network motif labelling.

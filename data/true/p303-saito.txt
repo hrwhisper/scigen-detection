@@ -1,0 +1,340 @@
+we study the problem of querying relational data embedded in xml. relational data can be represented by various tree structures in xml. however  current xml query methods  such as xpath and xquery  demand explicit path expressions  and thus it is quite difficult for users to produce correct xml queries in the presence of structural variations.
+﹛to solve this problem  we introduce a novel query method that automatically discovers various xml structures derived from relational data. a challenge in implementing our method is to reduce the cost of enumerating all possible tree structures that match the query. we show that the notion of functional dependencies has an important role in generating efficient query schedules that avoid irrelevant tree structures.
+﹛our proposed method  the relational-style xml query  has several advantages over traditional xml data management. these include removing the burden of designing strict tree-pattern schemas  enhancing the descriptions of relational data with xml's rich semantics  and taking advantage of schema evolution capability of xml. in addition  the independence of query statements from the underlying xml structure is advantageous for integrating xml data from several sources. we present extensive experimental results that confirm the scalability and tolerance of our query method for various sizes of xml data containing structural variations.
+categories and subject descriptors:
+h.1  database management : systems-query processing
+general terms: design  management
+1. introduction
+﹛xml  extensible markup language   is a text format for tree-structured data. while it is suitable for describing any type of data  there is no such common data format for relational databases. hence  xml is a promising portable format for relational data. however  there is no obvious simple manner for making queries of relational data embedded in tree-structured xml.
+﹛with regard to the expressibility of data  there is no significant difference between xml and relational data . for example 
+permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. to copy otherwise  to republish  to post on servers or to redistribute to lists  requires prior specific permission and/or a fee.
+sigmod'1  june 1  1  vancouver  bc  canada.
+copyright 1 acm 1-1-1/1 ...$1.
+node and edge tables are sufficient to describe tree-structured data in relational databases. even so  the tree structure of xml is necessary in several cases. xhtml   which is an xml version of html  uses a tree structure for data layout  which would not work in relational form. another case is the use of user-defined tags in xml for organizing data groups or appending additional information to extend the schema of xml dynamically.
+﹛other than these two cases involving data layout and the schemaevolution facilities of xml  various types of data can be expressed in relational format. hierarchical data  often mentioned as an ideal xml application  are not difficult to describe in relational form using simulated data hierarchies with keys to expand multiple columns. an example of this is shown in figure 1  illustrating relational and xml data with corresponding hierarchies. a triplet of company  section and employee  ids  comprises a primary key in the following relational data:
+ company id= c1  
+ section id= s1  
+ employee id= e1 / 
+companysectionemployeec1s1e1c1s1e1c1s1e1 employee id= e1 / 
+ /section 
+ section id= s1  
+ employee id= e1 / 
+ /section 
+ /company 
+figure 1: hierarchical data in relational and xml format
+﹛this translation from relational data to xml is quite natural and straightforward for the hierarchy of companies through to sections and employees. however  by changing the viewpoints of this relational data  other xml representations are also possible. in figure 1  the xml data on the left-hand side organize the above relational data for each section  and those on the right-hand side are for each employee:
+ employeelist 
+ employee id= e1  
+ sectionlist 
+ company id= c1 / 
+ section id= s1  
+ section id= s1 / 
+ company id= c1 / 
+ /employee 
+ employee id= e1 / 
+ employee id= e1  
+ employee id= e1 / 
+ company id= c1 / 
+ /section 
+ section id= s1 / 
+ section id= s1  
+ /employee 
+ company id= c1 / 
+ employee id= e1  
+ employee id= e1 / 
+ company id= c1 / 
+ /section 
+ section id= s1 / 
+ /sectionlist 
+ /employee 
+ /employeelist 
+figure 1: various xml representations of relational data although the meaning of these xml data is the same  xml queries using path expressions are dependent on the specific xml structures. for example  an xpath  query to retrieve all employees in a company c1 and section s1 is completely different for each xml dataset  as shown below:
+p1: //company  id='c1' /section  id='s1' /employee	 fig. 1 
+p1: //section  id='s1'  company  id='c1'  /employee	 lhs of fig. 1 
+p1: //employee company  id='c1'   section  id='s1'  	 rhs of fig. 1  
+where the descendant-axis  //  traverses an arbitrary-depth of xml data  while the child-axis  /  for child nodes  the attribute-axis     for attribute nodes  data contained in start tags   and the brackets      enclose twig nodes to test. this example indicates that without knowledge of the precise xml structure  users cannot produce correct xml queries.
+﹛this problem of the structural variations of xml data is common when translating relational data into xml. one possible solution to this problem is to disallow structural variations using an xml schema   dtd   or relaxng . however this greatly limits the flexibility of xml data modeling  and prevents dynamic schema evolution or the population of xml nodes with user-defined tags. the requirement for xml schemas comes mainly from the existing standard xml processing methods  e.g.  sax   dom   xpath   xquery   etc. . these query methods are based on tree navigation  so without detailed knowledge of the underlying xml structure  it is quite difficult to traverse tree-structured xml data correctly.
+﹛a brute-force solution would be to cover all structural variations with a single xpath expression by exhaustively concatenating all possible tree patterns. for the above example  the query would be p1 | p1 | p1. however  a slight change in the xml structure  for example when some employees join a project team  and thus xml data are modified as in figure 1  would still force the user to modify query statements or xml reader programs to accommodate this new structure:
+ company id= c1  
+ section id= s1  
+ team project= p1  
+ employee id= e1 / 
+ employee id= e1 / 
+ /team 
+ /section 
+ section id= s1  
+ employee id= e1 / 
+ /section 
+ /company 
+figure 1: decorating employee data with a custom tag  team.
+﹛unlike the examples of the above xpath queries  sql query statements are stable after this sort of schema evolution. for example  the following sql select statement 
+select company  section  employee from ...
+can be used without any modification  because a relation consisting of company  section and employee nodes still holds after insertion of the team node.
+﹛this observation motivated us to develop a means of querying xml data in relational style. for example  we use a simple expression  company  section  employee  to specify node names in a relation without reference to the tree structure  and retrieve variously structured relational data embedded in xml. a key insight in
+
+figure 1: an example of an inappropriate query result.
+this development is that even if xml representations vary according to the specific viewpoint of relational data  these xml structures are all derived from the same relational data. to describe these variously structured relational data with a simple expression  we define a class of tree structures that construct relations in xml. given a query expression  e.g.   company  section  employee   our query method covers all possible tree structures that can be generated from input company  section and employee nodes.
+﹛a challenge in implementing our query method is to discover the appropriate tree structures from the xml data. in general  the number of possible structural variations of n xml nodes is nn 1  which is identical to the number of labeled trees with n nodes. to improve query performance  we must avoid issuing nn 1 queries. another challenge is that even for a single tree pattern  its instances in xml data could be numerous. for example  xml data in figure 1 has a hierarchical pattern with one company node  three section nodes and five employee nodes. while there are 1℅1℅1 = 1 instances of
+ company  section  employee  pairs  only 1 of those are appropriate in that they connect each employee node with its corresponding parent section node. this shows that naive enumeration of tree instances is inefficient for larger volumes of xml data. therefore  eliminating incorrect tree structures is another key to achieving good query performance.
+﹛to remove irrelevant tree structures from query results  it is necessary to know the implied semantics in the xml data  e.g.  each employee node belongs to a section node. we describe these semantics with functional dependencies  fds   tailored to xml. for example  an fd could be employee ↙ section  meaning that each employee node belongs to a unique section node. our definition of fd is flexible to allow structural variations  as a section node may be a child of an employee node  figure 1   or there may be another node inserted between them  as shown in figure 1.
+﹛our proposed method  the relational-style xml query  provides new insight into xml query processing. while the de facto standards for xml query processing languages  such as xpath  and xquery   require explicit path expressions to perform queries  we use fds to define xml data structures  and thus have no need to specify tree structures in query statements. all we need to query xml data is to describe target nodes of interest with tag names  predicates  keywords  etc. relational-style xml queries enable the user to perform queries without detailed knowledge of the xml structure. this means query expressions are much simpler than those for path-based query methods.
+the outline and contributions of this paper are as follows:
+  we present a compelling example of the relational-style xml query  which does not use explicit path structures for either queries or schemas  section 1 .
+  we define a relation in xml that can capture structural variations in xml data  and present an xml algebra to describe xml queries  section 1 .
+  we define fds for xml  and create a relationship between xml structures and fds  section 1 .
+  we present optimization techniques based on our xml algebra to expedite retrieval of xml structures satisfying fds  section 1 .
+  we present experimental evaluation of our proposed methods to confirm the scalability and tolerance of our proposed method.  section 1 
+we present a survey of related work in section 1  and conclude this work in section 1.
+1. relational-style xml query
+relational-style xml query allows structural variations in xml
+databases. this capability provides a great impact on xml query processing. for example  by detecting relational-part from existing xml data  we call this a relation in xml  query expressions of xml becomes much simpler than path-based query methods. in addition  in creating a xml database from scratch  its schema design becomes straightforward translation from an er-diagram   which is far simpler than defining a comprehensive tree schema. to illustrate these benefits  let us consider an xml database of a company data that has several employees and working projects. figure 1 illustrates an er-diagram of this database:
+
+figure 1: an er-diagram of a company data  and its decomposition into relations.
+﹛to create an xml database from this model  we first decompose this er-diagram into several relations:
+r1:  company  section  employee 
+r1:  project  task  employee 
+r1:  employee  name 
+we choose these relations so that each of these node pairs organizes a reasonable unit in this data model  so a relation can be a much smaller fragment  e.g.   company  section    section  employee   etc. this decomposition process is similar to the design of table schemas in relational databases.
+one-to-many relationship. in this er-model  a company has several sections  and each employee belongs to one of these sections. this is an example of one-to-many relationships between a company and sections  and a section and employees. to describe these relationships in the er-diagram  we extract the following functional dependencies  fds :
+employee ↙ section	 each employee belongs to a section  section ↙ company	 each section belongs to a company 
+an one-to-many relationship between p and q corresponds to an fd q ↙ p  meaning that from each node q we can uniquely determine another node p. stated in another way  a node p may have several associated nodes q.
+many-to-many relationship. this data model has a project node  each of them has several tasks. each task is assigned to an employee  and employees may be assigned several tasks in several projects. this is a many-to-many relationship between projects and employees. in general  we can divide such many-to-many relationships into one-to-many relationships . the following fds represent two one-to-many relationships  project-task and employeetask :
+task ↙ project task ↙ employee
+relation to xml structures. relations and fds are sufficient to describe a schema of xml. figure 1 shows an example of xml data generated from the er-diagram. this example involves various tree structures that denote data in the same relation. the node pairs of  company  section  employee  are hierarchically organized when ignoring the employee list node. the tree structures of  project  task  employee  pairs are different under the project list and task list nodes. in the traditional xml schema design  we have to decide which structure to use  even though this structural difference has no significant meaning. the relational-style xml query completely does away with the inconvenience  because query expressions for retrieving these distinct tree structures are the same as follows:
+ project  task  employee 
+from a given set of definitions of relations and fds  our query processor automatically finds xml structures that form a relation.
+querying relational data enhanced with xml. xml has richdata semantics that can enhance the meanings of relational data. for example  a relation  project  task  employee  in figure 1 is decorated with an intermediate node  active  1   which does not appear in the er-diagram. the other nodes employee list  1   project list  1  and task list  1  also enhance relational data by grouping the xml structures representing relations.
+﹛in xml  it is required to handle database queries that contain both relational and xml semantics. consider a query for employee names who are working for active tasks. in figure 1  two task nodes 1 are marked as active  but the er-diagram has no information of the active node. a query q1 in figure 1  which is written in xquery   has to traverse several paths  then performs a valuebased join operation on employee/ id. to produce this xquery statement  the user must know that the active node appears only under the project list node  and employee names are under the employee list. however  learning such knowledge requires a great deal of efforts and demands the ability to make a complex query.
+﹛in the relational-style xml query  this query expression becomes much simpler as shown in q1 in figure 1  which first retrieves two relations  employee  name  and  active  task  employee   then joins them by using employee id values. since we have the knowledge of the fd task ↙ employee  we can avoid invalid node pairs such as  employee  1   active  1   task  1    which connects irrelevant employee and task nodes. in processing xml queries  we have to correctly extract relations embedded in xml  such as  employee  task   and at the same time to locate xml nodes  e.g.  active  associated to these relations.
+1. relation in xml
+﹛in this section  we define a relation in xml that specifies xml structures of interest using a pattern tree  which allows various structure organizations by using the notion of amoeba . on this basis  we define an xml algebra  which is the foundation for describing xml queries with a nested form of expressions.
+	name	1
+ id 1
+figure 1: managing variously structured relations in an xml document.﹛throughout this paper  we use a tree model of xml data  made up of tree nodes with text values and edges. to distinguish element nodes  general tree nodes  and attribute nodes   attribute node  q1 : for $x in /company/employee list/section/employee 
+﹛﹛$y in /company/project list/project/active/task where $x/ id = $y/employee/ id return $x/name
+ q1 :  employee  name  join
+ active  task  employee  on employee id
+figure 1: queries for employee names who are working for
+active tasks
+names are prefixed with   .  each element and attribute node has a global id  which is unique in the xml data.
+amoeba structure. to describe various tree structures that can be generated from xml nodes  the notion of amoeba has been proposed  as a relaxed definition of trees from the graph theory:
+﹛d          1  amoeba . given a set r = {r1 ... rk} of xml nodes  where ri is an xml node  we say r is an amoeba if one of r1 ... rk is a common ancestor of the others  denoted by hhr1 ... rkii.
+for example  every structural variation in figure 1 is an amoeba. to describe a set of amoebas consisting of three types of nodes  project  task and employee  we use a notation hhproject  task  employeeii. it is important that regardless of the structure of a node set in the xml data  the node set can be considered to be an amoeba as long as it contains a common root node. the root node of an amoeba is usually an element or attribute node  but a singleton node set  e.g.  r = {r1}  can also form an amoeba. this definition of amoeba allows node insertions. figure 1 shows an example of this where a team node is inserted into the tree structure of company  section and employee nodes.
+1 relation in xml
+﹛to describe a set of xml data fragments all of which match a specific tree pattern  we need a pattern expression  such as xpath . such an xpath expression is typically modeled as a pattern tree . however  in the presence of structural variations  it is too restrictive to demand that data structures obey a single tree pattern. furthermore  concatenating all possible path structures into a single xpath expression can be tedious. to represent both strict and flexible tree structures easily  we introduce the notion of a relation in xml  which can express various path structures  including twigs and amoebas:
+
+figure 1: all possible structural variations of project  task and employee nodes.
+﹛d          1  relation in xml . a relation r in xml is a kary tuple of nodes  for element and attribute nodes  with a boolean conjunction of conditions of the following types:
+﹛  a condition to specify a subset of nodes in r  say {a b c}  constructs an amoeba  denoted hha b cii.
+﹛  for two xml nodes u and v ﹋ r  u is a child  or descendant  of v.
+﹛  comparison of a text value of a node in r with a constant using one of the operators =      ≒ or ≡.
+﹛although it is possible to use other types of conditions  e.g. document orders of nodes  sibling axes in xquery   etc.   we limit the condition types in a relation for the purpose of illustration.
+﹛d          1  an instance of a relation . an instance of a relation r in an xml data  denoted ~r  is a set of node tuples { r1 ... rk } such that each xml node ri matches a corresponding node name in r  and satisfies all conditions in r. we denote a node tuple r contained in an instance of r as r =  r1 ... rk  ﹋ ~r.
+﹛a relation in xml can be used to describe a fixed tree structure  which is common in xpath expressions. for example  by using an xpath expression  we simply denote a relation in xml as
+r1 = //employee/name to specify a tree pattern consisting of employee and name nodes  where name nodes must be a child of a employee node in the xml document. we denote an instance of r1 as ~r1 or ~//company/name. figure 1 shows another example of a relation in xml that has element nodes project  task and employee  and a text value  employee id . its predicates are hhproject  task  employeeii and a path constraint that an employee id node is a child of an employee node. its instance is shown in the table in figure 1. unlike relational databases  which only use value-based tuples  an instance of a relation in xml can have both node ids and text values. another extreme example is an xml document  which can be represented as ~//*  containing every node in the document.
+﹛to denote a relation  consisting of one or more relations r1 ... rk  we use their cartesian product r1 ℅ ﹞ ﹞ ﹞ ℅ rk. for example  if we have r1 = //employee list and r1 = //employee/name  their instances for the xml data in figure 1 are ~r1 = { 1 } and ~r1 = { 1   1   1 }. consequently  the instance of their cartesian product r1 ℅ r1 is:
+~r1 ℅ r1 = { 1 1   1 1   1 1 }.
+1 xml algebra
+we present three essential algebraic operations for xml queries:
+selection  projection and amoeba join.
+selection. first  we introduce the selection operation for xml:
+﹛d          1  selection . let r be a relation in xml  and c be a boolean conjunction of conditions listed in definition 1. a selection operator  denoted by 考c r   applies a condition c to a relation r  i.e. 
+~考c r  = {r | r ﹋ ~r ＿ r satisfies c}.
+node labels. it is essential to have the capability of specifying some nodes in a relation in xml. in relational databases  a table has columns and each column has a name. hence  users of the relational database can perform algebraic operations by specifying data columns by name. node names can be used as equivalents in xml.
+for example  in an xml relation r1 =hhproject  task  employeeii  node names project  task and employee can be used to specify nodes in r1. to avoid ambiguity of node names between several relations in xml  we use a dot notation. for example  when r1 = //task/ id and r1 = //employee/ id  we can distinguish these two  id nodes as r1. id and r1. id  or we simply denote these node labels as task id and employee id. we use a label for a text value of a node n as  n . for example   task id  and  name  specify text values for task id and name  respectively.
+﹛in this paper  we consider that the inputs and outputs of an xml query are relations in xml  and that a query is evaluated using instances of each input relation. then  the query produces an instance of another relation. in particular  xml queries often involve intermediate results  which are themselves relations. assigning new temporary node names to all intermediate relations can be a daunting task. therefore  for readability  we assume node names are inherited by the intermediate relations. for example  if we perform a selection operation on a relation r =//book/ isbn and generate another relation r1 = //book  isbn= xx1    then we can use the node names book and book isbn that exist in both the relations r and r1.
+projection. to retrieve a specific set of xml nodes from a relation  we define the projection of a relation r  denoted by 羽nl r   where nl is a list of node labels. for example  when r = //employee/name and ~r = { 1  1    1  1    1  1 }  then the result of a projection ~羽name r  is { 1    1    1 }.
+amoeba join. given a list of relations in xml  r1 = //project  r1 = //task and r1 = //employee  for example  we need an operation to construct their amoebas. this operation is called an amoeba join . a similar operation is a structural join   which concatenates two nodes p and q if p is an ancestor of q. the structural join is generally used to process descendant-axis  //  queries. however 
+
+figure 1: an example of an relation in xml  left  and its instance  right  in figure 1. the colored rows are invalid instances violating fds  see section 1 .
+to handle structural variation  we also must consider both the case where p is an ancestor of q  or p is a descendant of q. in addition  there are indirect structural relationships involving more than two nodes  for example  nodes p and q connected through another node r. to collect instances of variously structured xml data  we describe the amoeba join operation as an operator in the xml algebra:
+﹛d          1  amoeba join . given a list of node labels l1  ...  lm  and a list of input relations r1 ... rk  an amoeba join operation ajl1 ... lm r1 ... rk  is a selection with an amoeba condition for l1 ...  lk  i.e. 
+ajl1 ... lm r1 ... rk  = 考hhl1 ...  lmii r1 ℅ ﹞ ﹞ ﹞ ℅ rk .
+﹛for example  when r1 = //project  r1 = //task and r1 = //employee  then an amoeba join ajproject task employee r1 r1 r1  is a selection with a condition hhproject  task  employeeii  and generates all instances of amoebas in the xml document  matching one of the structures in figure 1.
+1. functional dependencies
+﹛a relation in xml has the capability of handling variously structured xml data. however  without knowledge of the semantics hidden in xml data  it is not possible to retrieve correct xml structures. for example  figure 1 shows invalid tuples  colored in blue  that connect irrelevant task and employee nodes  1  1  and  1  1 . to resolve this problem  we need information of data semantics  such as each task belongs to a project and is assigned to an employee. these data semantics are described with fds  task ↙ project and task ↙ employee. in this section  to incorporate data semantics into xml  we define fds in xml and a class of relations that can be used to describe xml structures satisfying fds.
+﹛we describe a functional dependency for xml with node labels in relations. let x and y be lists of node labels. then  a functional dependency for xml is expressed as x ↙ y. now  we give the definition of fds in xml:
+﹛d          1  fds in xml . we say a relation r satisfies an fd x ↙ y if for each pair of instances p q ﹋ ~r  p.x = q.x implies p.y = q.y  where p.x denotes a list of nodes  or text values  in p corresponding each node label in x. the equality of two nodes  or text values  n1 n1 is defined as follows:
+n1.id = n1.id	 when n1 and n1 are xml nodes   n1 = n1	 when n1 and n1 are text values  
+where n.id is a unique node id in the xml data.
+intuitively  an fd x ↙ y specifies that a node set belonging to
+x uniquely determine a node belonging to y. for example  some instances in figure 1 violate the fd task ↙ employee; two distinct employee nodes 1 and 1 are associated to each of the task nodes 1 and 1. these invalid node pairs are involved due to the flexibility of amoeba structures. in the next section  we solve this problem by restricting allowable xml structures in describing relations.
+1 tree relation
+﹛in our definition of fds  any relation consisting of an arbitrary node set can be used  since a relation in xml not always have a tree structure  such as a projection result  etc. however  in describing a relation instance as an xml data  it is convenient that we have a template structure for reading and writing xml data  such as a table row in relational database. as its counterpart in xml  we use amoeba structures that can be embedded in xml data. however  an amoeba structure itself is a connected component of tree nodes  and thus invalid nodes may be connected  as illustrated in figure 1. to avoid these irrelevant node connections  while allowing various tree structures in describing xml data  we introduce a restricted class of xml structures  called a tree relation.
+﹛before defining a tree relation  we introduce some notations. let f be a set of fds  nl f  is the set of node labels appearing in f. given a list i of relations r1 ... rk  then if each ri contains at least one node label in nl f   and all node labels in nl f  are contained in i  we say that i covers nl f . for example  for f ={employee ↙ name}  then nl f  ={employee  name}  and thus the pair of relations r1 = //employee and r1 = //name covers nl f . now  we define a tree relation in xml:
+﹛d          1  tree relation . let f be a set of fds and r1  ... rk be a list of relations that covers nl f  = {l1 ...  lm}. a tree relation r for f is a result of selection 考c r1 ℅ ﹞ ﹞ ﹞ ℅ rk  such that r satisfies all fds in f  and c is a conjunction of the following amoeba conditions:
+ p1 	hhl1 ...  lmii	li ﹋ nl f 
+﹛ p1  hhx y1ii ＿ ﹞ ﹞ ﹞ ＿ hhx yjii for each fd x ↙ y1 ...yj ﹋ f where x is a list of node labels  and each yi is a single node label.
+for example  when f = {a ↙ b  b ↙ cd}  then nl f  =
+{a  b c  d}  and its tree relation for f has the following condition: hha  b c  dii ＿ hha  bii ＿ hhb cii ＿ hhb  dii.
+as another example  an fd with the form ab ↙ c  which has several node labels in the left hand side  imposes the constraint hha  b cii.
+the first constraint  p1  hhl1 ...  lmii confirms that nodes in
+nl f  construct an amoeba  i.e.  a node set of l1 ...  lm must at least form a tree structure in the xml data. the second constraint  p1  indicates that nodes appearing in an fd must also have an amoeba structure. intuitively  to establish the correspondence between fds and xml structures  we consider xml nodes that construct an amoeba structure are semantically related. if there are partial dependencies  fds  within a relation  xml structures must represent all of these relationships. figure 1 illustrates variations of tree relations for several sets of fds; a tree relation of nodes a  b and c must form a tree structure but allows several tree shapes. when fds are defined in this relation  tree shapes are restricted so that these fds can be represented in these tree structures.
+﹛these structural constraints imposed by fds have an important role in eliminating incorrect xml structures that do not match the data semantics. for example  when f has two fds task ↙ project and task ↙ employee  then a tree relation for f must satisfy the following condition: hhproject  task  employeeii ＿ hhtask  projectii ＿ hhtask  employeeii.
+   
+figure 1: structures of tree relation  a  b c  vary according to a set f of fds.
+in figure 1  an instance of a relation r1 satisfies all of these conditions. thus  we say r1 is a tree relation for f. the first constraint hhproject  task  employeeii allows all possible tree structures consisting of these three nodes. however  a node pair  1 1  in figure 1 satisfies hhtask  project  employeeii but connects irrelevant task  1  and employee  1  nodes. hence  the other constraints hhtask  projectii and hhtask  employeeii  which are imposed by fds  are needed to remove such inappropriate tree structures.
+next  we present some examples of fds in xml:
+  employee ↙ employee id : each employee node must have an  id attribute node.
+  employee id ↙ employee : the is the opposite of the fd above. in xml  every attribute must belong to a single element  so this type of fd always holds for all attribute nodes.
+  author ↙ paper : each author belongs to a paper. in other words  a paper may have several authors. the rationale to use an amoeba structure hhauthor  paperii to represent this one-tomany relationship is that  for each paper node  its author nodes should be ancestor or descendant nodes  not sibling or other nodes. the amoeba condition hhauthor  paperii covers such tree structures. if several paper nodes are found for an author node  such xml data violate this fd  and needs to be modified.
+   book isbn  ↙ book : given an book isbn value  we can uniquely determine a book node. in this case  the book isbn value is a key  global id  of book node  no duplicate value of book isbn is allowed in the xml document.
+  country  ssn ↙ person : any person node is identified by a pair of country and ssn  social security number  nodes. this is an example of a primary key with two nodes. either of the country or ssn nodes is not sufficient to locate a person node  as an ssn may not be unique outside of a country.
+  country   person ssn  ↙ person : with the information of an country node and person ssn value  a unique person node can be determined. this example can be considered as a relative key   which localizes the key definition under the specified path  as uniqueness of  person ssn  values is also localized in the context of the country node  but various data structures are allowed compared to the relative keys proposed in . for example  a country node can be a parent or child of a person node in our definition of fds.
+1. query processing
+1 pushing structural constraints
+using the operations defined so far  we are able to implement the
+f = {   a         b c         } a1:   a  b  c      a1:   a  b      a1:   a  c      
+figure 1: selection  amoeba join  order affects the performance of the query processing.
+ pushing selection  technique developed for relational databases  which makes it efficient to process tree relations for a set of fds.
+﹛queries for a tree relation for a set of fds contain several amoeba predicates. as we explained in section 1  amoeba constraints imposed by fds eliminate irrelevant structures to the tree relation. the order in which these conditions are applied is an important factor in reducing the size of the intermediate query results.
+﹛in this section  we present optimization techniques that translate a query operation into a nested form of several amoeba joins so that temporary results can be minimized by gradually applying structural constraints imposed by fds. this method enables selective retrieval of xml structures that satisfy each amoeba constraints  and avoids extraction of unwanted xml structures. to give an equivalent translation of a query expression  we incorporate the commutative law and cascading selection of relational algebra  into xml:
+﹛t       1  pushing selection . let r and s be input relations  and c be a condition. when a relation s contains no node label that appears in c  the following translations hold:
+	考c r ℅ s  = 考c r  ℅ s	 commutative law 
+﹛﹛﹛考c1＿c1 r  = 考c1 考c1 r    cascading selection   where c1 and c1 are conditions.
+﹛p      s      . the proof is an induction on the number of conditions based on the fact that relations of the left-hand side and right-hand side in the above expressions have the same set of conditions. 
+﹛using the rules in theorem 1  we can decompose a selection operation to retrieve a tree relation into a nested form of selections. if a is a set of amoeba conditions  and a is an amoeba condition in a  then the following translation holds:
+考a r ℅ s  = 考a 考a {a} r ℅ s   = 考a 考a {a} r  ℅ s  
+where a relation s does not contain node labels in a   {a}.
+when a = hhx yii  a selection operation 考a is an amoeba join
+ajx y that connects nodes x and y . hence  this decomposition technique can be used repeatedly to derive a series of amoeba joins equivalent to the original query. figure 1 illustrates query schedules generated by this decomposition. in this example  we have three amoeba conditions  hha  b  cii  hha  bii and hha  cii. when we choose one of the conditions  say hha  b  cii  a1   as a decomposition target  the query schedule becomes like the left-hand schedule in figure 1. this schedule effectively reduces the search space of possible relations by evaluating amoeba conditions a1 and a1 in earlier steps  thus decreasing the input size of the final aja b c operation. on the other hand  the right-hand schedule evaluates the condition a1 first  which enumerates all possible structural variations  and subsequently makes selections with hha  bii and hha  cii.
+﹛this translation is equivalent to the so-called pushing-down selection in relational algebra. this technique is also useful in xml query processing to eliminate instances of irrelevant xml structures from intermediate query results.
+parent-child join decomposition. functional dependencies are frequently observed between parent and child nodes  e.g.  task id ↙ task  which imposes hhtask id  taskii  and the task node must be the parent of the task id node. in this case  we can explicitly decompose the query using a parent-child join:
+﹛c         1. let r and s be input relations  and a be a set of amoeba conditions. for an amoeba condition a = hhp cii ﹋ a  where p is the parent node of c  and when a relation s does not contain node labels in a   {a}  the following translation holds:
+考a r ℅ s  = pcp c 考a {a} r  ℅ s  
+where pcp c denotes the parent-child join  which is a specialized version of an amoeba join that connects parent nodes p and child nodes c.
+1 minimal relation
+﹛unlike relational databases that use flat tables  relations in xml have tree structures. this structural discrepancy often demands an xml query to involve extra nodes that do not necessarily appear in the final results. for example  consider a query for a pair of project and employee nodes from a relation  project  task  employee . in sql  simply specifying project and employee labels is sufficient to produce this query statement. in xml  however  we also have to include task node label in the query operation  because when a task node is a root node of the amoeba structure  the project and employee nodes cannot be connected without the task node. therefore  project  task  customer is a minimal relation required to answer this query.
+﹛the algorithm to compute minimal relation for a given list l of input node labels is simple. let fq be a subset of pre-defined fds such that each fd in fq contains some node label appeared in l. then  the minimal relation of the node list l is nl fq  ﹍ l  which is a list of all node labels that appear in fq and l. for example  when l = {project  employee} and a pre-defined set f of fds is
+{task ↙ project  task ↙ employee}  then fq is identical to f  and nl fq  = {project  task  employee}  which is the minimal relation of  project  employee . its query operation is described as follows: 羽project  employee 考c project ℅ task ℅ employee    s1 
+where a condition c = hhproject  task  employeeii ＿ hhtask  projectii ＿ hhtask  employeeii  which is derived from fq. this query correctly locates the minimal relation for the project and employee nodes  and then the projection eliminates the task node  which is not contained in the original input. the notion of minimal relations can be utilized to complement some missing nodes in the query  so the users can produce queries without considering structural differences between relational and xml structures. for example  a query statement for s1 is simple as follows:
+ project  employee   s1 
+﹛there is a case that some node labels in a query do not appear in any fds. this is usual for relational data enhanced with xml syntax  as explained in section 1. for example  a minimal relation of  task list  task  employee  has no additional node  since an only fd related to this relation is task ↙ employee  but its node labels are already contained in this relation. this query is evaluated with a nested form of amoeba joins using the query translation technique described in the previous section:
+ajtask list  task  employee 
+	ajtask  employee task  employee   task list 	 s1 
+which first retrieves a relation  task  employee   then finds task list nodes associated to this relation.
+1 database integration
+﹛xml is a tree-structured data  however  a single tree is not sufficient to describe data models of the real world that often should be described as a graph structure. as we illustrated in section 1  any graph-structured data model can be decomposed into several trees  relations . to integrate several trees into a single xml document  h. v. jagadish et al. introduced the notion of colorful xml   which appends a color property to each xml node so that a projection of each colored tree represents one of the trees decomposed from a graph-structured data. however  the colorful xml requires a significant extension of the xml specification   and also to edit multiply colored xml data is quite difficult for standard text editors or simple script programs.
+﹛our solution to this problem is to store several aspects of the data model separately in the form of xml data fragments  and to retrieve them using relational-style xml queries. these query results are joined using keys defined for xml. this approach does not require any extension of the xml specification. figure 1 illustrates this approach. this xml data has some employee data  left   and associated office and section xml data  right  that wrap employees:
+ office location= l.a.  
+ employee id= e1 / 
+ employee id= e1  
+ employee id= e1 / 
+ name david /name 
+ /office 
+ /employee 
+ employee id= e1  
+                              section id= s1    name lucy /name 
+ employee id= e1 / 
+ /employee 
+ employee id= e1 / 
+ /section 
+figure 1: employee data  left  and additional information  office and section  described in two separated trees  right .
+﹛these three xml fragments might be placed in the same xml document  or in different xml files. the colorful xml  merges these three xml fragments into a single tree while tolerating employee nodes with different colors. this method enables an xml query processor to traverse name  office and section nodes from an employee node. our solution to this problem is much simpler and leaves the xml data as they are  because a query for employee names  office and section can be expressed as a join operation of relations using employee id values  described as follows:
+ employee  name  zemployee id  office  employee 
+zemployee id  section  employee 
+﹛let r s be relations  and p be a node label for a join target  then a join operation r zp s is a selection 考r.p=s.p r ℅ s . therefore  without actually materializing a merged form of xml fragments  we can integrate the above xml data from the knowledge that empoloyee id values connect three relations; namely  employee id is a key  or foreign key  for relations  employee  name    office  employee   and  section  employee .
+﹛a key is a special case of an fd  and it can be used to uniquely locate xml nodes. in this example  we have the following key definitions for these three relations:
+	 employee id  ↙ employee name	for  employee  name 
+ employee id  ↙ office employee	for  office  employee   employee id  ↙ section employee	for  section  employee 
+these keys  fds  mean that an employee id value is sufficient to uniquely locate all nodes in each relation  employee  name    office  employee  and  section  employee . buneman et al. have proposed keys for xml   however  their definition cannot handle structural variations. our definition of fd allows both the cases that an office node is a child  descendant  of an employee node  or vice versa.
+﹛integration of variously structured xml data is also useful for handling schema evolution. figure 1 illustrates a process of enhancing employee data by appending supplementary information. suppose that  first  we have only the employee name data  and subsequently these employees are assigned to some office and section  which is described as the right-hand side xml data in figure 1. when creating a new database  it is usual that some data are missing or not available yet. with the capability to query variously structured xml data  schema evolution of xml databases can be managed with a simple join operation of several xml data. in addition  it is flexible to allow various xml structures in designing new xml data for enhancing existing databases.
+﹛related to database integration  we mention several open problems that still need further study:
+handling variations of tag names. there may be variations of tag names in describing the same data model in xml. for example  an xml tag employee may be named worker in another location. to handle these variations of tag names  one can use  for example  a simple mapping function that translates worker into employee or some dictionary that groups synonym words. in general  however  we have to consider a more difficult problem  called semantic integration   which needs to resolve semantic heterogeneity of xml tag names under specific paths.
+semantics of nested elements. when xml data has a recursive structure  its data semantics may be ambiguous. figure 1 illustrates this problem; two name nodes are located under the manager node. to query a manager name  the amoeba condition hhmanager  nameii cannot be used  since the manager is associated with its correct name lucy as well as its employee's name david unexpectedly. a solution to this problem is to clarify the data semantics by using xml namespace e.g.  manager:name  employee:name  etc. xml attributes  such as manager name  also can be used to avoid the problem of the semantic ambiguity. although it is quite easy to capture the amoeba structure hhmanger  manager:nameii  the problem of automatic assignment of these namespace labels remains open.
+ manager 	 manager 
+ info 	 info 
+	 name lucy /name 	 manager:name lucy /manager:name 
+ /info 	 /info 
+ employee 	 employee 
+	 name david /name 	 employee:name david /employee:name 
+ /employee 	 /employee 
+ /manager 	 /manager 
+figure 1: clarifying semantics of the name tags by using xml namespace.
+1 querying incomplete relations
+﹛although the relational-style xml query manages structural variations of xml data  the user who only has a limited knowledge of
+1 e1 11 e1 11 e1 11
+1 e1 
+ e1 1
+1
+1 e1 emp  emp id  name active task
+	1	 e1 
+merge & projection
+	emp	name active task
+{1  1  1} 1 1 {1  1  1} 1 1
+figure 1: query schedule of  employee  name   active  task    which computes incomplete relations  then merges them to fill blank columns.
+the underlying xml structure may fail to retrieve necessary information from the xml data. for example  a query for employee names who are working for active tasks can be described as follows:
+                  employee  name   active  task    which has a nested query  active  task  to retrieve task nodes marked as active. this query has to find a relation  employee  name  active  task   but there is no matching tree structure for this relation in the xml data in figure 1. in reality  many partially matching structures are available and would provide useful information.
+﹛to detect these partial matches  we present a query operation that collects incomplete relations allowing null values. for example  the query process of  employee  name   active  task   involves node pairs  1  1  null  null    1  null  1  1  and  1  null  null  null . figure 1 shows these nodes tuples. then  to fill null values in these node pairs  we merge employee nodes 1  1 and 1 by using equality of the employee id value  e1   and generate a node tuple  {1 1}  1  1  1  as one of the query results. in this query process  employee id values work as object ids of employee nodes.
+﹛we extend the definition of the amoeba join to tolerate null values in the query result:
+﹛d          1  aj  . let nl be a list of node labels  and r be an input relation  an amoeba join allowing null values  denoted aj  generates the same relation with an amoeba join ajnl r   except that each result instance in aj is allowed to have null nodes other than the node corresponding a first node label in nl.
+the aj  operation has a flavor of the outer join in relational databases  but is different in that aj  considers structural variations of input nodes.
+﹛figure 1 illustrates a query schedule of  employee  name   active  task   that uses aj  operations instead of aj. first  to merge employee nodes using employee id values  this schedule performs pc-join of these nodes  p1 . then  to retrieve task nodes that are marked active  we simply compute their amoeba join  p1 . among the inputs of the query  a pair of employee and task has a structural constraint imposed by the fd task ↙ employee  so we have to connect them by using a aj  operation  p1  allowing null values for the task nodes. in the similar manner  we perform aj  operation between employee and name to compose a relation  employee  name   p1 . the upper-right table in figure 1 shows the intermediate query results up to  p1  phase. in  p1   employee nodes that have the same employee id values are merged to fill the blank column in the table  and incomplete rows that still have null values are eliminated. finally  using projection 羽  the query reports only requested nodes by the user  excluding employee id column  p1   and the result is the lower-right table in figure 1.
+1 amoeba join processing
+﹛the amoeba join processing depends on the capability to detect an ancestor-descendant relationships of two nodes  because to test an amoeba condition hha b cii  we need to check one of the nodes among a b and c is a common ancestor of the others. if node a is a common ancestor in the amoeba structure  then the node a is an ancestor of nodes b and c.
+﹛to make faster the detection of ancestor-descendant relationships  we use indexes that label each xml node with an interval  start  end  . the tree structure of xml is encoded so that every interval of an ancestor node subsumes all its descendant nodes  and all intervals are disjoint. using this node label  the detection of the ancestor-descendant relationship becomes a containment test of two intervals  i.e. a node p is an ancestor of a node q iff p.start   q.start ＿ q.end   p.end.
+﹛the details of the amoeba join algorithm are described in   thus we present its outline. the amoeba join can be processed efficiently by sorting input nodes in advance in the order of start values  since the root node of an amoeba always has the smallest start value. by sweeping the sorted input nodes  the amoeba join chooses a node p that has the smallest start value as a candidate of the root node of an amoeba. then  for each input node list of the amoeba join except that contains p  it searches the descendant nodes of p from range between p.start and p.end for the other components of the amoeba. after the search  this algorithm enumerates all amoeba structures rooted by p  therefore  it sweeps the node p off from the input  then proceed to the next smallest node.
+1. experimental results
+﹛we evaluated the performance of the relational-style xml query to show the scalability of our method for various sizes of xml data  and the tolerance to structural variations.
+implementation. we implemented a prototype of our database management system in c++  which consists of several components  such as xml reader  index generator  query processor  etc. our implementation of database indexes uses b+-trees provided by the berkeley db library . on top of the b+-tree  we stored
+xml nodes labeled with  start  end  level  path id  text   where the start and end is the interval labels  to efficiently detect ancestordescendant relationships  and the level is the depth of a node in the xml tree  which is required to detect parent-child relationships of xml nodes. the path id represents an id assigned to each distinct path. the text is a text content encapsulated by tags or attributes.
+﹛xml nodes are stored in a b+-tree in ascending order of their start values. to make node retrieval faster  we also generated a secondary b+-tree index using a compound key  path id  start   which aligns xml nodes first in the order of path ids  then that of start values. this secondary index is used to efficiently locate nodes belonging to specific paths  e.g. //a  //a/b  etc.
+machine environment. as a test vehicle  we used a windows xp machine; dual xeon 1ghz processors  1gb memory and 1gb 1 rpm hdd.
+experimental methodology. we run each query six times and take the average of the last five runs  because os caches of the database files are quite different between the first run and the others. the standard deviation of the query performance is at most 1  1考 = 1 seconds  or a far smaller value. it is sufficiently small to measure differences of the query performance.
+query performance on xmark. to evaluate the query performance on standard xml data  we used xmark  benchmark program. we have changed its scalability parameter f from 1 to 1 to produce various sizes of xml data  which are almost 1m  1m  1m and 1m bytes. figure 1 shows query schedules used in this experiment  q1 to q1s  . this query set is designed so that the characteristics and scalability of the amoeba join algorithm become clear  so simple path queries and join  z  operation that can be processed with the standard techniques are not presented.
+﹛the xmark database contains 1 types of tag names. a relation in xml is a subset of these tag names. to detect fds in the xmark data  we created a simple program that investigates one-to-many or one-to-one relationships that hold in the xmark data. for example  under the root node  site  in the xmark data  there are many person nodes  and each person node has many descendant interest nodes. these relationships correspond to fds person ↙ site and interest ↙ person.
+﹛query q1 and q1 are amoeba joins of two nodes that have oneto-many relationships. figure 1 shows the performance of these queries and their result sizes. the performance of q1 and q1 scales in proportion to the xml data sizes.
+﹛here  we present two examples that emphasize the significant benefit of query optimization. when more than two nodes involved in the amoeba join operation  q1   its performance significantly deteriorates. our implementation of the query processor does not use secondary storages to store intermediate results of a query. the permutation size of site  person and interest nodes is quite huge  and consequently the query q1  which simply computes all possible tree structures consisting of these nodes  exhausted the main memory storage  and stopped after an out of memory error was observed. query q1f is an optimized query schedule of q1 using the pushing-structural constraint technique described in section 1  and the amoeba constraints derived from the fds person ↙ site and person ↙ interest are pushed into the sub queries. although both q1 and q1f has the same amoeba join operation ajsite  person  site  the performance of q1f scales well with increase in xml data sizes. this is because nested amoeba join queries in q1f construct appropriate tree structures in a bottom-up fashion  and efficiently avoids irrelevant tree structures. this result indicates that the right-hand schedule in figure 1  which first processes an amoeba condition with more than two nodes  must be avoided. query q1 and q1f are more complex examples of nested query schedules. to retrieve the relation  regions  item  mail  date   q1 considers an fd mail ↙ date in the path mail/date  so pc-join can be used in this query. however  the relation  regions  item  mail  date  in the xmark data has several other fds as shown in q1f. similar to the results of q1 and q1f  computation of q1 could not be completed in the main memory  and q1f  which considers all of these fds  is scalable to the database size.
+﹛query q1 and q1f show that amoeba join is not always slow; in xmark data  the mail object is a parent of two child nodes  'from' and 'date'  so the amoeba join of these nodes never reports incorrect results. in this case  the decomposed schedule q1f is less efficient due to the overhead of pipelining. query q1  q1f and q1s retrieve nested relations in which each open auction node has current price information and several bidders associated with the bid time and amount of increase data. query q1 misses the one-tomany relationship between open auction and bidder  so q1f  which totally decomposes the schedule  becomes efficient. considering that two relations  open auction  current  and  bidder  increase  time  comprise distinct objects  and are connected through an fd bidder ↙ open auction  we can produce a more efficient query schedule q1s   which reduces the number of sub queries. this type of query optimization needs to be exploited but is left as a future work.
+tolerance to structural variations.	to further study the tolerance of our method for variously structured xml data  we developed an xml data generator that produces three types of structural variations: simple  hierarchical  and random. figure 1 illustrates these tree-structures generated from the same input table. the simple structure converts each row in the table into an xml fragment organized from the first column data to the last one. a column value in the input table is described as an xml attribute. the hierarchical structure aggregates column values that have the same value. for example  all values in the column a are aggregated into a single tag. this aggregation process is repeated recursively from column a to c. this type of aggregation is frequently observed in the real-world xml data. the random structure is generated in almost the same manner with the hierarchical structure  but it randomly chooses target columns of aggregation  so the random xml data contains many structural variations. the generated xml data is a collection of a relation  a  b  c  that satisfies two fds c ↙ b and b ↙ a  representing two one-to-many relationships. the fanout parameter controls the number of associated nodes in these relationships. for example  when fanout = 1  each a node has 1 b nodes  and each b node has 1 c nodes. we programmed this data generator so that all three types of xml data consist of the same number of instances of the relation  a  b  c .
+﹛figure 1 shows the query performance of q1 grouped by various query result sizes  and next by fanout values. even in the presence of structural variations  the query performance between the simple and random format is stable. this characteristic is suited for integrating variously structured xml data. when the fanout parameter is between 1 to 1  the hierarchical data is more efficient for query processing  because it efficiently aggregates one-to-many relationships  and thus its database sizes are smaller than those of the others. however  when the fanout values are 1 and 1  their query performance becomes slower. this is because our query processor expands the aggregated xml data into node tuples to report intermediate results  so many duplicate nodes are instantiated. for example  in figure 1  a single a node in the hierarchical data is copied three times to generate intermediate node tuples. this inefficiency can be improved by holding intermediate results as a tree structure.
+﹛our experiments demonstrate the scalability of our query optimization techniques to process queries of relatively large amount of results. if value conditions are involved  input data sizes of the amoeba join will be squeezed  so naive application of the amoeba join probably works well even for multiple input nodes. it still needs further study to estimate costs of amoeba join operations for various input data. other than this cost estimation methodology  we can leverage the existing techniques of system r style query optimization on our xml algebra. in addition  the relational-style xml query provides independence of query statements from the underlying xml data structure. this property can be utilized to reorganize xml data structure for efficient query processing or minimizing database sizes. although it might be possible to use relational databases as a storage scheme for relations in xml  it must have capabilities to query and store other xml nodes associated to relations.
+1. related work
+﹛the use of relational model to query complex structured data  including xml  has been studied in . our approach is unique in that it allows structural variations of xml data  and utilizes functional dependencies to capture data semantics of xml.
+finding relations in xml. there have been several studies of the problem in finding relations in xml; y. li et al.  attempted
+﹛
+relation  query expression fdquery scheduleq1 site  person person ↙ siteajsite  person site  person q1 person  interest interest ↙ personajperson  interest person  interest q1 site  person  interest ajsite  person  interest site  person  interest q1f site  person  interest interest ↙ person  person ↙ siteajsite  person  interest 
+ajsite  person site  ajperson  interest person  interest   q1 regions  item  mail  date mail ↙ dateajregions  item  mail  date regions  item  pcmail  date mail  date  q1f regions  item  mail  date mail ↙ date  mail ↙ item  item ↙ regionsajregions  item  mail  date ajregions  item regions  ajitem  mail item  pcmail  date mail  date   q1 mail  from  date ajmail  date  from mail  date  from q1f mail  from  date mail ↙ from dateajmail  from  date ajmail  from ajmail  date mail  date   from  q1 open auction  current 
+ bidder  increase  time  ajopen auction  current  bidder  increase  time  open auction  current  bidder  increase  time q1f open auction  current 
+ bidder  increase  time  open auction ↙ current  bidder ↙ open auction  bidder ↙ increase timeajopen auction  current  bidder  increase  time 
+ajopen auction  current current 
+ajopen auction  bidder open auction 
+ajbidder  increase increase  ajbidder  time bidder  time     q1s open auction  current 
+ bidder  increase  time  bidder ↙ open auctionajopen auction  bidder 
+ajopen auction  current open auction  current  
+ajbidder  increase  time bidder  increase  time  q1 a  b  c c ↙ b  b ↙ aaja  b  c aja  b a  ajb  c b  c   figure 1: query schedules for retrieving relations with several fds in xmark  q1 to q1s   and synthetic data set  q1 .
+
+figure 1: query performance  left  and result sizes  right  of q1   q1s . performance and result sizes of q1  q1 and q1 could not be measured due to out of memory errors.
+abc11111 table 	 table 
+ a value= 1  	 a value= 1  
+ b value= 1  	 b value= 1  
+	 c value= 1 / 	 c value= 1 / 
+ /b 	 /b 
+ /a 	 b value= 1  
+ a value= 1 / 	 c value= 1 / 
+ b value= 1 / 	 c value= 1 / 
+	 c value= 1 / 	 /b 
+ /b 	 /a 
+ /a 	 /table 
+ a value= 1  
+ b value= 1  
+ c value= 1 / 
+ /b 
+ /a 
+ /table 
+figure 1: synthetic xml data of simple  left   hierarchical  center  and random  right  structures  generated from the same input table data.
+figure 1: query performance of q1 for variously structured xml data  which have the same number of relations  a  b  c .
+﹛
+to extract particular patterns  containing the smallest least common ancestor  slca  of a given set of xml nodes. the slca  which was coined in   is a least common ancestor  lca  that contains no other lca nodes among its descendants. this definition of slca is an attempt to exclude the xml root node from query results. this is because xml is a single-rooted tree  and thus irrelevant nodes that never belong to the same relation may be connected through the root node. however  the slca approach is highly dependent on the query input. for example  when two unrelated nodes are the inputs of an slca query  the root node will be wrongly reported as a query result. the amoeba join  successfully avoids such unintentional results  since it does not rely on any additional lca nodes. however  the cost of enumerating all tree structures is prohibitive without the knowledge of functional dependencies. query methods that retrieve xml structures without using knowledge of the schema or fds do return incorrect results. several such cases were presented in .
+﹛another approach to querying variously structured xml data is to search the data to the level of ancestor or descendant nodes  1  1  or nearest neighbor nodes . however  these methods cannot address all possible tree structures derived from relational data. in addition  they are optimized for keyword-search queries  and are thus not suited to rigid database queries.
+functional dependencies for xml. fds and keys have been well studied to find ways of reducing data redundancy and avoiding update anomalies . in recent years  these concepts have been applied to xml in the form of xml keys  and xml fds  1  1  1  1 . these approaches are based on paths; given sets x and y of paths  an fd for xml is defined as x ↙ y. however  these pathbased definitions of fds cannot handle xml documents containing structural variations  which require multiple path expressions.
+﹛in summary  previous work on fds for xml  1  1  1  1  1  inferred fds from a path structure of an xml document. in contrast  our approach that assumes fds are defined outside the xml data  and are specified using node names  e.g.  tag or attribute names  on a relation  rather than on paths. unlike path-based definitions  our definition of fd allows various xml data expressions  and therefore makes the design of xml databases much easier.
+1. conclusions
+﹛the presence of structural variations is a serious problem for the traditional xml query processors  because path-expression queries are dependent to the underlying xml tree structures. we overcome this problem by introducing the relational-style xml query  which uses the notion of a relation in xml that allows amoeba structures. in addition  to capture the data semantics implied in the xml structure  we incorporated the well-known notion of functional dependencies into xml  and devised efficient query processing techniques for retrieving relations satisfying fds. with these capabilities  we can utilize heterogeneous xml structures to design and integrate several xml databases. the contributions described in this paper include:
+  the notion of the relation in xml. with this capability  fds and keys are smoothly incorporated into xml.
+  a class of xml structures  called a tree relation  which can be used as an xml counterpart of relational tables.
+  a departure from path-expression queries. xml structures of interest are automatically determined from a set of fds.
+  capability of integrating variously structured xml data.
+  experimental results that confirm the scalability and tolerance of our query method in the presence of structural variations.
+repeatability assessment result
+all the results  except q1 to q1s  in this paper were verified by the sigmod repeatability committee. results of query q1 to q1s were added after the submission of the code in order to reflect a reviewer's comment. code and data used in the paper are available at http://www.sigmod.org/codearchive/sigmod1/.

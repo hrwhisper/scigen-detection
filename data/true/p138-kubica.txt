@@ -1,0 +1,223 @@
+in this paper we examine the problem of efficiently finding sets of observations that conform to a given underlying motion model. while this problem is often phrased as a tracking problem  where it is called track initiation  it is useful in a variety of tasks where we want to find correspondences or patterns in spatial-temporal data. unfortunately  this problem often suffers from a combinatorial explosion in the number of potential sets that must be evaluated. we consider the problem with respect to large-scale asteroid observation data  where the goal is to find associations among the observations that correspond to the same underlying asteroid. in this domain  it is vital that we can efficiently extract the underlying associations.
+¡¡we introduce a new methodology for track initiation that exhaustively considers all possible linkages. we then introduce an exact tree-based algorithm for tractably finding all compatible sets of points. further  we extend this approach to use multiple trees  exploiting structure from several time steps at once. we compare this approach to a standard sequential approach and show how the use of multiple trees can provide a significant benefit.
+categories and subject descriptors
+e.1  data structures : trees; j.1  physical sciences and engineering : astronomy
+general terms
+algorithms
+keywords
+multiple tree algorithms  track initiation
+permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. to copy otherwise  to republish  to post on servers or to redistribute to lists  requires prior specific permission and/or a fee.
+kdd'1  august 1  1  chicago  illinois  usa.
+copyright 1 acm 1-1-x/1 ...$1.
+1. introduction
+¡¡a common task in both tracking and data mining is to find sets of observations or data points that fit some underlying model. in the domain of tracking  the track initiation problem consists of using this approach to determine which observations from different time steps correspond to the same underlying object without any previous track estimates. figure 1 illustrates the computational problem that we are trying to solve. observations from five equally spaced time steps are shown on a single image with observations from different time steps marked with different numbers. the goal is to take the raw data  figure 1.a  and find sets of observations that correspond to the desired motion model  figure 1.b . the difficulty arises from the combinatorics of such a search.
+¡¡while this problem is important to such tasks as target tracking  computer vision  and mining spatial-temporal data sets  our primary motivating example in this paper is asteroid linkage. here we wish to determine which observations correspond to the same true underlying asteroid. these linkages can then be used to determine tentative orbits  attribute the observations to a known orbit  and assess the potential risk of an asteroid. the next generation of sky surveys  such as panstarrs or lsst  are designed to provide vast amounts of observational data that can be used to search for potentially hazardous asteroids. further  these surveys have the potential to allow us to detect and track fainter objects than ever before. however  these improvements greatly increase the combinatorics of the problem reinforcing the need for tractable algorithms.
+¡¡current approaches for finding asteroid linkages are not suitable for these new surveys. the current tools are computationally impracticable at the magnitude of the new problem. further  previous approaches were designed to work on relatively clean data  such as bright objects observed at closely spaced intervals. in contrast  we present an approach designed to work on many objects that are observed at potentially widely spaced times.
+¡¡below we introduce a new methodology for asteroid linkage and track initiation. we present an approach that exhaustively considers all possible linkages and returns all linkages that conform to our constraints. we then introduce a tree-based algorithm for tractably finding the linkages and provide an efficient pruning methodology that exploits the structure of both the problem and the search. we further extend this approach to use multiple trees  exploiting structure from several time steps at once. we compare our multiple tree
+
+ b 
+figure 1: the linkage problem consists of finding one point from each time step such that they fit the given model  e.g. in  a  we must find five points numbered 1 that are equally spaced along a line . two linear tracks are shown  b  and a third is left as an exercise for the reader.
+approach to an adapted version of multiple hypothesis tracking using spatial data structures and show how the use of multiple trees can provide a significant benefit.
+1. problem definition
+¡¡the linkage problem consists of finding all tuples of points that conform to an underlying motion model. thus the problem is similar to a spatial join query  extended to find associations relative to a given set of motion models. formally  we can specify the problem as a search query. at each time step m we observe nm points from both the underlying set of objects and a noise process. given a set of observations at m distinct time steps  we want to find and return all tuples of observations such that:
+1. there is exactly one observation per time step  and
+1. it is possible for a single track to exist that passes withingiven thresholds of each observation.
+¡¡the observations consist of real-valued coordinates in d dimensional space  with xi indicating the ith observation  and time of observation ti. although in many of the applications below ti will correspond to time  it can represent any independent variable.
+¡¡the second condition requires that the observations fit within some bounds  ¦Äl  ¦Äh  of the underlying model. formally  a tuple of observations  xi1  ¡¤¡¤¡¤   xim   is valid only if there exists a track g such that:
+	¦Äl d  ¡Ü xii  d  g tii  d  ¡Ü ¦Äh d   d  i	 1 
+this condition is not tied to a particular statistical model. we can define an arbitrary distortion model for the observations and set the thresholds as the 1% confidence interval for the noise in this dimension. further  we can vary ¦Äl and ¦Äh to account for systematic or time varying errors.
+¡¡for simplicity and consistency our discussion below focuses on two types of models: quadratic and linear. these models naturally describe the motions of objects with constant acceleration and constant velocity respectively. both tracks can be represented as:
+	g t  = a¡¤t1+b¡¤t +c	 1 
+with the additional restriction of a = 1 for linear tracks.
+1. previous work
+¡¡below we briefly discuss a few of the more common approaches to track initiation and asteroid linkage. these approaches differ from our own in several important ways. we are asking for all sets of observations that could feasibly belong to a path and we provide an exact algorithm for answering this query.
+1 sequential algorithms
+¡¡one common approach to track initiation is a sequential approach  for a good introduction see  1  1  . unassociated points are treated as the start of a new track and projected to later time steps where they are associated with other points to form longer tracks. it is possible to use this approach to find all feasible linkages by incorporating a very simple form of multiple hypothesis tracking . specifically  whenever a track could feasibly be associated with multiple different observations at a given time step  we allow the search to branch off and try each new tentative track  one for each association . this process is illustrated in figure 1. the initial point matches three other points at the second time step  which are used to create three hypothesized tracks. this process continues to later time steps with  bad  hypotheses being pruned away.
+¡¡in order to reduce the number of candidate neighbors examined at each time step  gating is used to eliminate the obviously infeasible associations. as shown in figure 1  new points are first filtered by whether they fall within a window or gate around the model's predicted position. this approach has also been used in conjunction with kd-tree structures  to quickly retrieve the candidate observations near the predicted position of a track  1  1 .
+¡¡it should be noted that there are several potential disadvantages of this type of approach that arise from the sequential nature of the search itself. it does not use evidence from later time steps to aid early decisions. early  good pairs  may be easily pruned using a lack of further points along the track. further  this approach has the potential of being thrown off by noise early in the process. while branching and considering multiple associations mitigates this problem  it introduces another problem  the possibility of a high branching factor causing a significant computational load.
+¡¡below we extend this multiple hypothesis tracking approach to our exhaustive search criteria. instead of relying on an estimated track and predicted position  our search tests points at the new time step for compatibility with the current track  set of previous observations  by explicitly determining whether they satisfy equation 1. to this end we propose new pruning criteria for a tree-based search that allows us consider this type of satisfiability constraint.
+1 parameter space methods
+¡¡another approach to this problem is to search for associations in the parameter space of the models themselves. one popular algorithm is the hough transform . the idea behind these approaches is that for many simple models  individual observations correspond
+
+ c 
+figure 1: a multiple hypothesis tracker starts from a tentative set of associations and sequentially checks the later time steps  a . if multiple points reasonably fit the model then several hypothesis are created  b  and  c .
+
+figure 1: gating can be used to ignore points that could not be part of the current track. the x marks the model's predicted position and the points that fall within the gate are shaded.
+to simple regions or curves in parameter space. for example when linear models are used  a single point in observation space  t x  can be transformed into a line in parameter space:
+	c =   t ¡¤b+x	 1 
+if a series of observations actually lie along a line  then their corresponding lines in parameter space will intersect at a common point  namely  the point representing the parameters of the line on which
+
+figure 1: one potential advantage of using multiple trees is that we can use information from later time steps to prune out bad associations at earlier time steps. there are five initial pairings that appear reasonable for a given query point  but only one is confirmed with a later observation.
+they lie . the hough transform looks for such intersections in parameter space by using grid-based counts of the number of lines that go through a particular region of parameter space.
+¡¡there are several major downsides to the parameter space approach. maintaining and querying the parameter space representation can be expensive in terms of both computation and memory. there are many possible intersections to check and storing occurrences may require significant amounts of space.
+1 tracking dense point sets
+¡¡a significant amount of work exists in the computer vision and tracking community for the related question of tracking a dense set of point observations. here the goal is to find a set of  good  associations for each observation by assigning the observations to tracks and scoring the set of tracks with such metrics as smoothness or consistency. many of the proposed techniques use a sequential approach  scanning through time making or refining track/observation assignments. for example  the greedy exchange algorithm  and its enhancements  e.g.  1  1    start with an initial set of assignments and iteratively scan through the time steps looking for pairs of observations from different tracks that can be exchanged. this algorithm continues to make such adjustments until they no longer improve the assignments.
+¡¡the algorithms developed in these fields may provide accurate and efficient ways to track dense sets of observations. however  the important difference between this work and our own is in the actual question that we are trying to answer. the approaches described above attempt to return observation/track assignments that produce a  good  set of disjoint tracks. therefore one limiting assumption that appears in these algorithms is that each observation can only be assigned to at most one track. in contrast  we are interested in returning all feasible sets of observations. thus a more comprehensive search is required.
+1. multiple tree algorithm
+¡¡our solution to this problem is to build multiple kd-trees over observations and traverse them simultaneously. specifically  we build one tree for each time-step that we wish to use. this approach allows us to not only look for pruning opportunities at the next time step  but also to consider pruning opportunities resulting from future time-steps. this potential advantage is illustrated in figure 1.
+¡¡figure 1 shows a one dimensional example of this approach. one tree is built independently on each of the m time-steps. the algo-
+
+
+figure 1: the multiple tree algorithm descends the trees in a depth first search  a and b . if it reaches the leaf nodes  it explicitly tests all sets of observations  c . the search can be pruned if it is not possible to fit our model through each of the nodes  d .
+	 a 	 b 
+figure 1: a snapshot of the multiple tree traversal of two kdtrees built on two dimensional points at different times. the dashed boxes indicate the current nodes being examined.
+rithm starts at the root of each tree and begins a depth first search of combinations of tree nodes. at each level of the search the algorithm picks one node and recursively searches its children  figure 1.b . when the search reaches a point where all m trees are at leaf nodes  the algorithm explicitly tests all combinations of the points at these nodes and returns those tuples of points that fit the criteria of our model  figure 1.c . figure 1 shows a snapshot of this traversal on two dimensional data.
+¡¡in the above form  the algorithm would search all combinations of the ¡Æmm=1nm leaf nodes  requiring o   time. the benefit of using the tree-based algorithm is that we can prune regions of the search space if we can ever show that no set of points from the current nodes could be compatible with our model. we call such sets of nodes infeasible. such a case is shown in figure 1.d. this pruning criteria allows us to possibly ignore large numbers of the tuples that would have been tried under a brute force approach.
+¡¡the full recursive algorithm is given in figure 1. it is initially called using the set of root nodes from the trees at each time step. we describe the pruning test in detail in section 1. it should also be noted that the decision of which tree to descend  line 1  can be replaced with other criteria. of particular interest is the condition that we always descend the first non-leaf tree node. this alternate criterion transforms the search to consider the time steps sequentially. thus it is an exhaustive version of a sequential tracking algorithm adapted to use our feasibility criteria and tree-based pruning.
+multiple tree track initiation
+input: a set of current tree nodes
+output: a list of feasible tuples
+
+1. determine if we can prune the current set of nodes.
+1. if we cannot prune the nodes:
+1. if all of the nodes are leaf nodes:
+1. explicitly test each combination of the nodes'
+   points for feasibility  using one point per node   adding each new feasible set to the results. else
+1. let x be the non-leaf node from the current set that owns the largest number of points.
+1. recursively call multiple tree track initiation  using x's right child in place of x.
+1. recursively call multiple tree track initiation  using x's left child in place of x.
+
+figure 1: the recursive algorithm for multiple tree track initiation.
+¡¡the use of multiple trees has previously been explored for efficiently answering spatial queries  1  1 . however  this work has so far been restricted to simple spatial proximity queries on points. hjaltason and samet introduced a multiple tree method to efficiently answer spatial join queries in databases . gray and moore present a multiple tree algorithm for statistical n-body problems such as spatial correlation functions . our work extends the multiple tree approach to a significantly more complex question that considers whether points could lie along a trajectory of a given form. this extension results in a more involved pruning query. efficiently answering this pruning query is a key contribution of this work and is discussed in detail in section 1.
+1. pruning
+¡¡in order for the above algorithm to be effective  we need to accurately and efficiently prune infeasible sets of nodes. with each node we store a bounding box enclosing the points that it owns. pruning is equivalent to asking:  can there exist any track that passes through all m bounding boxes   if no such track can exist  then we can safely stop searching these subtrees. in general  proof that such a track does or does not exist may be non-trivial to find.
+¡¡formally  the pruning question is equivalent to finding a set of model parameters  a b c  that satisfy the constraints imposed by each node or proving that such parameters do not exist. the bounding box of the ith tree defines 1d constraints on what qualifies as a feasible track  an upper bound hi and lower bound li on the track's position at that time. in the quadratic case  the constraints on dimension d are: a
+ 1 
+ali d 
+for simplicity we do not explicitly include the thresholds ¦Äl and ¦Äh  but rather assume that these are accounted for in the nodes' bounds. thus we wish to find a vector  a b c  that satisfies all 1md constraints. it is important to note that these constraints are exactly the same ones that we would have to satisfy in order to check the feasibility of a given set of observations. specifically  ¦Äl and ¦Äh define small bounding boxes centered on each of the observations. thus  pruning a node in our tree search is an equivalent operation to testing a set of observations under an exhaustive approach.
+¡¡we can greatly reduce the complexity of the problem by treating each dimension independently. this reduction is justified by the following theorem:
+¡¡theorem 1.  a  b  c  is a feasible track if and only if  a i   b i   c i   satisfies the constraints in the ith dimension for all 1 ¡Ü i ¡Ü d.
+¡¡proof. the proof of theorem 1 follows from the independence of the constraints. for each dimension  1 ¡Ü d ¡Ü d  we can create a set of constraints that only depend on the variables a d   b d   and c d . these sets can be solved independently by choosing values for just those variables in the set. since none of the other sets depend on those variables  the track  a b c  is feasible if and only if  a i  b i  c i   satisfies the constraints in the ith dimension for all
+1 ¡Ü i ¡Ü d.	
+¡¡theorem 1 allows us to consider each dimension separately  reducing the pruning query with 1md constraints to d sub-queries of 1m constraints. further  the separation means that each sub-query consists of significantly fewer variables. for example  in the case of quadratic models each sub-query now consists of just 1 variables instead of 1d.
+¡¡below we discuss a  smart brute force  search for answering the pruning queries. although we restrict the discussion to the cases of linear and quadratic models  the results and discussion can be applied to models of other forms. however  the actual computational cost of pruning will vary with the model complexity.
+1 brute force search
+¡¡we use a  smart brute force  search to test for the existence of a feasible point. it should be noted that the constraints above can also be checked using linear programming. despite this  the low number of variables and constraints and the existence of additional structure in the problem makes the smart brute force search computationally attractive.
+¡¡before describing the search algorithm  it is helpful to get intuition for the procedure by interpreting each constraint as a hyperplane in parameter space. for example  in the case of one dimensional quadratic tracks  the constraint for upper bound h:
+	a¡¤t1+b¡¤t +c ¡Ü h	 1 
+forms a plane in the 1-dimensional parameter space  a b c :
+	a¡¤ t1 +b¡¤ t +c h = 1	 1 
+
+figure 1: tracks that conform to all of the constraints lie in the unshaded region of parameter space that is defined by the intersection of the constraint half-spaces.
+with normal  t1 t 1 . note that the curve's parameters  a  b  and c  define the parameter space while node's bounds  t1  t  and h  define the actual plane. further  each constraint defines a partitioning of parameter space into a half-space of feasible points  which lie on one side of the hyper-plane  and a half-space of infeasible points  which lie on the other. if the intersection of the feasible half-spaces for all of the constraints is not empty  then there exists a track that satisfies all of the constraints. an example with linear tracks and 1 constraints is shown in figure 1. the tracks that satisfy all of the constraints occupy the unshaded region of parameter space.
+¡¡in its simplest form  our search consists of checking the  corners  of the constraints for a feasible point. in a c-dimensional parameter space  two c-dimensional hyper-planes intersect at a  c  1 -dimensional hyper-plane and c non-parallel hyper-planes will intersect at a point. we call this point a corner. since the hyperplanes define the boundary of the feasible region  this region is non-null if and only if one such corner exists and is feasible:
+¡¡theorem 1. the intersection of m half-spaces defined by at least c nonparallel c-dimensional hyper-planes is not empty if and only if there exists a point x such that x is feasible and lies on at least c hyper-planes.
+¡¡proof. it is easy to see that if there exists a feasible track x then the intersection of the m half-spaces is not empty regardless of where x lies. thus we only need to show that if the intersection is not empty then there exists a feasible track x such that x lies on at least c hyper-planes.
+¡¡let y be an arbitrary feasible track  which by definition lies in the intersection of m half-spaces. assume that y lies on c  c nonparallel boundary hyper-planes. since the c hyper-planes intersect at a c¡ä =c c dimensional hyper-plane  y can be any feasible point on that c¡ä-dimensional hyper-plane. therefore we can move y to be a new point y¡ä by sliding y along this hyper-plane until it intersects a new constraint. such an intersection must exist because there are at least c nonparallel hyper-planes. further  if we constrain y to move to the intersecting hyper-plane that is closest  requires the least translation along the c¡ä-dimensional hyper-plane   then we do not cross any other hyper-planes and y¡ä is still a feasible point. thus y¡ä is a feasible point that lies on c+1 boundary hyper-planes. we can continue to push the feasible point in this manner until it lies on c nonparallel hyper-planes. thus if the intersection is not empty then there exists a feasible track x such that x lies on at least c hyper-planes. 
+¡¡theorem 1 does not require that the feasible region is fully enclosed by the hyper-planes. instead  it only requires that there exbrute force search input: a set of current tree nodes.
+ouput: a boolean indicating whether we can prune the search.
+
+1. prune ¡û true
+1. for each dimension d:
+1. let y be an empty set of constraint hyper-planes.
+1. for each node x in the current set of nodes:
+1. add the constraint hyper-plane for x's upper bound in dimension d to y.
+1. add the constraint hyper-plane for x's lower bound in dimension d to y.
+1. for each set of k nonparallel hyper-planes in y
+1. valid ¡û true
+1. z ¡û the point of intersection of the k
+hyper-planes
+1. for each hyper-plane y ¡Ê y
+1. if z is not compatible with y
+1. valid ¡û false
+1. if valid == true
+1. prune ¡û false
+1. return prune
+
+figure 1: the brute force search for testing the feasibility of a set of nodes. for each dimension we test all of the corners  looking for one that is compatible with all of the constraints.
+ists at least c nonparallel hyper-planes. under this condition there will be at least one corner to search and the theorem holds. if there is only c¡ä   c nonparallel hyper-planes then by the same reasoning the feasible region is non-empty if and only if any point on the intersection of those c¡ä nonparallel hyper-planes is feasible.
+¡¡we can use theorem 1 to define a brute force search for a feasible point  shown in figure 1. specifically  we can test each c-tuple of nonparallel hyper-planes and calculate the point of intersection. we can then test whether this point is feasible  by testing it against each of the constraints. this search requires o m c+1   operations: o m  feasibility tests for each of the o mc  corners. below we discuss how we can use the problem's structure to reduce this cost. above we make the implicit assumption that the planes are not all parallel or in another degenerate configuration. in general these additional cases can easily be handled as special cases. it is important to note though that many of the planes will have at least one corresponding parallel plane. specifically  the upper and lower constraints for any node in any dimension form two parallel planes: a
+¡¡¡¡¡¡¡¡¡¡¡¡ 1  ali d 
+1 using structure in the search
+¡¡in general the above brute force search is too expensive to be used in pruning. we can mitigate this cost by exploiting structure inherent in the tree search.
+¡¡at each level of the search  the constraints for all tree nodes except one are identical to the previous level. this observation follows from the fact that we are only splitting one node at each level of the search. all of the other nodes and their bounds remain unchanged. thus we can avoid the computation altogether if the feasible track found at the previous level is compatible with the few new constraints. we can cache the most recent feasible track and test it against the new constraints. if it remains compatible  we do not need to resolve all of the constraints.
+
+figure 1: we can check for feasibility along a line by checking the signed intersections of each constraint and the line.
+¡¡at each level of the search  the constraints for the one tree node that changed are tighter than at the previous level. this observation follows from the fact that each time we split a node  the bounds of the children nodes are contained within the bounds of the parent node. we can use this observation to limit the number of corners that we need to check. specifically  if the old point is not compatible with a given new constraint then either the new set of constraints are not compatible or a new feasible point lies on a corner where one of the planes is the incompatible constraint:
+¡¡theorem 1. if the feasible track from the previous level is not compatible with a new constraint then either the new set of constraints is not compatible or a new feasible point lies on the plane defined by the new constraint.
+¡¡proof. we prove this by showing that if the set of constraints is compatible and the feasible track from the previous level x is not compatible with the new constraint then there exists a new feasible point x¡ä that lies on the plane defined by the new constraint. let y be any point in the new feasible region. since the new constraint is strictly tighter y also lies in the previous feasible region. we can define a line segment l between x and y. since the feasible regions are convex  all points on l lie within the feasible region from the previous level. further  because x is not in the new feasible region  the line segment must intersect the hyper-plane defined by the new constraint. this point of intersection is x¡ä. 
+¡¡theorem 1 indicates that we do not need to search all corners  but rather only the corners that contain the infeasible constraint. further  we can add new constraints one at a time and only do the search if the previous point is not feasible. this reduces the cost of handling an infeasible point from o mc+1  to o mc .
+¡¡we can combine the search step and the checking step. here we can take advantage of the fact that with a c-dimensional parameter space  c   1 nonparallel hyper-planes intersect at a line. instead of searching all corners  we can search all lines. then in order to check feasibility  and find a specific feasible point  we can test the other constraints against that line. each constraint will either be parallel to the line  and can be checked directly  or will intersect the line at a signed point on the line. we can examine all of these signed intersections  tracking the maximum in each direction and asking whether any point on the line is feasible. an example is shown in figure 1. this joint searching and checking step means that we only need to check o mc 1  lines instead of o mc  corners.
+¡¡by using the structure within the search we are able to reduce the cost of a pruning query from o mc+1  to o mc 1 . while this may not appear significant  for five time steps  m = 1  these smart brute force search
+input: y - the previous set of constraint hyper-planes. x - the previous feasible point.
+z - a set of new constraint hyper-planes.
+output: y¡ä - the new set of constraint hyper-planes. x¡ä - the new feasible point  or null if
+the no feasible point exists .
+1. x¡ä ¡û x
+1. y¡ä ¡û y
+1. for each new constraint z ¡Ê z
+1. add z to y¡ä replacing the corresponding constraint
+1. if x¡ä is not compatible with z
+1. for each set of k 1 nonparallel y ¡Ê y¡ä
+1. let l be the line of intersection of the k 1 hyper-planes and z.
+1. valid ¡û true
+1. for each y ¡Ê y¡ä that is parallel to l
+1. if l is not on the correct side of y
+1. valid ¡û false
+1. for each y ¡Ê y¡ä that is not parallel to l
+1. compute the point and direction of
+intersection of l and y
+1. let ¦Ámin be the front most point of
+intersection for planes pointing backwards along the line l.
+1. let ¦Ámax be the front most point of
+intersection for planes pointing forwards. along the line l.
+1. if  valid == true  ¡Ä  ¦Ámin ¡Ü ¦Ámax 
+1. x¡ä ¡û the point along l at  ¦Ámin +¦Ámax /1
+1. if no new feasible x¡ä was found
+1. x¡ä ¡û null
+1. return x¡ä and y¡ä
+
+figure 1: the  smart  brute force search for testing the feasibility of a set of nodes in one dimension. this search is called with the set of constraint hyper-planes y and the feasible point x from the previous level. this search is run for each dimension at each level of the search.
+improvements reduce the cost of each pruning query by a factor of 1. the full pruning test is shown in figure 1.
+1 additional constraints
+¡¡the above pruning methodology provides a simple and formal way to provide additional constraints for the tracks. for example  we may wish to provide bounds on the minimum and maximum accelerations that an object can undergo. these additional constraints can be specified directly:
+a d  ¡Ü amax d 
+	a d  ¡Ý amin d 	 1 
+and fit into the pruning algorithm without modification. this allows the user to seamlessly provide potentially valuable domain knowledge.
+1 missing observations
+¡¡up to this point  our discussion has assumed that each object produces one observation every time step. there are several simple approaches to handling missing observations. perhaps the easiest is to include  missing  as a single new node in the tree as shown in figure 1. additional logic can be added to prune the search if too
+
+figure 1: one approach to handling missing points is to treat  missing  as another tree node. here the new tree is shown is a new root r' and a missing node m.
+many trees are at the  missing  node  preventing such problems as returning tracks without sufficient support. here care must be taken to avoid adding subsets of valid tracks that have already been found. finally  allowing too many missing points may greatly increase the computational load by performing the search repeatedly.
+1 unknown or complex models
+¡¡the above discussion assumes that we have a known and relatively simple model. however in many domains  this may not be the case. in the astronomy domain  the true tracks of the asteroids across the sky are not quadratic. for example  relative motion of the earth may cause a track to undergo retrograde motion.
+¡¡a poor or unknown model can easily be approximated with a simple model. however  this often requires a relatively short time span. fortunately  this complements the track initiation query itself
+where we are interested in finding a set of observations to indicate the start of a track. if longer time spans are needed  it is possible to use the above algorithms to find short arcs that can then be glued together by a conventional tracking algorithm. such an approach was suggested by shaw and arnold .
+1. experiments
+1 algorithms
+¡¡in examining the performance of the multiple tree approach  we compared the range of approaches from a sequential approach to a full multiple tree approach. specifically  we used multiple tree algorithms  denoted mt-1 through mt-m  with the following descent rule  replacing line 1 of the algorithm in figure 1 :
+mt-k: if at least one of the first k trees is not at a leaf  descend the tree in the first k that owns the highest number of points. otherwise descend the earliest tree that is not already at a leaf.
+this rule runs a multiple tree algorithm on the first k trees and then confirms the potential tracks by sequentially examining the remainder of the time steps.
+¡¡when k = 1  this algorithm is a kind of sequential track initiation algorithm that uses our feasibility constraints and kd-trees. the algorithm descends the first tree until it reaches a leaf node. it then searches the second tree for points compatible with those in the first tree's leaf node. the algorithm continues on in this manner  searching subsequent trees  and thus subsequent time steps  looking for points that are compatible with the tentative track. pruning is only done in relation to whether the trees traversed so far allow a valid track. it is important to note that this approach uses our feasibility constraints and thus it is still an exact algorithm for finding the desired linkages. unlike many proposed sequential track initiation algorithms  this rule does not try to fit a track to the first few points and project this track ahead in time.
+¡¡it is also important to note that all versions of this descent rule use the same feasibility criteria. thus all variations are exact algorithms and will return the same set of associations.
+¡¡in the below experiments the kd-trees for all of the algorithms were constructed in an identical manor. the points were recursively partitioned by splitting on the midpoint of the widest dimension. the partitioning continued until a node had only one point or its bounding box had zero width. the decision to build the tree down to a single point per leaf arises naturally from the fact that our pruning criteria is identical to the feasibility test and that we are able to exploit structure from the recursive nature of the search to accelerate the feasibility test. specifically  it should be noted that the pruning test for a set of leaf nodes exactly answers the feasibility test for the points owned by these leaf nodes.
+1 simulated data
+¡¡for the first set of experiments we used observations generated from artificial tracks in order to examine the algorithms' relative performance under a variety of conditions. the data was generated by first creating n artificial quadratic tracks:
+a ¡« uniform  amin amax 
+b ¡« uniform  bmin bmax 	 1 
+c ¡« uniform 1 
+the bounds on velocity and acceleration were included as constraints on feasible tracks. observations were then generated by sampling the tracks at each time step t:
+	xtid	 1 
+where ¦Å was drawn uniformly from  ¦Äl d  ¦Äh d   for all d. in the below experiments ¦Äl d  =  1 and ¦Äh d  = 1.
+¡¡below we describe the relative performance of the descent rules. again  it is important to note that the mt-1 descent rule is effectively a sequential algorithm with our feasibility criteria and with kd-trees. in addition  we computed the cost that would be incurred by an exhaustive algorithm  exh  that considers all m-tuples of observations.
+1.1 effect of the number of objects
+¡¡the primary factor that we would expect to influence the performance of the algorithms is the number of objects. we varied the number of objects from 1 to 1 and compared the number of pruning tests. the average results over 1 trials are shown in table 1. as shown  mt-1 consistently outperforms the other algorithms.
+¡¡unfortunately  the performance benefit is largely offset by the increased density of points. the high density of points means that there are less empty regions of space and thus less pruning is done because more of the initial associations appear feasible. the effect of density is illustrated in table 1. this table shows the same experiment as table 1  but with  slower  tracks. the decrease in maximum velocity and acceleration effectively reduces the density of the points relative to their motion. as shown this change aids all algorithms  but especially helps the multiple tree algorithms.
+table 1: the average number of pruning tests for simulated quadratic tracks as the number of objects increases. these tests use  fast  tracks: and .
+nexhmt-1mt-1mt-1mt-11 ¡Á1.1 ¡Á1.1 ¡Á1.1 ¡Á1.1 ¡Á11 ¡Á1.1 ¡Á1.1 ¡Á1.1 ¡Á1.1 ¡Á11 ¡Á1.1 ¡Á1.1 ¡Á1.1 ¡Á1.1 ¡Á11 ¡Á1.1 ¡Á1.1 ¡Á1.1 ¡Á1.1 ¡Á11 ¡Á1.1 ¡Á1.1 ¡Á1.1 ¡Á1.1 ¡Á1table 1: the average number of pruning tests for simulated quadratic tracks as the number of objects increases. these tests use  slow  tracks:  and
+nexhmt-1mt-1mt-1mt-11 ¡Á1.1 ¡Á1.1 ¡Á1.1 ¡Á1.1 ¡Á11 ¡Á1.1 ¡Á1.1 ¡Á1.1 ¡Á1.1 ¡Á11 ¡Á1.1 ¡Á1.1 ¡Á1.1 ¡Á1.1 ¡Á11 ¡Á1.1 ¡Á1.1 ¡Á1.1 ¡Á1.1 ¡Á11 ¡Á1.1 ¡Á1.1 ¡Á1.1 ¡Á1.1 ¡Á1.1 effect of the gap between observations
+¡¡without an initial estimate of velocity or acceleration  the time between observations may significantly affect performance. if either the movements or the temporal gaps are small  then the next point on the track will often be close to the location of the last point even without accounting for the movement. as the gaps or velocities increase we may have to try many neighbors at the next time step to find the true neighbor. we would expect to see an increased benefit from using multiple trees as the velocity or time between observations increases. to test this  we generated artificial linear tracks with a fixed range of velocities   1 ¡Ü b d  ¡Ü 1  and increased the spacing in time of the observations. the results are shown in table 1.
+¡¡table 1 shows one of the primary benefits of the multiple tree approach. as the gap in time increases  the number of pairs of observations in the first two time steps that comply with the velocity constraints increases. the use of three trees prevents us from having to examine many of these pairs by incorporating information from later time steps. however  after three trees the association is relatively well confirmed and additional trees do not help.
+table 1: average number of pruning tests  in millions  for linear models  bmax d  = 1  d ¡Ý 1  with 1 observations at 1 times with varied spacing. note that an exhaustive algorithm would have required 1¡Á1 tests regardless of the spacing in time.
+ tmt-1mt-1mt-1mt-1mt-1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1table 1: the number of pruning tests  in millions  for the astronomy data with various numbers of time steps.
+timesmt-1mt-1mt-1mt-111111.1.1.1.111111.1 comments and discussion
+¡¡it is interesting to note that while the use of multiple trees can provide a computational benefit  as the number of trees grows this benefit may be negated or even turn into a detriment. for example  the experiments in section 1.1 and section 1.1 show a superior performance of mt-1 relative to mt-1. the use of multiple trees provides a trade off between providing additional pruning information from later time steps and introducing a higher branching factor to the search. more trees at later time steps introduce more opportunities for  wrong turns  in the search and require a deeper search to limit the regions covered by each node. it is our current belief that this effect accounts for mt-1's relative performance. the use of three trees provides enough information to estimate and initially confirm a track  without forcing us to backtrack the search to test many further support points. in general  we would expect the optimal number of trees to depend on both the complexity of the track model and the distribution of the data. this effect has interesting implications for multiple tree algorithms and we are continuing to examine it as future research.
+1 astronomy data
+¡¡we also examined simulated data from the astronomy domain in order to test whether this algorithm provides a benefit on objects of the distribution of real asteroids. specifically  we simulated orbits for approximately 1 1 main belt asteroids and 1 near earth objects. these orbits were then approximated by a quadratic model over a period of 1 nights and observations were generated from this model. each observation consisted of two components  right ascension and declination  that gave the object's projected location in the sky. we used this approach to generate observations from 1  1  and 1 time steps equally spaced over the 1 nights and covering a 1 square degree region of the sky. this region included observations for 1 different objects.
+¡¡table 1 show the results of this experiment. the differences between performance at different numbers of time steps is due to both a varying number of observations and the different spacing between observations. as shown  the use of multiple trees can lead to a significant reduction in the number of pruning queries needed.
+¡¡it is important to note that the actual running times of the algorithms are proportional to the number of pruning queries. for example  on the runs with 1 time steps mt-1 required 1 seconds while mt-1 required 1 seconds on a 1 ghz apple g1 with 1 mb of ram. further  the relative speedups are independent of processor dependent accelerations and code optimizations.
+1. conclusions
+¡¡above we describe an exhaustive methodology for finding sets of points that are compatible with a given type of motion model. we motivated and presented these techniques in the context of track initiation and asteroid linkage. we introduced a multiple tree algorithm for tractably finding the linkages. further  we presented an efficient pruning methodology for this search that uses structure from both the feasibility problem and the search itself. empirically  this algorithm performed very well on several simulated data sets  outperforming an exact adaptation of conventional multiple hypothesis tracking.
+¡¡the true advantages of the multiple tree algorithm are its ability to use information from later time steps to aid in pruning decisions at earlier time steps and to avoid repeated work over similar sets of points. for example  an exhaustive method that does not account for this information may try every pair of observations from the first two time steps when using a quadratic model. the additional pruning information afforded by the use of multiple trees can become even more significant as the time between observations increases and bounds on model parameters  such as maximum velocity  become weaker.
+1. acknowledgments
+¡¡jeremy kubica is supported by a grant from the fannie and john hertz foundation. andrew moore and andrew connolly are supported by a national science foundation itr grant  number ccf1 .

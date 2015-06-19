@@ -1,0 +1,86 @@
+microsoft sql server 1 adds built-in support for 1-dimensional spatial data types for both planar and geodetic geometries to address the increasing demands for managing location-aware data. sql server 1 also adds indexing capabilities that  together with the necessary plan selections done by the query optimizer  provide efficient processing of spatial queries. this paper will present an overview of the spatial indexing implementation in sql server 1 and outline how the indexing is implemented and how the cost-based query optimizer chooses among the different plans. 
+categories and subject descriptors 
+h.1  database management : physical design - access methods. h.1  database management : systems - query processing. h.1  database management : database applications - spatial databases and gis. 
+general terms 
+algorithms  performance  design 
+keywords 
+spatial databases  spatial indexing  spatial query processing 
+1. introduction 
+location-aware devices and services such as gps devices and online mapping services are increasingly becoming commodity items that are used to help find everything from how to best drive from one place to another to the best location to eat dinner.  these devices  attached to such things as pictures  buses  shipments and people  produce a wealth of location data that needs to be stored and managed efficiently. since spatial data is often associated with other data that is already managed inside database systems  it makes sense to extend existing relational database systems with spatial data support. many database systems such as ibm db1  informix  oracle  and postgresql provide extensions to deal with spatial data.  
+spatial data support includes the following four items: 
+1. native spatial types to represent the spatial shapes and objects that one would like to manage in a database system 
+1. spatial operations such as testing for intersection of two spatial objects 
+ 
+1. spatial access or indexing methods to enable efficient processing of the spatial operations on large spatial data sets 
+1. cost-based optimizations that chose the right query plan  often including the spatial index  to efficiently apply the spatial operations 
+starting in the upcoming release  sql server 1 also adds spatial data support to manage location-aware data . in particular it introduces two new built-in types to represent both 1-dimensional planar and geodetic vector data.  
+the planar data is managed with a new type called geometry that is used to represent points  lines  polygons and combinations thereof that live in a flat two-dimensional plane such as a state plane coordinate system or a factory floor plan.  
+the geodetic data is represented with the new geography type that also represents points  lines and polygons on a 1 dimensional plane on the surface of a geoid that approximates the shape of the earth.  
+figure 1.   a  planar and  b  geodetic representation of the earth 
+ 
+	 a  	 b  
+both types support a plethora of spatial operations  including object composition and spatial relationship predicates. the set of functionality provided by the spatial types is aligned with the open 
+geospatial consortium  ogc  opengis simple features specification for sql  and enables applications to perform operations in an industry-standard way. 
+in order to efficiently apply spatial relationship predicates  sql server 1 also offers an indexing infrastructure and implements extensions to the query processor that allows the optimizer to make a cost-based decision to chose the appropriate query plan if one or 
+
+ 
+permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. to copy otherwise  or republish  to post on servers or to redistribute to lists  requires prior specific permission and/or a fee. 
+sigmod'1  june 1  1  vancouver  bc  canada. 
+copyright 1 acm  1-1-1/1...$1. 
+ 
+more indices is present. since sql server's main access structure is based on b+-trees  specific challenges had to be overcome to utilize the existing infrastructure to provide spatial index support. 
+this paper will present an overview of the spatial indexing implementation in sql server 1. section 1 reviews related work  while section 1 provides a quick overview of the spatial data types and methods introduced by sql server 1. section 1 describes the spatial index infrastructure  while section 1 explains how the sql server query optimizer builds spatial index plans  and decides whether to use them based on cost estimates. section 1 describes some of the performance behaviors and provides some insight into the tuning of the index  before section 1 concludes the paper. 
+1. related work 
+many spatial indexing methods and query processing techniques for operating on spatial data have been proposed in the literature and several have been implemented in both research prototypes and commercial database and gis systems. 
+spatial indexing methods refer to the techniques that use hierarchical data structures to sort data based on its spatial occupancy. spatial indexing decomposes the space from which the data is drawn into regions which can be further decomposed into sub-regions. these regions are grouped hierarchies and represented as a tree structure which facilitates fast spatial operations such as search or intersect.  
+there are four principal approaches in spatial indexing: 
+  r-trees  1  organize spatial objects by summary enclosing rectangles. each node in the tree corresponds to the smallest rectangle that encloses its child nodes. leaf nodes contain pointers to the actual objects in the database. r-tree has the drawback that in the worst case  one has to search the entire database to determine which object a particular point belongs to. 
+  r+-tree  1  is a variant of the r tree. r+-trees use multiple bounding rectangles to cover an object so that the entries of any internal nodes do not overlap.  an object id may be stored in more than one leaf node. r+-tree has the drawback that the decomposition is data-dependent which means it is difficult to perform tasks that require composition of different data sets. 
+  uniform grid method  decomposes the space into uniform grid. this approach is good for uniformly distributed data  but spatial data is usually not uniformly distributed; 
+  quadtree  1  is a tree structure in which each internal node has up to four children  representing quadrants divided according to a fixed scheme. quadtrees adapt the depth of decomposition to the distribution of the data  thus are suited for arbitrarily distributed data. but it they are sensitive to positioning - the placement of the objects relative to the decomposition lines of the space affects their storage and search efficiency. 
+r-trees do not partition the space into disjoint cells  which in the worst case can lead to searching the entire database to determine whether an object contains a particular point. the others use disjoint decomposition  which alleviate this problem  at the cost of additional tree nodes per object.  
+numerous query processing techniques have been proposed to improve the basic spatial data structures  1 1 1  etc.  the performance of various index structures has been studied extensively . r-tree and quadtree variants are compared in  and from within oracle spatial in . these studies show that the index performance depends heavily on the nature of data and the type of applications. 
+there is tremendous overhead associated with implementing and integrating any non-traditional indexing mechanism beyond b+trees. extensible indexing frameworks that build on the existing b+-tree infrastructures have been proposed to address this problem. in such frameworks  a variety of index structures can be efficiently instantiated without modifying the database engine. gist  generalized search trees  is an extensible framework for b+-treelike indexes . sp-gist  space partitioning generalized search trees  is an extensible framework for the family of spacepartitioning trees  1 . commercial databases also support extensible indexing frameworks  e.g.  db1 extenders and informix datablades. using extensible indexing frameworks  spatial indexing techniques have been realized in commercial and open source database systems  including oracle spatial  ibm db1 spatial extender  informix spatial datablade module and postgis in postgresql. 
+microsoft sql server 1's implementation is also based on an extensible indexing framework based on its existing b+-tree infrastructure and an adaptive quadtree-like multi-level grid and reuses the existing optimization framework of its relational query processor. sections 1 and 1 will provide more details. 
+1. spatial data types 
+microsoft sql server 1's new built-in geometry and geography types are implemented as microsoft .net framework common language runtime  clr  types. both provide properties and methods that can be used to perform spatial operations such as calculating distances and areas  or finding geographical features that intersect one another  or composing new spatial objects from others  i.e.  calculating the union of two polygons. these methods are exposed as type-associated clr methods. unlike some other spatial type libraries  these two types are able to represent a variety of spatial shapes under a single abstraction. 
+the planar geometry type represents points  lines  polygons  multipolygons  e.g.  complex shaped polygons  and combinations thereof in a flat two-dimensional plane such as a state plane coordinate system or a factory floor plan.  the geodetic geography type represents points  lines  polygons  and multipolygons on a 1 dimensional surface of a geoid that approximates the shape of the earth.  both types support generation of instances from the ogc well-known text  wkt  and wellknown binary  wkb  formats as well as gml.  the following sql code example shows how to use the geometry type to define a table of city boundaries and a table of streets: 
+create table cities  
+      cityid int identity  1   cityname nvarchar 1   
+     citygeo geometry ; 
+create table streets  
+      streetid int identity  1   
+ 	streetname nvarchar 1   
+     streetgeo geometry ; 
+data  such as wkt descriptions of city polygons and streets  can be inserted using static constructors into the respective table: 
+insert into cities  cityname  citygeo  
+values  'mycity'  geometry::stgeomfromtext 
+ 'polygon   1  1  1  1 
+1  1  '  1  ; 
+insert into streets  streetname  streetgeo  
+values  'first avenue'  geometry::stgeomfromtext 
+ 'linestring  1  1  1 
+1 '  1   
+finally the following sql query joins the streets with the cities that they geometrically intersect with: 
+select s.streetname  c.cityname 
+from  cities c  streets s 
+where s.streetgeo.stintersects c.citygeo =1 
+1. indexing 
+1 indexing overview 
+sql server 1 spatial indexing component is built using the extensibility hooks available in the relational query processing engine. this means that the existing b+-tree and access methods are used as the storage scheme for the index. further  the basic principles of the xml indexing model introduced in sql server 1  are applied to the spatial implementation as well.   
+while sql server 1's spatial indexing supports both spatial types  we focus the discussion on the indexing of the geometry type. the geography type is indexed using similar principles with slight adjustments for the ellipsoidal domain. 
+sql server's spatial indexing method adopts the well-known strategy of hierarchical decomposition of space to implement the index. some of the traditional limitations of fixed spatial decomposition systems are addressed in the implementation. the spatial indexing system is designed to be able to handle objects of varying shapes and sizes efficiently. non-uniform data distribution patterns are the weak points of fixed decomposition schemes. in order to address this  the system allows for multiple localized indexes on a spatial column instance. 
+the system decomposes the indexed space into an ordered collection of axes-aligned cells using a four level hierarchy of grids. the cells are disjoint except when they are part of ancestordescendant relationships. the cells of all levels form an ordered domain  in which all of a cell's descendents immediately follow it.  the linear ordering is important and necessary because the underlying storage and access methods make use of existing 1dimensional b+-tree storage keyed on hierarchical cell identifiers. the linear ordering used provides for spatial locality in the index. 
+the index is used to support both filter and join on a set of spatial methods  all of which are variants of the opengis stintersects operation  which compares two geometries and returns value 1 exactly if they share any points.  there are two usage scenarios supported by the indexing scheme in 1 server. both scenarios involve table filter expressions.  
+the first case is known as point or window queries  in which a particular geometric object  the query window w  is given  and the goal is to identify all intersecting indexed objects as fast as possible.  when the spatial filter is used without a spatial index  assuming there are no additional filters  every row is tested by the computationally intensive spatial filter. the indexing strategy adds an earlier filtering step that uses a restricted number of ordered range-seek operations on the index b+-tree to prune the set of candidate objects. 
+the second case is known as distance queries where given an object and distance  the goal is to find out the objects which are within the given distance. the system doesn't support nearest neighbor queries in this release. 
+1 structure of space decomposition 
+the indexing space and decomposition structure need to be predefined at index creation time. the indexing space is defined using the axes-aligned rectangle known as a bounding box  note that the geography index does not require a bounding box since it indexes the whole geoid . the hierarchical decomposition is defined using parameters that control the grid density. 
+level zero in the spatial decomposition  called the root level grid  consists of two cells: the interior and exterior of the bounding box. objects can fall in one or the other or both. the objects that fall in the exterior cell don't participate in the filtering operation unless the query window also falls in the exterior cell. there are 1 lower levels of hierarchical divisions applied to the bounding box cell. each level divides cells of the previous level uniformly  according to one of the following user-specified configurations: 
+table 1.  grid divisions 
+index configuration number of cells grid formation low 1 1 x 1  medium 1 1 x 1 high 1 1 x 1  
+the decomposition approach is similar to quad-tree decomposition where 1  1 or 1x1 division levels are collapsed into one level.  note that each of the four levels can have a different grid division setting. the four level division and grid settings are picked to sufficiently support indexing of whole geoid and to provide flexibility for geometric indexing. figure 1 shows the grid decomposition of a polygon using 1 grid formations at each level where common children are collapsed into the higher-level grid: 
+
+ 
+figure-1: grid decomposition of a polygon using 1 grids 
+1 spatial tessellation 

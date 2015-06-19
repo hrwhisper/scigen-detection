@@ -1,0 +1,108 @@
+latent semantic indexing  lsi  is a well established and effective framework for conceptual information retrieval. in traditional implementations of lsi the semantic structure of the collection is projected into the k-dimensional space derived from a rank-k approximation of the original termby-document matrix. this paper discusses a new way to implement the lsi methodology  based on polynomial filtering. the new framework does not rely on any matrix decomposition and therefore its computational cost and storage requirements are low relative to traditional implementations of lsi. additionally  it can be used as an effective information filtering technique when updating lsi models based on user feedback.
+categories and subject descriptors
+h.1  information search and retrieval : retrieval models  relevance feedback
+general terms
+algorithms  performance
+keywords
+latent semantic indexing  polynomial filtering
+1. introduction
+¡¡the vast amount of electronic information that is available today requires effective techniques for accessing relevant information from it. the methodologies developed in information retrieval aim at devising effective means to extract relevant documents in a collection when a user query is given. typically  information is retrieved by literally matching terms among a user's query and all available documents.
+
+ 
+this work was supported by nsf under grant aci-
+1  and by the minnesota supercomputing institute.
+permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. to copy otherwise  to republish  to post on servers or to redistribute to lists  requires prior specific permission and/or a fee.
+sigir'1  july 1  1  sheffield  south yorkshire  uk.
+copyright 1 acm 1-1/1 ...$1.
+however  information retrieval techniques based on exact literal matching may be inaccurate due to the problems of word usage. it is common that a set of different words is used to express the same concept  synonymy . on the other hand  a word may have several different meanings  polysemy  depending on the context. this word variability may obscure the conceptual structure of the collection.
+¡¡lsi  has been successful in addressing this problem by revealing the underlying semantic content of collection documents. it is implemented by projecting the original termby-document matrix into a reduced rank space by means of a truncated singular value decomposition  which diminishes the obscuring  noise  in word usage. thus  the retrieval is based on the semantic content of the documents rather than their lexical content. as a consequence  a relevant document may be retrieved even if it does not share any literal terms with the user's query.
+¡¡most of the current implementations of lsi rely on matrix decompositions  see e.g.      with the truncated svd  tsvd  being the most popular  . in tsvd it is assumed that the smallest singular triplets are noisy and therefore only the largest singular triplets are used for the rank-k representation of the term-by-document matrix a. we show that a technique based on polynomial filtering can render the same effect as tsvd  without resorting to the costly svd decomposition. polynomial filtering offers several advantages including low computational and storage requirements.
+¡¡relevance feedback is a mechanism that is incorporated into lsi techniques to enhance its performance. it uses information extracted from relevant documents to modify the original query in order to allow better retrieval performance. we show that a relevance feedback mechanism can be easily retrofitted to lsi techniques based on polynomial filtering.
+¡¡the remaining sections of this paper are organized as follows: section 1 provides an overview of the vector space model and the lsi approach based on truncated svd. in section 1 the implementation of lsi using polynomial filtering is described and in section 1 the relevance feedback mechanism is discussed. finally  section 1 provides a few numerical results illustrating the advantages characterizing the proposed scheme.
+1. vector space models and lsi
+¡¡assume that we have a collection of m terms and n documents and let fij be the frequency of term i in document j. the collection can be represented by an m ¡Á n term-bydocument matrix
+a =  aij 
+where aij is the weight of term i in document j. a term-bydocument matrix is in general very sparse since each term occurs only in a subset of documents. a term weight has three components: local  global  and normalization. let
+aij = lijginj
+where lij is the local weight for term i in document j  gi is the global weight for term i  and nj is the normalization factor for document j. the local weight lij is a function of how many times the term i appears in document j. the global weight gi characterizes how often term i appears in the collection. the normalization factor nj compensates for length variability among different documents. since weighting schemes are critical to the performance of the vector space model  several of them have been developed in the literature  see  e.g.  .
+¡¡a query is represented as a pseudo-document in a similar form  q =  qj   where qj represents the weight of term i in the query. after we have weighted the documents and the query  we can measure the similarity between the query q and a document vector dj by computing their inner product. this similarity measure is related to the angle ¦Èj between these two vectors  defined from the relation 
+hdj qi = d j q = kdjk1kqk1 cos¦Èj 
+and it is maximized when they are collinear. hence  ranking all documents in the collection will simply necessitate computing the n-dimensional similarity vector s = a q .
+the vector space model is a quite simple and computationally attractive scheme for information retrieval  but it has major drawbacks which make it ineffective in practice. its main weakness comes from its underlying assumption that the query and its relevant documents will share common terms so that it is sufficient to look for exact term matches. however  this is not always the case because of word variability. this is precisely the problem addressed by lsi.
+¡¡in the classical lsi approach  the vector space model is improved by replacing the original term-by-document matrix by a low-rank approximation derived from its truncated singular value decomposition  svd . the svd of a rectangular m ¡Á n matrix a of rank r  can be defined as
+	a = u¦²v   	 1 
+where u =  u1 ...  um  and v =  v1 ... vn  are unitary matrices and ¦² = diag ¦Ò1 ¦Ò1 ... ¦Òn   ¦Ò1 ¡Ý ¦Ò1 ¡Ý ... ¡Ý ¦Òr   ¦Òr+1 = ... = ¦Òn = 1. the ¦Òi's are the singular values of a and the ui's and vi's are  respectively  the left and right singular vectors associated with ¦Òi  i = 1 ... r. we define the i-th singular triplet of a as {ui ¦Òi vi}. it follows from the decomposition that the matrix a can be expressed as a sum of r rank-one matrices as 
+ .
+additionally  it is known that
+	min	ka   bkf = ka   akkf
+rank b ¡Ük
+where it is helpful for what follows
+to rewrite the matrix ak as
+	ak = uk¦²kvk  	 1 
+where uk  resp. vk   consists of the first k columns of u  resp. v    and ¦²k is a diagonal matrix of size k ¡Á k. thus  if we truncate the svd to keep only the k largest singular triplets we obtain the closest  in a least-squares sense  approximation to a. this leads to the new similarity vector
+	sk = a k q = vk¦²kuk q .	 1 
+¡¡it is assumed that the reduced rank representation of the matrix helps reveal the underlying semantic structure of the collection and remove the noise due to word usage. the subspace spanned by the columns of uk and vk is called term-space and document-space respectively. in lsi  a user's query is represented as the sum of term vectors indicated by the terms included in the query  scaled by the singular values  i.e.
+	q  = q uk¦²k 	 1 
+where q is a vector containing the weighted term frequencies of query terms. using the cosine similarity measure  the query vector q  is compared against all the document vectors in the document space and the list of returned documents is sorted according to the value of the similarity measure.
+¡¡one important issue when implementing lsi with tsvd  is the selection of the parameter k. this remains an open problem in information retrieval. in practice  k is chosen to be significantly less than min m n  which has the obvious advantage of reducing the computational cost of the method as well as its storage requirements. however  the matrices uk and vk are dense and k must be kept small in order for the tsvd method to be practically feasible. however  the optimal value of k may be much larger than the value of k that the computational constraints impose.
+¡¡because of the high computational cost of tsvd  substantial research efforts have recently been devoted to the use of alternative matrix decomposition methods that will reduce the cost and/or the storage requirements of truncated svd approach while maintaining its performance quality  see e.g.   . however  these methods  indeed all methods which rely on matrix decompositions  also incur a non negligible extra cost related to the frequent updates of the decomposition when terms or documents are added or removed from the collection. this update cost can be as high as that of the entire re-computation of the svd.
+1. latentsemanticindexingbypolynomial filtering
+¡¡polynomial filtering allows to closely simulate the effects of the reduced rank approximation used in lsi models. let q be the user's query vector. in order to estimate the similarity measurement  we use a polynomial ¦Õ of a a and consider:
+s=¦Õ a a a q=¦Õ v ¦² ¦²v   v ¦² u q=v ¦Õ ¦² ¦² v  v ¦² u q=v ¦Õ ¦² ¦² ¦² u q. 1 compare the above expression with  1 . choosing the function ¦Õ x  appropriately will allow us to interpretate this approach as a compromise between the vector space and the tsvd approaches. assume now that ¦Õ is not restricted to being a polynomial but can be any function  even discontinuous . when ¦Õ x  = 1  x  then ¦Õ ¦² ¦²  becomes the identity operator and the above scheme would be equivalent to the vector space model. on the other hand  taking ¦Õ to be the step function
+		 1 
+results in where ik is the identity matrix of size k and 1 is a zero matrix of an appropriate size. then equation  1  may be re-written as:
+
+which is precisely the rank-k approximation provided by the tsvd method.
+¡¡using the above framework when ¦Õ is a polynomial  the estimation of the similarity measurement simplifies to a series of matrix vector products  where the corresponding matrix and vector are very sparse. this can be implemented very efficiently using data structures that exploit sparsity. therefore  the approach of polynomial filtering in lsi models can a result that is close to that of tsvd without resorting to the costly svd or any other matrix decomposition. furthermore  the need to store additional  dense or sparse  matrices as is the case in tsvd  is completely avoided as is the need to update these matrices when entries of a change.
+¡¡the selection of the cut-off point is somewhat similar to the issue of choosing the parameter k in the tsvd method. however  there is a salient difference between the two: choosing a large k in tsvd may render the method much more expensive  while selecting a high cut-off in polynomial filtering does not affect cost significantly.
+1 approximating the step function
+¡¡we now consider ways of approximating the ideal step function ¦Õ given in  1  using a polynomial ¦Õ . one approach would be to discretize the step function in the interval  1 b   with   and then to find the coefficients of the polynomial which interpolates the produced data points in a least-squares sense. as is well-known  see also below  this approach will produce a polynomial with potentially large fluctuations between the data points resulting in a poor retrieval performance.
+¡¡another approach is to rely on hermite interpolation by imposing smoothness conditions at both endpoints of the interval. assume that we enforce the following conditions at endpoints 1 and b 
+¦Õ  1  = 1 ¦Õ  1  1  = ¦Õ  1  1  = ¡¤¡¤¡¤ = ¦Õ  i  1  = 1¦Õ  b  = 1 ¦Õ  1  b  = ¦Õ  1  b  = ¡¤¡¤¡¤ = ¦Õ  j  b  = 1using the above i + j + 1 conditions  we can employ hermite interpolation in order to determine the coefficients of a polynomial of degree i + j + 1 that will satisfy the given constraints. the derived polynomial ¦Õ  x  moves from 1 to 1  as x moves from 1 to b. it can be shown  that the critical point  called inflexion point  where ¦Õ  moves rapidly from 1 to 1 is at:
+b
+	tinfl =  or	.	 1 
+1 + j/i
+therefore  the ratio ji determines the localization of the inflexion point. this approach has the disadvantage that the degree of the polynomial needs to become adequately large in order for the approximation to be qualitative.
+¡¡the most successful approach when approximating a function with polynomials  is the piecewise polynomial approximation where instead of using only one large degree polynomial on the whole interval  we use several smaller degree polynomials at appropriate subintervals of the original interval. the problem with the piecewise polynomials is that they cannot be easily evaluated when their argument is a matrix. erhel et al in  suggest a new technique  called ppf  which approximates any piecewise polynomial filter by a polynomial in some least-squares sense. this technique is used in  for solving ill-conditioned linear systems in image restoration where the problem matrix is symmetric semi-positive definite with a large number of singular values close to zero and the right-hand side vector is perturbed with noise. in this paper we apply a similar technique in the totally different context of information retrieval. we provide more details about this technique in the next subsection.
+1 piecewise polynomial filters
+¡¡in this section we give a brief description of the leastsquares polynomial filtering technique. the reader is referred to  for a thorough analysis of the methodology. let pk+1 be the set of polynomials p of degree k +1 such that p 1  = p1  = 1  i.e. pk+1 = ht1 ¡¤¡¤¡¤  tk+1i. the proposed iterative algorithm builds a sequence of polynomials ¦Õk ¡Ê pk+1 which approximates the ideal function ¦Õ in a least-squares sense 
+k
+	¦Õk t  = xh¦Õ pjipj t  	 1 
+j=1
+where {pj} is a basis of orthonormal polynomials for some l1 inner-product  denoted by h¡¤ ¡¤i. the l1-inner product can be selected appropriately so that its computation can be done without resorting to numerical integration. in order to do this  we subdivide the interval  1 b  into l subintervals such that
+l
+	 1 b  =   al 1 al  	with .
+l=1
+the inner product on  1 b  is equal to the weighted sum of the inner products on each subinterval  al 1 al . each of these inner products in turn is computed using expansions in the basis of chebyshev polynomials of the approximation. since chebyshev polynomials are orthogonal in each subinterval  numerical integration is avoided.
+a krylov subspace  1  ch.1  km of a square matrix c
+algorithm ppf: piecewise polynomial filter
+input: ¦Õ piecewise polynomial on  1 b  output: the approximation rk to the filtered vector ¦Õ c r.
+1. ¦Â1 = ht1 t1
+1. p1 t  = ¦Â1
+1. ¦Ã1 = h¦Õ p1i
+1. v1 = ¦Â1r  v1 = 1
+1. r1 = ¦Ã1
+1. for k = 1 ... do:
+1. compute tpk t 
+1. ¦Ák = htpk pki
+1	sk t  = tpk t    ¦Ákpk t    ¦Âkpk 1 t 
+1. sk = cvk   ¦Ákvk   ¦Âkvk 1
+1. ¦Âk+1 = hsk ski1
+1. pk+1 t  = ¦Âk1sk t 
+1. vk+1 = ¦Âk1sk
+1. ¦Ãk+1 = hpk+1 ¦Õi
+1. rk+1 = rk + ¦Ãk+1vk+1
+1. endtable 1: the ppf algorithm for least-squares polynomial filtering.
+with respect to r1  is defined as
+km c r1  ¡Ô span{r1 cr1 c1 ... cm 1}.
+observe now that the filtered vector ¦Õk c r  where c = a a and r = a q  belongs to the krylov subspace
+rk c r  ¡Ô kk c c1r .
+in order to compute the basis of orthogonal polynomials {pj} we use the stieljes procedure  for constructing orthogonal polynomials using a 1-term recurrence
+ 
+for j = 1 ... m. there is a strong connection between the filtered space rk c r  and the polynomial space pk+1. the correspondence is:
+	¦Õk ¡Ê pk+1 ¡ú ¦Õk c r ¡Ê rk c r .	 1 
+this mapping has the important advantage that we can provide the krylov subspace rk c r  with an inner product that is derived from the polynomial space. furthermore  we can compute the lanczos  sequence vj = pj c r  via a 1-term recurrence where the scalars ¦Áj's and ¦Âj's are computed by the stieljes procedure. the sequence of vectors rk = ¦Õk c r is in the filtered space rk c r . if we let ¦Ãj = h¦Õ pji then using equation  1  we get the expansion
+k rk = x¦Ãjvj.
+j=1
+at this point we can describe the algorithm ppf which is sketched in table 1. observe that the same scalars ¦Ák and ¦Âk are used in the stieljes procedure  line 1  and the lanczos process  line 1 . this is due to the mapping  1 .
+1. relevancefeedbackinlatentsemantic indexing

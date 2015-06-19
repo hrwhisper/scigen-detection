@@ -1,0 +1,322 @@
+various data mining applications involve data objects of multiple types that are related to each other  which can be naturally formulated as a k-partite graph. however  the research on mining the hidden structures from a k-partite graph is still limited and preliminary. in this paper  we propose a general model  the relation summary network  to find the hidden structures  the local cluster structures and the global community structures  from a k-partite graph. the model provides a principal framework for unsupervised learning on k-partite graphs of various structures. under this model  we derive a novel algorithm to identify the hidden structures of a k-partite graph by constructing a relation summary network to approximate the original k-partite graph under a broad range of distortion measures. experiments on both synthetic and real data sets demonstrate the promise and effectiveness of the proposed model and algorithm. we also establish the connections between existing clustering approaches and the proposed model to provide a unified view to the clustering approaches.
+categories and subject descriptions: e.1  coding and information theory :data compaction and compression; h.1 information search and retrieval :clustering; i.1 pattern recognition :clustering.
+general terms: algorithms.
+keywords: k-partite graph  unsupervised learning  clustering  relation summary network  bregman divergence.
+1. introduction
+¡¡unsupervised learning approaches have traditionally focused on the homogeneous data objects  which can be represented either as a set of feature vectors or a homogeneous graph with nodes of a single type. however  many examples
+permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. to copy otherwise  to republish  to post on servers or to redistribute to lists  requires prior specific permission and/or a fee.
+kdd'1  august 1  1  philadelphia  pennsylvania  usa.
+copyright 1 acm 1-1/1 ...$1.
+of real-world data involve objects of multiple types that are related to each other  which naturally form k-partite graphs of heterogeneous types of nodes. for example  documents and words in a corpus  customers and items in collaborative filtering  transactions and items in market basket  as well as genes and conditions in micro-array data all form a bi-partite graph; documents  words  and categories in taxonomy mining  as well as web pages  search queries  and web users in a web search system all form a tri-partite graph; papers  key words  authors  and publication venues in a scientific publication archive form a quart-partite graph. in such scenarios  using traditional approaches to cluster each type of objects  nodes  individually may not work well due to the following reasons.
+¡¡first  to apply traditional clustering approaches to each type of data objects individually  the relation information needs to be transformed into feature vectors for each type of objects. in general  this transformation results in high dimensional and sparse feature vectors  since after the transformation the number of features for a type of objects is equal to the number of all the objects which are possibly related to this type of objects. for example  if we transform the links between web pages and web users as well as search queries into the features for the web pages  this leads to a huge number of features with sparse values for each web page. second  traditional clustering approaches are unable to tackle the interactions among the cluster structures of different types of objects  since they cluster data of a single type based on static features. note that the interactions could pass along the relations  i.e.  there exists influence propagation in a k-partite graph. third  in some data mining applications  users are not only interested in the local cluster structure for each type of objects  but also the global community structures involving multi-types of objects. for example  in document clustering  in addition to document clusters and word clusters  the relationship between document clusters and word clusters is also useful information. it is difficult to discover such global structures by clustering each type of objects individually.
+¡¡an intuitive attempt to mine the hidden structures from k-partite graphs is applying existing graph partitioning approaches to k-partite graphs. this idea may work in some special and simple situations. however  in general  it is infeasible. first  the graph partitioning theory focuses on finding the best cuts of a graph under a certain criterion and it is very difficult to cut different type of relations  links  simultaneously to identify different hidden structures for different types of nodes. second  by partitioning the whole k-partite graph into m subgraphs  one actually assumes that all different types of nodes have the same number of clusters m  which in general is not true. third  by simply partitioning the whole graph into disjoint subgraphs  the resulting hidden structures are rough. for example  the clusters of different types of nodes are restricted to one-to-one associations.
+¡¡therefore  mining hidden structures from k-partite graphs has presented a great challenge to traditional unsupervised learning approaches. in this study  first we propose a general model  the relation summary network  to find the hidden structures  the local cluster structures and the global community structures  from a k-partite graph. the basic idea is to construct a new k-partite graph with hidden nodes  which  summarize  the link information in the original k-partite graph and make the hidden structures explicit  to approximate the original graph. the model provides a principal framework for unsupervised learning on k-partite graphs of various structures. second  under this model  based on the matrix representation of a k-partite graph we reformulate the graph approximation as an optimization problem of matrix approximation and derive an iterative algorithm to find the hidden structures from a k-partite graph under a broad range of distortion measures. by iteratively updating the cluster structures for each type of nodes  the algorithm takes advantage of the interactions among the cluster structures of different types of nodes and performs implicit adaptive feature reduction for each type of nodes. experiments on both synthetic and real data sets demonstrate the promise and effectiveness of the proposed model and algorithm. third  we also establish the connections between existing clustering approaches and the proposed model to provide a unified view to the clustering approaches.
+1. related work
+¡¡graph partitioning on homogeneous graphs has been studied for decades and a number of different approaches  such as spectral approaches  1  1  1  and multilevel approaches  1  1  1   have been proposed. however  the research on mining cluster structures from k-partite graphs of heterogeneous types of nodes is limited. several noticeable efforts include  1  1  and .  1  1  extends the spectral partitioning based on normalized cut to a bi-partite graph. after the deduction  spectral partitioning on the bi-partite graph is converted to a singular value decomposition  svd .  partitions a star-structured k-partite graph based on semidefinite programming. in addition to the restriction that they are only applicable to the special cases of k-partite graphs  all these algorithms have the restriction that the numbers of clusters for different types of nodes must be equal and the clusters for different types of objects must have one-to-one associations.
+¡¡the research on clustering multi-type interrelated objects is also related to this study. clustering on bi-type interrelated data objects  such as word-document data  is called coclustering or bi-clustering. recently  co-clustering has been addressed based on matrix factorization. both  and  model the co-clustering as an optimization problem involving a triple matrix factorization.  proposes an em-like algorithm based on multiplicative updating rules and  proposes a hard clustering algorithm for binary data.  extends the non-negative matrix factorization to symmet-
+
+figure 1: a bi-partite graph  a  and its relation summary network  b .
+ric matrices and shows that it is equivalent to the kernel k-means and the laplacian-based spectral clustering.
+¡¡some efforts on latent variable discovery are also related to co-clustering. plsa  is a method based on a mixture decomposition derived from a latent class model. a twosided clustering model is proposed for collaborative filtering by . information-theory based co-clustering has also attracted attention in the literature.  extends the information bottleneck  ib  framework  to repeatedly cluster documents and then words.  proposes a co-clustering algorithm to maximize the mutual information between the clustered random variables subject to the constraints on the number of row and column clusters. a more generalized coclustering framework is presented by  wherein any bregman divergence can be used in the objective function.
+¡¡comparing with co-clustering  clustering on the data consisting of more than two types of data objects has not been well studied in the literature. several noticeable efforts are discussed as follows.  proposes a framework for clustering heterogeneous web objects  under which a layered structure with link information is used to iteratively project and propagate the cluster results between layers. similarly   presents an approach named recom to improve the cluster quality of interrelated data objects through an iterative reinforcement clustering process. however  there is no sound objective function and theoretical proof on the effectiveness of these algorithms.  formulates multi-type relational data clustering as collective factorization on related matrices and derives a spectral algorithm to cluster multi-type interrelated data objects simultaneously. the algorithm iteratively embeds each type of data objects into low dimensional spaces and benefits from the interactions among the hidden structures of different types of data objects.
+¡¡to summarize  unsupervised learning on k-partite graphs has been touched from different perspectives due to its high impact in various important applications. yet  systematic research is still limited. this paper attempts to derive a theoretically sound general model and algorithm for unsupervised learning on k-partite graphs of various structures.
+1. model formulation
+¡¡in this section  we derive a general model based on graph approximation to mine the hidden structures from a k-partite graph.
+¡¡let us start with an illustrative example. figure 1 a  shows a bi-partite graph g =  v1 v1 e  where v1 = {v1  ... v1} and v1 = {v1 ... v1} denote two types of nodes and e denotes the edges in g. even though this graph is simple  it is non-trivial to discover its hidden structures. in figure 1 b   we redraw the original graph by adding two sets of new nodes  called hidden nodes   s1 = {s1 s1 s1} and s1 = {s1 s1}. based on the new graph  the cluster structures for each type of nodes are straightforward: v1 has three clusters  {v1 v1}  {v1 a1}  and {v1 v1}  and v1 has two clusters  {v1 v1} and {v1 b1}. if we look at the subgraph consisting of only the hidden nodes in figure 1 b   we see that it provides a clear skeleton for the global structure of the whole graph  from which it is clear how the clusters of different types of nodes are related to each other; for example  cluster s1 is associated with cluster s1 and cluster s1 is associated with both clusters s1 and s1. in other words  by introducing the hidden nodes into the original k-partite graph  both the local cluster structures and the global community structures become explicit. note that if we apply a graph partitioning approach to the bipartite graph in figure 1 a  to find its hidden structures  no matter how we cut the edges  it is impossible to identify all the cluster structures correctly.
+¡¡based on the above observations  we propose a model  the relation summary network  rsn   to mine the hidden structures from a k-partite graph. the key idea of rsn is to add a small number of hidden nodes to the original k-partite graph to make the hidden structures of the graph explicit. however  given a k-partite graph  we are not interested in an arbitrary relation network. to ensure a relation summary network to discover the desirable hidden structures of the original graph  we must make rsn as  close  as possible to the original graph. in other words  we aim at an optimal relation summary network  from which we can re-construct the original graph as precisely as possible. formally  we define an rsn as follows.
+¡¡definition 1. given a distance function d  a k-partite graph g =  v1 ... vm e   and m positive integers  k1 ... km  the relation summary network of g is a k-partite graph gs =  v1 ... vm s1 ... sm es   which satisfies the following conditions:
+1. each instance node in vi is adjacent to one and only one hidden node from si for 1 ¡Ü i ¡Ü m with unit weight;
+1. si ¡« sj in gs if and only if and
+1 ¡Ü i j ¡Ü m;
+1. gs = argminf d g f  
+where si denotes a set of hidden nodes for vi and |si| = ki for 1 ¡Ü i ¡Ü m; si ¡« sj denotes that there exist edges between si and sj  and similarly vi ¡« vj; f denotes any k-partite graph  v1 ... vm s1 ... sm ef  satisfying condition 1 and 1.
+¡¡in definition 1  the first condition implies that in an rsn  the instance nodes  the nodes in vi  are related to each other only through the hidden nodes. hence  a small number of hidden nodes actually summarize the complex relations  edges  in the original graph to make the hidden structures explicit. since in this study  our focus is to find disjoint clusters for each type of nodes  the first condition restricts one instance node to be adjacent to only one hidden node with unit weight; however  it is easy to modify this restriction to extend the model to other cases of unsupervised learning on k-partite graphs. the second condition implies that if two types of instance nodes vi and vj are  or are not  related to each other in the original graph  then the corresponding two types of hidden nodes si and sj in the rsn are  or are not  related to each other. for example  figure 1 shows a tri-partite graph and its rsn. in the original graph figure 1 a   v1 ¡« v1 and v1 ¡« v1  and hence s1 ¡« s1 and s1 ¡« s1
+
+	 a 	 b 
+figure 1: a tri-partite graph  a  and its rsn  b 
+in its rsn. the third condition states that the rsn is an optimal approximation to the original graph under a certain distortion measure.
+¡¡next  we need to define the distance between a k-partite graph g and its rsn gs. without loss of generality  if vi ¡« vj in g  we assume that edges between vi and vj are complete  if there is no edge between vih and vjl  we can assume an edge with weight of zero or other special value . similarly for si ¡« sj in gs. let e vih vjl  denote the weight of the edge  vih vjl  in g. similarly let es sip sjq  be the weight of the edge  sip sjq  in gs. in the rsn  a pair of instance nodes vih and vjl are connected through a unique path  vih sip sjq vjl   in which es vih sip  = 1 and es sjq vjl  = 1 according to definition 1. the edge between two hidden nodes  sip sjq  can be considered as the  summary relation  between two sets of instance nodes  i.e.  the instance nodes connecting with sip and the instance nodes connecting with sjq. hence  how good gs approximates g depends on how good es sip sjq  approximates e vih vjl  for vih and vjl which satisfy es vih sip  = 1 and es sjq vjl  = 1  respectively. therefore  we define the distance between a kpartite graph g and its rsn gs as follows:
+	d g gs  =	d e vih vjl  es sip sjq   
+	i j	vi¡«vj 
+vih¡Êvi vjl¡Êvj  es vih sip =1  es sjq vjl =1.
+ 1 
+where 1 ¡Ü i j ¡Ü m  1 ¡Ü h ¡Ü |vi|  1 ¡Ü l ¡Ü |vj|  1 ¡Ü p ¡Ü |si|  and 1 ¡Ü q ¡Ü |sj|.
+¡¡let us have an illustrative example. assume that the edges of the k-partite graph in figure 1 a  have unit weights. if there is no edge between vih and vjl  we let e vih vjl  = 1. similarly for its rsn in figure 1 b . assume that d is the euclidean distance function. hence  based on eq.  1   d g gs  = 1  i.e.  from the rsn in figure 1 b   we can reconstruct the original graph in figure 1 a  without any error. for example  the path  v1 s1 s1 v1  in the rsn implies that there is an edge between v1 and v1 in the original graph such that e v1 v1  = es s1 s1 . following this procedure  the original graph can be reconstructed completely.
+¡¡note that different definitions of the distances between two graphs lead to different algorithms. in this study  we focus on the definition given in eq. 1 . one of the advantages of this definition is that it leads to a nice matrix representation for the distance between two graphs  which facilitates to derive the algorithm.
+¡¡definition 1 and eq.  1  provide a general model  the rsn model  to mine the cluster structures for each type of nodes in a k-partite graph and the global structures for the whole graph. compared with the traditional clustering approaches  the rsn model is capable of making use of the interactions  direct or indirect  among the hidden structures
+
+figure 1: the cluster structures of v1 and v1 affect the similarity between v1 and v1 through the hidden nodes.
+of different types of nodes  and through the hidden nodes performing implicit and adaptive feature reduction to overcome the typical high dimensionality and sparsity. figure 1 shows an illustrative example of how the cluster structures of two types of instance nodes affect the similarity between two instance nodes of another type. suppose that we are to cluster nodes in v1  only two nodes in v1 are shown in figure 1 a  . traditional clustering approaches determine the similarity between v1 and v1 based on their link features   1 1  and  1 1   respectively  and hence  their similarity is inappropriately considered as zero  lowest level . this is a typical situation in a large graph with sparse links. now suppose that we have derived hidden nodes for v1 and v1 as in figure 1 b ; through the hidden nodes the cluster structures of v1 change the similarity between v1 and v1 to 1  highest level   since the reduced link features for both v1 and v1 are  1   which is a more reasonable result  since in a sparse k-partite graph we expect that two nodes are similar when they are connected to similar nodes even though they are not connected to the same nodes. if we continue this example  next  v1 and v1 are connected with the same hidden nodes in s1  not shown in the figure ; then after the hidden nodes for v1 are derived  the cluster structures of v1 and v1 may be affected in return. in fact  this is the idea of the iterative algorithm to construct an rsn for a k-partite graph  which we discuss in the next section.
+1. algorithm derivation
+¡¡in this section  we derive an iterative algorithm to find the rsn  local optima  for a k-partite graph. it can be shown that the rsn problem is np-hard  the proof is omitted here ; hence it is not realistic to expect an efficient algorithm to find the global optima.
+¡¡first we reformulate the rsn problem based on the matrix representation of a k-partite graph. given a k-partite g =  v1 ... vm e   the weights of edges between vi and vj can be represented as a matrix a ij  ¡Ê rni¡Ánj  where ni = |vi|  nj = |vj|  and a hlij  denotes the weight of the edge  vih vjl   i.e.  e vih vjl . similarly in an rsn gs =  v1 ... vm s1 ... sm es   b ij  ¡Ê rki¡Ákj denotes the weights of edges between si and sj  i.e.  bpq ij  denotes es sip sjq ; c i  ¡Ê {1}ni¡Áki denotes the weights of edges between vi and si  i.e.  c i  is an indicator matrix such that if es vih sip  = 1  then chp i  = 1. hence  we represent a kpartite as a set of matrices. note that under the rsn model  we do not use one graph affinity matrix to represent the whole graph as in the graph partitioning approaches  which may cause very expensive computation on a huge matrix.
+¡¡based on the above matrix representation  the distance between two graphs in eq.  1  can be formulated as the distances between a set of matrices and a set of matrix products. for example  for the two graphs shown in figure 1  d g gs  = d a 1  c 1 b 1  c 1  t ; for the two graphs shown in figure 1  d g gs  = d a 1  c 1 b 1  c 1  t +
+d a 1  c 1 b 1  c 1  t . hence  finding the rsn defined in definition 1 is equivalent to the following optimization problem of matrix approximation  for convenience  we assume that there exists a ij  for 1 ¡Ü i   j ¡Ü m  i.e.  every pair of vi and vj are related to each other in g .
+definition 1. given a distance function d   a set of matri-
+gces  and{a ijm  ¡Êpositive integers rni¡Ánj}1¡Üi j¡Ümkrepresenting a k-partite graph1 ... km  the rsn gs repre-
+sented by {c i  ¡Ê {1}ni¡Áki}1¡Üi¡Üm and
+{b ij  ¡Ê rki¡Ákj}1¡Üi j¡Üm is given by the minimization of
+	l =	d a ij  c i b ij  c j  t  	 1 
+1¡Üi j¡Üm
+subject to	= 1 for 1 ¡Ü h ¡Ü ni.
+¡¡in the above definition  the constraint on c i  is to restrict c i  to be an indicator matrix  in which each row is an indicator vector. in the definition  the distance between two matrices d x y   denotes the sum of the distances of each pair of elements  i.e.  d x y   = h l d xhl yhl .
+¡¡for the optimization problem in definition 1 or definition 1  there are many choices of distance functions  which imply the different assumptions about the distribution of the weights of the edges in the given k-partite graph. for example  by using euclidean distance function  we implicitly assume the normal distribution for the weights of the edges. presumably for a specific distance function used in definition 1  we need to derive a specific algorithm. however  a large number of useful distance functions  such as euclidean distance  generalized i-divergence  and kl divergence  can be generalized as the bregman divergences  1  1 . based on the properties of bregman divergences  we derive a general algorithm to minimize the objective function in eq. 1  under all the bregman divergences. table 1 shows a list of bregman divergences and their corresponding bregman convex functions. note that bregman divergences are nonnegative. the definition of a bregman divergence is given as follows.
+¡¡definition 1. given a strictly convex function  r  defined on a convex set s   rd and differentiable on the interior of s  int s   the bregman divergence d¦Õ : s ¡Á int   is defined as
+¡¡¡¡¡¡¡¡d¦Õ x y  = ¦Õ x    ¦Õ y     x   y t ¦Õ y    1  where  ¦Õ is the gradient of ¦Õ.
+¡¡we prove the following theorem which is the basis of our algorithm.
+¡¡theorem 1. assume that d in definition 1 is a bregman divergence d¦Õ. if {c i }1¡Üi¡Üm and {b ij }1¡Üi j¡Üm are the optimal solution to the minimization in definition 1  then
+¡¡¡¡¡¡¡¡ c i  t c i b ij  c j  t   a ij  c j  = 1  1  for 1 ¡Ü i   j ¡Ü m.
+¡¡proof. for convenience we use y to denote c i b ij  c j  t  ¦Æ x  to denote  ¦Õ x   ¦Î x  to denote  1¦Õ x .
+named¦Õ x y ¦Õ x domaineuclidean distance||x   y||1||x||1rdgeneralized i-divergencerd +logistic lossxlog x  +  1   x log 1   x {1}itakura-saito distancex logxy   1 y   logx 1 ¡Þ hinge lossmax{1  1sign  y x}|x|r   {1}kl-divergenced-simplexmahalanobis distance	 x	y ta x	y xtaxrd	 	 
+table 1: a list of bregman divergences and the corresponding convex functions.
+¡¡we compute the gradient  b ij l  where 1 ¡Ü i   j ¡Ü m and l denotes the objective function in eq. 1 . using the
+fact that  we see that  l/ bpq ij  is
+given by
+
+where  denotes the hadamard product or entrywise product of two matrices. by eq. 1   we have
+		 1 
+according to the kkt conditions  an optimal solution to definition 1 satisfies  b ij l = 1  which leads to
+	= 1	 1 
+according to definition 1  ¦Õ is strictly convex  hence   ¦Î y   pq  
+1 for 1 ¡Ü p ¡Ü ki and 1 ¡Ü q ¡Ü kj. therefore  ¦Î y   can be canceled from eq. 1  to obtain
+	 c i  t y   a ij  c j  = 1	 1 
+this completes the proof of the theorem.	
+¡¡the most interesting observation about theorem 1 is that eq. 1  does not involve the distance function d¦Õ. we propose an iterative algorithm to find a local optimal
+rsn represented by {c i }1¡Üi¡Üm and {b ij }1¡Üi j¡Üm for a given k-partite graph. at each iterative step  we update one of {c i }1¡Üi¡Üm or one of {b ij }1¡Üi j¡Üm by fixing all the others.
+¡¡since c i  is an indicator matrix  we adopt the reassignment procedure such as in the k-means algorithm to update c i . to determine which element of the hth row of c i  is equal to 1  for l = 1 ... ki  we let chl i  = 1 and compute the objective function l in eq. 1  for each l  which is denoted as ll  then
+	= argminll	 1 
+l
+¡¡the updating rule in eq. 1  is equivalent to updating the edges between vi and si in gs by connecting vih to each hidden nodes in si to find which hidden node gives the smallest values for d¦Õ g gs   i.e.  es vih sil   = 1 for l  = argmind¦Õ g gsl .  1 
+l
+algorithm 1 relation summary network with bregman
+divergences
+
+input: a k-partite graph g =  v1 ... vm e   a bregman divergence function d¦Õ  and m positive integers  k1 ... km.
+output: an rsn gs =  v1 ... vm s1 ... sm es . method:
+1: initialize gs.
+1: repeat
+1:for i = 1 to m do1:update the edges between vi and si according to
+eq. 1 .1:end for1: 1:for each pair of si ¡« sj where 1 ¡Ü i   j ¡Ü m do
+update the edges between si and sj according to
+eq. 1 .1:end for1: until convergence
+
+where gsl denotes the rsn with sil connecting to vih. note that the computation for this updating involves only edges between vih and the related nodes  not all the edges.
+¡¡based on eq. 1  in theorem 1  after a little algebraic manipulation  we have the following updating rule for each
+b ij  
+b ij  =   c i  tc i   1 c i  ta ij c j   c j  tc j   1
+                                                  1  this updating rule does not really involve computing inverse matrices  since  c i  tc i  is a special diagonal matrix such that     i.e.  the number of instance nodes associated with the hidden node sip  and similarly for  c j  tc j . the updating rule in eq. 1  is equivalent to updating the edges between si and sj in gs by re-computing the weight of the edge between a pair of hidden nodes sip ¡Ê si and sjq ¡Ê sj as follows 
+	es sip sjq  =	1	e vih vjl  	 1 
+|u|   |z| vih¡Êu vjl¡Êz
+where u = {vih : es vih sip  = 1}  i.e.  the instance nodes associated with sip; z = {vjl : es vjl sjq  = 1}  i.e.  the instance nodes associated with sjq  1 ¡Ü p ¡Ü ki 1 ¡Ü q ¡Ü kj 1 ¡Ü h ¡Ü ni  and 1 ¡Ü l ¡Ü nj. this updating rule is consistent with our intuition about the edge between two hidden nodes; i.e.  it is the  summary relation  for two sets of instance nodes. it is  however  a surprising observation that the updating does not involve the distance function  i.e.  this simple updating rule holds for all bregman divergences. the algorithm  relation summary network with bregman divergences  rsn-bd   is summarized in algorithm 1. rsn-bd iteratively updates the cluster structures for different types of instance nodes and summary relations among the hidden nodes. through the hidden nodes  the cluster structures of different types of instance nodes interact with each other directly or indirectly. the interactions lead to the implicit adaptive feature reduction for each type of instance nodes which overcomes the typical high dimensionality and sparsity. rsn-bd is applicable to a wide range of problems  since it does not have restrictions on the structures of the input k-partite graph. furthermore  the graphs from different applications may have different probabilistic distributions on their edges; it is easy for rsn-bd to adapt to this situation by simply using different bregman divergences  since bregman divergences correspond to a large family of exponential distributions including most common distributions  such as normal  multinomial and poisson distributions .
+¡¡note that to avoid clutter  we do not consider weighting different types of edges during the derivation. nevertheless  it is easy to extend the proposed model and algorithm to the weighted versions.
+¡¡if we assume that the number of pairs of vi ¡« vj is ¦¨ m  which is typical in real applications  and let n = ¦¨ ni  and k = ¦¨ ki   the computational complexity of rsn-bd can be shown to be o tmn1k  for t iterations. if we apply the k-means algorithm to each type of nodes individually by transforming the relations into features for each type of nodes  the total computational complexity is also o tmn1k . hence  rsn-bd is as efficient as k-means. if the edges in the graph are very sparse  the computational complexity of rsn-bd can be reduced to o tmrk  where we assume that the number of edges between each pair of vi and vj is ¦¨ r . eq. 1  in theorem 1 is an necessary condition for an optimal solution  but not sufficient for the correctness of the rsn-bd algorithm. the following theorems guarantee the convergence of rsn-bd.
+lemma 1. given a bregman divergence
+ 1 ¡Þ   a ¡Ê rn1¡Án1 and two indicator matrices  c 1  ¡Ê {1}n1¡Ák1 and c 1  ¡Ê {1}n1¡Ák1  let
+¡¡b  =   c 1  tc 1   1 c 1  tac 1   c 1  tc 1   1  1  then for any b ¡Ê rk1¡Ák1 
+d¦Õ a c 1 b c 1  t    d¦Õ a c 1 b  c 1  t  ¡Ý 1.	 1 
+¡¡proof. for convenience we use y to denote c 1 b c 1  t  y   to denote c 1 b  c 1  t  ¦Æ x  to denote  ¦Õ x . let j denote the lefthand side of eq. 1 .
+j 
+during the above deduction  the second and fifth equalities follow the definition of the bregman divergences; the fourth equality follows the fact that ¦Æ y    hl and ing from the special structure of the indicator matrix; the last inequality follows the non-negativity of bregman divergences. 
+theorem 1. the rsn-bd algorithm  algorithm 1 
+monotonically decreases the objective function in eq. 1 .
+¡¡proof. proving the theorem is equivalent to proving that the updating rules in eq. 1  and eq. 1  monotonically decrease the objective function in eq. 1 . let l t  denote the objective value after the tth iteration.
+	l t 	=	d¦Õ a ij  c  ti  b  tij   c  tj   t 
+1¡Üi j¡Üm
+	¡Ý	d¦Õ a ij  c  ti+1  	b  tij   c  tj+1  	 t 
+1¡Üi j¡Üm
+	¡Ý	d¦Õ a ij  c  ti+1  	b  tij+1    c  tj+1    t 
+1¡Üi j¡Üm
+	=	l t+1 
+where the first inequality follows trivially the criteria used for reassignment in eq. 1   and the second inequality follows eq. 1  and lemman 1. 
+base on theorem 1 and the fact that the objective function in eq. 1  has the lower bound 1 for a bregman divergence  the convergence of rsn-bd is proved.
+1. a unified view to clustering approaches
+¡¡in this section we discuss the connections between existing clustering approaches and the rsn model. by considering them as special cases or variations of the rsn model  we show that rsn provides a unified view to the existing clustering approaches.
+1 bipartite spectral graph partitioning
+¡¡bipartite spectral graph partitioning  bsgp   1  1  uses the spectral approach to partitioning a bi-partite graph to find cluster structures for two types of interrelated data objects  such as words and documents. the objective function of bsgp is the normalized cut on the bi-partite graph  whose affinity matrix is  . after the deduction  the spectral partitioning on the bipartite graph is converted to a singular value decomposition  svd   1  1 .
+¡¡as a graph partitioning approach  bsgp has the restriction that the clusters of different types of nodes have oneto-one associations. under the rsn model  this restriction is equivalent to letting a hidden node connect with one and only one hidden node. hence  the affinity matrix representing the edges between two sets of hidden nodes is restricted to a diagonal matrix. the objective function in eq. 1  can be formulated as
+	l = ||a 1    c 1 b 1  c 1  t||1	 1 
+where || ¡¤ || denotes frobenius norm  i.e.  the euclidean distance function is adopted  and a may be normalized as described in . based on this objective function  if we relax c 1  and c 1  to any othornormal matrices as in  1  1   it immediately follows the standard result of linear algebra  that the minimization of l in eq. 1  with the diagonal constraint on b is equivalent to partial svd. therefore  the rsn model based on euclidean distance function provides a simple way to understand bsgp. comparing with bsgp  rsn-bd is more flexible to exploit the cluster structures from a bi-partite graph  since it does not have one-to-one association as a constraint and is capable of adopting different distance functions.
+1 binary data clustering with feature reduction
+¡¡in   a model is proposed to cluster binary data by clustering data points and features simultaneously  i.e.  clustering with feature reduction. if we consider data points and features as two different types of nodes in a bi-partite graph and the binary elements of the data matrix denote whether there exists a link between a pair of nodes  then this model is equivalent to the rsn model on a bi-partite graph with unit weight edges. the objective function of this model is given in  as
+	o a x b 	=	||w   axbt||1 	 1 
+where w denotes the data matrix  a and b denote cluster memberships for data points and features  respectively  and x represents the associations between the data clusters and the feature clusters. we can see that this objective function is exactly the same as the objective function in eq. 1  on bi-partite graph with euclidean distance.
+¡¡the immediate benefit of establishing the connection between the model proposed in  and the rsn model is the new solution to binary data clustering with feature reduction. in   the model is based on euclidean distance. euclidean distance function has very wide applicability  since it implies the normal distribution and most data with a large sample size tend to have a normal distribution. however  since bernoulli distribution is a more intuitive choice for the binary data  rsn-bd directly provides a new algorithm for clustering binary data with feature reduction by using logistic distance function  see table 1   which corresponds to bernoulli distribution.
+1 information-theoretic co-clustering
+¡¡ proposes a novel theoretic formulation to view the contingency table as an empirical joint probability distribution of two discrete random variables and developes the coclustering algorithm  information-theoretic co-clustering  itcc   to maximize the mutual information between the clustered random variables subject to the constraints on the number of row and column clusters. let x and y be discrete random variables that take values in the sets {x1 ... xn1} and {y1 ... yn1}  respectively  and x  and y  be the cluster random variables that take values in the sets {x 1 ... x k1} and {y 1 ... y k1}  respectively; then the objective function of itcc is the loss in mutual information  i x;y     i x   y  .
+¡¡the joint distribution of x and y can be formulated as a bi-partite graph by assigning the probability p xh yl  to the weight of the edge between v1h ¡Ê v1 and v1l ¡Ê v1. if we modify the condition 1 in definition 1 such that an instance node vih is connected to one and only one hidden node sip with weight  where #sip is the number of the instance nodes connected to sip  then in the rsn of aforementioned bi-partite graph  es v1h s1p  and es v1l s1q  can be considered as p xh|x p  and p xl|x q   respectively  es s1p s1q  can be considered as p x p x q . based on this formulation  it is
+
+figure 1: an rsn equivalent to k-means
+easy to verify that the objective function of rsn with kldivergence is equivalent to i x;y     i x   y  . this connection between the itcc and a variation of rsn model implies that the itcc algorithm may be extended to more general cases of more than two random variables and with other loss functions.
+1 k-means clustering
+¡¡due to its simplicity  efficiency  and broad applicability  kmeans algorithm has become one of the most popular clustering algorithms. figure 1 explains the relation between the rsn model and k-means. if we consider data points and features as two different types of nodes  v1 and v1  in a bipartite graph  and restrict feature nodes to have one-to-one associations of their hidden nodes with unit weight  then the objective function in eq. 1  is given as l = ||a 1   
+c 1 b 1  c 1  t||1 where c 1  is restricted to an identity matrix. hence  the objective function is reduced to l = ||a 1    c 1 b 1 ||1  which is exactly the matrix representation for the objective function of the k-means algorithm . from figure 1  we also see that since the number of feature nodes is equal to the number of their hidden nodes  k-means does not do feature reduction. finally  we may consider rsn-bd as a generalization of k-means on k-partite graphs with various bregman divergences and expect that it inherits the simplicity and efficiency of k-means and has much broader applicability.
+¡¡there are more clustering approaches in the literature that may be considered as the special cases or variations of the rsn model. for example  the subspace clustering   which clusters the data points in a high dimensional space around a different subset of the dimensions  can be considered as an extension of figure 1 such that s1 or s1 only connects to a subset of s1. spectral relational clustering  can be considered as using the spectral approach to solve the rsn model under euclidean distance.
+¡¡by examining the connections between existing clustering approaches and the rsn model  we conclude that the rsn model provides a unified view to the existing clustering approaches. moreover  the idea of rsn is more general than the proposed model based on definition 1 and eq. 1 . for example  if we change the definition of distance between graphs in eq. 1   we may find totally different ways to mine hidden structures from a k-partite graph  and as a result  we may obtain new variations for existing clustering approaches.
+1. experimental results
+¡¡this section provides empirical evidence to show the effectiveness of the rsn model and algorithm. in particular  we apply rsn-bd to two basic types of k-partite graphs  the bipartite graph and the sandwich structure tri-partite graph  such as figure 1 a    which arise frequently in various applications. note that the application of rsn-bd is not limited to these two types of graphs and it is applicable to various kpartite graphs. four types of rsn-bd are evaluated in the
+data setsdistributionbp-b1.1
+11
+1bernoullibp-b1.1
+11
+1bernoullibp-p1
+11
+1poissonbp-e1
+11
+1exponentialtable 1: parameters and distributions for synthetic bi-partite graphs
+experiments: rsn with euclidean distance  rsn-ed  assumes the normal distribution of the data; rsn with logistic loss  rsn-ll  assumes the bernoulli distribution of the data; rsn with generalized i-divergence  rsn-gi  assumes the poisson distribution of the data; rsn with itakura-saito distance  rsn-is  assumes the exponential distribution of the data. two graph partitioning approaches  bsgp  and consistent bipartite graph co-partitioning  cbgc    we thank the authors for providing the executable code of cbgc    are used as the comparison on bi-partite graph and sandwich tri-partite graph  respectively. four traditional feature-based algorithms  which cluster a type of nodes in a k-partite graph by transforming all the links into features  are also used as comparisons. they are k-means with euclidean distance  km-ed   k-means with logistic loss  km-ll   k-means with generalized i-divergence  km-gi  and k-means with itakura-saito  km-is .
+1 data sets and parameter setting
+¡¡the data sets used in the experiments include synthetic data sets with various distributions and real data sets based on the 1-newsgroup data .
+¡¡the synthetic bi-partite graphs are generated such as that both v1 and v1 have two clusters  to be fair for bsgp  we use equal number of clusters ; each cluster has 1 nodes  hence  both v1 and v1 have 1 nodes. the distributions and parameters  the true means of the distributions  used to generate the links in the graphs are documented in table 1. in the table  distribution parameters for a graph is represented as a matrix s such that spq denotes the mean parameter of the distribution to generate the links between the pth cluster of v1 and the qth cluster of v1.
+¡¡the real bi-partite graphs are constructed based on various subsets of the 1-newsgroup data  which contains about 1 articles from 1 newsgroups. we pre-process the data by removing stop words and selecting the top 1 words by the mutual information. the document-word matrix is based on tf.idf weighting scheme and each document vector is normalized to a unit l1 norm vector. specific details of data sets used to construct bi-partite graphs are listed in table 1. for example  to construct a bpng1 graph  we randomly and evenly sample 1 documents from the corresponding newsgroups; then we formulate a bipartite graph consisting of 1 document nodes and 1 word nodes.
+¡¡the synthetic tri-partite graphs are generated similarly to the bi-partite graphs. the distributions and parameters are documented in table 1. let v1 denote the central type nodes. in table 1  s 1  denotes the true means of distributions for generating the links between v1 and v1  and similarly for s 1 . the numbers of clusters for each type of nodes are given by dimensions of s 1  and s 1  and each
+data sets 1 s 1 distributiontp-b1.1
+11
+1	1	1
+	1	1bernoullitp-b1.1.1
+11 1
+11	1	1
+1	1	1
+1	1	1bernoullibp-p1
+11
+1	1	1
+	1	1poissontp-largez1¡Á1z1¡Á1poissontp-e1	1
+1	1	1	1
+	1	1exponentialtable 1: parameters and distributions for synthetic tri-partite graphs
+data settaxonomy structuretp-tm1{rec.sport.baseball  rec.sport.hockey} 
+{talk.politics.guns  talk.politics.mideast talk.politics.misc}tp-tm1{comp.graphics  comp.os.ms-windows.miscrec.autos  rec.motorcyclessci.crypt  sci.electronics } 	} 
+{	{	}
+table 1: taxonomy structures of two data sets for constructing tri-partite graphs
+cluster has 1 nodes. in table 1  tp-large is a large graph with 1 clusters of v1  1 clusters of v1  and 1 clusters of v1  due to the space limit  the details of parameters are omitted . each bp-large graph contains 1 nodes and on an average about 1 million links.
+¡¡the real tri-partite graphs are built based on the 1newsgroups data for hierarchical taxonomy mining. in the field of text categorization  hierarchical taxonomy classification is widely used to obtain a better trade-off between effectiveness and efficiency than flat taxonomy classification. to take advantage of hierarchical classification  one must mine a hierarchical taxonomy from the data set. we see that words  documents  and categories formulate a sandwich structure tri-partite graph  in which documents are central type nodes. the links between documents and categories are constructed such that if a document belongs to k categories  the weights of links between this document and these k category nodes are 1/k  please refer  for details .
+¡¡the true taxonomy structures for two data sets  tp-tm1 and tp-tm1  are documented in table 1. for example  tp-tm1 data set is sampled from five categories  1 documents for each category   in which two categories belong to the high level category res.sports and other three categories belong to the high level category talk.politics.
+¡¡for all the algorithms on all the graphs  we fix the number of iterations to 1  this also holds true for bsgp and cbgc  since they use classic k-means to do postprocessing  and use the same initialization  random initialization for synthetic data and classic k-means initialization for real data. the final performance score is the average of the twenty runs. at each test run  a graph is constructed by sampling from the corresponding distributions or newsgroups of the 1newsgroup data. hence  the variation of a final performance score includes the variance of sampling.
+¡¡for the number of clusters  we use the true number of clusters for the synthetic graphs. for real data graphs  we use the true number of clusters for documents and categories; however  we do not know the true number of word clusters. how to determine the optimal number of word clusters is beyond the scope of this paper. we simply adopt 1 for all the rsn algorithms. for bsgp and cbgc  the number of
+datasetnewsgroups included# documentstotal #nameper groupdocumentsbp-ng1rec.sport.baseball  rec.sport.hockey1bp-ng1comp.os.ms-windows.misc  comp.windows.x  rec.motorcycles  sci.crypt  sci.space1bp-ng1comp.os.ms-windows.misc  comp.windows.x  misc.forsale  rec.motorcycles rec.motorcycles sci.crypt  sci.space  talk.politics.mideast  talk.religion.misc1table 1: subsets of newsgroup data for constructing bi-partite graphs.
+algorithmbp-b1bp-b1bp-pbp-ebp-ng1bp-ng1bp-ng1rsn-ed
+km-ed
+rsn-ll
+km-ll
+rsn-gi
+km-gi
+rsn-is
+km-is
+bsgp1 ¡À¡À¡À¡À¡À¡À¡À¡À 1.1 ¡À 1
+1 ¡À 1
+1 ¡À 1
+1 ¡À 1
+1 ¡À 1 1 ¡À 1
+1 ¡À 1
+1 ¡À 1
+1	11 ¡À 1
+1 ¡À 1
+1 ¡À 1 1 ¡À 1
+1 ¡À 1
+1 ¡À 1
+1 ¡À 1
+1 ¡À 1
+1	11 ¡À 1
+1 ¡À 1
+1 ¡À 1
+1 ¡À 1
+1 ¡À 1 1 ¡À 1
+1 ¡À 1
+1 ¡À 1
+1	11 ¡À 1
+1 ¡À 1
+1 ¡À 1
+1 ¡À 1
+1 ¡À 1
+1 ¡À 1
+1 ¡À 1
+1 ¡À 1
+1	11 ¡À 1
+1 ¡À 1
+1 ¡À 1
+1 ¡À 1
+1 ¡À 1
+1 ¡À 1
+1 ¡À 1
+1 ¡À 1
+1	11 ¡À 1 1 ¡À 1
+1 ¡À 1
+1 ¡À 1
+1 ¡À 1
+1 ¡À 1
+1 ¡À 1
+1 ¡À 1
+1	1	¡À	¡À	¡À	¡À	¡À	¡À	¡À
+table 1: nmi scores of the algorithms on bi-partite graphsword clusters must equal the number of document clusters. by the authors' suggestion  the parameter setting for cbgc is ¦Â = 1  ¦È1 = 1 and ¦È1 = 1 .
+¡¡the performance comparison is based on the quality of the clusters of one type of nodes in each graph. in synthetic bi-partite graphs  it is based on v1 whose clusters correspond to the rows of s in table 1; in synthetic tri-partite graphs  it is based on the central type nodes v1; in bi-partite graphs of documents and words  it is based on documents; in tri-partite graphs for taxonomy mining  it is based on categories whose clusters provide the taxonomy structures. for performance measure  we elect to use the normalized mutual information  nmi    which is a standard way to measure the cluster quality.
+1 results and discussion
+¡¡table 1 shows the nmi scores of the nine algorithms on the bi-partite graphs. for the bp-b1 graph  all the algorithms provide perfect nmi score  since the graphs are generated with very clear structures  which can be seen from the parameter matrix in table 1. for other synthetic bipartite graphs  the cluster structures are subtle  especially for the nodes v1  whose cluster structures are our objective. for these graphs  the rsn algorithms perform much better than k-means algorithms  especially for the bp-b1 and bp-p graph  in which the distributions for clusters of v1 are very close to each other and the links are relatively sparse. this comparison implies that benefiting from the interactions among the cluster structures of different types of nodes  the rsn algorithms are able to identify very subtle cluster structures even when the traditional clustering approaches totally fail. compared with the rsn algorithms  bsgp performs poorly for all the synthetic bi-partite graphs except bp-b1. the possible explanation is that it assumes one-to-one associations between clusters of different types of nodes  which does not hold true for the synthetic bi-partite graphs except bp-b1. we also observe that the rsn algorithm with the distance function matching the distribution to generate the graph provides the best nmi score for that graph.
+¡¡for the real bi-partite graphs consisting of document and word nodes  rsn-ll always provides the best nmi score. for the difficult bp-ng1 graph based on two  close  newsgroups  rsn-ll shows about 1% improvement in comparison with km-ll  which is  along with km-gi  the best among the non-rsn algorithms. note that since the document vector is l1-normalized  the km-ed is actually based on von mises-fisher distribution   which proved efficient for document clustering . we also observe that for these graphs  in general the algorithms based on logistic loss provide better performance. the possible reason is that logistic loss corresponds to bernoulli distribution which provides a good approximation to the distribution of the data consisting of a large mount of zeros  such as the sparse links between documents and words. in the meantime  it is also reasonable to assume the poisson distribution for the frequencies such as the frequency in that a word appears in a document. that is why rsn-gi also shows the performance very close to rsn-ll. the above comparison verifies the assumption that under an appropriate distribution assumption  through the hidden nodes the rsn algorithms perform implicit adaptive feature reduction to overcome the typical high dimensionality and sparseness.
+¡¡table 1 shows the nmi scores of the nine algorithms on the tri-partite graphs. as similarly in the synthetic bipartite graphs  the rsn algorithms perform much better than the k-means algorithms. except for rsn-ed on the tp-p graph  the rsn algorithms perform significantly better than cbgc. the nmi scores of cbgc for some graphs are not available because the cbgc code provided by the authors only works for the case of two clusters and small size graphs. for the large dense tp-large graph  the rsn algorithms perform consistently better than the km algorithms  and this demonstrates the good scalability of the rsn algorithms; the rsn-ed performs best on tp-large  and this demonstrates the advantage of the normal distribution for the very large sample size of dense links.
+¡¡for the real tri-partite graphs for taxonomy mining  the k-means algorithms perform poorly since they cluster categories only based on links between categories and documents. from table 1  we observe that both rsn-ed and rsn-is provide the best nmi score for tp-tm1. to have an intuition about this score  we check the details of the 1 test runs  which show that in 1 out of the 1 runs the algorithms provide the perfect taxonomy structures and in the other 1 runs one category is clustered incorrectly. we believe that if we assign different weights to different types of links  the rsn algorithms could perform more efficiently
+algorithmtp-b1tp-b1tp-ptp-largetp-etp-tm1tp-tm1rsn-ed
+km-ed
+rsn-ll
+km-ll
+rsn-gi
+km-gi
+rsn-is
+km-is
+cbgc1 ¡À 1 1 ¡À 1
+1 ¡À 1
+1 ¡À 1
+1 ¡À 1
+1 ¡À 1
+1 ¡À 1
+1 ¡À 1
+1	11 ¡À 1
+1 ¡À 1
+1 ¡À 1
+1 ¡À 1
+1 ¡À 1
+1 ¡À 1
+1 ¡À 1
+1 ¡À 1
+-1 ¡À 1
+1 ¡À 1
+1 ¡À 1
+1 ¡À 1
+1 ¡À 1
+1 ¡À 1
+1 ¡À 1
+1 ¡À 1
+1	11 ¡À 1
+1 ¡À 1
+1 ¡À 1
+1 ¡À 1
+1 ¡À 1
+1 ¡À 1
+1 ¡À 1
+1 ¡À 1
+-1 ¡À 1
+1 ¡À 1
+1 ¡À 1
+1 ¡À 1
+1 ¡À 1 1 ¡À 1
+1 ¡À 1
+1 ¡À 1
+1	11 ¡À 1
+1 ¡À 1
+1 ¡À 1
+1 ¡À 1
+1 ¡À 1
+1 ¡À 1
+1 ¡À 1
+1 ¡À 1
+-1 ¡À 1
+1 ¡À 1
+1 ¡À 1
+1 ¡À 1
+1 ¡À 1
+1 ¡À 1
+1 ¡À 1
+1 ¡À 1
+-	¡À	¡À	¡À
+table 1: nmi scores of the algorithms on tri-partite graphson mining the taxonomy structures. however  this is beyond the scope of this paper.
+1. conclusions and future work
+¡¡in this paper  we propose a general model rsn to find the hidden structures  the local cluster structures and the global community structures  from a k-partite graph. the model provides a principal framework for unsupervised learning on k-partite graphs of various structures. under this model  we derive a novel algorithm to find the hidden structures from a k-partite graph under a broad range of distortion measures. by iteratively updating the cluster structures for each type of nodes  the algorithm takes advantage of the interactions among the cluster structures of different types of nodes and performs implicit adaptive feature reduction for each type of nodes. experiments on both synthetic and real data sets demonstrate the promise and effectiveness of the proposed model and algorithm. we also establish the connections between existing clustering approaches and the proposed model to provide a unified view to the existing clustering approaches in the literature. there are a number of interesting potential directions for future research on the rsn model and algorithms  such as extending rsn model to other cases of unsupervised learning on k-partite graphs and applying the rsn algorithms to a wide range of problems involving k-partite graphs.
+1. acknowledgments
+¡¡this work is supported in part by nsf  iis-1   afrl information institute  fa1-1  fa1-1   afosr  fa1-1   and a summer research internship at yahoo! research.

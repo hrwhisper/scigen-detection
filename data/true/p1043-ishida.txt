@@ -1,0 +1,44 @@
+this paper reports the estimated number of spam blogs in order to assess their current state in the blogosphere. to extract spam blogs  i developed a traversal method among co-citation clusters of blogs from a spam seed. spam seeds were collected in terms of high out-degree and spam keyword. according to the experiment  a mixed seed set composed of high out-degree and spam keyword seeds is more effective than individual seed sets in terms of fmeasure. in conclusion  mixed seeds from different methods are effective in improving the f-measure results of spam extraction with co-citation clusters. 
+categories and subject descriptors 
+h.1  information storage and retrieval : information search and retrieval - information filtering.  
+general terms 
+algorithms  measurement  experimentation 
+keywords 
+spam blog extraction  co-citation cluster  advertisement link 
+1. introduction 
+blogs are useful social media for researching consumer opinion on products and services  but there are many spam blogs that benefit from advertising affiliations. to get a sense of the overall number of spam blogs in the japanese blogosphere  i observed updated blog data for the period of a week. based on this observation period and other previous research   i found that spam blogs form co-citation clusters because they share advertisement links  even though other characteristics  e.g. term sequence  url  anchor text  and tags were easily changed. based on the nature of co-citation clusters in spam  i developed a traversal spam extraction method  employing a shared interest algorithm   to extract co-citation clusters. the si algorithm affords that a blog or a cited page can be a part of multiple clusters. using the nature of overlap in co-citation clusters  the traversal method extracts spam blogs from a spam seed set  which is automatically extracted by simple schemes. this method does not require any vast amount of learning data from spam blogs  although other methods  employing svm or other learning algorithms may require such data. 
+1. spam in japanese blogosphere 
+i analyzed a data set of updated blogs collected from the japanese blogosphere from august 1th to september 1st  1. i applied a heuristic to convert urls of individual blog pages of  a blogger into the top-level url of the blogger. the resulting number of unique blogs was 1. because of the heuristic  frequently updated blogs have a high out-degree. figure 1 illustrates the outdegree distribution of blogs in log scale for both axes. to analyze relation between spam blogs and out-degree of blogs  i arranged blogs in terms of out-degree  divided them into subsets which accounted for approximately 1% of all data  picked up 1 samples from each set  and counted spam in each sample.  
+ 
+figure 1. out-degree distribution 
+i evaluated each blog in each sample manually. a general criterion for evaluating spam blogs is how much value a blogger adds to his/ her blogs. spammers automatically or semiautomatically copy parts of the other blogs and paste them on their blogs with many commercial affiliate links. as a result  they do not add any value to their blogs. valuable blogs contain bloggers' opinions  experiences  and other creative content. when these valuable blogs contain advertisement links  the links are also valuable because readers are interested in their contents and tend to find useful  related products or services. 
+ 
+figure 1. spam distribution 
+figure 1 summarizes the percentage of spam in each subset  which accounts for approximately 1% of all data. in addition  i investigated high out-degree blogs  which are 1%  1  of all 
+
+copyright is held by the author/owner s . 
+www1  april 1  1  beijing  china. acm 1-1-1/1. 
+
+blogs in the data set  and found that the high out-degree blogs are usually spam blogs  1 spam blogs out of 1 samples  or 1% .  
+
+1
+www 1 / poster paper	april 1  1 ¡¤ beijing  china
+
+1. spam extraction method 
+i developed a traversal spam extraction method with co-citation clusters and a spam seed set:  
+1. prepare a spam seed set. 
+1. prepare a set of co-citation clusters. 
+1. pick a blog from the spam seed set and put it into a spam pool.  
+1. pick co-citation clusters containing the blog from in step 1 and remove those clusters from the set of co-citation clusters. 
+1. extract all blogs contained in the clusters from step 1 and put them into a spam seed set. this does not include blogs already picked from the spam seed in step 1. 
+1. repeat steps 1. when the spam seed set is empty  the procedure is finished.  
+to prepare the set of co-citation clusters  i used two criteria to select clusters from all clusters extracted from the blogosphere with the si algorithm. the first criterion is density  which is defined by dividing the number of edges that a cluster has by all possible edges of the cluster. when the density is high  blogs in a cluster share interest because of many shared co-citation links. the density values 1  1  and 1 will be used for the experiment in section 1. the second criterion is co-citation ratio  which is defined by dividing the number of blogs by the number of cited pages within a cluster. when the ratio is low  blogs in a 
+cluster share interest because they have many co-cited pages. the co-citation ratio values 1  1  and 1 will be used for the experiment in section 1. 
+to prepare spam seed sets  i used simple two schemes: high outdegree and spam keyword list. to prepare high out-degree seeds  i used the top 1% of blogs in terms of out-degree because of the high spam rate described in section 1. to prepare the spam keyword list  i selected 1 keywords for commercial affiliation and 1 keywords for adult content semi-automatically using representative keyword extraction as developed in . employing the keyword list  keyword seeds were collected from the one week data set with a certain threshold  i.e. 1  1  1 in this paper. the thresholds indicated that a spam blog contained spam keywords more than 1  1  or 1 times. to investigate the effect of mixing spam seeds  i mixed high out-degree seeds and keyword seeds. the statistics of seven seeds  i.e. high out-degree seeds  three keyword seeds  1  1  1   and three mix seeds  1  1  1  are be summarized in section 1. 
+1. experiment 
+i applied the traversal spam extraction method to the one week data set to find an effective spam seed set and parameter settings for density and co-citation ratio. i prepared co-citation clusters for the data set with same parameters as in . table 1 summarizes statistics of the data set and seven spam seeds sets i prepared. precision was calculated by counting spam blogs within a set of 1 samples for each seed set. recall was derived from the estimated number of spam blogs. figure 1 illustrates the results of the experiments in terms of f-measure defined as   precision * recall * 1  /  precision + recall  . the blue dotted line represents the baseline f-measure of the data set  1 . the table shows mean  min  and max values for each seed set with the two parameters  density and co-citation ratio. figure 1 shows that the mixed seeds are more effective than the high out-degree seeds or the keyword seeds. there are few overlaps between high outdegree seeds and keyword seeds mixed into the mixed seed set  a result of the different schemes used to collect blogs. the wide variety of spam in the mixed seed is effective for applying the spam extraction method with co-citation clusters. 
+table 1. data set and spam seeds 
+ 
+figure 1. results of spam extraction 
+1. conclusion 
+this paper reported the percentage of spam blogs in the japanese blogosphere. it also provided the traversal spam extraction method with co-citation clusters. according to the experiment conducted by this method  mixed seed is more effective in extractracting spam than high out-degree seeds or keyword seeds in terms of f-measure. 

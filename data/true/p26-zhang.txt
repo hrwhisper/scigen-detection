@@ -1,0 +1,143 @@
+question classification is very important for question answering. this paper presents our research work on automatic question classification through machine learning approaches. we have experimented with five machine learning algorithms: nearest neighbors  nn   na ve bayes  nb   decision tree  dt   sparse network of winnows  snow   and support vector machines  svm  using two kinds of features: bag-of-words and bag-ofngrams. the experiment results show that with only surface text features the svm outperforms the other four methods for this task. further  we propose to use a special kernel function called the tree kernel to enable the svm to take advantage of the syntactic structures of questions. we describe how the tree kernel can be computed efficiently by dynamic programming. the performance of our approach is promising  when tested on the questions from the trec qa track. 
+categories and subject descriptors 
+h.1.  content analysis and indexing   h.1  information search and retrieval . 
+general terms 
+algorithms  experimentation.  
+keywords 
+question answering  text classification  machine learning  support vector machine  kernel method. 
+1. introduction 
+what a current information retrieval system or search engine can do is just  document retrieval   i.e.  given some keywords it only returns the relevant documents that contain the keywords. 
+ 
+however  what a user really wants is often a precise answer to a question. for instance  given the question  who was the first american in space    what a user really wants is the answer  alan shepard   but not to read through lots of documents that contain the words  first    american  and  space  etc.  
+the text retrieval conference  trec  http://trec.nist.gov/   has launched a qa track to support the competitive research on question answering  from 1  trec1 . the focus of the trec qa track is to build a fully automatic open-domain question answering system  which can answer factual questions based on very large document sets. today  the trec qa track  is the major large-scale evaluation environment for open-domain question answering systems. 
+in order to correctly answer a question  usually one needs to understand what the question asks for. question classification  i.e.  putting the questions into several semantic categories  can not only impose some constraints on the plausible answers but also suggest different processing strategies. for instance  if the system understands that the question  who was the first american in space   asks for a person name  the search space of plausible answers will be significantly reduced. in fact  almost all the opendomain question answering systems include a question classification module. the accuracy of question classification is very important to the overall performance of the question answering system. 
+while document classification has been intensively studied   question classification is still a rather new research issue. there appears to be nontrivial differences between these two problems. for example  the common words like 'what'  'is'  etc. should be neglected for document classification  but these  stop-words  are actually very important for question classification. 
+although it is possible to manually write some heuristic rules for question classification  it usually requires tremendous amount of 
+
+ 
+permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. to copy otherwise  or republish  to post on servers or to redistribute to lists  requires prior specific permission and/or a fee. 
+sigir'1  july 1-august 1  1  toronto  canada. 
+copyright 1 acm 1-1/1...$1. 
+ 
+tedious work. one has to correctly figure out various forms of each specific type of questions in order to achieve reasonable accuracy for a manually constructed classification program. in contrast  a machine learning approach can automatically construct a high performance question classification program which leverages thousands or more features of questions. given more training data  the performance of a learned classification program usually improves. moreover  a learned classification program is more flexible than a manual one since it can be easily adapted to a new domain. however  there are only a few papers describing machine learning approaches to question classification  and some of them such as  are pessimistic. 
+this paper presents our research work on automatic question classification through machine learning approaches  especially the support vector machines. it is organized as follows: section 1 presents the question classification problem; section 1 compares several machine learning approaches to question classification with conventional surface text features; section 1 describes a special kernel function called tree kernel to enable the support vector machines to take advantage of the syntactic structures of questions; section 1 is the related work; and section 1 concludes the paper. 
+1. question classification 
+question classification means putting the questions into several semantic categories. here only the trec-style questions  i.e.  open-domain factual questions  are considered.  
+we follow the two-layered question taxonomy proposed in   which contains 1 coarse grained categories and 1 fine grained categories  as shown in table 1. each coarse grained category contains a non-overlapping set of fine grained categories.  
+most question answering systems use a coarse grained category definition. usually the number of question categories is less than 1. however  it is obvious that a fine grained category definition is more beneficial in locating and verifying the plausible answers.  table 1. the coarse and fine grained question categories. 
+coarse fine  abbr abbreviation  expansion desc definition  description  manner  reason enty animal  body  color  creation  currency  
+disease/medical  event  food  instrument  language  letter  other  plant  product  religion  sport  substance  symbol  technique  term  vehicle  word hum description  group  individual  title loc city  country  mountain  other  state num code  count  date  distance  money  order  other  percent  period  speed  temperature  size  weight  
+to simplify the following experiments  we assume that one question resides in only one category. that is to say  an ambiguous question is labeled with its most probable category. 
+1. comparing svm and other 
+machine learning algorithms 
+1 datasets 
+we used the publicly available training and testing datasets provided by usc   uiuc  and trec . all these datasets have been manually labeled by uiuc  according to the coarse and fine grained categories in table 1. there are about 1 labeled questions randomly divided into 1 training datasets of sizes 1  1  1  1 and 1 respectively. the testing dataset contains 1 labeled questions from the trec1 qa track.  
+1 features 
+in this section  we only consider the surface text features of questions. for each question  we extract two kinds of features: bag-of-words and bag-of-ngrams  all continuous word sequences in the question . every question is represented as binary feature vectors  because the term frequency  tf  of each word or ngram in a question usually is 1 or 1. 
+1 support vector machines 
+support vector machines  svm   are linear functions of the form f x    = w x  +b   where w x  is the inner product between the weight vector w and the input vector x . the svm can be used as a classifier by setting the class to 1 if f x      1 and to -1 otherwise. the main idea of svm is to select a hyperplane that separates the positive and negative examples while maximizing the minimum margin  where the margin for example xi is y fi  xi   and yi ¡Ê  { 1} is the target output. this corresponds to minimizing w w  subject to yi   w x  i + b  ¡Ý 1 for all i . large margin classifiers are known to have good generalization properties  see e.g.  . 
+to deal with cases where there may be no separating hyper-plane  the soft margin svm has been proposed. the soft margin svm minimizes w w  + c¡Æ¦Îi subject to 
+i
+ yi   w x  i + b  ¡Ý 1 ¦Îi for all i   where c is a parameter that controls the amount of training errors allowed. 
+for multi-class svm  one-against-one strategy has been demonstrated to work well . an adaptation of the libsvm implementation  is used in the following. 
+1 some other learning algorithms 
+besides the support vector machines  svm   we have tried four other machine learning algorithms: nearest neighbors  nn   na ve bayes  nb   decision tree  dt   and sparse network of winnows  snow . 
+the nearest neighbors  nn  algorithm is a simplified version of the well-known knn algorithm which has been successfully applied in document classification . given an unlabeled instance  the nn algorithm finds its nearest  most similar  neighbors among the training examples  and uses the dominant class label of these nearest neighbors as its class label. here the similarity between two instances is simply defined as the number of overlapping features between them. if the instances are represented as binary feature vectors  the similarity function turns out to be the dot product function. there are more sophisticated versions of knn algorithm  such as the one used in  and it may be interesting to test them in the future. 
+the na ve bayes  nb  algorithm  is commonly studied in machine learning. it is regarded as one of the top performing methods for document classification . its basic idea is to estimate the parameters of a multinomial generative model for instances  then find the most probable class for a given instance using the bayes' rule and the na ve bayes assumption that the features occur independently of each other inside a class. 
+the decision tree  dt  algorithm  is a method for approximating discrete valued target function  in which the learned function is represented by a tree of arbitrary degree that classifies instances. the c1  software  a widely used implementation of the dt algorithm  is used in the following. 
+the sparse network of winnows  snow  algorithm  is specifically tailored for learning in the presence of a very large number of features and can be used as a general purpose multiclass classifier. the learned classifier is a sparse network of linear functions. the snow software developed by the cognitive computation group at uiuc  is used in the following. 
+1 experiment results 
+we have trained the above learning algorithms on 1 different size training datasets respectively and tested them on the trec1 questions. the parameters for each of the learning algorithms  e.g.  the c in the svm  are all with their default values untouched. the question classification performance is measured by accuracy  i.e.  the proportion of the correctly classified questions among all test questions. 
+ table 1. the question classification accuracy using different machine learning algorithms  with the bag-of-words features  under the coarse grained category definition. 
+algorithm 1 1 1 1 1 nn 1% 1% 1% 1% 1% nb 1% 1% 1% 1% 1% dt 1% 1% 1% 1% 1% snow 1% 1% 1% 1% 1% svm 1% 1% 1% 1% 1%  
+table 1. the question classification accuracy using different machine learning algorithms  with the bag-of-ngrams 
+features  under the coarse grained category definition. 
+algorithm 1 1 1 1 1 nn 1% 1% 1% 1% 1% nb 1% 1% 1% 1% 1% dt 1% 1% 1% 1% 1% snow 1% 1% 1% 1% 1% svm 1% 1% 1% 1% 1%  
+ table 1. the question classification accuracy using different machine learning algorithms  with the bag-of-words features  under the fine grained category definition. 
+algorithm 1 1 1 1 1 nn 1% 1% 1% 1% 1% nb 1% 1% 1% 1% 1% dt 1% 1% 1% 1% 1% snow 1% 1% 1% 1% 1% svm 1% 1% 1% 1% 1%  
+table 1. the question classification accuracy using different machine learning algorithms  with the bag-of-ngrams 
+features  under the fine grained category definition. 
+algorithm 1 1 1 1 1 nn 1% 1% 1% 1% 1% nb 1% 1% 1% 1% 1% dt 1% 1% 1% 1% 1% snow 1% 1% 1% 1% 1% svm 1% 1% 1% 1% 1%  
+not surprisingly  classifiers trained on larger training dataset usually get better performance.  
+for the svm algorithm  we observed that the bag-of-ngrams features are not much better than the bag-of-words features. also  the svm based on linear kernel turns out to be as good as the svm based on polynomial kernel  rbf kernel or sigmoid kernel  so we choose to include only the accuracy of the linear svm in the above tables.  
+we do not take into account the category hierarchy in the above experiments. it has been reported that the hierarchical snow classifier trained on 1 examples  with the bag-of-words features and under the fine grained category definition  can achieve an accuracy of 1% . 
+in summary  the experiment results show that with only surface text features the svm outperforms the other four methods for this task. 
+1. a tree kernel 
+we might be hitting a limit imposed by the representation of questions which ignores syntax  so including syntactic information might be helpful. for example  the two questions  which university did the president graduate from   and  which president is a graduate of the harvard university   could be discriminated by their different syntactic structures. 
+in this section  we propose to use a special kernel function called tree kernel to enable the svm to take advantage of the syntactic structures of questions. 
+1 concept 
+a key property of the support vector machines  is that the only operation it requires is the computation of dot products between pairs of examples. one may therefore replace the dot product with a mercer kernel  implicitly mapping feature vectors in rd into a new space rm   and applying the original algorithm in this new feature space. the kernel methods provide an efficient way to carry out such computation when m is large or even infinite.  
+given a question  we first parse it into a syntactic tree using a parser like   and then we represent it as a vector in a high dimensional space which is defined over tree fragments.  
+the tree fragments of a syntactic tree are all its sub-trees which include at least one terminal symbol  word  or one production rule  with the restriction that no production rules can be broken into incomplete parts.  
+implicitly we enumerate all the possible tree fragments 
+1 ... m . these tree fragments are the axis of this m dimensional space. note that this could be done only implicitly  since the number m is extremely large.  
+every syntactic tree t is represented by an m dimensional vector v   t =  v t1    v t1     ... v tm     ¡ä   where the i -th element v ti     is the weight of the tree fragment in the i -th dimension if the tree fragment is in the tree t and zero otherwise. the tree kernel of two syntactic trees t1 and t1 is actually the inner product of v t1  and v t1   . for each specific tree fragment i contained in the syntactic tree 
+	s i   	d i   
+t   i is weighted by ¦Ë ¦Ì   where s i    is its size and ¦Ë is the weighting factor for size   d i    is its depth and ¦Ì is the weighting factor for depth. the size of a tree fragment is defined as the number of production rules it contains. the depth of a tree fragment is defined as the depth of the tree fragment root in the entire syntactic tree. we introduce the weighting factors for size and depth to reflect the different importance for different kinds of tree fragments. 
+a terminal node  a node labeled by word but not part-of-speech tag  itself is a legal tree fragment of size 1. so if we set the weighting factor for size ¦Ë= 1 and the weighting factor for depth ¦Ì= 1  the tree kernel backs off to the word linear kernel.  
+our tree kernel definition is similar to the tree kernel proposed in . we propose a different definition because we found that using their definition without modification does not work well for question classification task. one advantage of our definition is that the tree kernel can back off to the word linear kernel  which guarantees that the tree kernel can work at least as well as the word linear kernel. another advantage of our definition is that the tree kernel can weight the tree fragments according to their depth so as to identify the question focus. for example  the focus of the question  which university did the president graduate from   is  university  but not  president   since the depth of  university  is less than the depth of  president .  such information is helpful to correctly classify the question.  
+1 sample 
+we use the question  what is an atom    trec1 question no. 1  to illustrate the above concepts.  
+figure 1 a  depicts the syntactic tree of the question  figure 1 b  is one of its sub-trees  and figure 1 c  contains all tree fragments of a within the extent of b.  
+table 1 displays the size and depth of each tree fragment in figure 1 c .  
+ 
+figure 1.  a  the syntactic tree of the sample question.  b  
+one of the sub-trees of a.  c  all tree fragments of a within the extent of b. 
+ 
+table 1. the size & depth of each tree fragment in fig. 1 c . 
+tree fragment size depth c1 1 1 c1 1 1 c1 1 1 c1 1 1 c1 1 1 c1 1 1 c1 1 1 c1 1 1  
+1 computation 
+note that the space of tree fragments is extremely large  i.e.  the number of dimensions m is extremely large  which makes it intractable to explicitly represent the tree vectors in order to compute their inner products. so developing an efficient tree kernel computation algorithm whose complexity is independent of m is necessary. here we describe how the tree kernel can be computed in polynomial time complexity by dynamic programming. this idea was proposed in  and we extend it to work with our definition of the tree kernel. 
+consider a syntactic tree t . let n represent the set of nodes in 
+t . define the binary indicator function i ni     to be 1 if the tree fragment i is seen rooted at a node n and 1 otherwise. and represent the depth of the node n by d n    . then we can derive that v ti     = ¡Æ ¦Ë ¦Ì i ni     = ¡Æ ¦Ë ¦Ì i ni     . s i    d i    s i    d n   
+	n n¡Ê	n n¡Ê
+given two syntactic trees  t1 and t1   the tree kernel k t t  1  1   can be computed as follows. 
+k t t  1  1   =v t1   v t1   =¡Æv t v ti   1  i   1   
+i
+= ¡Æ¡Æ¡Æ   ¦Ë ¦Ì 1 i ni    1    ¦Ë ¦Ì 1 i ni    1    s i    d n    s i    d n   
+	n1¡Ên1 n1¡Ên1	i
+= ¡Æ¡Æ¦Ì d n  1  +d n  1    1 ¡Æ¦Ës i   i n i ni   1  i   1   
+	n1¡Ên1 n1¡Ên1	i
+= ¡Æ¡Æ¦Ì d n  1  +d n  1    1c n n  1  1   . 
+n1¡Ên1 n1¡Ên1
+here c n n  1  1   = ¡Æ¦Ës i   i n i ni   1  i   1   . 
+i
+the value of c n n  1  1   can be computed recursively as follows.  
+  c n n  1  1   = 1   if n1 ¡Ù n1 ; 
+  c n n  1  1   = 1  if n1 = n1 and n n1  1 are terminal nodes; 
+  c n n  1  1   = ¦Ë  if n1 = n1 and n n1  1 are pre-terminal nodes; 
+  c n n  1  1  	 1	c ch n    1    j ch n  1    j      	if 
+j=1
+n1 = n1 and n n1  1 are neither terminal nor pre-terminal 
+nodes. 
+here n1 = n1 if and only if the labels of n1 and n1 are same and the labels of  n1 's children and n1 's children are also same. that is to say  while n1 and n1 are terminal nodes  n1 = n1 if the word at n1 and the word at n1 are same  while n1 and n1 are not terminal nodes  n1 = n1 if the production rule  at n1 and the production rule at n1 are same. the number of the node n 's children is nc n      so if n1 = n1 then nc n  1  = nc n  1   . the j th child of the node n is ch n j      . 
+according to the dynamic programming idea  we can traverse t1 and t1 in post-order  fill in a n1 ¡Á n1 matrix of  c n n  1  1     then sum up the matrix entries weighted by ¦Ì d n  1  +d n  1   1 . the time complexity of this algorithm turns out to be at most 
+o  n1 n1   . 1 evaluation 
+the mei parser  is used to get the syntactic tree for each question. then the svm based on tree kernel is applied. there are two parameters for the tree kernel: ¦Ë and ¦Ì. the default value of ¦Ë is set to 1  and the default value of ¦Ì is set to 1  so that the tree kernel with default parameter values is identical to the word linear kernel. to find appropriate parameter values  we run 1-fold cross validation on 1 training examples. 
+table 1. tuning ¦Ë for the tree kernel  ¦Ì= 1  by 1-fold cross validation on 1 training examples  under the coarse grained category definition. 
+¦Ë 1 1 1 1 1 accuracy 1% 1% 1% 1% 1%  
+ table 1. tuning ¦Ì for the tree kernel  ¦Ë= 1   by 1-fold cross validation on 1 training examples  under the coarse grained category definition. 
+¦Ì 1 1 1 1 1 accuracy 1% 1% 1% 1% 1%  
+ table 1. the question classification accuracy using svm based on word linear kernel  ngram linear kernel  and tree kernel  ¦Ë= 1   ¦Ì= 1    under the coarse grained category definition. 
+kernel 1 1 1 1 1 word  1% 1% 1% 1% 1% ngram 1% 1% 1% 1% 1% tree  1% 1% 1% 1% 1%  
+table 1. the confusion matrix of the tree kernel  ¦Ë= 1   
+¦Ì= 1   svm trained on 1 examples  under the coarse grained category definition.  
+ abbr desc enty hum loc num abbr 1 1 1 1 1 1 desc 1 1 1 1 1 1 enty 1 1 1 1 1 1 hum 1 1 1 1 1 1 loc 1 1 1 1 1 1 num 1 1 1 1 1 1  
+under the coarse grained category definition  the svm based on tree kernel can bring about 1% errors reduction  as shown in table 1. table 1 presents the confusion matrix of the best classifier  i.e.  the tree kernel  ¦Ë= 1   ¦Ì= 1   svm trained on 1 examples.  for example  the 1st row of the confusion matrix indicates that on the 1 test questions in the abbr category  1 have been correctly classified and 1 have been misclassified into desc category. the most common confusions happen between enty and desc  which is not surprising because the classifier are forced to do disjoint classification.  
+the statistical sign test can be applied for comparing two methods a and b . table 1 shows the significance test results  where method a is the svm based on tree kernel  ¦Ë= 1   ¦Ì= 1   and method b is the svm based on word or ngram linear kernel  both are trained on 1 examples and tested on 1 examples  under the coarse grained category definition. the small p-value means that method a is significantly better than method b. 
+table 1. the significance test results for comparing the svm based on tree kernel and the svm based on word/ngram linear kernel. 
+a b train test n k z p-value tree word 1 1 1 1 1   1 tree ngram 1 1 1 1 1   1  
+under the fine grained category definition  the svm based on tree kernel brings slight improvements. the experiment results are omitted to save space. after carefully checking the misclassifications  we believe that the syntactic tree does not normally contain the information required to distinguish between the various fine categories within a course category. the inconsistent labeling of the questions under the fine grained category definition also makes learning and evaluation for the fine category difficult. nevertheless  if we classify the questions into coarse grained categories first and then classify the questions inside each coarse grained category into its fine grained subcategories  we may still expect better results using the svm based on tree kernel. it would be interesting to extend the work using hierarchical svm classifiers  in the future.  
+1. related work 
+most question answering systems  do question classification using handcrafted rules. consequently there are only a few papers describing machine learning approaches to question classification. in   the machine learning tool ripper has been utilized for question classification. they defined 1 question categories  trained their question classification system on labeled trec1 and trec1 dataset  and tested it on trec1 dataset. the reported accuracy of their system is 1%  which is discouraging. in   the snow method has been utilized for question classification. however  the good performance of their system depends heavily on the features called  relwords   related words  which are constructed semi-automatically but not automatically. in contrast  our approach only uses automatically constructed features. since syntactic structure and related words carry different information  it is possible that including related words will further improve the result of our tree kernel svm approach. 
+the convolution kernels  string kernels  sequence kernels  tree kernels  etc.  recently emerged in bioinformatics area .  such kernels have been successfully applied to some natural language processing tasks like parsing . today there are more research works on kernels for structured data  for example in .  
+the tree kernel svm approach to question classification relies on a parser to get the syntactic trees.  however  most off-the-shelf parsers  including the one we used in above experiments  are not targeted to parse questions. those parsers are usually trained on the penn treebank corpus  which is composed of manually labeled newswire text. therefore it's not surprising that those parsers can not achieve a high accuracy in parsing questions  because there are only very few questions in the training corpus. in   the accuracy of question parsing dramatically improves when complementing the penn treebank corpus with additional 1 labeled questions for training. we believe that a better parser is beneficial to our approach. 
+1. conclusion 
+this paper presents our research work on automatic question classification through machine learning approaches.  
+the main contributions of this paper are as follows. 
+ 1  we show that with only surface text features svm outperforms four other machine learning methods  nn  nb  dt  snow  for question classification.  
+ 1  we found that the syntactic structures of questions are really helpful to question classification.  
+ 1  we propose to use a special kernel function called tree kernel to enable the svm to take advantage of the syntactic structures of questions. and we describe how the tree kernel can be computed efficiently by dynamic programming.  
+the main future direction of our research is to exploit semantic knowledge  such as wordnet  for question classification. it is also worth investigating other types of machine learning algorithms. 
+1. acknowledgements 
+many thanks to dr. thorsten joachims for kindly being our sigir'1 mentor. thanks also to the cognitive computation group at uiuc for opening their datasets. 

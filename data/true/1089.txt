@@ -1,0 +1,39 @@
+we report results for an independent  blind evaluation of the performance of 1 commercial search engines on 1 online service queries and on 1 topic relevance queries. we found a strong correlation between performance on the two types of query and significant differences between engines.
+keywords
+search engines  evaluation  online service queries.
+1. searchengineevaluation:background and methodology
+independent quality evaluation of commercial search engines facilitates informed consumer choice and may also lead to a general raising of search quality. as well as various informal and subjective comparisons in the media  a number of academic studies have attempted to compare the performance of search engines on a scientific basis.  1  1  1  1  1 
+most information retrieval experiments and all of the published scientific evaluations of commercial search engines have measured the ability of search systems to retrieve documents which are relevant to a topic of interest. however  queries submitted to commercial search engines reflect a range of different information needs. recently  it has been argued that search engine evaluation methodology should be extended to reflect this broader reality  1 
+1 .
+accordingly  we have carried out evaluations involving query sets arising from a range of information need types. here we report results of two evaluations conducted in october  1. one covers traditional topic relevance and judges a page relevant if it is both on topic and contributes some additional information  however small  which is not implicit in the query1. a newspaper report about selling flowers over the internet would be relevant to the query
+ e-flowers .
+the second evaluation covers search for online services1in which a page is judged useful if it allows the searcher to directly access a particular internet service. a person wishing to send flowers via the internet would not be satisfied with newspaper articles discussing the topic. instead they would require a page which allowed them to initiate the desired transaction.
+1. experiments
+a set of 1 topic relevance queries and a set of 1 online service queries were submitted to commercial search engines in october 1. the topic relevance queries were identical to those used in the trec-1 large web task  and in our september 1 evaluation of commercial search engines . the online service queries were identical to those used in the trec-1 large web task .
+examples queries  prior to stopword elimination  are:
+topic relevance:
+1 where can i find information on russia 
+1 how does a digital camera work 
+1 where can i find information on the bahamas 1 who are the current supreme court justices  1 thalidomide and multiple sclerosis
+online service:
+1 where can i do an iq test 
+1 where can i order flowers online 
+1 where can i find icq hacks 
+1 where can i find animal sounds 
+1 where can i download computer games
+queries minus stop words such as  where    how  and  who  were submitted by automatic script with appropriate logic to separate out search results from on-site links and advertisements. because of the risk of errors in this automated process  we subjected our results to quite thorough validity checking and in response to potential problems detected during this exercise  we eliminated a number of runs from the analysis.
+
+figure 1: p 1 for 1 topic relevance queries.
+result documents were retrieved from the appropriate server. all the documents for a query from all the search engines were pooled and presented to an independent assessor  recruited by csiro/anu  via a judging interface described in . dead links were judged  not relevant  or  not useful .
+once judging was complete  the results lists for each engine were evaluated using precision at ten documents retrieved  p 1 . this corresponds closely to how many good answers there are on the first page of results presented to a searcher.
+1. results and discussion
+figures 1 and 1 show the performance of the 1 commercial engines on the two different types of queries. a multiple analysis of variance  manova  of the p 1 data  confirms that there is a significant difference in the performance of the search engines on both types of query.  topic relevance: f 1  = 1 p   1; online service: f 1  = 1 p   1. 
+multiple pairwise comparisons using the least significant difference test were conducted. for the topic relevance queries  google was significantly better than all the engines except fast and northernlight  p   1 . for the online services queries  google was significantly superior to all but northernlight  p   1 .
+
+figure 1: p 1 for 1 online service queries.
+
+figure 1: p 1 performance for topic relevance v. online service queries. pearson r = 1. p   1 as shown in figure 1  there is a strong positive correlation between p 1 performance on the two types of query. a paired t-test revealed that performance on the online service queries was superior to that on topic relevance.  t 1  = 1 p   1  this may be an indication that search engines are tuned for online service queries but it is equally possible that the topic relevance queries were harder1.
+1. conclusions and caveats
+to our knowledge this is the first published study to investigate search engine performance on online service queries. we found a strong correlation between performance on online service and topic relevance queries.
+we found performance differences between engines on both types of query for these queries  on the p 1 measure  at the time we actually submitted the queries. however  it is important to note that performance of engines can vary considerably over time. furthermore  factors other than ranking performance  such as response time  user interface design  and coverage and freshness of indexes may be important. we didn't evaluate category results returned by directory services nor did we evaluate the quality or authoritativeness of the result pages.
+we are presently conducting an evaluation of how effective commercial search engines are at finding site entry pages  eg. homepages . we hope to report results in the final poster presentation.

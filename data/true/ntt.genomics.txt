@@ -1,0 +1,110 @@
+　for the second step  we developed two methods. the first method  method 1  uses a heuristic scoring system that simply counts the number of verbs and their derived words  which are important to specify the function of a query gene or its product. the second method  method 1  uses a machine learning technique to score documents.
+1 method
+1.1	document retrieval using keyword search
+trec provides categories for each query. namely  official/alias gene/product names  symbols and species. although species are not necessarily described on documents   names  or  symbols  should be written in relevant documents. we retrieved all documents that include at least one  name  or  symbol  for each query. they are scored in the next step.
+　symbols are represented in various ways in various documents. for example:
+  an alias symbol between parentheses follows an official name  such as  p1 cip  .
+  some symbols are connected by slashes  such as  p1/waf1/cip1/sdi1 .
+  a combination of the above two cases  such as  p1 waf/cip1  .
+　additionally  symbols could be written by uppercase characters  lowercase characters or a mixture of both. in this step  we searched for symbols between spaces or marks  such as '-'  '/'  ' ' or ' '  without distinction between uppercase and lowercase characters.
+　1 documents for trec training queries and 1 documents for trec test queries were retrieved in this step.
+1.1	method 1 : heuristic scoring system
+in the previous step  documents that could be relevant to each query gene were obtained. the problem is whether the documents refer to the function of the query gene or a product of it. in this step  all of the retrieved documents are scored for this purpose.
+　 from the analysis of all relevant documents for the trec training data  we found that common verbs or their derived words  such as  express    bind  or  inhibition   are often used to describe functions of genes. these words are located adjacent to keywords  query names or symbols . we manually extracted 1 kinds of verbs or their derived words from the vicinity of keywords. we  then  generated a list of words that includes their inflected forms and derived words. here  we call these words  function words . the list of function words consists of 1 words. the following are parts of this list.
+bind binds binding bound
+control controls controlling controlled express expresses expressing expressed expression expressions indicate indicates indicating indicated
+　to make vectors  all five words before and after keyword query gene names or symbols are extracted  as well as method 1. all words except stopwords are used as features of vectors. to decide the values for these vectors  we tried some weighting methods such as tfidf  term frequency inverse document frequency  and tf in addition to simple binary vectors. however  these weighting methods did not improve the performance. we therefore used binary vectors for all experiments.
+feature selection
+indication indications indicator indicators pear in very few documents or have no information for
+...	discrimination. the features satisfying the following con-　all features of high dimensional vectors are not always effective for discriminant functions. some features ap-
+
+　to score each document retrieved in the previous step  a set of words is made using five words before and after the keywords. then  the score is simply calculated by counting the number of  function words  in the list  allowing for duplication.
+1.1	method 1 : scoring system using svm
+in method 1  important information for scoring might be lost because of its simplicity and heuristics. we adopted a machine learning techniques to automatically reflect such information to the scoring system.
+　machine learning methods such as the perceptron or support vector machine  svm  generate discriminant functions whose inputs are mainly vectors and whose outputs are real values. while these methods are usually used as classifiers that output the sign of the discriminant functions  many applications adopt the real value outputs of discriminant functions as confident scores. in this task  we use this value and the svm as a machine learning method.
+making vectors from documents
+　representing each document by vector is necessary to make inputs of an svm 1. we used the classical  bag of words  model for vectors.
+
+     1recently  some methods that calculate values of the discriminant functions directly from character strings or more complicated structures have been developed using kernel methods.
+ditions are eliminated.
+  the document frequency is less than Θmin.
+  the ratio of positive  relevant  documents to negative  irrelevant  documents is less than Θratio.
+1 experiment for trec training set
+the 1 retrieved documents included 1 relevant documents that are 1 % of 1 documents provided by trec1.
+　we evaluated methods 1 and 1 using this data. we divided the data into two sets to create the training and test data for method 1. the first set is made from queries 1 to 1 and the second is made from the rest. we call the former  set1  and the latter  set1 . documents corresponding to queries 1  1 and 1 were eliminated because they do not include any relevant documents. set1 consists of 1 documents  set1 consists of 1 documents. set1 and set1 are used for training and testing  respectively  in method 1. for method 1  1 features were extracted from the 1 training data.
+　table 1 shows the results of method 1. the method was applied to set1  set1 and the whole trec training set independently  because method 1 does not need training. the evaluation was performed by mean average precision  map  using the  trec eval program.
+
+1
+     1 documents in  training-qrels.txt  are not included in the medline database file   medline.txt .
+table 1: mean average precisions of method 1
+
+set1  1 docs. 1set1  1 docs. 1whole trec training set1table 1: mean average precisions of method 1
+
+set1  training set 1set1  testing set 1whole trec training data1　in method 1  two kernels  the first and second order polynomial kernels  were applied and various kinds of parameters were examined  namely  Θmin and Θratio for feature selection and the svm soft margin parameter  c . the best parameters  Θmin = 1  Θratio = 1 and c = 1  were decided by comparing the mean average precision of set1.
+　table 1 shows the results of method 1. the result for the whole trec training set was calculated using the trec training set for svm training. set1 and the whole trec training set have a much higher mean average precision since they are also used for training. therefore  only the result of set1 may be an estimation of the trec test. methods 1 and 1 yield almost even performances  even though method 1 utilizes only 1 words in contrast with more than 1 words by method 1. this indicates that verbs and their derived words are crucially important to specify documents that describe the functions of genes or their products.
+1 results for test set and discussion
+in the first step  1 documents were extracted from the test queries provided by trec. we applied both methods 1 and 1 to this data and made two files for submission. dummy pubmed ids were filled for queries 1 and 1 because no documents were retrieved in the first step.
+table 1: mean average precisions for the trec test set
+method 1method 1bestmedian1111　trec returned average precision scores for each query. the scores of the best  median and worst system were also provided for each query. table 1 shows the mean average precisions of method 1 and method 1 compared with the best and median systems submitted to trec. the results for method 1 and method 1 are almost even  which is consistent with the evaluation for the training set  subsection 1 . however  both methods have a little worse than mean average precision.
+　figure 1 shows the distribution of the average precisions of method 1 and method 1 compared to the best and median systems submitted to trec. the horizontal axis denotes the average precision and the vertical axis denotes the number of queries. the best scores are significantly high because they do not necessarily come from only one system. the score of the median systems could be a good indicator for average systems. although the form of distributions are similar among method 1  method 1 and the median systems  methods 1 and 1 have too many low scores less than 1. actually  method 1 has nine queries whose average precisions are zero and method 1 has seven queries  of which eight queries are the same for both methods.
+　this comes from the fact that very few documents were retrieved in the first step. for seven zero score queries  only less than ten documents were retrieved in the first step. extending queries for the first step considering variations of the description of the gene names  or integrated scoring systems that consider whether a given document describes a query gene and its function simultaneously  will be necessary to improve the performance of our system.
+
+figure 1: comparison of method 1  method 1  the best systems and the median systems
+1 secondary track :	automatic functional phrases extraction
+we extracted the sequence patterns of the characteristic words  more correctly  the characteristic stems  in the sentences described the gene functions in the training data  in order to generate automatically the phrase that describes the function of a gene.
+　next  we scored the test sentences using the information criteria of the sequence patterns.
+　last  we output the sentence with the highest score as the phrase explaining the gene's function.
+1 labeling positive and negative labels to training set
+first  as preparation for calculating the information criteria  we gave positive or negative labels to the training sentences according to whether their sentences are close to a correct answer or not. after we divided articles into sentences by our sentence boundary detector  we selected sentences with a small edit distance to the actual generif used as correct answers out of the training set. we gave these positive labels and gave the others negative labels.
+more precisely  we labeled sentences whose edit dis-
+tances were 1 % or less than the length of the generif and the sentence with the smallest edit distance as positive. we labeled the other sentences as negative.
+1 specification of gene name
+the information about whether a sentence includes gene names is important for judging whether the sentence includes descriptions about a target gene. we  therefore  replaced the query gene name to   query gene   tag  and the other gene names to   substance   tag.
+　although various methods for extracting gene names have already been proposed  these methods need a lot of training data. therefore  we used the following techniques.
+　we used gene names and abbreviated gene names registered in the locuslink and goa database 1 for searching gene names.
+　moreover  we applied the following experiential rules to determine gene names and abbreviated gene names.
+  words that are constructed from 1 to 1 characters and are not dna base pair sequences.
+　next  we detected word sequences not satisfied with the following condition in the word sequences that begin with 'the' and end with ' consonant +ase'  ' consonant +in'  '-tor' or '-ssor' as gene names  except for the following case.
+  containing stopwords  stopwords at pubmed1 and our original stopwords .
+  containing '-ing'  '-ed'  '.'  ';'  etc.
+  containing only one parenthesis  ' ' or ' '.
+1 stemming process
+pattern extraction is possible also from the surface word sequence; however  in the case of  for example   inhibition of a  and   inhibitor a   these phrases will be treated as different phrases.
+　in order to avoid this  we extracted stem patterns after stemming to the word using the porter stemmer . for example  the following sentence 
+1
+　regulation of fas-associated death domain interactions by the death effector domain identified by a modified reverse two-hybrid screen.
+is stemmed to the following stem sequence.
+　 regul   fas-associ   death   domain   interact   substance   domain   identifi   modifi   revers   two-hybrid   screen 
+1 pattern extraction with tidal prefixspan
+we utilized a hyper geometry distribution score  hgs  for extracting stem sequence patterns that appear exclusively to positive examples.
+　hisamitsu et al.  have proposed a method of weighting words by which the given document set is characterized using an hgs. they showed that words selected by the hgs are effective for standing for the contents of artciles compared with tf-idf  etc.
+　here  a definition of the score using this supergeometry distribution  hgs  is the probability that more than y samples are positive  when x samples are taken without duplication out of the sample set of n containing positive samples of m.
+we used  log  hgs  as statistical criteria.
+　we extracted patterns using the tidal prefixspan  for improvement of speed. prefixspan  1  1  is a high-speed extraction method that can extract high-frequency appearance patterns allowed skips that was proposed by pei et al. for example  from the following sentences 
+1. i should point out that we need ...
+1. i must point out that it is important ... 
+prefixspan can extract the pattern  i - point - out - that 
+at a high speed.
+　however  since the original prefixspan only takes out high frequency patterns  it is necessary for it to be devised to take out the pattern with high information criteria. here  we can utilize tidal smp  tidal statistical metric pruning  . tidal smp is a technique to accelerate counting the number of patterns with an information criteria.
+　we used tidal prefixspan  which is a technique of applied tidal smp to prefixspan  for finding significant patterns with statistically meaning. we used the value of  log hgs  divided by the pattern length  = 1 1 ...  as statistical criteria and scoring points.
+1 functional phrase output
+we scored all the sentences that included test articles by summing up stem pattern scores. next  we extracted the sentence with a high score for every part   title  abstract  body and caption parts   of the article. then  we finally selected the output sentence from four sentences by rescoring with weight. output sentences are basicaly one sentence. if the sentence was long  we outputed a head part of less than 1 characters of the sentence.
+1 experimental result
+we scored patterns with a length of three or less and a frequency of two or more in the training data. we then extracted the top 1 patterns with high hgs values using the tidal prefixspan.
+　stem patterns that appear two or more times extracted by tidal prefixspan are shown in table 1.
+　 crystallin   crystallin    len   lens   etc.  which seldom generally appear  were extracted from the training set. this is because patterns with low frequency may often get a high value of   log hgs  / pattern length .
+　we show the patterns extracted with a higher rank in table 1 that appear 1 or more times. this indicates that our method can extract patterns that are likely to appear also in the test data and which are generalized. this shows that the generalized patterns can be extracted with the combination of the cut-off point by frequency and the value using the hyper geometry distribution.
+　we evaluated the output results by four improvement dice coefficients. by average of a total of 1 questions  their scores are cd  classical dice  : 1%  mud  modified unigram dice  : 1%  bd  bigram dice  : 1% and bp  bigram phrase  : 1%.
+　part of the concrete results is shown in table 1. this is the result of the higher 1  1  1  1 and 1 ranked when
+
+table 1: extracted stem patterns  higher 1 pattern  existing more than one frequency .
+patternpos. frq.neg. freq. log hgs  / pattern length crystallin 11 regul 11 crystallin  gene 11 len 11 crystallin  express 11 human 11 signal 11 gene 11 query gene 11 substance  crystallin 11 crystallin  gene  express 11 pathwai 11 regul  substance 11 recognit 11 substance 11 suggest 11 suffici 11 conclud 11 gene  len 11 express 11 substance  crystallin  gene 11 moieti 11 co-activ 11 pyrophosph 11 crystallin  crystallin 11 gtp-bound 11 necessari  gtp-bound 11 level  crystallin 11 human  moieti 11 gene  crystallin 11
+sorting with the results of the classic dice coefficient in 1 questions.
+　even if the output is apparently close to the correct answer  for example  the 1th problem  a low score can be obtained  because predicted phrases are evaluated only until bi-gram.
+these evaluation methods are also a future work.
+1 conclusion
+in this paper  we showed characteristic word sequences allowed skips are effective for extracting sentences that described the function of genes in medical documents and showed that scoring by the characteristic word sequence that allows the skip is effective.
+　moreover  we showed that the characteristic word sequence that allows the skip can be extracted by tidal prefixspan at a high speed.
+　concerning the secondary track  improvement of the evaluation method is greatly required for grasping the
+table 1: extracted stem patterns  higher 1 pattern  existing 1 or more than frequency .
+patternpos. frq.neg. freq. log hgs  / pattern length regul 11 human 11 signal 11 gene 11 querygene 11 pathwai 11 regul  substance 11 substance 11 suggest 11 suffici 11 express 11 evid 11 function 11 gene  express 11 regul  cell 11 role 11 provid 11 transcript 11 drosophila 11 necessari 11 novel 11 cancer 11 interact 11 modul 11 taken 11 substance  regul 11 substance  substance 11 essenti 11 substance  express 11 high 11deeper meaning of sentences.

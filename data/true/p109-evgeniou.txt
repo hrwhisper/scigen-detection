@@ -1,0 +1,12 @@
+past empirical work has shown that learning multiple related tasks from data simultaneously can be advantageous in terms of predictive performance relative to learning these tasks independently. in this paper we present an approach to multi-task learning based on the minimization of regularization functionals similar to existing ones  such as the one for support vector machines  svms   that have been successfully used in the past for single-task learning. our approach allows to model the relation between tasks in terms of a novel kernel function that uses a task-coupling parameter. we implement an instance of the proposed approach similar to svms and test it empirically using simulated as well as real data. the experimental results show that the proposed method performs better than existing multi-task learning methods and largely outperforms single-task learning using svms.
+categories and subject descriptors
+i.1  artificial intelligence : learning.
+general terms
+algorithms  theory.
+keywords
+multi-task learning  support vector machines  regularization  kernel methods.
+1. introduction
+¡¡in many practical situations a number of statistical models need to be estimated from data. for example multi- modal human computer interface requires the modeling of both  say  speech and vision; machine vision problems may themselves require the estimation of multiple models  for example one for detecting each object  i.e. a face  from
+permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. to copy otherwise  to republish  to post on servers or to redistribute to lists  requires prior specific permission and/or a fee.
+kdd'1  august 1  1  seattle  washington  usa.
+copyright 1 acm 1-1/1 ...$1.

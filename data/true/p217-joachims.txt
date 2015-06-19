@@ -1,0 +1,240 @@
+linear support vector machines  svms  have become one of the most prominent machine learning techniques for highdimensional sparse data commonly encountered in applications like text classification  word-sense disambiguation  and drug design. these applications involve a large number of examples n as well as a large number of features n  while each example has only s    n non-zero features. this paper presents a cutting-plane algorithm for training linear svms that provably has training time o sn  for classification problems and o snlog n   for ordinal regression problems. the algorithm is based on an alternative  but equivalent formulation of the svm optimization problem. empirically  the cutting-plane algorithm is several orders of magnitude faster than decomposition methods like svmlight for large datasets.
+categories and subject descriptors
+i.1  artificial intelligence : learning
+general terms
+algorithms  performance  experimentation
+keywords
+support vector machines  svm   training algorithms  ordinal regression  large-scale problems  roc-area
+1. introduction
+¡¡many applications of machine learning deal with problems where both the number of features n as well as the number of examples n is large  in the millions . examples of such problems can be found in text classification  word-sense disambiguation  and drug design. while problems of such size seem daunting at first glance  the examples mentioned above have extremely sparse feature vectors  which gives hope that these problems can be handled efficiently.
+¡¡linear support vector machines  svms  are among the most prominent machine learning techniques for such highdimensional and sparse data. on text classification prob-
+permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. to copy otherwise  to republish  to post on servers or to redistribute to lists  requires prior specific permission and/or a fee.
+kdd'1  august 1  1  philadelphia  pennsylvania  usa.
+copyright 1 acm 1-1/1 ...$1.
+lems  for example  linear svms provide state-of-the-art prediction accuracy  1  1  1 . while conventional training methods for linear svms  in particular decomposition methods like svm-light   smo   libsvm   and svmtorch  handle problems with a large number of features n quite efficiently  their super-linear scaling behavior with n  1  1  1  makes their use inefficient or even intractable on large datasets. on the other hand  while there are training methods that scale linear in n  e.g.  1  1  1  1    such methods empirically  or at least in the worst case  scale quadratically with the number of features n.
+¡¡even more difficult is the current situation for training linear ordinal regression svms  or-svms  . in herbrich et al.'s formulation  an ordinal regression svm over n examples is solved by translating it into a classification svm with o n1  examples  which obviously makes scaling with n even worse than for straightforward classification svms. nevertheless  or-svm are very interesting even beyond actual ordinal regression problems like those in information retrieval. when applied to problems with only two ranks  or-svms are know to directly optimize the roc-area of the classification rule  1  1 . this is a desirable criterion to optimize in many applications.
+¡¡in this paper  we propose the first general training algorithm for linear svms that provably scales o s n  for classification and o s nlog n   for ordinal regression  where s is the average number of non-zero features. obviously  this scaling is very attractive for high-dimensional and sparse data. the algorithm is based on an alternative  yet equivalent formulation of the svm training problem. compared to existing methods  the algorithm has several advantages. first  it is very simple and easy to implement. second  it is several orders of magnitude faster than existing decomposition methods on large classification problems. on a text classification problem with 1 examples and 1 features  the new algorithm is roughly 1 times faster than svm-light. third  the algorithm has a meaningful stopping criterion that directly relates to training error. this avoids wasting time on solving the optimization problem to a higher precision than necessary. and  fourth  the algorithm can handle ordinal regression problems with hundred-thousands of examples with ease  while existing methods become intractable with only a few thousand examples.
+1. structural svms
+¡¡we first introduce the formulation of the svm optimization problem that provides the basis of our algorithm  both for classification and for ordinal regression svms. both formulations are derived from structural svms  1  1  previously used for predicting structured outputs and optimizing to multivariate performance measures. for each alternative formulation  we will show that it is equivalent to the respective conventional svm optimization problem.
+1 classification
+¡¡for a given training set  x1 y1  ...  xn yn  with and yi ¡Ê { 1 +1}  training a binary classification svm means solving the following optimization problem. for simplicity of the following theoretical results  we focus on classification rules hw x  = sign wtx+b  with b = 1. a non-zero b can easily be modeled by adding an additional feature of constant value to each x  see e.g.  .
+op 1.  classification svm  primal  
+n
+c
+i
+w ¦Î
+	s.t.	 i ¡Ê {1 ... n}: yi wtxi ¡Ý1 ¦Îi
+¡¡note that we adopted the formulation of  1  1  where ¦Îi is divided by n to better capture how c scales with the training set size. most training algorithms solve either op1 or its dual  see  for the dual .
+¡¡the algorithm we explore in the following considers a different optimization problem  which was proposed for training svms to predict structured outputs  and to optimize multivariate performance measures like f1-score or the precision/recall break-even point . the following is a specialization of this formulation for the case of error rate  and we will refer to it as the  structural  formulation.
+op 1.  structural classification svm  primal  
+w ¦Î
+	s.t.	
+¡¡while op1 has 1n constraints  one for each possible vector c =  c1 ... cn  ¡Ê {1}n  it has only one slack variable ¦Î that is shared across all constraints. each constraint in this structural formulation corresponds to the sum of a subset of constraints from op1  and the ci select the subset.  can be seen as the maximum fraction of training errors possible over each subset  and ¦Î is an upper bound on the fraction of training errors made by hw. interestingly  op1 and op1 are equivalent in the following sense.
+¡¡theorem 1. any solution w  of op1 is also a solution of op1  and vice versa   with.
+¡¡proof. adapting the proof from   we will show that both optimization problems have the same objective value and an equivalent set of constraints. in particular  for every w the smallest feasible ¦Î and i ¦Îi are related as ¦Î = n1 i ¦Îi.
+¡¡for a given w  the ¦Îi in op1 can be optimized individually  and the optimum is achieved for ¦Îi = max{1 yi wtxi }. for op1  the optimal ¦Î for a given w is
+
+since the function is linear in ci  each ci can be optimized independently.
+n
+	1	t
+minc¦Î = max ci   ciyi w xi  i=1 ci¡Ê{1} n n
+	n	n
+¡¡¡¡¡¡¡¡¡¡¡¡1	t	c =	max	1 	 	yi w xi 	= min 	¦Îi n	n	n i=1	i=1
+therefore  the objective functions of both optimization problems are equal for any w given the optimal ¦Î and ¦Îi  and consequently so are their optima. 
+¡¡the theorem shows that it is possible to solve op1 instead of op1 to find the same soft-margin hyperplane. while op1 does not appear particularly attractive at first glance  we will show in section 1 that its wolfe dual has desirable sparseness properties. before we show that a similar formulation also exists for ordinal regression svms   we first state the wolfe dual of op1  since it will be referred to later.
+denote with xc the sum  and with ||c||1 the
+l1-norm of c  i.e. the number ones in c for binary c .
+op 1.  structural classification svm  dual  
+||c||t
+max¦Á¡Ý1	c¡Ê{1}ncc	xcxc
+s.t.	¦Ác ¡Ü c
+c¡Ê{1}n
+1 ordinal regression
+¡¡in ordinal regression  the label yi of an example  xi yi  indicates a rank instead of a nominal class. without loss of generality  let yi ¡Ê {1 ... r} so that the values 1 ... r are related on an ordinal scale. in the formulation of herbrich et al.   the goal is to learn a function h x  so that for any pair of examples  xi yi  and  xj yj  it holds that
+h xi    h xj     yi   yj.
+given a training set  x1 y1  ...  xn yn  with  and yi ¡Ê {1 ... r}  herbrich et al. formulate the following ordinal regression svm  or-svm . denote with p the set of pairs  i j  for which example i has a higher rank than example j  i.e. p = { i j  : yi   yj}  and let m = |p|.
+op 1.  ordinal regression svm  primal  
+w
+w ¦Îij¡Ý1
+	s.t.	  i j  ¡Ê p:  wtxi ¡Ý wtxj  + 1 ¦Îij
+¡¡intuitively  this formulation finds a large-margin linear function h x  that minimizes the number of pairs of training examples that are swapped w.r.t. their desired order. like for classification svms  op1 is a convex quadratic program. ordinal regression problems have applications in learning retrieval functions for search engines . furthermore  if the labels y take only two values  op1 optimizes the roc-area of the classification rule  1  1 .
+¡¡in general  op1 has m ¡Ê o n1  constraints and slack variables. while this problem can be brought into the same form as op1 by rewriting the constraints as wt xi xj  ¡Ý 1 ¦Îij  even relatively small training sets with only a few thousand examples are already intractable for conventional training
+methods. so far  researchers have tried to cut down on the number of constraints with various heuristics  which  however  cannot guarantee that the computed solution is optimal.
+¡¡we will now derive a similar structural formulation of the ordinal regression svm as we have already done for the binary classification svm.
+op 1.  structural ord. regr. svm  primal  
+w ¦Î
+s.t.	
+¡¡like for classification  the structural formulation has o 1n  constraints  but only a single slack variable ¦Î. analogous to the classification svm  the following theorem establishes that both formulations of the or-svm have equivalent solutions.
+¡¡theorem 1. any solution w  of op1 is also a solution of op1  and vice versa   with ¦Î  = m1  i j ¡Êp ¦Îij  .
+¡¡proof. as mentioned above  the constraints in op1 can be rewritten as yij wt xi  xj   ¡Ý 1 ¦Îij with all yij set to 1. theorem 1 applies immediately after substituting xij = xi   xj  since op1 has the same form as op1  and op1 has the same form as op1. 
+1. cutting-plane algorithm
+¡¡while the alternative formulations of the classification and the ordinal regression svm from above have an exponential number of constraints  they are very convenient in several ways.
+¡¡first  there is a single slack variable ¦Î that measures training loss  and there is a direct correspondence between ¦Î and the  in feasibility of the set of constraints. in particular  if we have a point  w ¦Î  which fulfills all constraints up to precision   then  w ¦Î   is feasible. so  the approximation accuracy  of an approximate solution to op1 or op1 is directly related to training loss  which provides an intuitive precision criterion.
+¡¡second  op1 and op1 are special cases of structural svms  1  1 . as we will detail below  for this type of formulation it is possible to prove bounds on the sparsity of an -approximate solution of the wolfe dual. in particular  we will show that the sparsity is independent of the training set size n  and that simple cutting-plane algorithms  find an -approximate solution in a constant number of iterations for both op1 or op1.
+1 classification
+¡¡algorithm 1 is our adaptation of the cutting-plane algorithm for the classification svm optimization problem op1. it is an adaptation of the structural svm training algorithm  1  1 . the algorithm iteratively constructs a sufficient subset w of the set of constraints in op1. the algorithm starts with an empty set of constraints w. in each iteration  it first computes the optimum over the current working set w  i.e. w = 1 and ¦Î = 1 in the first iteration  in line 1. in lines 1 it then finds the most violated constraint in op1 and adds it to the working set w in line 1.
+algorithm 1 for training classification svms via op1.
+
+1:
+1:	 w ¦Î  ¡û argminw ¦Î
+s.t.
+1:	for i=1 ... n do
+1:	
+1:	end for
+1:	}
+n
+ 1: until =1: return 
+
+note that this assignment to  c1 ... cn  = c corresponds to the constraint in op1 that requires the largest ¦Î to make it feasible given the current w  i.e.
+	n	n
+c = argmax	. c =1 =1
+the algorithm then continues in line 1 by optimizing over the new working set  unless the most violated constraint is not violated by more than the desired precision .
+¡¡in the following  we will analyze the correctness and the time complexity of the algorithm. we will show that the algorithm always terminates after a polynomial number of iterations that does not depend on the size n of the training set. regarding its correctness  the following theorem characterizes the accuracy of the solution computed by algorithm 1.
+theorem 1.  correctness of algorithm 1 
+ for any training sample s =   x1 y1  ...  xn yn   and any is the optimal solution of op1  then
+algorithm 1 returns a point  w ¦Î  that has a better objective value than  w  ¦Î    and for which  is feasible in op1.
+¡¡proof. we first verify that lines 1 compute the vector c ¡Ê {1}n that maximizes
+		.
+¦Î is the minimum value needed to fulfill all constraints in op1 for the current w. since the function is linear in ci  each ci can be maximized independently.
+
+this directly corresponds to the assignment in line 1. as checked in line 1  the algorithm terminates only if ¦Î does not exceed the ¦Î from the solution over w by more than  as desired.
+¡¡since the  w ¦Î  returned by algorithm 1 is the solution on a subset of the constraints from op1  it holds that
+.	
+¡¡using a stopping criterion based on the accuracy of the training loss ¦Î is very intuitive and practically meaningful  unlike the stopping criteria typically used in decomposition methods. intuitively   can be used to indicate how close one wants to be to the error rate of the best hyperplane. in most machine learning applications  tolerating a training error that is suboptimal by 1% is very acceptable. this intuition makes selecting the stopping criterion much easier than in decomposition methods  where it is usually defined based on the accuracy of the kuhn-tucker conditions of the dual  see e.g.  . solving op1 to an arbitrary but fixed precision of  is essential in our analysis below  making sure that computation time is not wasted on computing a solution that is more accurate than necessary.
+¡¡we next analyze the time complexity of algorithm 1. it is easy to see that each iteration of the algorithm takes polynomial time  and that time scales linearly with n and s. we then show that the number of iterations until convergence is bounded  and that this upper bound is independent of n.
+¡¡lemma 1. each iteration of algorithm 1 takes time o sn  for a constant working set size |w|.
+¡¡proof. each dot-product in lines 1 and 1 takes time o s  when using sparse vector algebra  and n dot-products are computed in each line. instead of solving the primal quadratic program  one can instead solve the dual op1 in line 1. setting up the dual over w in line 1 is dominated by computing the o |w|1  elements of the hessian  which can be done in o |w|1sn  after first computing for each constraint in w. note that n ¡Ü sn. the time for solving the dual is then independent of n and s. this leads to an overall time complexity of o sn  per iteration. 
+¡¡lemma 1. for any   and any training sample s =   x1 y1  ...  xn yn    algorithms 1 and 1 terminate after at most
+		 1 
+iterations. r = maxi ||xi|| for algorithm 1 and for algorithm 1 it is r = 1maxi ||xi||.
+¡¡proof. following the proof scheme in  1  1   we will show that adding each new constraint to w increases the objective value at the solution of the quadratic program in line 1 by at least some constant positive value. since the objective value of the solution of op1 is upper bounded by c  since w = 1 and ¦Î = 1 is a feasible point in the primal   the algorithm can only perform a constant number of iterations before termination. the amount by which the solution increases by adding one constraint that is violated by more   i.e. the criteria in lines 1 and 1 respectively  to w is characterized by proposition 1 in . a lower bound on the increase is
+
+where q is an upper bound on the l1-norm of the coefficient vectors in the constraints. for op1
+	n	n
+	1
+ q = max n  ciyixi ¡Ü  ci max||xi|| ¡Ü r c¡Ê{1} n i=1 n i=1 i in the case of algorithm 1 and for op1
+ r in the case of algorithm 1. due to this constant increase of the objective value in each iteration  either algorithm can add at most  constraints before the objective value exceeds c  which is an upper bound on the objective value at the solution of op1 and op1. 
+¡¡note that the formulation of op1 with the scaled cn instead of c in the objective is essential for this lemma. we will empirically evaluate the adequacy of this scaling in section 1. putting everything together leads to the following bound on the time complexity of algorithm 1.
+theorem 1.  time complexity of algorithm 1 
+ for any distribution p x y   that generates feature vectors of bounded l1-norm ||x|| and any fixed value of c   1 and
+  algorithm 1 has time complexity o sn  for any training sample of size n and sparsity s.
+¡¡proof. lemma 1 bounds the number of iterations  and therefore the maximum working set size |w|  to a constant that is independent of n and s. each iteration has time complexity o sn  as established by lemma 1. 
+¡¡to our knowledge  algorithm 1 has the best scaling behavior of all known training algorithms for linear svms. decomposition methods like svm-light   smo   libsvm   and svmtorch  handle sparse problems with a large number of features n quite efficiently. however  their super-linear scaling behavior with n  1  1  1  makes them inefficient or even intractable on large datasets. we will compare our algorithm against svm-light as a representative decomposition methods.
+¡¡other methods sacrifice the statistical robustness  of the ¦Îi loss in the objective for the numerically more convenient ¦Îi1 loss. with additional restrictions on how the data is normalized  core vector machines  are shown to scale linear in n. however  the restrictions make the method inapplicable to many datasets. generally applicable are lagrangian svm   using the ¦Îi1 loss   proximal svm   using an l1 regression loss   and interior point methods . while these method scale linearly with n  they use the sherman-morrison-woodbury formula for inverting the hessian of the dual. this requires operating on n ¡Á n matrices  which makes them applicable only for problems with small n. as a representative of this group of methods  we will compare against the lagrangian svm in section 1.
+¡¡the recent l1-svm-mfn method  avoids explicitly representing n ¡Án matrices using conjugent gradient techniques. while the worst-case cost is still o snmin n n   per iteration  they observe that their method empirically scales better. we will compare against this method as well.
+1 ordinal regression
+¡¡algorithm 1 solves the ordinal regression svm in the form of op1 and has a structure that is very similar to algorithm 1. it is a generalization of the algorithm for optimizing roc-area in  and similar to the algorithm independently developed in . the key difference to algorithm 1 lies in computing the most violated constraint of op1
+c = argmax	xj 
+c
+	   ¡Êp	   ¡Êp
+without enumerating all m ¡Ê o n1  constraints from op1. to avoid o n1  cost  algorithm 1 makes use of a condensed algorithm 1 for training ord. regr. svms via op1.
+1: 1: w ¦Î  ¡û argminw ¦Î
+s.t.1:sort s by decreasing wtxi1:
+1:
+1:c+ ¡û 1;c  ¡û 1
+nr ¡û number of examples with yi = r for r = 1 ... r do1:
+1:
+1:i ¡û 1;j ¡û 1;a ¡û 1;b ¡û 1
+while i ¡Ü n do if yi = r then1: 1:while  j ¡Ü n  ¡Ä  wtxi   wtxj   1  do
+if yj   r then1: 1:¡¡b + +; c j ¡û c j +  nr   a + 1  end if1:j + +1:end while1: 1:¡¡a + +; c+i ¡û c+i + b end if1:i + +1:end while1:end for1: 1:=1 return representation of the constraints as follows. while the lefthand side of the linear constraints in op1 contains a sum over m vectors of differences  xi  xj   most individual vectors xi are added and subtracted multiple time. with proper coefficients c+i and c j   each constraint can be rewritten as a sum of n vectors
+
+where c+i is the number of times xi occurs with positive sign  i.e. cij = 1  and c i is the number of times xi occurs with negative sign  i.e. cji = 1 . if c+ and c  are known  each constraint can be evaluated in time o sn  instead of o sm . furthermore  the right hand side of each constraint can be computed from c+ and c  in time o n  instead of o m   since . the following theorem shows that algorithm 1 computes the coefficient vectors c+ and c  of the most violated constraint  and therefore converges to the optimal solution in the same sense as algorithm 1.
+theorem 1.  correctness of algorithm 1 
+ for any training sample s =   x1 y1  ...  xn yn   and any  is the optimal solution of op1  then
+algorithm 1 returns  w ¦Î  that have a better objective value than  w  ¦Î    and for which  is feasible in op1.
+proof. analogous to the proof of theorem 1 
+= argmax	xj 
+	   	   
+is reached for
+ .
+this means that the number of times xi enters with positive and negative sign is
+c+i = |{j :  yi   yj  ¡Ä   wtxi     wtxj    1 }| 
+c i = |{j :  yj   yi  ¡Ä   wtxj     wtxi    1 }|.
+to compute these quantities efficiently  algorithm 1 first sorts the training examples by decreasing value of wtxi. then  for each rank r in turn  it updates the values of c+ and c+ for all constraints  i j  ¡Ê p in op1 with yi = r. by going through the examples in order of wtxi  the algorithm can keep track of
+a = |l :  yl = r  ¡Ä  wtxl   wtxi | b = |l :  yl   r  ¡Ä  wtxl   wtxi   1 |
+via incremental updates. whenever it encounters an example with yi = r  there are exactly b constraints  i j  ¡Ê p in op1 with yj   r and   wtxi     wtxj    1 . similarly  whenever it encounters an example with yj   r  there are exactly  nr   a  constraints  i j  ¡Ê p in op1 with yi = r and   wtxi     wtxj    1 . by exhaustively going through all r  yi = r  and yj   r and adding the respective quantities to c+i and c j   the algorithm implicitly considers all constraints in op1.
+¡¡like algorithm 1  the iteration terminate only if no constraint in op1 is violated by more than   and
+
+since w is a subset of the constraints in op1.	
+¡¡the following lemma characterizes the time algorithm 1 takes in each iteration as a function of n and s.
+¡¡lemma 1. each iteration of algorithm 1 requires time o sn+nlog n +rn  for a constant working set size |w|.
+¡¡proof. the proof is analogous to that of lemma 1. the greatest expense per iteration in terms of n is the sort in line 1 and the computation of n inner products wtxi. lines 1 take r   1 passes through the training set. due to the condensed representation  setting up the quadratic program in line 1 can again be done in time o |w|1sn  analogous to lemma 1. 
+¡¡lemma 1 already established an upper bound on the number of iterations of algorithm 1. analogous to theorem 1  the following characterizes its the scaling behavior.
+theorem 1.  time complexity of algorithm 1 
+ for any distribution p x y   that generates feature vectors of bounded l1-norm ||x|| and any fixed value of c   1 and
+  algorithm 1 has time complexity o snlog n   for any training sample of size n and sparsity s.
+¡¡note that conventional methods for training ordinal regression svms based on op1 have much worse scaling behavior. they scale roughly o sn1  even under the  optimistic  assumption that a problem with m constraints can be solved in o m  time. only small training sets with hundreds or at best a few thousand examples are tractable.
+table 1: training time in cpu-seconds.
+classificationordinal regressionnnssvm-perfsvm-lightsvm-perfsvm-lightreuters ccat111%11.1.1nareuters c1 1 1.1%11.1.1naarxiv astro-ph111%111nacovertype 1 11%11.1 1nakdd1 physics11.1%11.1.1naheuristic approaches for pushing the limits by removing constraints offer no performance guarantees . we will see in the following experiments that algorithm 1 can handle problems with hundred-thousands of examples with ease.
+1. experiments
+¡¡while theorems 1 and 1 characterize the asymptotic scaling of algorithms 1 and 1  the behavior for small sample sizes may be different. we will empirically analyze the scaling behavior in the following experiments  as well as its sensitivity to c and . furthermore  we compare the algorithms against existing methods  in particular the decomposition method svm-light.
+¡¡we implemented algorithms 1 and 1 using svm-light as the basic quadratic programming software that is called in line 1 of each algorithm. however  other quadratic programming tools would work just as well  since |w| remained small in all our experiments. we will refer to our implementation of algorithms 1 and 1 as svm-perf in the following.
+svm-perf is available at http://svmlight.joachims.org.
+¡¡we use 1 datasets in our experiments  selected to cover a wide range of properties.
+1. first  we consider the binary text classification taskccat from the reuters rcv1 collection1 . there are 1 examples split into 1 training and 1 test examples  and there are 1 features with sparsity 1%. this task has an almost balanced class ratio.
+1. second  we include the task c1 from the rcv1 collection  since it has an unbalanced class ratio. existing decomposition methods like svm-light are know to run faster for unbalanced tasks.
+1. the third problem is classifying abstracts of scientificpapers from the physics arxiv by whether they are in the astro-physics section. we picked this task since it has a large number of features  1  with high sparsity  1% . there are 1 examples split into 1 training examples and 1 test examples.
+1. the fourth problem is class 1 in the covertype dataset1 of blackard  jock & dean  which is comparably lowdimensional with 1 features and a sparsity of 1%. there are 1 examples which we split into 1 training examples and 1 test examples.
+1. finally  we added the kdd1 physics task from the kdd-cup 1   with 1 features  sparsity 1% 
+
+1 http://jmlr.csail.mit.edu/papers/volume1/lewis1a/
+lyrl1rcv1 readme.htm
+1 http://www.ics.uci.edu/¡«mlearn/mlrepository.html and 1 examples  which are split into 1 training examples and 1 test examples.
+we use the precision/recall break-even point  prbep   see e.g.   as the measure of performance for the textclassification tasks  and accuracy for the other problems.
+¡¡the following parameters are used in our experiments  unless noted otherwise. both svm-light and svm-perf use 1  note that their interpretation of  is different  though . as the value of c  we use the setting that achieves the best performance on the test set when using the full training set  c = 1 for reuters ccat  c = 1 for reuters c1  c = 1 for arxiv astro-ph  c = 1 1 for covertype 1  and c = 1 for kdd1 physics . whenever possible  runtime comparisons are done on the full set of examples  joining training and test data together to get larger datasets. experiments that compare prediction performance report results for the standard test/training split. all experiments are run on 1 mhz intel xeon processors with 1gb main memory under linux.
+1 how fast are the algorithms compared to existing methods 
+¡¡table 1 compares the cpu-time of svm-perf and svmlight on the full data for the 1 tasks described above. for the classification svm  svm-perf is substantially faster than svm-light on all problems  achieving a speedup of several orders of magnitude on most problems. we will analyze these results in detail in the following sections.
+¡¡we also applied the ordinal regression svm to these datasets  treating the binary classification problems as ordinal problems with two classes. an alternative view on this setup is that the or-svm learns a classification rule that optimizes roc area  1  1 . the runtimes are somewhat slower than for classification  but still very tractable. we tried to train svm-light in its ordinal regression mode on these problems as well. however  training with svm-light is intractable with more than ¡Ö 1 examples.
+¡¡a method that was recently proposed for training linear svms is the l1-svm-mfn algorithm . while they do not provide an implementation of their method  they report training times for the two publicly available dataset adult and web in the version produced by john platt. on the adult data with 1 examples and 1 features  they report a training time of 1 cpu-seconds for the value of c = 1 ¡¤ 1 achieving optimal cross-validation error  which is comparable to 1 cpu-seconds needed by svmperf for c = 1 ¡¤ 1 as recommended by platt. similarly  for the web data with 1 examples and 1 features  l1-svm-mfn is reported to take 1 cpu-seconds  c = 1 ¡¤ 1  while svm-perf takes 1 cpu-seconds for the same value of c. while both methods seem to perform comparably for these rather small training sets  it is unclear
+¡¡
+figure 1: training time of svm-perf  left  and svm-light  left-middle  for classification as a function of n for the value of c that gives best test set performance for the maximum training set size. the middle-right plot shows training time of svm-perf for the value of c with optimum test set performance for the respective training set size. the right-most plot is the cpu-time of svm-perf for ordinal regression.
+¡¡
+how l1-svm-mfn scales. in the worst case  the authors conclude that each iteration may scale o snmin{n n}   although practical scaling is likely to be substantially better. finally  note that l1-svm-mfn uses squared slack variables ¦Îi1 to measure training loss instead of linear slacks ¦Îi like in svm-light and svm-perf.
+¡¡the lagrangian svm  lsvm   is another method particularly suited for training linear svms. like the l1-svmmfn  the lsvm uses squared slack variables ¦Îi1 to measure training loss. the lsvm can be very fast if the number of features n is small  scaling roughly as o nn1 . we applied the implementation of mangasarian and musicant1 to the adult and the web data using the values of c from above. with 1 cpu-seconds  the training time of the lsvm is still comparable on adult. for the higher-dimensional web task  the lsvm runs into convergence problems. applying the lsvm to tasks with thousands of features is not tractable  since the algorithm requires storing and inverting an n ¡Á n matrix.
+1 how does training time scale with the number of training examples 
+¡¡figure 1 shows log-log plots of how cpu-time increases with the size of the training set. the left-most plot shows the scaling of svm-perf for classification  while the left-middle plot shows the scaling of svm-light. lines in a log-log plot correspond to polynomial growth o nd   where d corresponds to the slope of the line. the middle plot shows that svm-light scales roughly o n1   which is consistent with previous observations . svm-perf has much better scaling  which is  to some surprise  better than linear with roughly o n1  over much of the range.
+¡¡figure 1 gives insight into the reason for this scaling behavior. the graph shows the number of iterations of svmperf  and therefore the maximum number of constraints in the working set  in relation to the training set size n. it turns out that the number of iterations is not only upper bounded independent of n as shown in lemma 1  but that
+
+1 http://www.cs.wisc.edu/dmi/lsvm/
+
+figure 1: number of iterations of svm-perf for classification as a function of sample size n.
+it does not grow with n even in the non-asymptotic region. in fact  for some of the problems the number of iterations decreases with n  which explains the sub-linear scaling in cpu-time. another explanation lies in the high  fixed cost  that is independent of n  which is mostly the cost for solving a quadratic program in each iteration.
+¡¡since lemma 1 identifies that the number of iterations depends on the value of c  scaling for the optimal value of c might be different if the optimal c increases with training set size. to analyze this  the middle-right plot of figure 1 shows training time for the optimal value of c. while the curves look more noisy  the scaling still seems to be roughly linear.
+¡¡finally  the right-most plot in figure 1 shows training time of svm-perf for ordinal regression. the scaling is slightly steeper than for classification as expected. the number of iterations is virtually identical to the case of classification shown in figure 1. note that training time of svmlight would scale roughly o n1  on this problem.
+figure 1: difference in prediction performance between svm-perf and svm-light for classification as a function of c.
+1 is the prediction performance of svmperf different from svm-light 
+¡¡one potential worry is that the speedup of svm-perf over svm-light somehow comes at the expense of prediction accuracy  especially due to the choice of 1. however  this is not the case. figure 1 shows the difference in test set accuracy / prbep between the classifiers produced by svm-light and svm-perf. for better readability  the difference is shown in terms of percentage points. a positive value indicates that svm-perf has higher prediction performance  a negative value indicates that svm-light performs better. for almost all values of c both methods perform almost identically. in particular  there is not indication that the rules learned by svm-perf are less accurate. one case where there is a large difference is the covertype 1 task for small values of c  since svm-light stops before fully converging.
+1	how small does  need to be 
+¡¡the previous section showed that 1 is sufficient to get prediction accuracy comparable to svm-light. but maybe a lower precision would suffice and reduce training time  figure 1 shows the difference  in percentage points  in prediction accuracy / prbep compared to the performance svm-perf reaches for 1. values above  below  1 indicate that the accuracy of svm-perf for that  is better  worse  than the accuracy at 1. the graph shows that for all 1 the prediction performance is within half a percentage point. for larger values of  the resulting rules are starting to have more variable and less reliable performance. so  overall  1 seems accurate enough with some  safety margin . however  one might elect to use larger  at the expense of prediction accuracy  if training time was substantially faster. we will evaluate this next.
+1	how does training time scale with  
+¡¡lemma 1 indicates that the number of iterations  and therefore the training time  should decrease as  increases. figure 1 shows number of iterations as a function of . interestingly  the empirical scaling of roughly  is much better than  in the bound from lemma 1. for training time  as shown in figure 1  the scaling is
+
+figure 1: difference in accuracy or prbep of svm-perf compared to its performance at as a function of .
+
+figure 1: number of iterations of svm-perf for classification as a function of .
+
+figure 1: cpu-time of svm-perf for classification as a function of .
+ 1
+        1 1  1	 1
+ 1 1
+ 1e-1e-1
+	 1	 1	 1	 1	 1e+1	 1e-1	 1	 1	 1
+	c	epsilon
+figure 1: relative difference between the objective value of the svm-perf solution for classification and the
+ approximately  true solution as a function of c  left   with   and as a function of   right   with cis set to maximize test set prediction performance .
+¡¡could the runtime of svm-light be improved by increasing the value of  as well  while svm-light converges faster for larger values of   the difference is much smaller. even when increasing  to 1  the speedup is less than a factor of 1 on all five problems.
+1 is the solution computed by svm-perf close to optimal 
+while we have already established that training with
+1 gives rules of comparable prediction accuracy  it is also interesting to look at how close the objective value of the relaxed solution is to the true optimum for different values of . as theorems 1 and 1 show  the objective value is lower than the true objective  but by how much  figure 1 shows the relative difference
+
+obj svm-light 
+between the solution of svm-perf and a high-precision solution computed by svm-light. the left-hand plot of figure 1 indicates that for 1 the relative error is roughly between 1% and 1% over all values of c. the missing points correspond to values where svm-light failed to converge. the right-hand plot shows how the relative error decreases with .
+1	how does training time scale with c 
+¡¡finally  let's examine how the number of iterations of svm-perf scales with the value of c. the upper bound of lemma 1 suggest a linear scaling  however  figure 1 shows¡Ì that the actual scaling is much better with o  c  for classification  and similarly for ordinal regression . figure 1 shows the resulting training times  left  and compares them against those of svm-light  right . except for excessively large values of c  the training time of svm-perf scales sublinearly with c. note that the optimal values of c lie between 1 and 1 for all tasks except covertype 1. for all values of c  svm-perf is faster than svm-light.
+1. acknowledgments
+¡¡this research was supported under nsf award iis-1 and through a gift from google.
+
+figure 1: number of iterations of svm-perf as a function of c.
+1. conclusions
+¡¡we presented a simple cutting-plane algorithm for training linear svms that is shown to converge in time o sn  for classification and o snlog n   for ordinal regression. it is based on an alternative formulation of the svm optimization problem that exhibits a different form of sparsity compared to the conventional formulation. the algorithm is empirically very fast and has an intuitively meaningful stopping criterion.
+¡¡the algorithm opens several areas for research. since it takes only a small number of sequential iterations through the data  it is promising for parallel implementations using out-of-core memory. also  the algorithm can in principle be applied to svms with kernels. while a straightforward implementation is slower by a factor of n  matrix approximation techniques and the use of sampling might overcome this problem.

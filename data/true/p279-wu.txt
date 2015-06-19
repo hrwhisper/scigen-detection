@@ -1,0 +1,404 @@
+structured peer-to-peer  p1p  overlays have been successfully employed in many applications to locate content. however  they have been less effective in handling massive amounts of data because of the high overhead of maintaining indexes. in this paper  we propose pisces  a peer-based system that indexes selected content for efficient search. unlike traditional approaches that index all data  pisces identifies a subset of tuples to index based on some criteria  such as query frequency  update frequency  index cost  etc. . in addition  a coarse-grained range index is built to facilitate the processing of queries that cannot be fully answered by the tuple-level index. more importantly  pisces can adaptively self-tune to optimize the subset of tuples to be indexed. that is  the  partial  index in pisces is built in a just-in-time  jit  manner. beneficial tuples for current users are pulled for indexing while indexed tuples with infrequent access and high maintenance cost are discarded. we also introduce a light-weight monitoring scheme for structured networks to collect the necessary statistics. we have conducted an extensive experimental study on planetlab to illustrate the feasibility  practicality and efficiency of pisces. the results show that pisces incurs lower maintenance cost and offers better search and query efficiency compared to existing methods.
+categories and subject descriptors
+h.1  systems : distributed databases; c.1  distributed systems : distributed databases
+general terms
+algorithms  design  experimentation  management  measurement  performance
+keywords
+baton  can  just-in-time  partial indexing  peer-to-peer  sampling  self-tuning
+permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. to copy otherwise  to republish  to post on servers or to redistribute to lists  requires prior specific permission and/or a fee.
+sigmod'1  june 1  1  vancouver  bc  canada.
+copyright 1 acm 1-1-1/1 ...$1.
+
+figure 1: supply chain management
+1. introduction
+﹛peer-to-peer  p1p  technologies have been deployed to locate content in many applications. in particular  structured p1p overlays such as chord  can  pastry  pgrid and baton  have been developed to guarantee a bound on search performance. however  the  success  stories remain restricted largely to file-sharing based systems.
+﹛consider an enterprise business application such as the supply chain management  scm  system in figure 1. this application needs to handle a large amount of data distributed over many companies  peers  participating in the corporate network. each organization presumably has its own enterprise resource planning  erp  or database system managing its own data. the traditional scm cannot effectively handle a large number of participants  and in fact slows down information dissemination by creating a long chain  the bullwhip effect . the implication of this is that the corporation may not have all the necessary information in time for sound decision making.
+﹛as a remedy to the bottleneck of large-scale systems  p1p technology offers a promising platform for business applications. to effectively share information  organizations can participate in an scm p1p network  where each organization has an application server acting as a peer node. in such applications  each node manages its local data and exchanges information in the form of tables and tuples. the data can thus be shared in a large-scale network more efficiently.
+﹛we note that existing p1p systems for database applications  e.g.  mercury  and pier   have not been designed to support the above applications. these systems adopt a full indexing strategy where all database tuples are indexed in the network. this is clearly not practical in our case as the amount of information to be shared is massive in volume  and the number of tables and attributes is huge. to index all tuples  the indexing process will consume too much network bandwidth and take hours to complete. also  as nodes join or leave the network  the corresponding index needs to be reconstructed or removed  which incurs considerable overhead.
+﹛as cycle time is a major metric of a supply chain   the realtime supply chain  which provides up-to-second information  becomes the next-generation supply chain . in this new type of supply chains  data are updated in high and unpredictable frequency. for illustration  fedex receives about 1 million packages daily  and sun microsystems gets 1% spikes for a product in demand. hence  the update overhead to keep indexes up-to-date and/or monitor the peers becomes impractical. the full indexing strategy also cannot cope with the case where each peer wants to share huge amounts of data and the network suffers high update and churn rates.
+﹛fortunately  we observe that  in practice  only a small portion of data is actually frequently accessed  and most of the data receive few or no accesses at all.
+ example 1. as shown in   both offline and online sales  from ebay  of sotheby's  http://www.sothebys.com/  commodities follow a highly skewed distribution in prices. in online sales  most transactions focus on the items with price from $ 1 to $ 1. in such a case  sotheby's should monitor the sales of items in a specific range more frequently to adjust its storage. as a result  the following query becomes popular: select count sale  from sale
+where price x and price y
+﹛as illustrated in example 1  the focus is about goods in a price range. retailers should not bother to index information of goods in other price ranges: the best strategy is to index what the user requires.
+﹛in this paper  as part of bestpeer project   we examine the ambitious goal of designing practical peer-based data management systems  pdms  to support enterprisequality business processing that involves a large amount of data and peers. in particular  we propose pisces  a peer-based system that indexes selected content for efficient search. pisces selectively picks a subset of tuples based on some criteria  such as query frequency  update frequency and index cost  to build a partial index. this reduces both the cost to insert tuples into the network  and the maintenance overhead. to handle queries that cannot be fully facilitated by the tuple-level index  we employ a coarse-grained range index to direct the queries to candidate nodes. the coarse-grained range index is light-weight and its maintenance cost is low. in addition  pisces can adaptively tune itself to optimize the subset of tuples to be indexed based on the query access patterns. the tuples are indexed just-in-time  jit : an index is built for a query set whenever it is necessary. we also introduce a light-weight monitoring scheme for structured networks to collect the necessary statistics. we have conducted an extensive experimental study on planetlab to illustrate the feasibility  practicality and efficiency of pisces.
+the contributions of the paper are summarized as follows:
+1. we propose a partial indexing strategy to selectively indexthe tuples of databases based on the cost model of structured overlays.
+1. to handle the case of missing indexes in the partial indexingstrategy and to pull data for constructing new tuple-level indexes  a new kind of index  the approximate range index  is proposed.
+1. a light-weight sampling scheme is applied to monitor querydistribution in the network.
+1. experiments in planetlab illustratethe effectiveness and scalability of our scheme in different network configurations.
+﹛the rest of this paper is organized as follows. section 1 reviews related work and section 1 gives an overview of our system. in section 1  we introduce our partial indexing strategy. to collect approximate network statistics  a new monitoring scheme is proposed in section 1. we test the effectiveness of our system by a series of experiments in section 1. section 1 concludes the paper.
+1. related work
+﹛a partial index entails only marginal extra complexity and can help solve a collection of problems that a database management system  dbms  faces. it was first adopted in postgresql. stonebraker  listed possible applications of the partial index. seshadri and swami  proposed the scheme of building a partial index based on statistics collected in various granularity . through analysis of statistics  partial indexes are constructed for frequently accessed data. experiments show that the partial index is a promising way to improve query efficiency. our scheme extends the idea of  to a distributed and dynamic environment.
+﹛the database community has proposed a series of pdms to enhance the usability of p1p networks  such as piazza  in unstructured networks and pier  and mercury  in structured networks. compared to unstructured networks  structured ones provide better search efficiency but incur more maintenance overheads. in the case of business applications  where data are in high volume  maintenance messages dominate network cost in structured networks.  and  proposed a kind of partial indexing strategy by combining structured networks and unstructured networks. specifically  only rare items are indexed in structured networks whereas the popular ones are searched via flooding in unstructured networks. in   a similar scheme is proposed to speed up data dissemination in structured manets and support approximate similarity search for images. the above schemes are aimed at improving search latency and reducing maintenance overheads. in this paper  we start from a different motivation. our scheme is inspired by the query patterns while the others focus on data patterns. our partial index is built in a jit manner and popular queries are expected to be answered by the index directly.
+1. preliminaries
+﹛pisces distinguishes itself from traditional p1p networks in three ways. first  nodes employ database systems to organize their data. nodes can adopt different dbms and customize their database designs. data sharing amongst nodes is also via tuples of databases. second  pisces establishes some mapping servers outside p1p networks. these mapping servers translate various users' schemas into a uniform mediated one. third  in pisces  nodes apply a partial indexing strategy to disseminate their data  and hence greatly reduce the overhead of disseminating data.
+1 schema mapping servers
+﹛before a new node starts sharing its data  it asks a mapping server to obtain the uniform mediated schema. mapping servers are classified by the type of the schemas they can handle. the node selects a corresponding mapping server and sends its database schema and necessary meta-data. the server invokes a local schema mapping algorithm  such as those proposed by doan et al.  1  1   and returns a mediated schema to the node.
+﹛schema mapping is a challenging task. since the focus of our work is developing a partial indexing strategy for p1p systems rather than addressing schema matching problems  we assume that the mediated schemas of all domains have already been defined. the node only needs to perform the mapping process when it joins the network. even if the node leaves and rejoins the network  it does not need to recreate the mapping relations if the local schema has not been changed. thus  the schema mapping servers are only lightly loaded.
+1 basic tuple-level indexing strategy
+﹛in this paper  we propose indexing of important data based on the scheme proposed in . we shall first review how this scheme works: once a node obtains the mediated schema and mapping relations  it indexes the data according to the mediated schema. suppose we are building an index for attribute a of relation r. then the index is given a namespace of r.name + a.name. let vk be a value of the indexed attribute of a. an index message including the namespace  vk and ip address of the owner node is sent via the p1p protocol to the corresponding node  responsible for value vk . after the index is established  it can be applied to answer the query  exact query or range query  involving a. each index entry is assigned a timestamp. the node responsible for the index may discard the index entry if its timestamp has expired. to guarantee that the nodes responsible for the index are still alive  the owner node should send refreshment messages to those nodes periodically. if the node is still alive  it will refresh the timestamp. otherwise  the index will be recreated.
+﹛in pier  all tuples in the database are published for sharing. this full indexing strategy is impractical for a corporate network as business databases are data intensive. in pisces  a partial indexing strategy is proposed to construct the index adaptively  which can significantly reduce cost.
+1 histogram-based approach
+﹛to index only a subset of the database  we collect the query frequency for each tuple to determine if it is beneficial to index it. even in a traditional database  storing the precise query information for every tuple is impractical due to the data size. hence  we adopt an approximation approach. suppose the domain of attribute a is  l u   we partition the range into m cells of equal length. the cell is used as a unit for index construction and query distribution monitoring. in index construction  once pisces decides to index a cell  all tuples bounded by this cell will be indexed. to monitor query distribution  we build a query frequency histogram  where each cell acts as a bucket of the histogram. in this way  the statistics maintenance cost is greatly reduced.
+﹛the granularity of cells affect the accuracy of the estimated information. in this paper  the length l of cells for attribute a is computed in the following way: suppose initially  k nodes declare that they have data for attribute a after schema mapping. the schema mapping server requires each of the nodes to send s sampling tuples. then  we have ks samples of attribute a. we sort them in ascending order and remove the duplicate values.
+﹛suppose the remaining values are {v1 ... vn}. let ii and i represent vi+1  vi and nl respectively   we define the distribution variance of cell ci as:
+n 1
+var ci  =  e  ii   e i  1 
+i=1
+we require that l should satisfy:
+		 1 
+ is a tunable parameter; currently  we set  = 1 and l1 is a threshold of maximal cell length. the intuition of the above definition is to guarantee that data in a cell almost follow a uniform distribution. in this way  the histogram method can provide good performance.
+1. pisces approach
+﹛in this section  we introduce our proposed piscesstrategy  which constructs an index for online databases in a jit manner. as we aim to reduce the maintenance overhead of a pdms  we first analyze the major cost of such a system. then a new type of index  the approximate range index  is introduced to facilitate tuple-level index building and reduce network cost. based on the cost model and network statistics  our partial indexing strategy switches between tuple-level index and approximate range index adaptively. while the proposed indexing and querying strategy are independent of the underlying structured overlay  we use baton  in our discussion. we have developed and implemented the proposed method on both baton and can . we note that the same idea can be extended to any structured overlays that support range search.
+1 cost of a pdms
+﹛suppose node ni has a database with nt tuples and we build an index for its attribute. the index maintenance cost is mainly composed of three parts: refresh cost  update cost and churn cost.
+﹛refresh messages are used to guarantee the data are consistent and to defend against data loss from network corruption  a node leaving without notifying others . on average  node ni sends refresh messages to the nodes responsible for its indexes every t seconds. in baton and many other structured overlays  the routing cost of a message in an overlay of n nodes is o log n . with a full indexing strategy  node a incurs approximately a cost of:
+nt log n
+	crefresh = 	 1 
+t
+per second. if only 汐nt  汐   1  tuples are indexed in a partial indexing strategy  the cost is reduced to 汐crefresh.
+﹛for its duration in the p1p network  node a may insert  delete or update tuples  which in turn affects the indexes. once a tuple is inserted or deleted  the corresponding index entries should be updated as well. suppose i tuples are inserted or deleted per second. in the full indexing case  because all data are indexed in the network  the index update strategy will incur a cost of:
+	cupdate = i log n	 1 
+﹛in the partial indexing case  whether the update affects the index depends on the indexing strategy. in our case  because the partial indexing strategy is query driven  the number of affected tuples can be expressed as a function of query distribution pq  f i  pq   where pq v  represents the probability of value v being queried and thus 1 ≒ f i  pq  ≒ i. the update cost for the partial indexing strategy is:
+	cupdate	= f i  pq log n	 1 
+﹛if a node joins/leaves a p1p network  the indexes should be moved accordingly. in a structured p1p network  if a node leaves  the indexes stored at the node should be passed to its neighbors  the adjacent node in baton or can . if a new node joins the network  its neighbor splits its indexes and transfers the corresponding part to the new one. the new node will also publish the data in its local database to the network. suppose  on average  nu nodes join or leave the network per second and the total number of nodes is kept constant. the average cost caused by churn in the full indexing strategy is:
+1
+	cchurn = ntnu + nunt log n	 1 
+n
+for the partial indexing strategy  the cost is reduced to 汐cchurn.
+﹛the total cost of maintaining the index for the full and partial indexing strategies are:
+cfull = crefresh + cupdate + cchurn 1 cpartial = 汐crefresh + cupdate	+ 汐cchurn 1 respectively. note that all the costs are estimated. in our case  accurate statistics is not necessary because the model is only used as a hint for building an efficient index.
+﹛although partial indexing reduces maintenance overhead  it also leads to lower query recall. some queries cannot be answered by the current index as the corresponding tuples are not indexed. in this case  an alternative is required  where our approximate range index is applied. a natural question is which indexing strategy is better  we omit the detailed analysis here. instead  we use an example to illustrate the important role of query distribution.
+﹛suppose no index is updated and no node joins or leaves the network. under this assumption  different index entries incur the same maintenance cost. in uniform query distribution  each tuple has the same probability of being queried. the partial index can answer 汐 percent of queries by indexing 汐 percent of tuples. there is no benefit compared to the full indexing strategy. in zipfian query distribution  the distribution function is:
+1
+f k; s  n  = 
+kshn s
+n
+where hn s =  n1s . assume that s = 1 and we want to pick the
+n=1
+top-k terms in order that 1hk 1   hn 1. we know that
+limitn  ﹢hn 1 = log n
+so we assume that hk 1 = log k + c1 and hn 1 = log n + c1. to achieve 1hk 1   hn 1  we need
+1log k + 1   log n + c1
+	 	 1 
+ is a small constant when both k and n are large.﹟ by indexing the most popular n tuples  we can answer about half of the queries. thus  the partial indexing strategy outperforms the full indexing one significantly. in a more general case  if the query follows skewed distribution  the partial indexing strategy can reduce maintenance cost.
+1 approximate range index
+﹛as mentioned  when only part of the data are indexed  queries whose involved tuples are not indexed cannot be answered using the index. in this case  flooding the entire network is an alternative. this is clearly undesirable and impractical for large scale network because of the significant communication overhead. in this paper  a new kind of index  the approximate range index  is used to handle this problem. suppose the max and min values of attribute a in node ni are vmax and vmin respectively. ni can build a range index  vmin vmax  to indicate that it may answer queries which overlap with this range. we refer to this kind of index an approximate range index. however  as such an approximate index introduces false positive  i.e.  a query is forwarded to a node that contains no answer to the query  if applied for query processing  it must be carefully designed for good performance. for example  in an extreme case  assume node ni's tuples have the same a value  vmin; then  the index will always return a false candidate if used to answer the queries in  vmin vmax . in our system  a range index entry is in the format of  namespace  min  max  number of unique values . to measure the effectiveness of an approximate range index  we define false positive factor as:
+definition 1. false positive factor
+the false positive factor  老  of a range is defined as the probability of returning a false positive for an arbitrary query  range or exact query  that overlaps with the range.
+﹛as we use cell as a unit for index building  two kinds of false positive factor should be considered  outer cell factor and inner cell factor. to simplify the notation  we use |r| to represent the
+total number of cells in the range r.
+11
+ a 11	1	1	1	1
+ b 
+figure 1: comparison of different false positive factor
+definition 1. outer cell factor
+outer cell factor is used to estimate the false positive of queries with range greater than cell length l. suppose f i  returns the frequency of consecutive i empty cells  outer cell factor 老1 is computed as:
+	1	|r|
+	老1 =   f i 	 1 
+r| |r| + 1 
+i=1
+﹛for example  in figure 1  let the shaded cells represent nonempty cells. f 1  returns 1 for both figure 1 a  and figure 1 b   1 empty cells in each case   while f 1  returns 1  r1 =  c1  c1   for figure 1 a  and 1  r1 =  c1 c1   r1 =  c1 c1   for figure 1 b  respectively. finally  the outer cell factor of figure 1 a  and figure 1 b  are estimated as 1% and 1% respectively. note that the two ranges with the same length and same number of non-empty cells in figure 1 have different false positive factors due to their distinct data distributions.
+definition 1. inner cell factor
+suppose p r  represents the possibility of issuing a range query with length r   l  l is the cell length   and ni is the number of unique values in cell i  the inner cell factor for range r is computed as:
+l
+	1	r
+	老1 = |	i  p r  1  	 ni d r 	 1 
+	r| cell ﹋r 1	l
+﹛inner cell factor gives a more precise description for possible false positives of small range queries  exact query are 1-length range query . if the query distribution is unknown  we assume that queries of different ranges are issued in the same probability. then the cell's inner false positive factor can be calculated as n+1. finally  the false positive factor of range r is estimated as:
+	l1	l1
+	老 r  =  1  老1 + 1 老1	 1 
+	r	r
+﹛to incrementally compute the false positive factor  we introduce the following properties.
+ lemma 1. if range r is chosen to be indexed and ci is a border cell of r  ci must be non-empty cell. otherwise  we can get a better indexing strategy.
+﹛proof.  sketch  if a range r has empty cells as its borders  we can remove the empty cells and obtain an indexed range with lower cost. the range can answer the same set of queries but the maintenance cost is reduced since the number of false positives is decreased. 
+﹛as shown in figure 1  the original indexing strategy has two entries   l  a  and  a  u . but we can shrink them to get two ranges   l  b  and  c  d   with lower cost. the removed empty range from the index entries must be the maximal empty range  all the cells in the range are empty cells and its adjacent cells are non-empty .
+ theorem 1. suppose a range r is partitioned into a maximal empty range r1 and two non-empty ones  r1 and r1. the outer cell factors of ranges satisfy:
+老1 r  =  |r1| + 1 |r1|老1 r1 +  |r1| + 1 |r1|老1 r1 +  |r1| + 1 |r1|老1 r1 
+	 |r| + 1 |r|	 |r| + 1 |r|	 |r| + 1 |r|
+
+	l	b	a	c	d	u
+figure 1: shrunk index range
+﹛proof.  sketch  the query  which cannot be answered by r  cannot be answered by r1  r1 and r1 either. for r1  no queries can be answered because it is an empty range. as indicated by lemma 1  both r1 and r1's border cells to r1 are non-empty. if the query can be answered by r but cannot be answered by r1  it must be answered by r1 and vice versa. so the outer cell factors of r is actually the sum of outer cell factors of r1  r1 and r1 with normalization of query distribution. 
+﹛as a simple example  suppose the cells in figure 1 a  are partitioned into three ranges  r1={cell 1 cell 1}  r1={cell 1} and r1={cell 1  cell 1  cell 1  cell 1}. from equation 1  we compute 老r1 = 1  老r1 = 1 and 老r1 = 1. assume query distribution is uniform for r  the probability of being queried for the subranges are pq r1  = 1  pq r1  = 1 and pq r1  = 1. so the estimated false positive factor of r is 1 ℅ 1 + 1 ℅ 1 + 1 ℅ 1 = 1.
+ theorem 1. suppose a range r is partitioned into range r1 and r1. the inner cell factors of ranges satisfy:
+       1 老1 r  = |	| |r1|老1 r1  + |r1|老1 r1  
+r
+	proof.  sketch  this can be verified by equation 1.	
+1.1 optimal approximate range index strategy
+﹛the cost of approximate range index includes index maintenance cost and false positive cost. when used during query processing  the approximate range index may return false positives  i.e.  some queries may be forwarded to nodes that will not contribute any answer tuples. let x be the number of queries for the range r. the overhead of the approximate index for range r is estimated as:
+	crange = 老 r x + centry	 1 
+centry is the average maintenance cost of a single range index entry. it can be derived from equation 1.
+	cfull	log n	i log n	nu
+	centry =	=	+	+	+ nu log n	 1 
+	nt	t	nt	n
+because the update frequency of approximate range index is far lower than that of tuple-level index  we discard the term for updates in equation 1 when computing cost for range entries.
+﹛now we face the problem of building an optimal approximate range index  which can be formalized as
+definition 1. optimal range index problem
+given query distribution pq  for attribute a with domain  l  h   node n wants to set up an approximate range index i with k entries. for any non-empty cell ci of n   rj ﹋ i ↙ ci ﹋ rj  and the cost
+k
+	 老 ri xi + kcentry	 1 
+i=1
+is minimized.
+﹛the optimal range index problem is an np-hard problem  if the range is partitioned in a continuous way. fortunately  as we use cell as a basic unit for indexing  the optimal indexing strategy can be solved by dynamic programming. we search the possible solutions of different partitioning strategies and select the best one. let f p q k  denote the optimal indexing strategy by partitioning the range from cell p to cell q into k entries  q ≡ p . the optimal solution can be computed as the best combination of the sub-solutions  which is represented as: f p q k  = min f p  x y 
+﹛algorithm 1 lists the detail of selecting the optimal indexing strategy. at first  the cost table is initialized to compute the basic cost  lines 1 to 1 . in line 1  shrinkcost i  j  removes the empty cells as suggested in lemma 1 and returns the shrunk cost of the range from cell i to j. then we compute strategies with different number of partitions and return the one with the least cost  lines 1 . in line 1  a recursive function f is invoked to compute the minimal cost of partitioning the whole space into a specific number of entries. the detail of f is illustrated in algorithm 1. if the cost of the strategy has already been recorded  we return it directly  lines 1 . otherwise  the minimal cost is computed by equation 1  line 1 . and the new cost is updated in the cost table. the complexity of algorithm 1 is o e   s 1. once  the entries of cost table have been filled up  the algorithm terminates.
+
+algorithm 1 optimalindex int s  int e 
+
+//s: index of start cell
+//e: index of end cell
+1: initialize t as a  e-s+1 ℅ e-s+1 ℅ e-s+1  table
+1: for i = 1 to e-s do
+1:	for j = 1 to e-s do
+1:	t i i j =cost of cell i
+1:	t i j 1 =shrinkcost i j 
+1: min=possible max value  minindex = 1
+1: for i = 1 to e-s do
+1:	c=f s  e  i 
+1:	if c min then
+1:	min=c  minindex=i
+1: return strategy recorded by minindex
+
+
+algorithm 1 f s  e  k 
+
+//k: number of partitions
+1: if k e-s+1 then
+1:	return invalid
+1: if t s e k  is not null then
+1:	return t s e k 
+1: else
+1:	min=possible max value  mini=1  minj=1
+1:	for i=1 to k-1 do
+1:	for j=s to e-1 do
+1:	c=f s  j  i +f j+1  e  k-i 
+1:	if c min then
+1:	min=c  mini=i  minj=j
+1:	t s e k =min
+1:	return min
+
+theorem 1. algorithm 1 returns an optimal indexing strategy.
+﹛proof.  sketch  we first prove that for a specific k  f p q k  returns the minimal cost. then  as our algorithm iterates all possible ks  it can get the optimal one. when k=1  there is only one indexing strategy and thus f p q 1  is the best strategy. assume for k n  f p q k  always returns optimal strategy  now we prove that for k=n  the above conclusion also stands. suppose f p q n  is not the optimal one  and we get another best strategy f' p q n . in f' p q n   we can get two sub partitions  f' p q-x n-y  and f' q-x+1 q y . f' p qx n-y  and f' q-x+1 q y  must be the suboptimal solutions  other-
+
+figure 1: maintenance tree
+wise f' p q n  is not the optimal one either  which means f' p qx n-y =f p q-x n-y  and f' q-x+1 q y =f q-x+1 q y . so the cost of our solution f p q n  is no more than that of f' p q n  and it must be the optimal one. 
+1.1 maintenance of approximate range index
+﹛with algorithm 1  given the query distribution  we can compute the optimal range indexing strategy in o n 1  where n represents the number of cells. once the query distribution evolves  the indexing strategy should be recomputed. however  we do not want to invoke algorithm 1 frequently. although cell number is far smaller than the tuple number  o n 1 is still a remarkable cost. moreover  indexing range entries incurs additional network overheads. in this section  we propose our light-weight maintenance scheme. the scheme is based on the observation that the query distribution changes slowly.
+﹛after algorithm 1 computes the optimal indexing strategy for the current query distribution  we construct a binary tree to organize the index entries. the leaf node of the tree refers to an index entry  whereas the inner node represents a set of entries. the tree node is represented in the format of:
+{errorbound   cost tuplenumber   cellrange}
+error bound is applied to limit the estimation error  cost represents the maintenance cost of the range entries computed by algorithm 1  tuple number is the approximate number of tuples in the range and cell range describes the start and end cell ids.
+definition 1. estimation error
+for a tree node n  suppose its initial cost computed by equation 1 is c. after a time t  if the new observed cost is c'  the estimation error is defined as |c cc| .
+﹛as shown in figure 1  the root node represents the domain of the attribute  cell 1 to cell 1 . the total error bound is 1 and its current cost is 1. the node splits its range into two children such that their cost variance is minimized. the error bounds of the children are half of their parents. note that the combination of children's ranges may not equal to the parent's range  because some empty cells are excluded from the index entries.
+﹛if the query distribution of an index entry changes  the corresponding leaf node will check if the change results in violation of the error bound. if not  the change will be discarded. otherwise  the node will ask its parent for help. the parent node computes its estimation error. if the change is still bounded  the parent node will invoke algorithm 1 to compute an optimal indexing strategy for its range  and all descendant nodes update their ranges and initial cost. otherwise  the parent will forward the request to its own parent. the process may be recursively invoked until the root node is reached  where the total optimal indexing strategy is recomputed. the total error bound is a tunable parameter. a small error bound makes the index more sensitive to query distribution  while a large bound leads to lazy update. in the experiments  we set it to 1.
+
+figure 1: baton tree
+1.1 index range entry in baton
+﹛structured p1p networks support exact key index. given a key  the protocol can locate the peer responsible for the key in o logn  time. for overlays that support range queries  it is easy to extend them to support range index. in this paper  we use baton  as an example  and baton and can  in our implementation; other overlays  such as p-ring   p-grid  and hotrod   can also adopt the same scheme.
+﹛figure 1 illustrates the structure of baton. besides the original indexes  an internal node of baton also records the range of its subtree. for example  node e's own range is  1  1  and its subtree's range is  1  1 . once a node joins the network  it gets a subtree range from its parent. the subtree range needs to be updated only when nodes leave or join or when baton needs balance the system load. moreover  even if a node drops out of the network without notification  the subtree range can be recovered by asking its parent and children.
+﹛algorithm 1 shows how to locate the node responsible for a specific range. we depend on baton's routing protocol to locate the node for a key  line 1 . here  the mid-point of the range is used as the key  which turns out to be more effective than the minimum and maximum values. the request is continuously forwarded to the upper level nodes until a node whose subtree range fully contains the range is reached. the complexity of algorithm 1 is o logn   n is the number of nodes   for the tree height is o logn .
+﹛the range indexing algorithm is illustrated in algorithm 1. to publish one range index entry  the node invokes algorithm 1 to find the candidate node for its entry. to reduce the cost of query processing  we keep a soft status for each node. the node is marked as left active  right active  left-right active or non-active  indicating that it indexes ranges overlapping with left subtree  right subtree  both subtrees or none of them . after indexing a range entry r  the node checks whether its status need to be changed and notifies its descendants. the notification processing is omitted here because of space constraints. in summary  the node will change its status and forward the notification to its children if it is in a different status. otherwise  the notification process is terminated. on the other hand  if the last range index is removed from the node  it will invoke the notification process as well.
+﹛algorithm 1 lists the range query processing via approximate range index. the algorithm checks the status of the parent node to decide whether to forward the request or not.
+1 tuning the partial index
+﹛in this section  we present our jit indexing strategy: only index what is beneficial to the current system. if a data range becomes popular  the nodes responsible for the range will receive more queries. these nodes trigger an index requirement to data owners. this behavior is similar to the publish/subscribe system. the approximate range index can be considered as a subscription  algorithm 1 search range r 
+
+1: node m=lookup r.mid 
+1: if m.subtreelow≒r.low and r.up≒m.subtreeup then
+1:	return m
+1: else
+1:	m=m.parent
+1:	return m.search r 
+
+
+algorithm 1 index range r  string ip  string namespace 
+
+1: node m=search r 
+1: m.buildindex r  ip  namespace 
+1: if !m.isleftactive and isoverlap r m.leftsubtree  then
+1:	send left notification to m.leftchild
+1:	m.isleftactive=true
+1: if !m.isrightactive and isoverlap r m.rightsubtree  then
+1:	send right notification to my rightchild 1:	m.isrightactive=true
+
+registering what data the node can provide. after receiving the notification  the owner node publishes its tuple-level index for the corresponding cells. thus the partial indexes are built in a query driven manner.
+for a cell c  suppose there are k nodes having data in this cell
+k
+﹛﹛﹛﹛﹛﹛﹛﹛﹛﹛﹛﹛﹛﹛﹛﹛﹛﹛﹛﹛﹛﹛﹛﹛﹛﹛﹛﹛﹛﹛﹛i=1 and node i has approximately ni tuples in the cell   ni = n . let nq be the average number of queries per second for this cell  if:
+	k	l
+ncentry	 nq	 p r  1   ni d r 	 1  r
+1	l i=1
+is negative  the cell should construct tuple-level index  because even the smallest range index  1 cell length  will incur too much overhead. the integration based on query distribution can be computed by monte carlo method. s samples are taken to estimate the values. to emphasize the importance of recent queries  nq is calculated as:
+nq
+	nq = q + 	 1 
+f
+where q represents the query number in this second  nq is the last computed value of nq and f is an aging factor to degrade the effect of old queries. this aging scheme is also adopted in web cache management . in our implementation  the query number is computed periodically and the average value is applied. to get the approximate values of k and ni in formula 1  when we search the index of a specific range in algorithm 1  we piggy back the number of tuples registered in the range indexes to the leaf node  recall the range index format . then the average number of tuples in a cell of the node can be computed. this piggy back process is invoked periodically.
+the tuple-level index is constructed in three steps
+
+algorithm 1 query range r 
+
+1: node m=search r 
+1: return m's local index for r
+1: while true do
+1:	n = m.parent
+1: if  m=n.leftchild and n.isleftactive  or  m=n.rightchild and n.isrightactive  then
+1:	m=n
+1:	return m's local index for r
+1:	else
+1:	break
+
+1. node responsible for the hot range decides to index tuples
+for some cells according to formula 1.
+1. algorithm 1 is invoked to find all nodes overlapping with thecell. and a notification message is sent out to these nodes.
+1. after publishing their data  the nodes update their local maintenance trees of approximate range indexes.
+the first two steps of creating partial index guarantee that all
+online nodes achieve the same indexing strategy  for a tuple  it will be indexed by all nodes or none of them . in step 1  once a node m sends index notification messages  it records the indexed cell's id. for the newly joining node  when it publishes its range index to a node m  m will check its record for indexed cells and inform the joining node about the global decision.
+﹛in step 1  the node  after sending its data for indexing  will update its maintenance tree to reflect the new cost. for example  in figure 1  if tuple-level index is created for cell 1  the cost of node
+d  b and a need to be recomputed. the cost of indexed cells are removed from the range entry cost. if the estimated error exceeds the error bound  the indexing strategy should be modified.
+﹛similar to the index construction  if a node observes that an indexed cell is no longer beneficial  formula 1 is positive   the node will discard the index of the cell and inform the corresponding nodes. the maintenance trees of the involved nodes are updated as well.
+1 load balancing
+﹛load balancing is a well studied topic in p1p system. in this paper  load balancing is accomplished mainly via baton's protocol  which has been shown to be effective for data indexes. however  indexing range intervals incurs new load balancing problem. as discussed in   arbitrarily small ranges may be mapped to arbitrarily large interval. for example  range  1  1  is mapped to interval  1  1  node g  in figure 1. to solve this problem  we adopt a partitioning strategy.
+ definition 1. range index entry partitioning suppose node n's minimal value and maximal value for tuple-level index are tmin and tmax respectively  and its subtree's range is  l  u . a range entry r= l  u  at node n should be partitioned i.f.f. tmin   l   1 tmin   l  and u   tmax   1 u   tmax 
+﹛with this definition  range  1  1  will be partitioned into subranges  1  and  1   which are indexed at nodes f and g respectively.
+ theorem 1. a range entry is partitioned at most once according to the definition 1.
+﹛proof.  sketch  after one partition  suppose the subrange r' is routed to node m'  it can no longer be partitioned. otherwise  we can find a child of m' whose subtree range also contains r'. this conflicts with algorithm 1  which returns the first node that contains the range. 
+﹛as baton is a balanced tree  in most cases  search space is partitioned evenly. range partition defined in definition 1 is effective to balance the load. in addition  the partial indexing strategy also lightens the load of large range interval. as the index is designed to answer the hot queries  the approximate range index is therefore seldom used.
+1 implementation in other overlays
+﹛our partial indexing scheme is not limited to baton. in this section  we discuss how to extend the approach to other overlays.
+
+	 a  index range in can	 b  notification area
+figure 1: range indexing in can
+in particular  we have also implemented our scheme on can . to support partial indexing scheme in can  we only need to modify can to support range index. in   sahin et al. propose a method on can to process range queries. we modify their scheme to support the approximate range index. for a range r =  x y   it can be represented as a point p= x  y  in a 1-dimensional can. the range r =  x y  that overlaps with r satisfies: x y
+the search area for the corresponding point of r is indicated as the shaded area in figure 1 a . hence  to retrieve the range index for a range query  we should search the query's shaded area.
+﹛for an exact query q = x  we use a point  x  x  in the diagonal to represent it. then  only the space in the left-upper corner is used  the space above the blue line   because values of y-axis are always greater than those of x-axis. in our scheme  we use the cell as a unit to store the data. so the value v is actually stored at the node responsible for the point    vl     vl  + l   where l is the cell length. thus  the usable data space in can is the space above the line y = x + l  the red line in figure 1 a .
+﹛to optimize the search efficiency and ensure load balancing  two strategies are applied.
+1. searching the whole shaded area of a query incurs too muchoverhead. instead  we use skyline points  to prune the search space. as shown in figure 1 b   the red triangle represents the dominated range of range index r1. only queries within the triangle need to search r1. to prune the search space  when publishing a range index r1  we invoke algorithm 1 to inform the corresponding nodes. specifically  we keep a skyline point set for each node and their neighbors respectively. figure 1 b  shows the idea of algorithm 1. the first range index r1 is indexed at node a and a will update its r a   the skyline point set for itself  as {r1} and send notification to its neighbors  b and c. then  the second range index r1 is indexed at e and the notification is sent to a. node a updates both skyline point sets for neighbor e  r e   and itself  r a   as {r1}. the notification is sent to a's neighbors as well. finally  the third range index r1 comes to a. but a finds that r1's point is dominated by r1 ﹋ r a . so a will not send notification to its neighbors. once receiving a query q  a first processes it locally and then checks the skyline point sets of its neighbors. query q is forwarded to neighbor e  only if q is dominated by a point in r e .
+1. as only the space above the line y = x +l is used  to balance the load  we modify can's partitioning strategy to split the space above y = x + l evenly  instead of partitioning the whole space evenly. figure 1 b  illustrates a result of such partition.
+﹛the cost model of can is slightly different to baton  as the routing cost in can is o . however  we can follow the same algorithm 1 notify node n  node m  range r 
+
+//n receives the notification sent by m for range r
+1: p=getpoint r 
+1: if p is not dominated by points in n.r n  then
+1:	add p to n.r n  and n.r m 
+1:	n.r n =getskyline n.r n  
+1:	n.r m =getskyline n.r m  
+1:	notify n's right-down neighbors about r
+
+analysis and the details are therefore omitted due to space constraint.
+﹛other overlays such as p-grid  and pastry  can apply the scheme proposed in  to process the range index. the routing request is always sent to the parent node which maintains a larger search range. our scheme does not need any modification to be integrated to these overlays.
+1. monitoring p1p network
+﹛pisces requires approximate global statistics  e.g. total number of nodes n  total query number nq  query distribution pq and average number of nodes joining/leaving nu. however  in p1p systems  it is not only costly to collect these statistics  the dynamism of the system will render any accurate statistics obsolete very quickly.
+﹛sampling techniques have been applied to unstructured p1p networks in  1  1 . the sampling algorithm in unstructured p1p networks try to sample each peer in the same probability. in dht network  this issue is no longer a problem for the use of consistent hashing. by sampling the nodes through randomly generated ids  we will sample each node in the same probability. as shown in manku's scheme  1  1   the estimation error can be bounded by a constant factor. however  for the overlays supporting range queries  1  1  1   hash function is not adopted and the above schemes cannot be applied in our case. thus  in this paper  we introduce a new sampling scheme to address this problem. previous sampling schemes periodically send sampling messages to the nodes in a random manner. this strategy introduces additional cost to p1p network. instead  we decide to exploit the overlay's protocol to do the sampling. %our scheme can be applied to any overlays. for
+1 sampling scheme
+1.1 footprint
+﹛to count the number of queries  the nodes record the corresponding messages. one choice is to make the nodes  which process the queries or updates  store the performed operations. but this scheme leads to biased sampling result when some hotspot exists. to better distribute the query and update information in the network  we adopt a  footprint  scheme.
+﹛in baton  a query will be processed in about o log n  messages  and about 1log n messages are required for node joining and 1log n messages for node leaving. in the original protocol  after receiving these messages  the routing node will process the corresponding request  update routing finger table or forward the message to other nodes . but no information about the actions are recorded. in this paper  we exploit these messages to help the sampling process.
+﹛after a query is issued from the user node  it will reach the destination in about o log n  nodes. now  we require the node  which routes a specific query q  to add the following entry to its local storage.
+ q.id  q.time  q.range 
+﹛the query id is generated by the system automatically. the node records when it receives the query routing request. and after a time threshold t  if q.time + t   current time  the record of query q will be discarded. the query range is used to infer the involved cells. in this way  a query will generate about o log n  footprints in the network.
+﹛following the same idea  when a node joins or leaves the network  we require it to mark its footprint in the corresponding nodes. in baton  once joining or leaving  the node sends notification messages to nodes in its level and its parent level to correct the routing fingers. if a node receives such notification message  it will generate the following records:
+ event  event.time 
+event indicates whether it is a join or leave operation. and the node records the message time as well. the old records will be discarded periodically. in baton  node joining and leaving will create about 1log n  and 1log n  footprints in the network respectively.
+
+algorithm 1 stabilization node n 
+
+//nq nl nj : local records of query number  number of nodes leaving and joining
+//n q n l n  j : current global estimated statistics values
+//n‘q n‘l n‘ j : iterative estimated values
+1: while true do
+1:	for every i in the routing table do
+1:	if finger i !=null then
+1:	send ping message to finger i  for stabilization and col-
+lecting statistics
+1:	wait for reply
+1:	n‘q+ = finger i .n‘q
+1:	n‘ j+ = finger i .n‘ j
+1:	n‘l+ = finger i .n‘l
+1:	wait for t seconds
+1: do the same sampling scheme for adjacent nodes  parent node and child nodes
+1:	n‘q n‘l n‘ j are computed as the average values of neighbors
+1: if time for new estimation then 1: n q = n‘q  nl = n‘l  nj = n‘ j 1: n‘q = lognnq  ‘nl = 1lognnl  ‘nj = 1lognnj
+
+1.1 iterative sampling
+﹛in the baton protocol  the node periodically sends ping messages to one of its routing fingers to fix incorrect fingers  other overlays such as chord  also perform this kind of stabilization . this stabilization process is light-weight and performed frequently  averagely 1 seconds in chord protocol . our sampling scheme exploits the finger ping messages to accomplish the statistics collection. once the ping messages are received  the routing node will reply with a summary of the corresponding statistics records.
+﹛in algorithm 1  three versions of estimated values are maintained. local records denote the query or churn footprints recorded by the node in the local database. the current global estimated values are used for range index construction. and the iterative values are used to compute the next global estimation values. the node collects the estimation values from its routing fingers  adjacent nodes  parent node and child nodes. and its own estimations are computed as the average values of the received values  lines 1 . after sometime  the iterative values are used as the new global estimated values and we start the processing for computing new statistics.  lines 1 .
+1.1 analysis of the sampling scheme
+﹛figure 1 shows how the sampling process works for a baton tree as illustrated in figure 1. node e collects statistics from its
+
+figure 1: sampling process
+routing fingers  which will recursively extract statistics from their routing fingers. in this way  an information aggregation  tree  is constructed  only the left-most subtree is displayed . this  tree  is actually a graph as a node may have different parents. in an iterative way  the global information will be aggregated at the root node. but what is the expected statistics after some iterations 
+﹛we define two matrixes  r and p  to represent the relationship between nodes.
+            nr1                     pn1  1 pn1  1 ... ... pn1  1nn n 1                     r                    p p ... ... p  1
+	r =	...	p =	...
+	   ...1    	...
+	       r  	p  	p  	...	...	p  	 1
+data ofthe routing finger relationship. if noder is a 1ith node in the network.℅ n matrix. ri represents the corresponding local statisticp is anjndoes not exist in the finger℅ n matrix  representing
+table of node i  pi j = 1. otherwise  pi j is a non-negative value representing the weight of node j in node i's finger table. based on algorithm 1  pi j = pi k if both of them are non-negative. in addition  the diagonal element pi i is always non-negative and the matrix p satisfies:
+n 1
+ pi j = 1
+j=1
+let the number of non-negative elements in row i and column j be pri and pcj respectively. in chord  baton or most other struc-
+tured overlays  pri and pcj are therefore o log n .
+suppose all nodes perform algorithm 1 to collect the statistics.
+tions. that is  the element of rowlet 1 ℅ n matrix ri represent the estimated statistics afterj denotes node j's estimation.i itera-rn
+is represented as:
+rn =  n r	if n = 1
+	p r	otherwise
+ theorem 1. the estimated statistics computed by algorithm 1 converges to the approximate average global statistics of the network.
+proof.  sketch  in fact  we only need to prove that l = limn↙﹢pn
+ exists and equals to a|ai j   1 |    . sr will produce a global statistics which approxi-n ℅ n matrix s where  i  j ai j ﹋ s  ↙
+mates n  r1  r1 ... rn 1  for each node.
+n 1
+﹛because j=1 pi j = 1 and 1 ≒ pi j ≒ 1  p is actually a markov stochastic matrix  generated by considering nodes and their links as a directed graph. in baton network  each node can locate arbitrary node in o log n  step  which means that we can find a constant c  the elements of matrix pc are all non-zero. hence  the perron-frobenius theorem  guarantees that the limit l always exists. and there is a stationary probability vector 羽 that does not change under application of the transition matrix. 羽 is associated
+with eigenvalue 1. that iselement ai j of l is equal to j羽th element of p   i  = 1. we get羽. because for each row羽p = 羽. the
+and column  there is a similar number of non-negative elements with same value  vector 羽 is approximate to   n1   n1  ...  n1  . 
+
+figure 1: schema of tpc-h
+﹛theorem 1 indicates the correctness of the sampling scheme in a static environment  the initial statistics  matrix r  does not change . in our scheme  we do not need to wait for the matrix to converge. an approximate estimation is sufficient for building a good range index. to handle the dynamism of the network  in algorithm 1  we will recompute the global statistics periodically. the new statistics are taken into account when new computation starts.
+1 optimization
+﹛if we piggy back the detail query distribution in each pong message  the network cost will increase for the large size of pong messages. to keep the pong message as compact as possible  we adopt some kind of optimization. first  we have two observations about query distribution in real systems. 1  most tuples receive zero or few queries. 1  queries are always focused on a hot area. in our scheme  a cell is used as a bucket in histogram construction. to further reduce the size of data to be transferred  we adopt the clustering strategy. cells are clustered by their received query numbers. and the medians of the clusters are sent via pong messages. in addition  bloom filter  of each cluster is created and sent along to verify the membership of the cluster.
+1. experimental evaluation
+﹛in this section  we evaluate our pisces on planetlab  an open platform for deploying distributed systems. 1 nodes are selected from different continents in the world. we test our system in different network configurations to demonstrate its flexibility and scalability. and the results show that pisces outperforms the full indexing scheme significantly  especially in the case of large data size  high update rate and high churn rate.
+﹛to simulate the real data  tpc-h generator is used to generate data for the nodes. tpc-h is a decision support benchmark  and its schema is shown in figure 1. specifically  the following query is used as the test query:
+select sum totalprice  as totalsales
+	from	orders
+where totalprice x and totalprice y
+the tuples in orders table are grouped according to the suppkey of lineitem  this is done by joining the orders and lineitem tables and grouping tuples by suppkey . then the orders for the same suppkey is disseminated to the same node  which simulates the real scenario. each node is assigned between 1k to 1k tuples. every experiment is run for one hour  the network initialization time is not included . the queries with selectivity of 1 are generated based on the zipfian distribution with 牟 ranging from 1  mildly skewed  to 1  highly skewed . this allows us to evaluate the performance of pisces under the conditions when there are some popular data in the dataset and the query distribution changes after a time interval.
+
+ a  index effectiveness  b  index building time figure 1: effect of query distribution
+
+figure 1: statistics of aol	figure 1: cells' benefit
+parametersdefault valuesnetwork size1data size1 per nodeupdate rate1 per secondchurn rate1 per secondinterval of changing query distribution1 secondzipfian 牟1total time1 secondquery interval1 msecondthe above table lists default configuration of the experiments.
+we use can-pisces can-full  baton-piscesand baton-
+full to denote the pisces in can  full indexing scheme in can  pisces in baton and full indexing scheme in baton respectively. we count the total number of messages each node received in an experiment  including query messages and index maintenance messages  including index messages caused by node joining or leaving to create/delete new/old indexes  migration of indexes  etc . then  the average message number in a minute  per node  is used as our main performance metrics.
+1 effect of query distribution
+﹛as we discussed before  the query distribution plays an important role in the index selection. in this subsection  we evaluate pisces by issuing queries of different distributions. two metrics are defined in this experiment. in figure 1 a   we measure the percentage of queries that can be directly answered by the index without jit data pulling from the individual erp or database system. in figure 1 b   the delay to construct the index is computed  measured as the interval between the data becoming popular and the index for the data being constructed  when the query distribution is highly skewed  about 1% of queries can be directly answered by the index. moreover  pisces is also sensitive to the changing of query distribution. the new index entries can be incorporated into the existing index in less than 1 seconds. however  as the distribution becomes more uniform  牟 close to 1   the index cannot answer most of the queries and it also takes a long time for pisces to observe the query distribution.
+
+
+	 a 	 b 
+	figure 1: effect of data size	figure 1: effect of network size﹛this indicates that pisces is most efficient in skewed query distribution. in real cases  queries often follow some patterns. figure 1 shows the statistics about the search of aol  from march 1 to may 1. the top 1% keywords attract about 1% of total queries. in figure 1  we compute the benefit of indexing data within a cell. the benefit is defined as:
+number of answered queries / indexing cost
+1k queries following zipfian distribution with 牟 = 1 are injected to the system and we sort the cells by their benefits in descending order. figure 1 shows the average benefit of indexing top 1% to 1% cells. the average benefit decreases sharply as more cells are indexed  which indicates that only the top cells are worth indexing.
+1 average setup time
+﹛in this experiment  we measure the average time for building indexes. when a node joins the network  its index is constructed to allow its content to be searched. full indexing strategy requires the node to publish all the local sharable data  which may last for hours. instead  pisces can significantly reduce the joining time. we do note that peers are likely to be more stable in a corporate network compared to a social network  and this is even more so  when the collaboration affects the companies' profits and losses  p&l . however  being a peer-to-peer network  we do not discount node churning and respect the autonomy of peers.
+﹛as shown in figure 1  setup time in both strategies increases as we increase the data size the time is shown in log scale . however  data size has less effect on pisces and it has a setup process with less than 1 seconds in most cases.
+1 effect of different network configurations
+﹛several factors  such as the update rate  churn rate  data size and network size  affect the maintenance cost of structured overlays. in this subsection  we evaluate the performance of our scheme in different network configurations. the major metric is the average message number of a node per minute. in figure 1  we vary the update rate to test the performances of different strategies. the update rate is defined as the number of tuples that are deleted/inserted per second. in the experiment  the node uniformly picks a tuple to update. in pisces  the index should be updated only if the updates involve the indexed data. on the contrary  in the full indexing strategy  all updates should be reflected. in figure 1  as the update rate increases  the costs of can-full and baton-
+full increase linearly  whereas the update rate has minor effect on can-pisces and baton-pisces. baton based schemes perform better than those based on can because the routing costs in baton and can are o logn  and o  respectively. for a 1dimensional can  the routing cost is much higher compared to other overlays. this can be solved by creating some random routing fingers  as in murk .
+﹛we compare the effect of churn in figure 1. even in a highly dynamic network when one peer leaves or joins in about every three minutes  churn rate of 1   pisces remains cost effective. this confirms the robustness of pisces.
+﹛as shown in figure 1 a   the strategies based on full indexing incur high overheads when publishing the node's data  while pisces generates much less cost because it only needs to publish the most popular data and a small range index. in figure 1 b   we only show the results of pisces to focus on their trends. the cost of pisces grows slowly as the data size increases.
+﹛from figure 1  we observe that as network size increases  ranging from 1 to 1   the routing cost for all strategies  partial and full indexing  also increase. however  because pisces publishes much fewer data than its full indexing counterpart  the cost increases at a much slower rate.
+1 convergence of iterative sampling
+﹛figure 1 a  shows how many iterations are required for the sampling matrix to converge. figure 1 b  illustrates the effect of approximate statistics. in the experiment  each node only performs 1 iterations of sampling  about 1 iterations are required for convergence  and then a range index strategy is computed based on inaccurate statistics. the query cost ratio of the approximate index strategy to that of the optimal index strategy is computed as
+rangeindexcost
+ 1. the cost ratio is effected by the query distribution and our scheme is more robust in skewed query distribution. we also observe that the sampling scheme is fairly effective in mildly skewed distributions  because in such a case  query patterns can still be detected.
+optimalcost	 
+
+1	1	1.1.1.1.1 number of nodes	theta
+	 a  convergence	 b  cost ratio
+figure 1: cost and effect of sampling
+1. conclusion
+﹛we have proposed pisces  peer-based system that indexes selected content for efficient search  to reduce the maintenance cost of corporate networks  where an index is built jit  just-in-time . pisces is self-tuning to the changing of query distribution. it identifies a subset of tuples to index based on some criteria  such as query frequency  update frequency  importance of the content  etc. . we have also introduced the approximate range index  a new type of index for processing queries that cannot be fully answered by the current index. the approximate range index is also used for notifying nodes about new index construction. to support our cost estimation  we have proposed a light-weight iterative sampling scheme to collect global statistics about the whole network. it exploits common maintenance messages of the network to keep the overhead low. experiments in planetlab indicate that our schemes can significantly reduce the cost of p1p networks and pisces is effective in answering popular queries. in summary  we have proposed an efficient and practical indexing strategy that will make pdms more acceptable as a solution for supporting enterprise-quality business processing and data sharing that involves a large amount of data and peers.
+1. acknowledgment
+﹛this research is in part funded by astar serc grant 1 1 of s1 project   national grand fundamental research 1 program of china grand 1cb1 and key program of national natural science foundation of china grant 1.
+1. repeatability assessment result
+﹛the repeatability assessment committee was not able to repeat the results in this paper due to the lack of access to the distributed experimental platform used in the experiments. the repeat code and/or data used in the paper are available at .

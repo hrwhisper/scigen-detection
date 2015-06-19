@@ -1,0 +1,209 @@
+we consider the problem of creating document representations in which inter-document similarity measurements correspond to semantic similarity. we first present a novel subspace-based framework for formalizing this task. using this framework  we derive a new analysis of latent semantic indexing  lsi   showing a precise relationship between its performance and the uniformity of the underlying distribution of documents over topics. this analysis helps explain the improvements gained by ando's  1  iterative residual rescaling  irr  algorithm: irr can compensate for distributional non-uniformity. a further benefit of our framework is that it provides a well-motivated  effective method for automatically determining the rescaling factor irr depends on  leading to further improvements. a series of experiments over various settings and with several evaluation metrics validates our claims.
+1. introduction
+background the rapid increase in the availability of electronic documents has created high demand for automated text analysis technologies such as document clustering  summarization  and indexing. representations enabling accurate measurement of semantic similarities between documents would greatly facilitate such technologies. in this paper  we focus on representations in which vector directionality is used to represent a document's semantics  by which we mean its  human-interpretable  constituent concepts. this goal is to be accomplished without access to concept labels  since they are typically not available in many applications.
+﹛the vector space model  vsm  is a classic method for constructing such vector-based representations. it encodes a document collection by a term-document matrix whose  i j th element indicates the association between the ith term and jth document. however  as has been pointed out previously  vsm does not always represent semantic relatedness well; for instance  documents that do not share terms
+permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. to copy otherwise  to republish  to post on servers or to redistribute to lists  requires prior specific permission and/or a fee.
+sigir'1  september 1  1  new orleans  louisiana  usa..
+copyright 1 acm 1-1/1 ...$1.
+are mapped to orthogonal vectors even if they are clearly related.
+﹛latent semantic indexing  lsi   1  1  attempts to overcome this and other shortcomings by computing an approximation to the original term-document matrix; this is equivalent to projecting the term-document matrix onto a lowerdimensional subspace. lsi has been successfully applied to information retrieval and many language analysis tasks  e.g.  1  1  1  1  1    prompting several studies to explain its effectiveness  e.g.  1  1  1  1  1  .
+﹛ando  introduced an alternative subspace-projection method  which we call iterative residual rescaling  irr   that outperforms lsi by counteracting its tendency to ignore minority-class documents. this is done by repeatedly rescaling vectors to amplify the presence of documents poorly represented in previous iterations. however  ando presented only heuristic arguments to explain irr's success.
+contributions in this paper  we use the notion of subspace projection to formalize the document representation problem. based on this framework  we provide a new theoretical analysis that shows a precise relationship between the performance of lsi and the uniformity of the underlying distribution of documents over topics. as a consequence  we provide an explanation for irr's success: the rescaling it performs compensates for non-uniformities in the topicdocument distribution. moreover  our framework yields a new way to automatically adjust the amount of rescaling by estimating the non-uniformity.
+﹛to support our theoretical results  we present performance measurements both on document sets in which the topicdocument distributions were carefully controlled  and on unrestricted datasets as would be found in application settings. in all cases and for all metrics  the results confirm our theoretical predictions. for instance  irr combined with our new parameter selection technique achieved up to 1% higher kappa average precision than lsi and up to 1% better document clustering performance. the experiments as a whole provide strong evidence for the usefulness of our framework in general and the effectiveness of our augmented irr in particular.
+notational conventions a bold uppercase letter  e.g. m  denotes a matrix; the corresponding bold lowercase letter with subscript i  e.g. mi  denotes the matrix's ith column vector. we use range m  to denote m's range  or column space: {y |  x such that y = mx}. when a document collection has been specified  n denotes the number of documents the collection contains.
+1
+1. analyzing lsi
+1 topic-based similarities
+﹛our framework for analyzing latent semantic indexing and other subspace-based methods revolves around the notion of topic-based similarity. fix an n-document collection c and corresponding m-by-n term-document matrix d. we assume that there exists a set  denoted topics c   of k   n topics underlying c. we also assume that for each topic t and document d there exists a  real-valued  relevance score rel t d   suitably normalized so that for each d  we have
+1
+	t﹋topics c  rel t d 	= 1. we then define the true topic-
+based similarity between two documents d and d as:
+	sim 	rel 	.
+t﹋topics c 
+it is convenient to summarize these similarities in a single
+n-by-n matrix s  where s
+﹛note that although we assume the existence of underlying topics as the basis for the true document similarities  in contrast to other analyses  e.g.  1  1  1   we do not assume that there is an underlying generative or probabilistic model that creates the term-document matrix d.
+1 the optimum subspace
+﹛we formulate the ultimate goal of subspace-based algorithms  such as lsi  as choosing some subspace such that projecting d onto this subspace creates new document vectors whose measured similarities  i.e.  cosines  more closely correspond to the true topic-based similarities.
+﹛more formally  for any subspace  the unique  orthogonal  projection of a vector x onto x is given by px x  = bbtx for any b whose columns form an orthonormal basis for x. we define the projection of d onto x as the matrix px d1 ﹞﹞﹞px dn    i.e.  the result of projecting each of the term-document vectors. hence  after projection onto x  the similarity between the ith and jth documents is measured by
+ .
+the document representation problem is as follows: given d - but not s or even any knowledge of what the underlying topics are - find a subspace x such that the entries of the deviation matrix1
+﹛﹛﹛﹛﹛﹛diffs d x  = s   px d tpx d  are small. the optimum subspace
+	xopt =	argmin ||diffs d x ||1  
+x range d 
+with ties broken by smallest dimensionality and then arbitrarily  serves as the standard for comparison in our analysis. we denote the corresponding projection operator by popt  and useto denote the optimum error ||diffs d xopt ||1.
+
+1	t
+ it suffices to consider the inner products px di  px dj  rather than the cosines because  as shown in   if there exists   1 that upper-bounds the magnitudes of the deviation matrix's entries  then for any di and dj  sim 
+.
+	1 +	 
+note that need not be zero  as it may be impossible to project the given term-document matrix in such a way as to perfectly recover the true document similarities.
+1 the singular value decomposition and lsi
+﹛in this section  we first briefly introduce the singular value decomposition  svd    since singular values are necessary for our analysis. then  we describe lsi  which is based on the svd.
+﹛the svd factors an arbitrary rank-h matrix z into the following product:
+z = u曳vt  
+where the columns of  and v  are orthonormal  曳 = diag 考1 考1 ...  考h  is diagonal  following convention  we assume 考1 ≡ ﹞﹞﹞ ≡ 考h   and the 考i's are all positive. the quantities 考i  ui and vi are called the ith singular value  left singular vector  and right singular vector  respectively. the left singular vectors span z's range  and 考1 = ||z||1.
+﹛zeroing out all but the    h largest singular values yields the least-squares optimal rank- approximation to z. latent semantic indexing  lsi   1  1  applies this rank- approximation to the term-document matrix d  which corresponds to projecting d onto the rank- lsi subspace spanned by u:
+	u u diag 	.
+h entries
+note that the fact that this matrix approximates d well does not imply that it represents the true document similarities well  as we shall see.
+﹛further intuition may be gained on the left singular vectors by the following observation. let proj j  di  be the projection of di onto the span of u1 ...  uj  and let r ij  be the residual vector di   proj j 1  di . then  uj is the unit vector that maximizes the following quantity:
+ .
+in a sense  uj resembles a weighted average of residual vectors  where longer residuals receive greater weight. hence  the  left singular vectors may be thought of as representing the  major directions in the document collection.
+1 non-uniformity and lsi
+﹛we now state our results relating the non-uniformity of the underlying topic-document distribution to the quality of the document representation spaces derived using lsi. the main outline of our argument is to first show relations between certain singular values and certain quantities linked to our topic model  and then show how the distance between the lsi-subspace and the optimal subspace relates to these singular values. proofs of these results  which make use of invariant subspace perturbation theorems  1  1  1   are sketched in the appendix of this paper and given in full in
+.
+﹛recall that we are dealing with a fixed document collection c with k underlying topics. throughout  we use h to denote the dimensionality of the optimum subspace. for clarity  we will abuse notation by writing  x ﹋ y ㊣ z  as shorthand for  x ﹋  y   z y + z  .
+1
+﹛a crucial quantity in our analysis is the dominance  t of a given topic t:
+
+ t =	rel t d 1 . d﹋c
+ it may be helpful to observe that in the special  single-topic documents  case  where each document is relevant to only one topic in topics c   squaring  t gives exactly the number of documents in c that are relevant to topic t.  we assume without loss of generality that  1 ≡  1 ≡ ﹞﹞﹞ ≡  k  and for convenience set  i = 1 if i   k.
+﹛now we show that the projection of d onto the optimum subspace xopt in some sense reveals the topic dominances. it is intuitively clear  however  that the extent to which this holds should depend to some degree both on the optimum error  and on the topic mingling 米 c  =
+1
+   topics 	 note that in the single-topic documents case  米 c  = 1 . certainly  if the optimum error is high  then we cannot expect the optimum subspace to fully reveal the topic dominances; also  if there is high topic mingling in the collection  then the topics will be fairly difficult to distinguish.
+theorem 1. let 而i be the ith largest singular value of
+popt d . then .
+this result gives us leave to define  max = 而1 and  min = 而h  where h is the dimension of xopt. the ratio  max/ min then serves as a measure of the non-uniformity of the topicdocument distribution underlying the collection: the more the largest topic dominates the collection  the higher this ratio will tend to be.
+﹛now we are in a position to present our main theorem. this result bounds the distance between the optimum subspace xopt and the same-dimensionality lsi subspace xlsi by a function of the non-uniformity of c's topic-document distribution. the bound also incorporates a certain value
+ defined precisely in the appendix   where
+s dtd||1 is the input error:
+intuitively  if a  bad  term-document matrix is received as input  one cannot expect lsi to do well.
+﹛theorem 1. let xlsi be the h-dimensional lsi subspace spanned by the the first h left singular vectors of d. if
+  then
+  
+where 成 is the canonical angle matrix measuring the distance between subspaces  1  1 .
+﹛intuitively  what this means is that xlsi must be close to xopt when the topic-document distribution is relatively uniform and the input error is small in comparison to the hth largest topic dominance. conversely  if the input error is fixed  our bound on lsi's performance weakens when the underlying topic-document distribution is highly nonuniform. finally  we note that the condition on is natural: roughly speaking  if the input error is large enough to  swamp  the dominance of the hth largest topic  then intuitively we cannot expect good results.
+﹛finally  we note that a related result can be proved which  roughly speaking  links lower bounds on the distance between the two subspaces to non-uniformity and the input error; however  this theorem is quite technical in nature and thus is omitted. we refer the reader to  for details.
+1 related work: theoretical analyses of lsi
+﹛as noted above  there have been several studies analyzing lsi  using approaches such as bayesian regression models  and gaussian models . here  we concentrate on describing the work most similar in spirit to ours.
+﹛zha et al.  propose a subspace-based model for lsi. their work focuses on dimensionality selection and implementation issues regarding more accurate updating schemes. bartell et al.  show that lsi can be regarded as a solution to the special multidimensional scaling  mds  problem of preserving the inner products of the original document vectors. however  as noted above  this is not the same as recovering hidden topic-based similarities  especially in the case of noisy data.
+﹛perhaps the work most similar to ours is that of papadimitriou et al.  and azar et al.   both of which propose to explain lsi's success with analyses that  like ours  employ invariant subspace perturbation theorems. papadimitriou et al. start with a probabilistic corpus model. by assuming low input error and certain conditions on singular values  which  from our perspective  can be considered to be roughly equivalent to assuming relative uniformity  although  did not explicitly make this connection   they show that lsi will work well with high probability. but their results are based on a pure probabilistic corpus model in which all the documents are single-topic and topics have associated primary  distinguishing  disjoint sets of terms. thus  their analysis holds only for a very restricted class of document collections. similarly  azar et al. also start with particular conditions and a specialized underlying generative model to show that lsi works well for  good  documents with high probability. in contrast to these approaches  our analysis does not assume a model of term-document matrix creation  and so applies to arbitrary term-document matrices  with the non-uniformity and the input matrix's quality being explicit terms in our bound.
+1. irr: overcomingnon-uniformity
+﹛our results from section 1 indicate that we could improve the performance of lsi if we could somehow  smooth  the topic-document distribution  that is  effectively lower
+ max/ min . we show that the iterative residual rescaling  irr  algorithm  introduced  but not named  and heuristically motivated by ando   accomplishes this task without prior knowledge of the assignments of documents to topics.
+1 ando's irr algorithm
+﹛recall from section 1 that the left singular vectors u1  u1 ... produced by lsi can be derived  one by one  via the following computation:
+n
+1
+	uj = argmax	|r ij |cos r ij  x 	 
+	|x|=1	i=1
+where the r ij  are the residuals di   proj j 1  di . unfortunately  inspection of this formula shows that when the
+1
+
+lsi's first basis vector u points in 	... the next lsi basis vector is still	rescaling the residuals
+1
+the dominant direction.	biased towards dominant-topic	boosts the influence of after computing residuals...	vectors  despite being orthogonal to u .	minority-topic documents.
+1
+	 a 	 b 	 c 
+figure 1: effect of nonuniformity on lsi  and how irr compensates.
+irr
+	r:= d	/* initialize residuals by given m-by-n term-document matrix */
+for/* create  basis vectors */
+for i := 1 ...  n
+	 ri := |ri|qri	/* rescale residuals */
+	bj := argmax	 ri|cos  ri x  1
+	for	 
+	subtract from ri its projection onto bj	/* recompute residuals */
+dirr := bbtd  where b  /* new document representation */
+figure 1: high-level pseudocode for ando's irr  i.e. before augmentation with auto-scale .topic-document distribution is highly non-uniform  the cumulative influence of a large number of  small  residuals for a major topic can cause smaller topics to be ignored  as depicted in figures 1 a  and  b .
+﹛our explanation of irr's effectiveness is that by amplifying the length differences among residual vectors  irr boosts the influence of minority-topic documents  thus compensating for non-uniform topic distributions  figure 1 c  . more precisely  irr  like  our formulation of  the svd  computes basis vectors by successive maximizations  as shown in the pseudocode in figure 1. crucially  though  irr's objective function  g j   incorporates a scaling factor q via the scaling function pow r q  = |r|q r:
+n
+1
+	 j 	 j 	 j 
+	g	 x  =	|pow ri  q | cos pow ri  q  x 	.
+i=1
+this is maximized by the first left singular vector of
+	r j  = pow r	pow r nj  q  .
+that is  irr rescales each residual vector ri at each basis vector computation  increasing the contrast between long and short residuals when q   1. lsi is the special case in which q = 1.
+1 the auto-scale method
+﹛our discussion above argues that the degree of rescaling should depend on the uniformity of the topic-document distribution. ando  did not explicitly make this connection  and hence could not take advantage of it: q was determined simply by training on held-out data. in contrast  our novel analysis allows us to exploit this connection to develop an effective estimation method - automatic scaling factor determination  auto-scale  - that approximates the topicdocument non-uniformity without prior knowledge of the underlying topics.
+﹛auto-scale is based on the observation that we can use the quantity t﹋topics c   1t/n1 as a measure of the nonuniformity of the topic-document distribution. of course  we don't have access to the topic dominances  t  but we can approximate this measure by 1
+ .
+this approximation follows from first assuming that the input matrix is fairly good  so that ||dtd||1f is roughly equal
+to topics . the latter can be rewritten  after some algebra  as the quantity
+	1	1
+﹛﹛t﹋topics c   t + 米 c    which is roughly t﹋topics c   t if we assume approximately single-topic documents. in practice  we set q to a linear function of f d ; this is discussed in section 1.
+﹛although the above assumptions are rather coarse  autoscale yields good empirical results: see sections 1 and 1.
+1 dimensionality selection
+﹛irr's second parameter is   the dimensionality of the created subspace. one way to set this parameter is to train it on held-out data. following ando   we found that learning thresholds on the residual ratio ||r j ||1f /n as a stopping criterion is effective for both lsi and irr. intuitively  this ratio describes how much is left out of the proposed subspace  of course  we do not want to reproduce the termdocument matrix exactly - hence the threshold . note that this training method allows some flexibility in the chosen di-
+
+1
+the frobenius norm ||x||f is defined as.
+1
+mensionality: for different data sets  the same residual ratio threshold may result in selecting a different .
+﹛while training on held-out data is reasonable and is commonly employed in practice  it is a relatively expensive process. a speedier alternative arises in settings in which k  the number of topics  is pre-specified - examples include cases where the topic set is a fixed class such as the trec topic labels  or where the application allows the user to specify the appropriate level of granularity for his or her needs. in such settings  we could simply set the dimensionality equal to k as a matter of convenience.  indeed   show that under certain strong assumptions on the data  rank-k lsi should perform well. see also .  we describe experiments with both selection methods below.
+1. evaluation metrics
+kappa average precision our first evaluation metric is the pair-wise average precision   adapted from the average precision measure commonly used in information retrieval. the motivation behind this metric is that the measured similarity for any two intra-topic documents  i.e.  that share at least one topic  should be higher than for any two cross-topic documents which have no topics in common. more formally  let pi denote the document pair with the ith largest measured similarity  cosine . precision for an intra-topic pair pj is defined by
+prec .
+the pair-wise average precision is the average of these precision values over all intra-topic pairs.
+﹛to compensate for the effect of large topics  which increase the likelihood of chance intra-topic pairs   we modify the pair-wise average precision to create a new metric  which we call the kappa precision in reference to the kappa statistic  1  1 :
+prec百 pi  =	 	  prec pi 	chance
+where chance =  # of intra-topic pairs / # of document pairs . the kappa average precision 百 is defined to be the average of the kappa precision over all intra-topic pairs  and is a linear function of the pair-wise average precision.
+clustering we also test how well the new subspaces represent document similarities by seeing whether document clustering improves when these new representations are used as input. to simplify the scoring  we consider only single-topic documents.
+﹛let c be a cluster-topic contingency table such that c i j  is the number of documents in cluster i that are relevant to topic j  as in . we define s c  = i j nij/n  where nij = c i j  if c i j  is the unique maximum in both its row and column  and nij = 1 otherwise. note that this  rather strict  measure only considers the most tightly coupled topic-cluster assignment  and decreases when either cluster purity or topic integrity declines  see figure 1 .
+﹛to factor out the idiosyncracies of particular clustering algorithms  we apply six standard clustering methods - single-link  complete-link  group average  and k-means with initial clusters generated by these three methods - to the document vectors in each proposed subspace  and record both the ceiling  highest  and floor  lowest  s c  scores. while the ceiling performance is perhaps more intuitive  we
+topic 1topic 1topic 1topic 1cluster 111cluster 111cluster 111cluster 111cluster 111figure 1: sample contingency table  with s c  =  1 + 1 + 1 /1 = 1%.
+observe that the floor performance also gives us important information about the quality of the representation being evaluated: if the floor is low  then there is at least one clustering algorithm for which the document subspace is not a good representation; otherwise  the representation is good for all six clustering algorithms.
+1. controlled distributions
+﹛our first suite of experiments studies the dependence of lsi and irr on increasingly less uniform topic-document distributions. the results strongly support our theoretical analysis of lsi's sensitivity to non-uniformity.
+1 experimental setting
+﹛to focus on distributional non-uniformity  we first chose two trec topics  and then specified seven distribution types:  1  1    1  1    1  1    1  1    1  1    1  1   and  1  1   where  n1 n1  indicates that ni of the documents are relevant to topic i. for each of these types  we generated ten sets of 1 trec documents each  where each document was relevant to exactly one of the pre-selected topics. we also created five-topic1 data sets in the same manner  using distribution types of the form  i j j j j   which makes uniformity comparisons obvious .
+﹛to create the term-document matrices  we extracted singleword stemmed terms using talent   removed stopwords  and then length-normalized the document vectors  so that term weights were frequency-based .
+﹛to implement auto-scale  we set q = 汐﹞f d +汕  where 汐 = 1 and 汕 = 1 for all our experiments. these values  which are necessary to determine the  units  of the scale factor  were empirically determined once and for all from observations on data disjoint from our test sets. this contrasts with training q for every new test set encountered  as in . training is an expensive process  and we envision interactive applications such as organizing query results  a task we simulate in section 1  in which what would serve as training data is not obvious. we thus view auto-scale as a practical alternative to the usual parameter training.
+﹛for simplicity  the dimensionality of lsi and irr in our experiments was set to the number of topics.1
+1 controlled-distribution results
+﹛we first examine the kappa average precision results  shown in figure 1. the x-axis represents the nonuniformity of the topic-document distribution  as measured by  max/ min.
+
+1
+ results for three- and four-topic document sets were similar and are therefore omitted.
+1
+ our preliminary experiments with dimensionality training indicated that indeed this was often the best dimensionality for lsi and almost always the best for auto-scale-irr.
+1
+1 topics: precision of inter-document similarities 
+figure 1: kappa average performance  two topics. points are averages over ten document sets.
+
+figure 1: automatically-determined scaling factor values: ten-set average and standard deviation.
+we see that when the topic-document distribution is relatively uniform  lsi's performance is higher than 1%. however  as the nonuniformity increases  the performance of lsi drops precipitously  in accordance with our theorems above. also  our interpretation of the scaling factor q as compensating for non-uniformity is borne out nicely. for highly uniform distributions  the performance difference between q = 1  at which irr = lsi   q = 1  and q = 1 is not great. at medium nonuniformity  q = 1 degrades  but q = 1 still does about the same as q = 1. but as the non-uniformity increases even more  we see that q = 1 is not large enough to compensate  and so declines in comparison to q = 1.
+﹛furthermore  we see that irr with auto-scale  labelled 'irr:q = auto'  does extremely well across all levels of nonuniformity. figure 1 shows that auto-scale indeed adjusts for more non-uniform distributions: the chosen scaling factor increases on average as the non-uniformity goes up.
+﹛now  one might conjecture that instead of using autoscale  it would suffice simply to choose a single very large value of q. intuitively  though  this is problematic  since too high a scaling factor would tend to completely eliminate residuals. furthermore  the q = 1 curve in figure 1 disproves the conjecture: in the uniform case  selecting
+1 topics: floor of clustering performance	1 topics: ceiling of clustering performance
+vsm
+figure 1: floor and ceiling clustering results  two topics. points are averages over ten document sets.
+an overly large scaling factor hurts performance  driving it below the baseline vsm curve.
+﹛the two-topic floor and ceiling clustering results  shown in figure 1  exhibit precisely the same types of behaviors as in the kappa average precision case. the floor performances are especially interesting  as they show that autoscale-irr exhibits very good performance for all six of our rather wide variety of clustering algorithms. they also indicate that vsm is 'fragile' for uniform distributions  in that sometimes it is a very poor representation for at least one of the clustering algorithms we employed.
+﹛finally  figure 1 shows the results of the same evaluation experiments run on five-topic data. again  the empirical results are completely in line with what we predicted  with auto-scale leading to strong performance over all metrics and all degrees of non-uniformity. note that the gap between lsi and vsm decreases in comparison to the k = 1 case; this is due to the fact that at higher dimensionalities  the subspace produced by lsi gets closer to that of the original term-document matrix.
+these results all strongly support our theoretical claims.
+1. unrestricted distributions
+﹛in this section  we experiment on the more realistic setting of document sets without distribution restrictions. we expect that in practice  topic-document distributions will be fairly non-uniform  so that irr should perform well in comparison to lsi. figure 1 summarizes the evaluation settings. we used 1 trec documents  each relevant to exactly one of twenty trec topics. to perform parameter training  we randomly divided these documents into two disjoint document pools. we then simulated input from an information retrieval application by generating 1 document sets from each pool  where each set consisted of those documents containing one of 1 arbitrarily chosen keywords; this yielded a total of 1 document sets. document sets from one pool were used as parameter training data for the sets from the other pool  and vice versa. performance results are averages over these 1 runs. the scaling factor for irr was determined by auto-scale in all cases  again with the same constants 汐 and 汕 as before . the term-document matrices were created in the same manner as in section 1.
+1
+metric百clustering floor/ceiling	1 topics: precision of inter-document similarities 	1 topics: floor of clustering performance	1 topics: ceiling of clustering performance
+
+	1.1 1 1.1 1 1.1 1	1.1 1 1.1
+	uniform	less uniform uniform	less uniform uniform	less uniform
+
+vsm	lsi  q=1 irr:q=1 irr:q=1irr:q=1 irr:q=auto
+vsm	lsi  q=1 irr:q=1 irr:q=1irr:q=1 irr:q=auto
+vsm	lsi  q=1 irr:q=1 irr:q=1irr:q=1 irr:q=autofigure 1: ten-set averages of kappa average precision and floor and ceiling clustering results  five topics.is k given yesnoyesnochoice of ktrainedktrainedtrained# of clustersn/aksection  data 1  table 1 1  figure 1 	∫	∫
+figure 1: evaluation settings for unrestricted distributions. recall that k is the number of topics and  is the dimensionality.
+1 kappa average precision results
+﹛recall that we consider two ways to choose the dimensionality of a document subspace. in the first case  the system knows k  the number of topics underlying the collection  in practice  this information could be user-supplied as a way to control topic granularity  or given by a set of predetermined classification labels   and sets the dimensionality to it. in the second case  k is considered unknown  so we simply train the dimensionality parameter using the residual ratio method described in section 1.
+﹛from figure 1  we see that irr yields higher 百 than lsi and vsm for both dimensionality selection methods  and therefore does a better job at representing inter-document similarities. lsi performs relatively poorly on this task; indeed  using k dimensions in the lsi case leads to worse results than vsm.
+dimensionality selectionlsiirrnumber of topics-11trained1.1figure 1: thirty-set average absolute improvement in 百 over vsm  1%   unrestricted distributions.
+1 clustering results
+﹛to derive floor and ceiling clustering performance results  there are two parameters we need to specify: the dimensionality of the subspace  and the number of clusters.
+﹛if k  the number of topics  is available  then it is the natural choice for the number of clusters. then  to choose the dimensionality in this case  one option is to also set it to k; figure 1 a  shows the results. we see that irr has the best clustering performance overall. note that lsi's ceiling is actually lower than vsm's.
+﹛when k is given but we train the dimensionality via the residual ratio  irr still provides a better subspace for all the clustering algorithms we considered  both in terms of floor and ceiling performance  figure 1 b  . we observe that for this type of data  training the dimensionality allows lsi to produce improved ceiling results.
+﹛we now consider the case in which k is unknown. in this situation  we know of no alternative but to train the dimensionality on held-out data. as for the number of clusters  a reasonable default is to simply set this value to the trained dimensionality. of course  this doesn't apply to vsm  since the dimensionality is not a free parameter for it; instead  we set the number of clusters to the average of the number of topics in the training document sets.
+﹛figure 1 c  shows the clustering results for the unknownk setting. lsi's ceiling degrades by 1% compared with when the number of topics is given  while those of vsm and irr show almost no change. furthermore  irr clearly outperforms the other methods.
+1 discussion
+﹛in our experiments  lsi did worse or essentially the same as vsm in 1 out of 1 combinations of practical settings and metrics. in particular  when the dimensionality is chosen to be the number of topics  lsi performs relatively poorly. dimensionality training improves lsi's kappa average precision scores  and also improves its clustering performance with respect to vsm as long as the correct number of clusters  i.e. the number of topics  is given. however  when
+1
+	 a 	 b 	 c 
+figure 1: document clustering performances  unrestricted distributions: averages over 1 runs.
+the number of clusters is unknown  lsi's ceiling clustering performance drops  again indicating that for lsi the dimensionality should not be tied to the number of clusters.
+﹛in contrast  irr consistently performs better than lsi and vsm for all our settings and metrics. in particular  irr fares relatively well when the dimensionality is set to the number of topics as compared to when the dimensionality is actually trained. these results suggest that setting the dimensionality to the number of topics  when known  may be a practical alternative to dimensionality training. furthermore  in clustering applications for which the number of topics is not known  we at least might be able to reduce the training effort by only searching for the dimensionality  setting the number of clusters to the same value.
+1. conclusion
+﹛to conclude  we review our three main results. first  we have provided a new theoretical analysis of lsi  showing a precise relationship between lsi's performance and the uniformity of the underlying topic-document distribution. second  we have used our framework to extend ando's  1  irr algorithm by giving a novel and effective method for determining the requisite scaling factor. third  we have shown that irr  together with our parameter determination method  provides very good performance in comparison to lsi over a variety of document-topic distributions and applications-oriented metrics.
+acknowledgments
+we thank branimir boguraev  roy byrd  herb chong  jon kleinberg  alan marwick  mary neff  john prager  edward so  charlie van loan  and steve vavasis for many useful discussions  and the anonymous reviewers for their helpful comments. portions of this work were done while the first author was visiting ibm t. j. watson research center. this paper is based upon work supported in part by the national science foundation under itr/im grant iis-1. any opinions  findings  and conclusions or recommendations expressed above are those of the authors and do not necessarily reflect the views of the national science foundation.

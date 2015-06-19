@@ -1,0 +1,24 @@
+richard d. hull  larry f. waldman  axontologic  inc. 
+1 research parkway  suite 1 orlando  fl 1 hull axontologic.com 
+
+ 
+abstract 
+identification of genes and proteins that affect biological function in humans and other organisms is a critical step in the discovery of new medicinal therapies.  automatic 	recognition 	of 	medline abstracts that describe gene/protein function would be of tremendous benefit to researchers in industry  government  and academia.  our approach uses simple syntax and domain semantics to both identify sentences from medline abstracts that suggest gene function and to rank those abstracts by a measure of how many appropriate function instances they contain. 
+ 
+introduction 
+identification of genes and proteins that affect biological function in humans and other organisms is a critical step in the discovery of new medicinal therapies.  automatic recognition of medline abstracts that describe gene/protein function would be of tremendous benefit to researchers in industry  government  and academia.  for example  drug discovery projects often begin with the identification of one or more diseaseassociated protein targets.  pharmaceutical biologists spend a large portion of their time combing the literature for research articles discussing novel protein targets.  automating this element of their jobs has the potential to result in accelerating the discovery process and reducing costs.   
+ 
+ 
+ larry waldman  school of computer science  carnegie mellon university  larrywaldman cmu.edu. 
+ 
+ 
+the first genomics track of the 1th text retrieval conference  trec-1  was designed to provide a forum for those interested in developing systems capable of addressing the challenges posed by automatic recognition of gene and protein function.   axontologic and twenty-four other organizations from academia  government and industry participated in the primary task of the track during the summer and fall of 
+1.   the official results of all of the participants are available on the trec website. 
+ 
+this paper begins with an overview of the primary task of the genomics tracks.  it describes our natural language processing inspired approach and discusses the results of our system. 
+finally  our conclusions are presented. 
+ 
+primary task 
+the primary task of the trec-1 genomics track began with the release of the track training set comprised of the task documents  1 training topics and the training relevancy judgments for those 1 topics. these training resources were made available to the participants in may of 1.  participants were encouraged to use the training set to understand the nature of the task and develop their systems.   
+ 
+the task documents or corpus contained over 1 medline abstracts indexed between april 1 and april 1.  the 1 training topics  or queries  were the gene names from 

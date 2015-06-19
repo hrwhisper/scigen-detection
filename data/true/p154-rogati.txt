@@ -1,0 +1,187 @@
+an under-explored question in cross-language information retrieval  clir  is to what degree the performance of clir methods depends on the availability of high-quality translation resources for particular domains. to address this issue  we evaluate several competitive clir methods - with different training corpora - on test documents in the medical domain. our results show severe performance degradation when using a general-purpose training corpus or a commercial machine translation system  systran   versus a domain-specific training corpus. a related unexplored question is whether we can improve clir performance by systematically analyzing training resources and optimally matching them to target collections. we start exploring this problem by suggesting a simple criterion for automatically matching training resources to target corpora. by using cosine similarity between training and target corpora as resource weights we obtained an average of 1% improvement over using all resources with no weights. the same metric yields 1% of the performance obtained when an oracle chooses the optimal resource every time. 
+categories and subject descriptors 
+h.1  information storage and retrieval : information search and retrieval - selection process; h.1  information storage and retrieval : content analysis and indexing - dictionaries 
+general terms 
+algorithms  measurement  performance  experimentation. 
+keywords 
+cross-language information retrieval  domain-specific translation  
+1. introduction 
+cross-language information retrieval  clir  has become increasingly important in information retrieval and related areas  including topic detection and tracking  question answering etc. substantial progress has been made in both algorithm development and evaluation methodology  and recent results in benchmark evaluations have shown that the performance of some clir systems has reached that of  monolingual retrieval  as seen in trec  ntcir and clef .  for some researchers  these observations have lead to the optimistic conclusion that the clir problem is basically solved. more specifically  the problem is considered solved if high-quality training resources  parallel text  online dictionaries  multi-lingual thesauri  etc.  and/or highperformance machine translation  mt  systems are available  and meeting that condition is more of an engineering effort rather than research. 
+we argue that the above conclusion does not hold in general. clir systems' proven ability to rank news stories might not transfer readily to other genres such as medical journal articles - a point also raised by . indeed  the impressive clir performance was typically observed in the following settings: 
+1  test documents were general-domain news stories  i.e. those in trec  clef and ntcir   for which quality mt systems have been developed and tuned with person-decades of knowledge-engineering efforts; or 
+1  high-quality  general domain training resources were manually chosen by evaluation forum organizers or  system developers. this is relatively easy when available resources are scarce but would be non-trivial with a large number of resources of varying quality. moreover  some of these resources might be mismatched to the domain of the test collection. 
+we are concerned with this possible mismatch because  once we move away from news and into more technical domains  disambiguation becomes more problematic  in that the most common translation is no longer the one we usually desire. for example  the word agent should have different translation probabilities when the target corpus consists of newspaper stories  i.e. more likely to be a person or entity  vs. medical domain documents  more likely to be a chemical . challenges for domainspecific clir  in particular the problem of distinguishing domainspecific meanings  have been noted in . we argue that these variations can be captured by successfully matching training resources to target corpora.  
+
+ 
+permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. to copy otherwise  or republish  to post on servers or to redistribute to lists  
+requires prior specific permission and/or a fee. 
+sigir'1  july 1  1  sheffield  south yorkshire  uk. 
+copyright 1 acm 1-1/1...$1. 
+ until recently  crosslingual resources were scarce and choosing which one to use was a quick decision made by the system engineer. however  today more and more data is available in electronic form; bilingual web pages are harvested as parallel corpora  as the quantity of non-english data on the web increases; online dictionaries of various qualities and in various domains become available; previously translated documents are automatically aligned  and time-aligned comparable news are published every day. these resources are different in size  quality  vocabulary  genre  other domain characteristics  and purchasing cost. they provide the potential of significantly enhancing the performance of corpus-based statistical methods for clir and mt  if we have a systematic approach to the analysis of resources and an automatic solution for resource selection or weighting. to our knowledge  thorough investigation of this potential is not available in the literature of crosslingual information retrieval; our paper starts this investigation. 
+several researchers addressed a somewhat related problem: choosing or weighting different translations  when more than one is available. a popular approach is to concatenate translations obtained from different sources. this does not take into account the target corpus and its domain  and it does not attempt to disambiguate query term translations.  combines the evidence for alternate translations by modifying pirkola's structured query method to use translation probabilities. this approach does take into account target corpus characteristics  but it uses already unified translation probabilities that match the target corpus usage. in this context  favoring a translation that is common in the target corpus  but improbable given the training corpus  is deemed undesirable. we argue that technical  domain-specific terms exhibit exactly this behavior when a general-purpose training corpus is used. consequently  correctly disambiguating these terms by choosing the translation that is more common in the target corpus is not undesirable. we are trying to accomplish this goal by incorporating domain-specific information into the translation probability.  addresses the issue by retaining the top two translations that occur most frequently in the target collection. we approach this problem by considering all translations  but weighting them differently depending on their translation probabilities as calculated from a linear combination of translation resources.  
+domain-specific language modeling has been used in speech recognition   with encouraging results.  used clir followed by mt to find domain-specific articles in a resource-rich language  in order to use them for language modeling in a resource-poor language. this research is similar in spirit to ours  but has a very different focus. 
+our investigation addresses the following questions:  
+  to what extent the performance of crosslingual retrieval methods would vary in a domain that is radically different from the news domain  we explore a technical domain by using journal article abstracts from medical literature  and several methods that were competitive in benchmark evaluations: the systran commercial mt system  a weighted approach on ibm statistical mt translation probabilities  a corpus-based method using chi-square as similarity scores  and another corpusbased learning method using pair-wise mutual 
+information  pmi . to our knowledge  the latter has not been previously used or evaluated in clir . 
+  to what extent  if at all  can we improve the crosslingual retrieval performance by automated selection  and weighting  of the training resources  compared to the natural  but optimistic  choice of using all available resources equally 
+  what criteria and algorithms can we use for optimizing resource selection automatically  based on the characteristics of both training resources and target collections  
+we note that  while  resource selection  is a problem addressed in distributed ir  the similarity with the problem we are examining is only a matter of naming conventions. in distributed ir  the  resources  are  usually limited access  databases to be queried; here  our target collection is available and resources are defined as any aids in crossing the language barrier  including parallel corpora  dictionaries or mt systems. the methods and criteria presented in this paper are tailored to parallel corpora and dictionaries  since we are considering a specific technical domain. 
+the remainder of the paper is organized as follows: we present our training and testing data in section 1  and our weighting criteria in section 1. section 1 discusses our clir approaches. section 1 presents the results  section 1 suggests future work  and section 1 concludes. 
+ 
+1. evaluation data 
+1 medical domain corpus: springer 
+the springer corpus is a product of the muchmore project  an international effort concerned with cross-lingual retrieval in the medical domain. it consists of 1 documents  titles plus abstracts of medical journal articles  in english and in german  with 1 queries in both languages  and relevance judgments made by native german speakers who are medical experts and are fluent in english. we split this parallel corpus into two subsets  and used the first subset  1 documents  for training  and the remaining subset  1 documents  as the test set in all our experiments.  we applied an alignment algorithm to the training documents  and obtained a sentence-aligned parallel corpus with about 1k sentences in each language.  the sentence-aligned version of the springer training set was used in the experiments in this paper.  
+1 training corpora 
+in addition to springer  we have used four other english-german parallel corpora for training: 
+  news is a collection of 1k sentence-aligned news stories  downloaded from the web and covering the 1 period. it is available for download at http://www.isi.edu/~koehn/publications/de-news/ 
+  wac is a small parallel corpus obtained by mining the web  as described in . it does not cover a particular domain.  
+  europarl is a parallel corpus provided by . its documents are sentence-aligned european parliament proceedings. this is a large collection that has been successfully used for clef  when the target corpora were collections of news stories . 
+  medtitle  another product of the muchmore project  is an english-german parallel corpus consisting 
+of 1k paired titles of medical journal articles. these titles were gathered from the pubmed online database 
+ http://www.ncbi.nlm.nih.gov/pubmed/   
+ 
+table 1 presents a summary of the five training corpora characteristics. when showing the size in words  we include both languages.  
+table 1. characteristics of parallel training corpora  
+name approximate 
+size  sentences  words  domain news 1kx1  1m news wac 1kx1  1m mixed europarl 1kx1  1m politics springer 1kx1  1m medical medtitle 1kx1  1m medical  
+ 
+1 data preprocessing  
+we have eliminated all punctuation  stopwords and numbers for both languages. we used the porter stemmer for english. for german  we first stemmed and we split the words into 1-grams to simulate german decompounding. the german stemmer and stopword list was provided by .  
+ 
+1. selecting training resources 
+we explore two domain-related criteria for selecting and weighting training resources. other possible criteria are size  translation quality  and matching genre  but exploring them is beyond the scope of this paper  which focuses on showing why such selection is necessary. 
+1 selection criterion: training vocabulary coverage 
+we begin by using vocabulary overlap between the training and testing corpora as a domain match approximation. table 1 shows the vocabulary coverage with respect to the training collection. the training vocabulary coverage is calculated as follows: 
+cov train test  =vtrain	vtest	vtrain |  	   1  
+  
+table 1. vocabulary coverage  of training corpora with respect to the springer test  set 
+name de coverage  %  en coverage  %  news 1 1 wac 1 1 europarl 1 1 springer 1 1 medtitle 1 1  
+1 selection criterion: cosine similarity 
+ 
+the second simplest idea to approximate domain matching is using the cosine similarity between the testing and training corpus  tfidf term weights . note that these documents are very short  sentences   which means the document length is fairly constant and tf and df tend to be close. 
+table 1 shows the cosine similarity between the five training corpora and the test set. 
+table 1. cosine similarity of training corpora with respect to the springer test  set 
+name de cos  %  en cos  %  news 1 1 wac 1 1 europarl 1 1 springer 1 1 medtitle 1 1  
+ 
+1 combining translation resources 
+our proposed approach is to use vocabulary coverage or cosine similarity as the weight for each translating resource when combining them  instead of using it as a criterion for the selection threshold. each parallel corpus produces a similarity matrix  using one of the methods outlined in section 1. a new similarity matrix is produced from their linear combination  using the vocabulary coverage or cosine similarity as the corresponding weights. in practice  it is only necessary to calculate this linear combination for dictionary entries present in the queries. 
+this approach has the advantage that it does not require relevance judgments and existent queries to learn the weights. we will examine the robustness of this approach in the results section. 
+ 
+1. clir methods 
+we outline the corpus-based clir methods and a mt-based approach  with pointers to the literature where detailed descriptions can be found.  
+let l1 be the source language and l1 be the target language in clir  all our corpus-based methods consist of the following steps: 
+1. expanding a query in l1 using blind feedback 
+1. translating the query  while preserving the weights from 1. 
+1. expanding the query in l1 using blind feedback 
+1. retrieving documents in l1 
+here  blind feedback is the process of retrieving documents and adding the terms of the top-ranking documents to the query for expansion. we used simplified rocchio positive feedback as implemented by lemur . our corpus-based methods differ only in the translation step  as described below. 
+1 weighted model 1  wm1  
+ibm's statistical machine translation model-1  or simply  model 1    uses a sentence-aligned training corpus to compute the term-term translation probabilities across two languages.  the translation probability from term s  in l1  to term t  in l1  is defined as: 
+                                     m p t | s  =¦Ët 1	p ss   a |st   ¦Ä s  s j  ¦Ä t ta j   	 1  
+¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡a	j=1 where ¦Ët is a normalization factor   a is an alignment of crosslingual term-term translation  s is a sentence in the l1 or l1 half of the parallel corpus  m is the number of tokens in the sentence in l1  and the second summation is the number of times s aligns with t in the corresponding alignment.  
+a matrix of translation probabilities is initialized and updated iteratively  we set the iteration number to 1 in our experiments . we use the resulting matrix to translate each query from l1 to l1: for each query word in the source language  l1   the entire vector  of the corresponding target terms  in l1  is used in the translation  with the normalized probability as the weight of each target term.  we named this method   weighted model 1  to distinguish it from using only the top target word in the translation of each source word.  
+our approach is similar to ibm's and bbn's approaches to clir  except that the translation is not integrated in the retrieval model; only the query is translated.  we found that this method performed well in clir benchmark evaluations . 
+1 chi-square statistic  chi  
+chi-squared statistics are commonly used to measure the lack of independence between terms and categories in text classification; we are including it as a measure for term-term similarity between a source language term  s  and a target language term  t . chi measures the dependence between s and t using four counts: a  b  c and d  where a is the number of passages  sentences or documents  depending on how the parallel training corpus is aligned  in which s and t co-occur  b is the number of passages s occurs without t  c is the number of passages t occurs without s  and d is the number of passages where none of them occur: 
+	¦Ö1 s  t 	 a	b	c	d 	 ad	cb 1	 	 1  
+	 a	c 	 b	d 	 a	b 	 c	d 
+ 
+this calculation results in a matrix of term-term associations  which we use for query translation in the same manner as the matrix of translation probabilities in wm1.  the advantage of this calculation is its efficiency  compared to that of wm1. this makes it worth finding how effective chi is in clir when compared to 
+wm1. 
+ 
+ 
+1 point-wise mutual information  pmi  
+point-wise mutual information is another common choice for measuring the empirical association between two variables  in our case  two terms across languages .  the metric is defined as: 
+ 	pmi  s t  = p s t log	p s t 	  1  
+p s p t 
+ 
+the main difference between chi and pmi is that pmi measures the positively correlated dependence while chi counts both the positively and negatively correlated dependences.  with respect to our task  translating a term from one language to another  pmi appears to be a more appropriate measure since we do not want to consider t as a translation of s if the joint probability of the two terms in human translations is too low. the same argument applies to information gain  ig . comparative evaluation of pmi and chi  or ig  in clir was not reported before.  in terms of computation  the two methods are equally efficient since the joint and marginal probabilities used in computing pmi can be easily derived from the counts of a  b  c and d defined in 1. 
+1 weighted systran  wsys  
+although not a corpus-based method  we are including this approach in order to provide a comparison with a general-purpose machine translation system that is known to perform well in standard evaluation benchmarks such as clef . we use systran online to translate each query after the expansion using local feedback. in order to have a fair comparison  and not put systran at a disadvantage  we preserve the term weights before the translation  and propagate the weight of each word to its translations.  post-translation query expansion is also included in the process and is identical to that of our corpus-based methods. note that  unlike in the case of our corpus-based methods  morphological processing of a query has to be postponed until the query is translated. 
+1. results and discussion 
+ we conducted multiple sets of evaluations  all on the springer test set.  the results were evaluated using mean average precision  avgp   a standard performance measure for ir evaluations  defined as the mean of the precision scores computed after each relevant document is retrieved  averaged over queries .  
+1 empirical settings 
+for the retrieval part of our system  we adapted lemur  to allow the use of weighted queries. the retrieval model we used was simple tfidf  the same used for our clef experiments in . we used the publicly available software giza++  as an implementation of ibm model 1 .  although more sophisticated translation models are also offered in giza++  we did not use them for this paper  for reasons of both efficiency and simplicity  e.g.  word order is not our primary concern here . 
+several parameters were tuned  naturally none on the springer test queries. in the corpus-based approaches  the main parameters are those used in query expansion based on pseudo-relevance  i.e.  the maximum number of documents and the maximum number of words to be used  and the relative weight of the expanded portion with respect to the initial query. since the springer training set is fairly small  setting aside a subset of the data for parameter tuning was not desirable. we instead tuned the parameters on the clef collection. specifically  we chose 1 and 1 as the maximum numbers of documents and words  respectively. the relative weight of the expanded portion with respect to the initial query was set to 1. 
+in the following sections  de-en refers to retrieval where the query is in german and the documents in english  while en-de refers to retrieval in the opposite direction. 
+1 can we use systran directly in the medical domain  
+to test whether clir systems that perform well in the news stories domain are robust enough to simply be used in a different domain  we have compared systran  easiest  most convenient choice that worked extremely well in past evaluation forums  and two corpus-based methods trained on the springer corpus. figure 1 shows the results. as expected  although corpus-based methods performed close to the monolingual baseline  mlir   systran had difficulties with the specialized vocabulary  resulting in a drastic performance drop. using the paired t-test  the difference between wsys and chi is statistically significant  p 1 . 
+
+mlir  lemur wm1pmi
+chiwsysno translation figure 1. retrieval performance of corpus-based methods  and weighted systran on the springer test set 
+  
+1 is resource selection necessary  
+ 
+given that we need to use corpus based approaches  can we simply choose a parallel corpus that performed very well on news stories  hoping it is robust across domains  other natural approaches include choosing the largest corpus available  or using all corpora together. figure 1 shows the effect of these strategies. 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+springermedtitlewac
+newseuroparlall 
+figure 1. clir results on the springer test set by using pmi with different training corpora  
+ 
+the experiments in figure 1 and in the rest of the paper are performed using pmi  since it is faster than wm1 and performs equally well on springer. we notice that choosing the largest collection  europarl   using all resources available without weights  all   and even choosing a large collection in the medical domain  medtitle  are all sub-optimal strategies. the difference between springer and all for de-en is statistically significant within a 1% confidence interval  and so are the differences between {springer  medtitle  all} and {news  wac  europarl}. given these results  we believe that resource selection and weighting is necessary.  we cannot simply use a well-performing  general-purpose parallel corpus for a technical domain. thoroughly exploring weighting strategies is beyond the scope of this paper and would involve collection size  genre  and translation quality in addition to a measure of domain match. however  we propose cosine similarity as a simple weighting criterion and we examine this criterion as well as vocabulary coverage below. 
+1 using vocabulary coverage or cosine similarity as weights 
+figure 1 and 1 show that both vocabulary coverage and cosine similarity between the training and target corpus are positively correlated with retrieval performance  as measured by the average precision over all queries. however  medtitle is a significant outlier in this respect   when considering vocabulary coverage in figure 1 . we believe this to be because of the different spelling normalization applied to medtitle when it was downloaded from the web. many common 1-grams had a slightly different spelling. however  this disparity is alleviated in figure 1  because the high tfidf terms are medical terms where fewer spelling variations occurred. 
+
+ 
+figure 1. the clir performance  of pmi  vs. the training-set vocabulary coverage 
+ 
+
+ 
+ 
+figure 1. the clir performance  of pmi  vs. the cosine similarity 
+ 
+ 
+we wish to examine the robustness of using vocabulary coverage or cosine similarity between the target collection and the parallel corpus as linear combination weights.  to that end  it is insufficient to experiment with weighting the five corpora mentioned above. for this approach to be robust  the combination should be consistent in not performing significantly worse than the best collection available - as given by an oracle - and in not performing worse than using all collections with equal weight. naturally  the combination should also perform better than the expected performance of a randomly selected collection  but in our case this straw man baseline is not needed.  
+in table 1 and its corresponding experiments  we simulate the availability of 1  1 and 1 training collections from the five we have described above. we did not examine resource pairs  since the resource selection problem becomes trivial in this case. there are a total of 1 testing conditions: 1 way to choose all 1  1 ways to choose 1  and 1 ways to choose 1  order does not matter . 
+the first column enumerates which training collections we are allowed to select from and/or to weight. the respective collections 
+ wac  medtitle  springer  europarl  news  are represented by their initials. all 1 combinations are shown for both de-en and en-de. 
+in this table  cov represents performance when training set coverage was used as the weight; cos represents performance when the cosine similarity was used as the weight; eq represents using all available resources with equal weights; and best single collection shows the performance of the single best one training corpus  if it were possible to know which one is the best in advance. numbers in bold highlight the best performance of the four conditions. the star indicates statistical significance within the 1% confidence interval  using the paired t-test.  
+from this table  we see that cosine similarity is a better weighting measure than vocabulary coverage  which is to be expected.  this simple method is robust when we simulate the availability of different collections; however  we believe more research is needed to explore different weighting criteria. 
+summarizing across all 1 testing conditions  we observe that our strategy accounts for a 1% improvement over using all resources with no weights  for both retrieval directions. it is also very close to the  oracle  condition  which chooses the best collection in advance. 
+1. future work 
+we are currently exploring weighting strategies involving collection size  genre  and estimating translation quality in addition to a measure of domain match.  another question we are examining is the granularity level used when selecting resources  such as selection at the document or cluster level.  
+similarity and overlap between resources themselves is also worth considering while exploring tradeoffs between redundancy and noise.  we are also interested in how these approaches would apply to other domains. 
+1. conclusions 
+we have examined the issue of selecting appropriate training resources for cross-lingual information retrieval. our contributions include: 
+ 
+  we have shown that general-purpose mt systems and parallel corpora do not perform well when the target collection is in a domain with a highly technical vocabulary  such as medicine. 
+  we have introduced a new clir method  pmi   and evaluated the performance of several clir methods on a medical domain collection. 
+  we have evaluated the performance of several training parallel corpora on a medical domain collection  showing the need for properly matching the training and testing domains. 
+  we have proposed a simple and robust method for combining parallel corpora  based on domain match as approximated by cosine similarity. 
+ 
+our results show that choosing the largest collection  using all resources available without weights  and even choosing a relatively large parallel collection in the medical domain are all sub-optimal strategies.  given these results  we believe that resource selection and weighting is necessary and can bring 
+
+significant performance improvements  especially within the  domain-specific clir framework.    
+1. acknowledgements 	 
+we would like to thank bryan kisiel for improving the efficiency  of our chi implementation  and ralf brown for collecting the 
+medtitle and springer data. we would also like to thank  our reviewers for the useful suggestions they provided.  
+this research is sponsored in part by the national science  foundation  nsf  under grant iis-1  and in part by the  dod under award 1-n1. any opinions and 
+conclusions in this paper are the authors' and do not necessarily  reflect those of the sponsors. 	 
+ 	 
+ 	 
+ 	table 1 . results of clir runs using various resource selection strategies  
+ 	 
+ 
+available resources de-en en-de  cov cos 
+ %improvement over eq  eq best single 
+collection 
+ oracle  cov cos 
+ %improvement over eq  eq best single 
+collection 
+ oracle  wesnm  1 1 1%  1 1 s  1 1  1%  1 1 s  esnm 1 1 1%  1 1 s  1 1  1%  1 1 s  wenm 1 1 1%  1 1 m  1 1 1%  1 1 m  wesm 1 1 1% * 1 1 s  1 1 1%  1 1 s  wesn 1 1 1% * 1 1 s  1 1 1%  1 1 s  wsnm 1 1 1%   1 1 s  1 1 1%   1 1 s  wnm 1 1 1%   1 1 m  1 1 -1%   1 1 m  wes 1 1 1%   1 1 s  1 1 1  * 1 1 s  wen 1 1 1%   1 1 w  1 1 1   1 1 w  wsm 1 1 1%  1 1 s  1 1 1  1 1 s  esm 1 1 1%  1 1 s  1 1  -1%   1 1 s  wem 1 1 1%  1 1 m  1 1 1%   1 1 m  esn 1 1 1%  1 1 s  1 1 1%  * 1 1 s  snm 1 1 1%  1 1 s  1 1 1%   1 1 s  enm 1 1 1%  1 1 m  1 1 1%  1 1 m  wsn 1 1 1  1 1 s  1 1 1%  * 1 1 s   summary  1%  
+average 
+improvement 	over eq  cos =  
+1% best  1% 
+average 
+improvement 	over eq  cos =  
+1% best   	 
+ 
+

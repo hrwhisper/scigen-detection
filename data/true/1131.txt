@@ -1,0 +1,45 @@
+the advantages of object-oriented  oo  programming are well-known. nevertheless  distributed oo middleware systems  oom  such as corba  dcom or java rmi have not been widely adopted for the developing of internet applications. developers seem to perceive ooms as overcomplex  proprietary or incompatible with current www development practices. recognizing these difficulties more www-friendly proposals based on xml are starting to appear. this paper describes a simple oom system that uses rdf as its interface definition language  idl  and http as its rpc protocol. this approach provides most of the advantages of object-orientation while mantaining full compatibility with the existing www infrastructure.
+keywords
+rdf  web objects  web services  idl  rpc
+1. introduction
+the imminent advent of the oo web has been announced many times in recent years. the advantages of oo programming with respect to more traditional approaches are so evident that most observers had assumed that it was only a question of time before oo would become dominant in the field of internet development. unfortunately the large majority of developers are still sticking to more conventional development technologies. the oo web is simply not happening: a simple delay or a major failure  it's not easy to see why such a promising technology might have failed to capture the developers' imagination but some of these elements might have contributed:
+  there is a considerable conceptual and technical mismatch between ooms and traditional www development techniques
+  ooms are perceived by most developers as excessively complex and unsuitable for the development of simple www applications
+  a growing number of intranets is protected by firewalls that  almost invariably  will allow only email and http traffic. this is bad news for ooms that are based on non-http protocols.
+1 simplify  simplify  simplify
+both corba and dcom originate in the pre-internet era and lack two essential characteristics: simplicity and compatibility with existing www technologies. simplicity is probably nowhere as important as in the internet environment. a good example is given by the www itself. at the beginning of the nineties  when the www was born  there were a number of much more sophisticated hypertext systems available but none of them has had an impact even remotely comparable to that of the  humble  www. we now live in a world that has been throughly changed by the effects of the marriage of the internet with such a simple technology. oo development has the potential of propelling the web to a new era but probably needs to go through a similar process of simplification.
+1. the neoom framework
+even if the www is not a proper oo system it's not hard to impose some oo principles on it. the oom described in this paper  the nesstar obiect oriented middleware  neoom   aims to do exactly so: provide a distributed oo model that it's as simple as possible and as compatible as possible with the existing www infrastructure. its basic characteristics are:
+  its object model is an extension of the oo model defined by the w1c rdf  and rdf schema  standards
+  remote method calls are mapped to standard http calls
+1 the object model
+informally the neoom object model can be defined as follows:
+  each object has a unique identifier  an url 
+  each object has a type  a class 
+  all the objects of a given type share the same properties and methods
+  a class can be a subclass of any number of other classes
+the properties are the attributes of an object. they can be either literals such as a string or an integer  or any other basic type as defined by xml schema   or a reference to another object.
+a neoom object  just as an ordinary web object  can be retrieved by performing an http get at its url. what it's returned is an rdf description of the object properties plus any additional information that the server deems suitable to transmit together with it  for example the descriptions of objects that are linked to the requested object to spare the client the burden of multiple requests . as an object type is also an object it can similarly be retrieved at its url together with the description of its properties and methods.
+1 methods
+the methods are the operations that can be performed on an object. a method can take any number of parameters. methods and parameters are not present in the basic rdf model but they can be easily added by defining a method and a parameter classes. instance methods are defined as classes that extend the basic method class. one advantage of defining a method as a class is that methods can have properties and methods. these can be used to control the execution of the method or to precise its semantic. the method class  as currently defined  has two methods: one to execute the method and one to cancel it. another advantage is that the method invocations can be represented very naturally as instances of the method class. parameters are very similar to rdf properties. they have a domain property that specifies the method they apply to and a range property that specifies the type of the parameter value. the result of a method call is  just as in the case of a normal http request  either an error or a mime document. complex objects or set of objects can be returned in xml or rdf format.
+1 http goes oo
+the object model that we have briefly examined is abstract and completly protocol-independent. it might easily be mapped to any rpc system such as the increasingly popular soap . in practice we have found little need for soap's rather extensive functionality. there is an inherent asymmetry in client/server systems: the clients normally make simple calls and receive complex answers. as the calls are simple they can be mapped to standard html forms  calls as follows:
+  the object that is the target of the method is specified as the form action property
+  the method to perform is specified in a hidden parameter of name method
+  every method parameter of simple type is represented by a form input parameter of type text  or password for passwords 
+  every method parameter of binary type is represented by a form input parameter of type file
+  if there are many parameters or if one of the parameters is of binary type the form method must be set to post with an encoding type of multipart/formdata  otherwise get can be used
+the advantages of this mapping are: extreme simplicity  efficiency  as hardly any parsing is required to interpret the method calls  and compatibility with existing web browsers and http libraries.
+1. software development
+to summarize  the steps needed to deploy a neoom object are the following:
+1. define the object class in rdf using the neoomextensions for the methods
+1. make available the class definition at the class url
+1. instances of classes that have properties but no methods  object that have state but no behaviour  can be created by simply describing them in rdf and making them available at the object url
+1. instances of classes with methods are implementedas server-side processes  such as cgi bin scripts or java servlets  that accept http calls as specified in section 1
+1 java software development
+in the context of the nesstar  project we have developed a simple java sdk that provides:
+  a tool to generate java client stubs and server skeletons from neoom classes definitions
+  an rdf to java mapper to easily convert java objects to rdf and back
+  an object browser to inspect and administer neoom objects through an user-friendly www interface
+1. acknowledgements
+the work reported has been done as part of the nesstar  and faster  projects funded by the european commission's dgxii under the 1th and 1th framework telematics applications programmes.

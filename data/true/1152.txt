@@ -1,0 +1,84 @@
+this poster describes a framework for preparing vocational teachers for using it for teaching and learning in the vocational training council of hong kong. three levels of it competency were identified and a series of training programs were designed and delivered to help teachers to achieve the it competencies. a benchmarking system was also set up for teachers to monitor their progress and achievements. 
+keywords 
+teacher development  it for teaching and learning  it competency for vet teachers  implementation of change. 
+1. introduction 
+the vocational training council  vtc  is the largest government funded vocational education and training  vet  provider in hong kong. it consist of nine campuses and three training centre complexes scattered across different parts of hong kong. vtc offers vocational training programs  at different levels and in various disciplines  for more than 1 full-time students. in response to the government's initiative to develop hong kong into a knowledge-driven and technology economy  vtc is committed to enhance its program quality by utilizing it as a tool for program delivery. vtc's it infrastructure was upgraded and a comprehensive training program was designed to upgrade and update teachers' capabilities in using it for teaching and learning activities. 
+ 
+as there is currently no universally accepted models on the best method to implement it related learning strategies  both in hong kong or elsewhere  e.g. in australia    there is a need to suggest a framework for vet institutions for preparing their teachers to make the most of it to enhance teaching  as part of the strategies in implementing it for teaching and learning. 
+ 
+1. it competencies for teachers 
+vtc has more than 1 full-time teachers who come from different academic and industrial backgrounds. three levels of it competency were identified to cater for their diverse background and training needs  as teaching and learning are concerned. the three levels of competency  namely awareness  application  and advanced  are listed and described in the following paragraphs. 
+ 
+ 
+ 
+1 awareness level 
+teachers at this level are expected to: 
+handle a computer operating system  e.g. windows 1  use local network to transfer  retrieve  and save teaching and learning materials and to share them among teachers 
+and/or students 
+operate basic computer peripheral equipment to prepare 
+simple teaching materials 
+identify common desktop software to assist teaching and 
+learning activities 
+identify commercial cai and cal programs to enhance 
+teaching and learning effectiveness 
+operate it-based projection system to deliver lectures access the world wide web  web  with a browser to search  retrieve information and resources possess a basic understanding of the implications of it in education. 
+ 
+1 application level 
+at this level  teachers are expected to: 
+prepare course materials  e.g. curriculum documents  lecture notes  lab sheets...  using a word processor use spreadsheet/database applications to handle teaching related tasks  e.g. course scheduling  student assessment...  
+prepare a lecture presentation using presentation software 
+use ftp to share and retrieve resources 
+use e-mail  with attachment  to communicate with colleagues and students 
+create text-based web pages to supplement teaching 
+use graphic programs to create simple graphics for 
+educational illustrations 
+understand the basic concept and principles of web-based instructions and a management and delivery platform 
+understand the applications of web-based management and delivery platforms 
+apply basic instructional design skills in planning teaching and learning materials/activities. 
+ 
+ 
+1 advanced level 
+teachers at this level are expected to: 
+create multimedia presentations with presentation software create a simple interactive program with presentation software and/or authoring tools for student learning provide assistance to colleagues on using it in teaching and 
+learning activities 
+use asynchronized communications  e.g. mailing list  newsgroup and discussion forum  to enhance teaching effectiveness 
+use synchronized communications including chat room  
+icq  netmeeting  etc. to enhance teaching effectiveness 
+develop a web course using a management and delivery platform 
+manage a web course using a management and delivery platform 
+communicate with students on the web using a management and delivery platform 
+create and manage on-line assessment using a management and delivery platform 
+create multimedia web pages to supplement teaching 
+create a web site for teaching and learning purposes  apply advanced instructional design skills to enhance the quality of teaching and learning materials apply project management skills to develop teaching and learning materials with a team of staff. 
+ 
+1. it enhancement program 
+staff development is a central theme related to change of any educational practice  1 & 1 . an it enhancement program  itep   in the format of workshops  were planned to help teachers to achieve the it competencies identified. teachers  depending upon their departmental or individual needs  can join these workshops voluntarily. twenty-eight courses in seven categories   as showed in table 1  have been offered since september 1. 
+ 
+table 1: courses offered by itep  by type  	course category 	titles at different levels 	it in teaching and learning 	1 
+ pedagogy  	powerpoint presentation 	1 
+ e.g. basic skills  multimedia presentation...  	web page design 	1 
+ e.g. composer  frontpage...  	communication using the web 	1 
+ e.g. e-mail  newsgroups...  building web-based courses with webct 	1 
+ different features of webct  	general it/multimedia skills 	1 
+ e.g. windows  photoshop...   
+1. bench-marking 
+benchmarking of teachers' achievement is an important aspect in the training process.  to assist teachers to identify their training needs and to record their achievements in this program  an  it capability enhancement plan  was designed and distributed to all teachers. it is a plan in which all the competencies are listed in one column  and the it courses in which teachers participated in other columns. using this plan  teachers can match different it competencies with the courses they are going to take or have taken. they can then negotiate with their supervisors for staff development priority  training time release  special timetable arrangement  special funding provisions  etc. 
+ 
+1. outcomes 
+from september 1 to january 1  1 attendance made by 1 teachers was recorded.  a breakdown of this record is showed in figure 1. 
+
+popular courses were repeated multiple times due to high demand and new courses were planned in response to the advancement of technologies and the changing needs of teachers. to support this program  the following resources were developed: 
+a cd-rom on intellectual properties for education a jump start guide for using webct web sites to support itep and webct users. 
+ 
+1. conclusion 
+a framework for training vet teachers to update and upgrade their capability for using it in teaching and learning was developed. this framework includes: identification of it competencies; provision of training programs; benchmarking for achievements; and supporting resources for teachers. 
+ 
+from experience  the following points are deemed to be important in successfully implementing such a framework: 
+different units of the organization  vtc  should work closely to provide resources for the program different types of courses  at different levels  should be provided to cater for the diverse needs of teachers 
+the program should be regularly reviewed  revised and renewed so as to meet the changing needs. 
+ 
+in sum  this framework makes a good reference for colleagues who are looking for strategies for preparing vet teachers in using it to enhance teaching and learning. 
+ 
+1. acknowledgments 
+the author would like to thank adele graham  head of teaching and learning  vtc  for her advice on this poster. 
+ 

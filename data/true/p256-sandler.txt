@@ -1,0 +1,229 @@
+we propose a new algorithm for dimensionality reduction and unsupervised text classification. we use mixture models as underlying process of generating corpus and utilize a novel  l1-norm based approach introduced by kleinberg and sandler . we show that our algorithm performs extremely well on large datasets  with peak accuracy approaching that of supervised learning based on support vector machines with large training sets. the method is based on the same idea that underlies latent semantic indexing  lsi . we find a good low-dimensional subspace of a feature space and project all documents into it. however our projection minimizes different error  and unlike lsi we build a basis  that in many cases corresponds to the actual topics. we present results of testing of our algorithm on the abstracts of arxiv- an electronic repository of scientific papers  and the 1 newsgroup dataset - a small snapshot of 1 specific newsgroups.
+categories and subject descriptors
+h.1  information storage and retrieval : clustering  information filtering; f.1  analysis of algorithms and problem complexity : non-numerical algorithms and problems; h.1  information systems : models and principlesuser/machine systemshuman information processing
+general terms
+algorithms  theory  experimentation.
+keywords
+dimensionality reduction  generative models  mixture models  unsupervised learning  l1 norm  latent class models  linear programming  lsi  singular value decomposition  text classification.
+1. introduction
+　with the growing availability of large text collections containing documents about every possible topic  the following question
+permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. to copy otherwise  to republish  to post on servers or to redistribute to lists  requires prior specific permission and/or a fee.
+kdd'1  august 1  1  chicago  illinois  usa.
+copyright 1 acm 1-1-x/1 ...$1.
+often arises: is it possible to sort the documents into different categories without  or with minimal  human intervention  a significant understanding of supervised learning - e.g. the setting where an algorithm has some pre-classified data as a part of the input  has been achieved in the last decade with plethora of very fast and accurate methods available  1  1 . however  the problem of unsupervised text classification in most cases still remains a challenge. to the best of our knowledge  all existing text clustering algorithms being used for text classification suffer from practicality problems. most notably  inefficiency - they can not operate on collections larger than few hundred documents  and/or inadequate classification accuracy.
+　in this work  we believe we take an important step towards an efficient and accurate algorithm for unsupervised text classification. our technique is based on a previous work of the author with kleinberg   and the idea is similar in spirit to the one that underlies latent semantic indexing lsi   1  1 : each document is represented as a vector of term frequencies in the space of all possible terms. following the lsi approach  we find a good lowdimensional subspace in this space and project each document vector into it  while trying to preserve as much of the inherent structure as possible. however  in contrast to lsi  our projection operator is based on minimizing l1 error and we show that it works much better than svd projection. in particular the basis of the topical space in many cases actually corresponds to underlying topics  and na： ve clustering according to highest coefficient is very efficient.
+　one important feature of our method is that  within underlying model we reconstruct the precise underlying term distribution for each document with high probability. while spectral techniques do provide the same type of guarantees  1  1  1 . the choice of a model based on minimization of l1-norm of the error is not necessarily justified . furthermore  recent work  1  1  1   suggest  that spectral techniques might be not well suited for text classification and other learning problems where zipf's law distributions are involved. while proper normalization might help in specific cases  1  1   to the best of our knowledge  no general remedy is known. our approach is based on l1 norm that seem to work well for arbitrary distributions. preferability of l1 over l1-norm for particular learning problems has also been observed by ng  and ke and kanade . our explanation is that l1 norm puts too much weight on heavy components that constitute only a small part of the system. for example  in most text documents  stop-words have much higher frequency of appearance than topic-specific terms  and yet in most cases  they possess no information about topics. while the stop-words themselves could be eliminated using stop-words list  they illustrate a more general problem introduced by frequent terms for l1 based methods.
+overview of the model. we use the following model to describe the process of generating corpus. intuitively  each term in every document is sampled from a mixture of few underlying distributions  e.g. topics . the mixture coefficients might be different for every document  however the underlying distributions are the same for the whole corpus. in contrast to latent dirichlet allocation  1  1   we don't require our topic distributions to be of any specific shape  but our bounds depend on a specific measure of independence of topics  which we will define below. overviewofthealgorithm. the algorithm starts by building a
+'mixture model'  which is equivalent to the underlying model. here we relax the definition of mixture model  and hence the quotes  to allow mixtures coefficients describing particular document to be negative. however we still require the resulting mixture to remain a probability distribution. the algorithm then computes approximate coefficients using linear programming  and finally uses the learned model to compute underlying term distributions. it can be shown  that within the mixture model framework  the recovered term distribution is very close to the true hidden term distributions. in other words  for each document  we can fully recover its underlying term distribution. while this could be used as an independent term-smoothing pre-processing step  and/or as a query enhancement mechanism  that automatically includes synonymy search  we leave this as a foundation for future work. in this paper we concentrate on the mixture model found by our algorithm  and each document's mixture coefficients. it turns out that the model we build  in many cases closely resembles true model  and thus mixture coefficients could be used to estimate relevance of each document to the actual topics. furthermore with relatively few topics  e.g. 1 or less  our algorithm performance is approaching the performance of supervised support vector machines with large training dataset. to the best of our knowledge  this is the first unsupervised algorithm capable of operating on large datasets  and to achieve such performance. all our experiments were conducted on the collection of scientific abstracts - arxiv1 and the 1 newsgroup1 dataset.
+　in section 1  we show that when there are only 1 topics  such behavior is provable within the model. for multi-topic problem  our empirical evaluation suggest that found basis is still closely connected to actual topics and later we present some additional intuition that favors this conjecture. however larger datasets and/or additional analysis are needed to confirm or reject this statement in its full generality.
+　we also evaluate performance of our algorithm as an intermediate dimensionality reduction. in other words  while the clustering according to the highest coefficient is not effective  we still might be able to show that most of this information is still preserved after we have projected down all the documents  and hence potentially allowing to run more accurate  but less efficient algorithm. we show that the accuracy loss due to our method is much smaller than the one of obtained from singular value decomposition  that is the only method known to us that would allow to do fully1 unsupervised large scale dimensionality reduction. 1 paper organization. in the next section we describe standard generative mixture model  and introduce all necessary definitions and notation. in section 1 we describe the algorithm along with the
+
+1 see http://www.arxiv.org 
+1 see http://www-1.cs.cmu.edu/afs/cs.cmu.edu/project/theo-1/
+www/data/news1.html 
+1
+ there are methods that perform dimensionality reduction after seeing some labelled data 
+intuition behind it. the forth section contains experimental results  and finally we conclude the paper with open problems and further directions.
+remark 1. linear programming has previously been used for clustering previously. particularly  correlation clustering introduced by bansal  blum and chawla   uses linear and semidefinite programs to produce approximations for a specific graph clustering problem  1  1 . however  their application is very different from ours in the sense that the programs were obtained as relaxations of corresponding integer program. whereas for our method  as we will show below  it is a natural  and optimal  setting.
+1. notation and definitions
+　we use multiple cause mixture model  1  1  1  1  1  1  1  1  to describe the process of text corpus generation. each document is modelled as a sample of fixed size from a mixture of possibly overlapping distributions over a set of all possible terms. the coefficients for the mixture are possibly unique for every document  but the underlying distributions are the same for the whole corpus.
+　formally  there is a collection of documents c of the size m = |c|. all words used in the collection  form a dictionary d of the size n = |d|. finally  there are k topics and each topic c induces a probability distribution wc over the whole dictionary d.
+　each document d is a sample of fixed size from a distribution dd  defined by the mixture with coefficients pd1 ...pdk  e.g. dd = wpd . vector pd of hidden mixing coefficients is called relevance vector  and dd is called the term distribution vector. naturally  we require that . the normalized vector d d of term frequencies as they occur in d is called a signature vector  and is the only information available about the document1.
+　we use the following naming conventions. latin letters c  always denote topics  w and v to denote terms and d to denote documents. specifically  when we use these letters to denote matrix indices they will  type-check  with the semantic meaning of the index. for example  wcw would denote the probability of word w to appear in the document purely on topic c.
+　for a particular document d  we will use d and d  to denote its hidden term distribution and observed term frequencies e.g. the signature vector  respectively  and p for its hidden relevance vector. in other words p is a column pd  and d is equal to wp.
+　by slightly abusing notation  when it is clear from the context  we will be using x   to denote both random variable  and a particular observation of x .
+1. algorithm and analysis
+　while our algorithm is very similar to the algorithm presented in   we have to recast it to text classification problem. additionally the original algorithm was not practical enough to be run on large collections. therefore for the sake of completeness  we describe our algorithm in full and present some basic intuition behind it. for a more formal exposition we refer the reader to the original work.
+　the algorithm runs in two stages. first it finds some  suitable  mixture model for a given collection c. this will define our topical subspace. we do this via analyzing a matrix of word cooccurrences. second  for each document it recovers mixture coefficients in the built mixture model. for this it uses linear programming to build optimal projection operator. in order to maintain
+
+1
+ we are ignoring the order and word correlations here  but that's the property of  bag of words  formulation in general.
+clarity  these steps are presented in the reverse order  since the second part can be viewed as an independent learning technique  while the first relies on the ideas used in the second step.
+1 analyzing the mixture model
+　suppose we know the mixture model  how do we find mixture coefficients  a traditional approach would be to use em-based methods   however  that in general might converge to a suboptimal solution. out method is based on the use of generalized pseudoinverses   and it provably recovers coefficients with small additive error  with high probability. we begin with a simple definition:
+　definition 1	 generalized pseudoinverse  . for arbitrary rectangular n 〜 k  n − k  matrix w  matrix w  is called a generalized pseudoinverse of w if w w = i.
+if n   k and if w  exists  then it is not unique. for example  one possible generalized pseudoinverse matrix is obtained from the singular value decomposition . however we use a pseudoinverse which minimizes its maximal element.
+　the reason why we need the pseudoinverse with this property is as follows. consider an arbitrary document d of length s with term distribution and relevance vectors d and p respectively. obviously
+d = wp  and thus
+	w d = w wp = p 	 1 
+this implies that if we knew underlying the term distribution d  then we can find p and thus solve the classification problem.
+　however  instead of d  we only have a signature vector d   and while ed  = d  the vector d  is very sparse and thus is a bad approximation for an underlying term distribution d. nevertheless  recall that we express mixture coefficients in equation  1   as a weighted sum of the elements of d. thus  even though each individual d i is a bad approximation for di  one can apply tail inequalities to the weighted sum w d i. therefore  we can write:
+	w d  「 w d = p	 1 
+this fact is formulated in the following lemma.
+　lemma 1   . let d  be a document signature with at least s words in it  and let v be an arbitrary k 〜 n matrix  with maximal element bounded by b  then if 
+pr 
+　proof. note that d  can be represented as a sum   of independent vectors  where the i-th term in this sum is an indicator vector for i-th word in the document. the rest is a simple corollary of chebyshev inequality and the union bound. 
+this lemma implies that if a pseudoinverse with bounded maximal element exists  then it immediately gives us an algorithm to find a document relevance vector: multiply pseudoinverse w  by a signature vector d  and the result is a good approximation to relevance vector. obviously the smaller is the maximal element of w   the better error bound we obtain.
+　now we again use the result of   which states that there is always a pseudoinverse such that its maximal element is bounded by   where Γ is a quantity defined as
+w
+and is called independence coefficient. intuitively  this number reflects how independent are these distributions. for example  if Γ = 1  then w has linearly dependent columns and no generalized pseudoinverse exists. a somewhat simplistic example here is to imagine that one large topic such as 'computers'  almost purely consists of a few subtopics such as 'computer software' and 'computer hardware'. the underlying term frequency distribution for 'computers' would be a normalized sum of term distributions for 'software' and 'hardware' topics  and thus independence coefficient would be close to zero for such system. obviously  it is impossible to classify whether document is relevant to computers  only   or it also related to hardware and software  based on only its term histogram. conversely if Γ = 1  then the term distributions for different topics are disjoint  and the corresponding pseudoinverse is simply an indicator matrix for these topics. in our setting  this corresponds to the case when documents on different topics use non overlapping vocabulary. for example  one can think of a collection of documents written on different languages  and where topics correspond to different languages.
+　obviously  the actual value of this coefficient is defined by the collection of documents. in our experiments we have very rarely observed the value of Γ to be below 1  and have never encountered it below 1.
+　theorem 1   . for any n 〜 k matrix w = {wwc} such that   there exists a generalized pseudoinverse w  = {xcw} such that. this pseudoinverse can be found in polynomial time.
+　proof. the desired generalized pseudoinverse  if it exists  can be found by solving the following linear program 
+		for 
+ 
+for 1 ＋ c ＋ k  1 ＋ w ＋ n
+for the existential part of the proof we refer to 	
+this theorem gives us a way to do supervised learning  by using training data to learn topic distributions w    to learn underlying term distribution for each topic. then we compute the pseudoinverse w     using linear program above. finally  we learn the mixture coefficients of unseen document d by applying pseudoinverse w    to the document signature d.
+	algorithm 1	 supervised learning .
+input: collection of documents c  with a pre-labeled subset c1  
+c
+output: classification cd for each document d description:
+1. for each topic c  compute w．c as a word distribution in documents labeled with topic c.
+1. compute pseudoinverse w．   using linear program from theorem 1
+1. for each unlabeled document d  compute p． = w d   and assign it to the topic c such that 
+we would like to reemphasize here that the number of words in a document  needed to learn its mixture coefficients is independent of the size of the dictionary. it only depends on the desired confidence δ  accuracy ε and the independence coefficient Γ. remark 1. it is also possible to use for projection a pseudoinverse obtained from singular value decomposition  or any other . however the value of the maximal element might be dependent on the dictionary size  thus making tail inequalities not immediately applicable.
+1 finding the right  mixture model 
+　in this section  our goal is to build a model  which would allow us to apply the learning algorithm of the previous section. recall that we have shown that if the following conditions are satisfied:
+  arbitrary matrix v is such that  each column of it is a probability distribution 
+  the actual topic distributions can be represented in the form d = v q  and
+  v has an inverse v   with bounded maximal element.
+then
+v  d  「 v  d = q 
+where 「 hides a small additive error. this in turns implies : v v  d  「 d. thus it would be sufficient to find a model with underlying distributions that span the same  or approximately the same subspace as the true topics.
+　while choosing just random vectors that span the same subspace as the topics  would immediately allow us to perform dimensionality reduction of the text data  nevertheless in general it is not enough for the text clustering per se. however  it turns out that the basis we build seem to be closely connected to the actual underlying topics  thus suggesting to do a na： ve classification according to the coordinate with the largest value. this method can be shown to be correct when only two topics are involved  and at the end of this section we present some additional retrospective intuition on why the model we build is related to the hidden topic distributions.
+　one source of vectors that are linear combinations of w  is a co-occurrence matrix r.
+　definition 1  co-occurrence matrix . let r wv be the random variable which indicates  how many times words w and v have occurred together in the same document  across the whole corpus. then the matrix of expectations r = e r  is called the co-occurrence matrix. the actual observation of r  which we see in the text  and also denote as r   is called the observed cooccurrence matrix.
+in other words a column of co-occurrence matrix  corresponding to term w  is an aggregate term distribution in all the documents containing term w.
+　let l be a diagonal m 〜 m matrix  such that ldd contains the length of document d. then it is easy to see that r =
+  and thus columns of r are indeed linear combinations of topical distributions. obviously true cooccurrence matrix is hidden  and we only know r . nevertheless it can be shown that as the number of documents |c| grows relatively to the size of the dictionary |d|  the normalized observed co-occurrence matrix uniformly approaches r  and they span approximately the same subspace. in  authors argued that an algorithm  that tries to maintain a large independence coefficient  by greedily choosing columns of normalized r   will result in v such that Γ v   − f Γ w  k   for some function f. as a corollary  they showed that using v as a topic distributions results in accurate recovery of underlying distributions.
+　however  while being feasible to run  their algorithm would still take a very long time to run on a large dataset.
+　we use heuristics to speed up the algorithm and to reduce the required sample complexity. first  we don't compute the full cooccurrence matrix  but only the columns which correspond to the words which have occurred at least t times and are not
+　in the stop-words list. parameter t is an empirical value and is set to approximately 1 of the dictionary size. this serves as both a speeding up and an error reduction measure: i.e. we don't analyze words  if there is not enough statistics for them. the resulting matrix is called truncated co-occurrence matrix1. second  our independence coefficient is heuristically approximated as a minimal l1 distance between the columns.
+　now we are ready to present the algorithm which finds the model.
+	algorithm 1	 finding  mixture model  .
+input: observed co-occurrence matrix r   number of topics k − 1  parameter t.
+output: topical space v . description:
+1. remove columns from r corresponding to stop-words  or having l1 norm less than t. normalize  w.r.t l1 norm  remaining columns.
+1. let  w1 w1  = argmax  set v1 to rw1 and h1 to rw1.
+1. for each c in between 1 and k:
+ a  find word w  such that column rw would maximize
+
+ b  set vc = rw and iterate.
+　our algorithm creates matrix v   which  in the limit  spans the same subspace as w  and that is sufficient for our lp algorithm to learn coefficients.
+　while our algorithm potentially might fail to find k sufficiently independent vectors due to the heuristics used  however if it succeeds  and this is checked during the final pseudoinverse lookup step   it still enjoys the same type of guarantees as original algorithm.
+1 joining the parts together
+　we start with presenting an algorithm  and then show simple iterative modification which allows even further decrease required sample complexity.
+　algorithm 1  unsupervised classification . input: documents c  parameter t.
+output: topical subspace h. dd and pd -estimated term distribution vectors and mixing coefficients. description:
+1. compute the matrix d  of documents signatures d .
+1. compute the observed co-occurrence matrix r  d  
+1. find the matrix v - our alternative mixture model  using algorithm 1. report h as our approximate topical subspace.
+1. let v    be matrix found via lp from theorem 1
+1. for each document d  with signature vector d :
+ a  compute p． = v  d   and d． = v p．  and report those as mixture coefficients and term distributions respectively.
+ b  classification: assign d to the distribution with the highest mixture coefficient.
+
+1
+note that we still keep full set of rows  including stop-words.
+because of the choice of v   it has a pseudoinverse with bounded maximal element  following the analysis of  this algorithm will provably recover term distributions as the number of documents goes to infinity. we refer reader to  for the details of the proof. while this algorithm works well on large collections  the following modification allows to reduce the required amount of data significantly. observe that our algorithm in fact uses only few columns of the co-occurrence matrix to build the topical subspace  which  effectively means that we use only small fraction of documents to construct probability distributions  and hence significantly increase our sampling error. to address this we use the following iterative modification of the algorithm. classification results of the first iteration  are used as a pre-classified data  to train algorithm 1. in other words  we use the whole corpus to rebuild and refine our topical subspace.
+　algorithm 1	 iterative classification  i-lp  . input: collection of documents c.
+output: classification cd for every document d. description:
+1. using unsupervised algorithm  compute intermediate classification.
+1. run supervised algorithm as if intermediate classification isour training data and obtain a new intermediate classification on the full collection.
+1. iterate the previous step l more times
+1. report current intermediate classification as the final.
+parameter l in this algorithm is a small constant  and we found that value l = 1  works well in all cases. also we note that while this procedure allows to greatly reduce the amount of data needed to produce good classification. however  as the amount of available data grows  the effect of applying second and consecutive iterations of algorithm 1 declines.
+1 relationship between found and underlying model
+1.1 binary classification
+　for simplicity  we assume that all documents have the same size s  each document is relevant to only one topic  and each topic is has the same number of documents relevant to it1. we show that if two topic distributions are far apart e.g.  then it is possible to do fully unsupervised classification of the collection  with the error approaching zero as the number of documents grows.
+　theorem 1  binary classification . suppose corpus is generated from a mixture w of two topics  such that
+  and let ε  δ are constants. then if the size s of each document is at least g Γ1 ε δ   and the total number of documents |c| exceeds f Γ1 ε δ |d|   for some appropriate polynomial functions f and g  then algorithm 1 with probability 1   δ will correctly classify at least 1   ε fraction of all the documents.
+　proof. first  since r  uniformly approaches r as the number of documents grows and since the number of documents can be a function of the size of the dictionary  we can assume without loss of generality that r = r .
+1
+ neither of these conditions are crucial but they are helpful to maintain clarity.
+
+figure 1: each point corresponds to a column of co-occurrence matrix. the most distant columns of the co-occurrence matrix  tend to be the ones that are close to the underlying topics
+　now  condition  implies that there are two words w1 and w1  such that w1    and
+　　　　　　　　　. this gives an obvious lower bound on a distance between columns of the co-occurrence matrix chosen by the algorithm 1  and that in turn lower bounds Γ h . now recall that all documents have underlying vectors either w1 or w1 and thus their representation in the space h would be of the form  α1 α1   where one of the components is at most 1 and another at least 1. the rest is a simple corollary of the lemma 1. 
+1.1 multi-topic classification
+　recall that each column w of co-occurrence matrix r d is a term histogram for documents containing word w. in other words  our algorithm tries to locate terms  such that corresponding terms histogram are as different as possible. the hope is that each such term would be only relevant to one topic  and corresponding term histogram would actually correspond to topic distributions.
+　geometrically this corresponds to the following interpretation. the set of topical distributions forms a k-dimensional polyhedron x  in n dimensional feature space. obviously all normalized columns of co-occurrence matrix would be lying in x. furthermore  if we assume that each document is relevant to only one topic  and each topic has at least one word relevant to only that particular topic  then we can expect corresponding column of cooccurrence matrix to be close to the actual topics  see figure 1. intuitively our heuristic then should produce points close to the vertices of x which correspond to the actual topic distributions. remark 1. replacing our greedy search by an algorithm which builds a convex hull for co-occurrence matrix might help to do classification better in the instances with large number of topics. however computing convex hull in n-dimensional space is a computationally expensive operation  and also it is an open question if an analogue of 1 could be proved for k   1.
+1 multiple word occurrences
+　note that if a particular word w has appeared in a document  then it seems natural that it is somewhat more likely to appear again than other word also relevant to the same topic. in the mixture model all consequent appearances have the same probability as the first one.especially this is noticeable in small documents like paper abstracts. to accommodate this  in our experiments we ignore second and all consequent appearances of the same word within one document1.
+1. experiments
+　for our experiments  we have used two datasets. the first one is a subset of abstracts from arxiv   which approximately 1 scientific abstracts on 1 different categories  which we used as our primary dataset. our second collection is the 1 newsgroup  which contains 1 messages posted to one of the 1 usenet groups.
+　with arxiv  algorithm 1 was tested as both unsupervised learning algorithm and the dimensionality reduction step. in both cases it has shown outstanding results. particularly on 1 topic classification problem  algorithm outperforms lsi  and performed better than svm with 1  1  training documents.
+　in the second dataset  1 newsgroup   we do binary classification  and compare it with results of . due the scarcity of data  recall that we need to build huge co-occurrence matrix   we were not able to run our algorithm on 1-topic classification problems. however we did experiments with those sets in a setting where for each topic our algorithm was given a  hint - a descriptive keyword  as an additional noise reduction measure.
+　for our tests  we have used svmstruct implementation of support vector machines due joachims . our algorithm was implemented using matlab1 and python1.
+　for the dictionary  we have used words which have occurred at least 1 times and we have used neither stemming  e.g. words 'test' and 'tests' are considered different words   nor stop-words  e.g. words such as 'a'  'the'  removal.
+1 arxiv
+　due to the large amount of computer resources required to perform lsi  we perform our comparison tests with latent semantic indexing  on randomly selected 1th of documents from each category. later we also run our algorithm on the selected full arxiv categories.
+　as our first experiment  we classify 1 documents on hep-ph  high energy physics - phenomenology  against 1 documents on astro-ph  astrophysics . for each document  we produce a 1dimensional vector of document relevancies to semantic dimensions. illustrative representation of both algorithms outcome is presented in figure 1. for lsi 1-nd and 1-rd singular vectors were used for the projection1. while both sets are approximately linearly separable  as one can see clusters are very distinct for our method  whereas in lsi they are barely distinguishable  and additional clustering is needed.
+　second  we do four topic classification between astro-ph  hepph  cond-mat  condensed matter  1 documents  and math  mathematics  1 documents . our algorithm fully succeeds in recovering the topics  and performs almost as well as trained svm. for lsi  further classification is needed. in order to minimize an additional error introduced by extra unsupervised method  we have trained svm to do final discrimination between topics. comparison results are presented in table 1. we also included classification results for trained on a full dictionary svm as a reference. note
+
+1
+ we also did experiments where all words were counted accordingly to their actual frequencies or tf.idf  measures  those produced comparable  yet slightly worse results. we don't present these results in the current paper. 1
+ http://www.mathworks.com. 1 http://www.python.org.
+1
+recall that the first singular vector is associated with stop-words
+#lsi + svmi-lp+ svmsvmi-lp1n/an/an/a1%1.1%1%1%-1.1%1%1%-1.1%1%1%-1.1%1%1%-1.1%1%1%-1.1%1%1%-table 1: svm vs. lsi+svm vs i-lp. accuracy of 1-way classification on a subset of arxiv of 「 1 documents. first column contains number of labeled samples per topic  supplied to svm step. the last column is performance of our method  which does not need any training data. rows 1 contain averaged over 1 runs accuracy.
+iteration l #1 docs1 docs 1%1%
+1%1%
+1%1%
+1%1%
+1%1%
+table 1: effect of iterations as amount of available data grows. in both cases classification is done on the same topics  hep-ph  cond-mat  math  astro-ph .
+that our method performs almost as good as svm with 1 training documents per topic  e.g. 1 total .
+　now we switch to the full arxiv. in the first experiment  we do unsupervised clustering for 1 largest categories  and compare performance a gain from consequent iterations. as expected the effect for full arxiv is nearly not as dramatic as for 1 document subset. this supports our claim that iterations are helpful to reduce the required amount of data  but they don't give much improvement when plenty of input data is available.
+　next  we do classification in the datasets with 1 and 1 topics  for which we add category gr-qc  general relativity - quantum cosmology  and nucl-th  nuclear theory  to the test set. while accuracy has declined it is still remained very high  especially  considering unsupervised nature of the method and closely related categories  e.g. quantum cosmology vs. astro-physics . detailed classification results are presented in table 1
+　our last experiment on arxiv is a test of our iterative algorithm as a dimensionality reduction step. to measure the quality of our projections we compare the performance of supervised method  svm  on a full feature set with svm trained on projection subspace. for that we try 1-  1- and 1- categories test cases. the 1- and 1- category datasets contains the same categories as above. for the last one we add four more: quant-ph  nlin  physics and hep-th. the largest dataset contains 「 1 documents. results are presented in table 1.
+remark 1.	unsupervised classification of 1 and more topics
+proved to be difficult for our algorithm. the classification had less than 1% accuracy on one or more topics. one such example is presented in table 1. while we suspect insufficient amount of data to be the major reason  it might also be the point where our heuristic algorithm starts to break  and/or the mixture model becomes less accurate description of a textual data. future exploration of those reasons is a very interesting next step.
+　
+
+figure 1: result of binary classification between hep-ph  1 docs  and astro-ph  1 docs . each points represents the coordinates of a document in the topical subspace. lines on the each figure approximately separates documents of different categories. note that for i-lp  this line is always x = y  for lsi one has to do additional clustering to locate it.
+astro-phcond-mathep-phmathprecisioncluster 111.1%cluster 111.1%cluster 111.1%cluster 111.1%recall:1%1 %1 %1 %1 %astro-phcond-matgr-qchep-phmathprecisioncluster 1111%cluster 1111%cluster 1111%cluster 1111%cluster 1111%recall:1%1%1 %1 %1 %1 %astro-phcond-matgr-qchep-phmathnucl-thprecisioncluster 1111.1%cluster 1111.1%cluster 1111.1%cluster 1111.1%cluster 1111.1%cluster 1111.1%recall:1 %1%1 %1%1 %1%1%table 1: confusion and precision/recall tables for 1-  1-  and 1-ways  bottom  classifications. the rightmost bottom number is the total accuracy  e.g. fraction of documents classified correctly.  datasets are of the sizes 「 1 and 「 1 and 「 1 abstracts respectively. order of clusters in the table has changed to maintain a 'diagonal shape' of the table  as our algorithm by itself has no knowledge of true cluster order.
+
+#1 topics  「 i-lp+svm1 documents 
+svm1.1%1%1.1%1%1.1%1%1.1%1%1.1%1%1.1%1%1.1%1%
+1 topics  「
+i-lp+svm1 documents 
+svm1%1%1%1%1%1%1%1%1%1%1%1%1%1%
+1 topics  「
+i-lp+svm1 documents 
+svm1%1%1%1%1%1%1%1%1%1%1%1%1%-table 1: i-lp-algorithm as a dimensionality reduction step. svm algorithm trained on the full dictionary is compared against svm algorithm trained on the topical subspace. the test cases contain 1  1 and 1 underlying topics. the number in the first column is number of labeled documents per category supplied to svm. accuracy for the first 1 rows is averaged over 1 runs. each number represent accuracy for corresponding test. for the last test in 1 topic test  the running time of svm on has exceeded 1 hours.
+.
+　
+
+figure 1: lsi +svm vs. i-lp vs. svm  1-way classification on a subset of arxiv of 「 1 documents. x-axis contains number of labeled examples per category supplied to svm  note that there is no svm step for i-lp  so its performance is a constant .
+1 1 newsgroup
+　1 newsgroup collection consists of 1 groups  each containing approximately 1 messages. below is the list of groups  where we have used the same numbering as in 
+ng1: alt.atheism  ng1:comp.graphics 
+ng1: comp.os.ms-windows.misc 
+ng1: comp.sys.ibm.pc.hardware 
+ng1: comp.sys.mac.hardware 
+ng1: comp.windows.x 
+ng1: misc.forsale  ng1:rec.autos 
+ng1: rec.motorcycles 
+ng1: rec.sport.baseball 
+ng1: rec.sport.hockey 
+ng1: sci.crypt  ng1: sci.electronics 
+ng1: sci.med  ng1: sci.space 
+ng1: soc.religion.christian 
+ng1: talk.politics.guns 
+ng1: talk.politics.mideast 
+ng1: talk.politics.misc 
+ng1: talk.religion.misc
+while 1 per group might seem to be a lot of documents  it is not quite enough to build n 〜 n co-occurrence matrix  especially if more than two topics are involved. therefore  we only compare our algorithm on binary classification with results of  for pqr  p-k-means and k-means methods. we also note that in  experiments were run on 1 messages subsets  which render the test results to be not directly comparable with ours.
+　in our experiments we have removed the headers from all the messages  and all words that have occurred less than 1 times.
+　for non-related groups  ng1/ng1 and ng1/ng1  our algorithm gives 1% and 1% accuracy  respectively  best in  is 1% and 1% respectively . for related groups accuracy has dropped. for ng1/ng1 and ng1/ng1 we have 1% and 1%  vs. 1 and 1 in    and for the final two examples our classification is close to meaningless1. although there might be multiple reasons for this drop  we suspect the primary one to be the insufficient amount of data - with high probability noise influence our choice of columns in co-occurrence matrix. to support this claim  we do the following experiment. for each group  a single
+
+1
+note that random classification gives 1% accuracy.
+descriptive word is picked  and these words are given as a part of the input. the algorithm then chooses columns of co-occurrence matrix corresponding to these words as a first approximation to the topic subspace  instead of using greedy search . after that  it runs the iterations in the usual mode. here is the list of words we have used as hints:
+ng1: atheism  ng1:graphics  ng1: windows
+ng1: ibm  ng1: mac  ng1: sun
+ng1:car  ng1: bike  ng1: baseball 
+ng1: hockey  ng1: space  ng1: israel
+ng1: fbi
+the classification results for this experiment are given in the last column of table 1. quite expectedly  all problematic  ng1/ng1 and ng1/ng1  binary cases were resolved  and the rest observed only a slight increase in the accuracy. for hinted-i-lp  in addition  ran 1-way classification tests. the algorithm certainly succeeds on the first test  unrelated topics  1% accuracy . for the second test  while it outperforms all other algorithms - the results are not as impressive  computer related topics  1% accuracy   although still significantly better than the best in . this again confirms the intuition that for closely related topics our algorithm needs more statistical data in order to discriminate between them.
+1. conclusions and further directions
+　we presented a new technique for the large scale unsupervised text classification  which to the best of our knowledge outperforms all unsupervised methods. while this is a very applicable result by itself  it suggests that there is a lot of structure still hidden in the high-dimensional textual data. we believe that our algorithm is an important first step towards exploring and understanding such structure.
+　another distinctive feature of our algorithm and analysis of  is that they provide guarantees about underlying term distributions and possibly about classification accuracy within the model and thus potentially could be used to measure suitability of the model for a given task. particularly  the success of our method shows that mcmm is indeed a good approximation for textual data.
+　our approach poses many new questions of both technical and theoretical nature. first  we used heuristic to build a mixture model. while it has worked surprisingly well for the classification  it would be very interesting to see if our mixture is indeed related to the underlying topics in the general case. alternatively  can one find in some sense  the best  mixture model in feasible time  it is our belief that for the single-label classification problem  there is a suitable definition of the  best  model  where it could be proven to be close to underlying model. however perhaps  we might need additional assumptions about the model.
+　another interesting direction is to see if one can apply our method to linearly dependent topics  such as simultaneous clustering by authors and content  and/or hierarchical clustering.
+newsgroupsp-qr 1 p-kmeans 1 k-means 1 i-lphinted i-lpng1/ng1.1%1%1%1%1%ng1/ng1.1%1%1%1%1%ng1/ng1.1%1%1%1%1%ng1/ng1.1%1%1%1%1%ng1/ng1.1%1%1%1%1%ng1/ng1.1%1%1%1%1%ng1/ng1/ng1/ng1/ng1.1%1%1%- %1%ng1/ng1/ng1/ng1/ng1.1%1%1%- %1%table 1: accuracy of classification on 1 newsgroup dataset. last column corresponds to the case where algorithm is given a hint: a　from the theoretical point of view  improving actual bounds on the sample complexity presented is  and particularly matching them with our experimental results  is a very important open question. one approach is to assume that distributions have a particular shape - for example power-law like. finally  as it was mentioned in   Γ is similar to the smallest singular value. can one construct analogues of other singular values and build something similar to svd  but with respect to l1 norm  would it describe textual data better than traditional approach  what could one say about relevant word for each topic it has to classify.
+data partitioning when similarity is measured using l1 norm  in the general case 
+1. acknowledgments
+　author would like to thank jon kleinberg and thorsten joachims for useful discussions and recommendations  paul ginsparg and paul houle for providing collection of arxiv abstracts  and also aleksandrs slivkins and mey khalili for their help in preparation of this manuscript.

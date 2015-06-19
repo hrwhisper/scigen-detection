@@ -1,0 +1,206 @@
+for trec 1 we participated in the named page finding task and the cross-lingual task.  in the web track  we explored the use of linear combinations of term collections based on document structure. our goal was to examine the effects of different term collection statistics based on document structure in respect to known item retrieval.   we parsed documents into structural components and built specific term indexes based on that document structure.  each of those indices have their own collection statistics for term weighting based on the type of language used for that structure in the collection.  for producing a single ranked list  we examined a weighted linear combination approach to merging results.  our approach to known  item retrieval was equal or above the median 1% of the time and 1% above the mean score of submitted runs.  in the arabic track we participated in arabic cross-language information retrieval  clir  and in arabic monolingual information retrieval. for the monolingual retrieval  we examined the use of two stemming algorithms. the first is a deeper approach  and the second is a pattern-based approach. for the arabic clir  we explored the retrieval effectiveness by using a machine translation  mt  system and translation probabilities obtained from parallel documents collection provided by the united nations  un . 
+ 
+keywords: known-item search  document structure retrieval  linear combination of retrieval strategies  cross-lingual arabic retrieval  light-stemming  pattern-based stemming 
+named page finding task 
+many years of research have been devoted to examining the question of what are the best retrieval strategies for retrieving information  this year we explore a variation on the task where a specific or knownitem is sought after given a query or topic.  our research this year specifically explores three basic questions about this task: 
+ 
+how do document structure approaches compare to traditional ranking strategies given that the task and evaluation metrics have changed  
+ 
+1. what type of document structure can be exploited to improve the effectiveness of this task  in comparison to traditional approaches  
+ 
+1. how effective are weighted linear combination approaches to combining evidence from document structure retrieval approaches. 
+ 
+many ranking strategies have been examined in the past.  three of the most studied algorithms are pdln  pivoted document length normalization    okapi bm1   self-relevance  due to their effectiveness in prior trec evaluations.  in our calibrations  we have found bm1 to perform well so we use it as a baseline. 
+ 
+some work has already been done on the extraction and storage of html term information .  additionally  much has been done with the use of link information to identify hubs and authorities .  since many content developers use html elements/tags to improve the readability of their documents  we hypothesize that simply using these tags may improve effectives.   there are many different tags that could be used   e.g.; title  section headers  anchor text  bold  underlines  comments  etc.   but we initially focus on only three types: title  anchor text and text.   
+ 
+finally  we examine the fusion of different document structure indexes to produce a single ranked list for the know-item task.  those different document representations can be merged with linear combinations maximizing mutual evidence.  when combining evidence we extend prior research of weighted linear combination approaches. 
+ 
+in recent years  the category of work known as data fusion or multiple-evidence described a range of techniques in information retrieval whereby multiple pieces of information are combined to achieve improvements in retrieval effectiveness.  these pieces of information can take many forms including different query representations  different document representations  and different retrieval strategies used to obtain a measure of relationship between a query and a document.  several researchers have used combinations of different retrieval strategies to varying degrees of success in their systems  1  1 .  belkin  et al. examined the effects of combining several different query representations to achieve improvements in effectiveness  1  1 .  lee examined the effect of using different weighting schemes to retrieve different sets of documents using a single query and document representation  and a single retrieval strategy . 
+ 
+fox and shaw examined combination algorithms that increase the score of a document based on repeated evidence of its relevance  as done in .  one of the algorithms designed by fox and shaw  combmnz  has proven to be a simple  effective method for combining result sets.  it was used by lee in his fusion experiments  and has become the standard by which newly developed result combination algorithms are judged.  more recent research in the area of meta-search engines has led to the proposal of several new result combination algorithms of even greater complexity  making use of training data and techniques such as voting algorithms and bayesian inference  1  1  1 .  although these algorithms were shown to behave comparably and occasionally superior to combmnz  for our research we use fox's combmnz algorithm  leaving other linear combination approaches as a topic of further research. 
+ 
+in the next section we describe our experimental approach to examine the above questions.  in the results section we present our results from this year's experiments.  lastly  we conclude and present future possible research directions 
+ 
+methodology 
+to conduct our research we use the iit retrieval system aire .  our system builds a traditional inverted index based on a given document structure s .  additionally  our system uses conflation classes  instead of a more commonly used stemmer such as porter .  those classes have been modified over the years as problem term variants have been encountered.  additionally  aire uses a generated statistical phrase list  where the statistical phrases were generated with a news collection and idf filtering to reduce the final phrase list size.  phrases are generated from phrases via a bi-gram sliding window algorithm and weighted with 1% importance in relation to keyword weighting for retrieval.  basic term weighting uses the okapi bm1  equation 1. 
+ 
+ 
+  
+¡Ælog   n n +n. 1+ .1           k 1k++1 tf* tf *  k k1++1 qtf*qtf      
+ 
+k = k1*  1 b  +b*dl /avdl  
+equation 1: okapi bm1  
+where:  
+  tf = frequency of occurrences of the term in the document 
+  qtf = frequency of occurrences of the term in the query 
+  dl = document length 
+  avdl = average document length 
+  n = is the number of documents in the collection 
+  n = is the number of documents containing the word 
+  k1 = 1 
+  b = 1 or 1  we use .1  
+  k1 = 1  set to 1 or 1  controls the effect of the query term frequency on the weight -- smaller is less. 
+ 
+we indexed the 1gb government collection producing a full-text index  html title term index  and an anchor text index.  the anchor text index differed from the other indexes  in that an additional mapping stage was required so referencing anchor text data can be linked to the referenced trec document name.  for our experimental layout we first produce a baseline run based on bm1  conflation classes  phrases  full-text index  referred to as the  base  run with the results summarized in table 1.  
+ 
+two additional result sets were created; the first one was produced using only the title index and the second produced from only using the anchor text index.  with those three indexes and result sets our original three questions can be examined.  with a baseline result set  additional document structure techniques can be compared in relation to each other  our first question .  our second question we briefly explore by examining anchor text and title text in relation to full text retrieval.  in the next section we present results examining the effectiveness of the various structures and their combinations  our third question  with respect to baseline ad-hoc retrieval strategies. 
+ 
+our linear combination is a three-step process.  first our scores are normalized from each document representation retrieved set using min-max normalization  equation 1.  the advantage of this method is that it preserves all relationships of the data values exactly.  it does not introduce any potential bias into the data.  secondly  the final scores are calculated using combmnz  equation 1.  where each individual score is biased via alpha and beta weights assigned to the document structure. 
+ 
+ 
+combmnz = sum individual similarities  * number of nonzero similarities 
+ 
+equation 1: combmnz 
+ 
+v' =   v - min   *   new max - new min   /   max - min   + new min 
+ 
+equation 1: min-max normalization 
+for our linear combination experiments we did not have relevance judgments  thus for our submitted runs we submitted runs based on guesses for the best weighting of linear combinations.  additionally  we limited the combinations of results and weighting to the experiment show in figure 1. 
+ 
+
+figure 1: linear combination hierarchy 
+results 
+our first sets of results examine the retrieval effectiveness of the various document structure elements.  in table 1 we see that the full text index significantly outperforms anchor and title indexes.  this is not all that surprising given that anchor retrieval depends on the vocabulary of the referring text  thus not all documents have suitable referring text for the given query set.  similarly  title only retrieval is dependant on the author's vocabulary meeting the query language for this query set and is a subset of the vocabulary used for full text thus performing less than full text is not unexpected.  
+ 
+while the vocabulary for title and anchor text alone may not be as effective as full text for this task/query set  we further examine if combinations of the structures can improve effectiveness.  in the second set of experiments we fused the title and full text indices with the combmnz algorithm with various alpha  beta weights for each document representation index.  table 1 displays the results of those experiments  while we did not have the final qrels  the run we chose ended up being the best combination of the two retrievals   alpha=.1 and beta=.1  as highlighted in the table.  effectiveness improvements with any combination of full text and title text retrieval are not found.  while a slight improvement is found in the top 1  this does not seem to be a significant improvement of any type. 
+   
+ 	full text 	anchor 	title mrr 	.1 	.1 	.1 in top 1 	1 	1 	1 
+	found 	1 	1 	1 
+table 1: document structure index runs 
+ 
+	mrr 	t1 	found ¦Á 	¦Â 
+	.1 	1 	1 	.1 	.1 
+.1 1 .1 .1 .1 1 .1 .1 
+	.1 	1 	1 	.1 	.1 
+	.1 	1 	1 	.1 	.1 
+	.1 	1 	1 	.1 	.1 
+.1 1 1 .1 .1 .1 1 1 .1 .1 .1 1 1 .1 .1 table 1: title & full fusion  title = ¦Á  full= ¦Â 
+	mrr 	t1 	found ¦Á 	¦Â 
+	.1 	1 	1 	.1 	.1 
+	.1 	1 	1 	.1 	.1 
+	.1 	1 	1 	.1 	.1 
+	.1 	1 	1 	.1 	.1 
+.1 1 .1 .1 
+.1 1 .1 .1 
+	.1 	1 	1 	.1 	.1 
+	.1 	1 	1 	.1 	.1 
+	.1 	1 	1 	.1 	.1 
+table 1: tf & anchor fusion  ft = ¦Á  anchor= ¦Â
+we then fused the combined evidence from  full text and title text  with anchor information and explored various weighting variables.  our submitted run  was the most effective in terms of mrr  but did not yield the greatest number in the top 1.  although the mrr is slightly worse than our full text approach  the number of correct results in the top 1 and  found  increased slightly.  after receiving the relevance judgments from nist we explored other various combination orderings  but found no improvements or negative effects for various orderings of fused results in retrieval effectiveness for all combinations. 
+ 
+these results are surprising given that most popular search engines use document structure for improving the effectiveness of their services.  while their improvements may come for other aspects of their approach  using the information as we did showed no significant advantage.   
+ 
+tfa 
+	mrr 	.1 	.1 	.1 
+in top 1/1% 1% 1% not found 1.1% 1.1% 1.1%  = mode 1.1% 1.1% 1% = median 1.1% 1.1% 1% 
+	 = mean 	1.1% 	1.1% 	1% 
+table 1: submitted result summary 
+our baseline full text retrieval approach for the known-item task was 1% of the time equal or above the median and 1% above the mean score of submitted runs.  additionally  our approach produced the item in the top 1 results 1% of the time and only missed the know-item 1% of the time with 1 queries.  our results using document structure marginally improved top 1 and found statistics  but did not improve mrr.  these results are rather surprising in that the bm1 approach had been designed  tuned and tested for a different task and metric.  while its success validates the robustness of the algorithm  more research needs to be conducted using document structure to determine how that information should be incorporated into the ranking strategy or that it does not benefit know-item retrieval. 
+named-item summary 
+for trec 1 we explored the use of linear combinations of term collections based on document structure features.  our goal was to examine the effects of different term collection statistics based on document structure in respect to known item retrieval.   our approach is to dissect a document into structural parts and build specific term indexes based on that document structure.  each of those indices would have their own collection statistics for term weighting based on the type of language used for that structure in the collection.  for producing a single ranked list  we examined a weighted linear combination approach to merging results.   
+ 
+while our document structure linear combination experiments did not yield any promising results  our approach to known item retrieval was 1% of the time equal or above the median and 1% above the mean score of submitted runs.  additionally  our approach produced the item in the top 1 results 1% of the time and only missed 1% of the known-items out of 1 topics. 
+cross-lingual track 
+in the arabic track  we participated in arabic cross-language information retrieval  clir  and in arabic monolingual information retrieval. we dedicated our effort to improve the retrieval effectiveness of arabic monolingual retrieval  as we believe it is essential for any arabic ir or clir systems.  for the monolingual retrieval  we used two stemming algorithms. the first is a deeper light-based approach  and second is pattern-based approach. for the arabic clir  we explored the retrieval effectiveness by using two recommended standard resources. the resources are a machine translation  mt  system and translation probabilities obtained from parallel documents collection provided by the united nations  un .  the arabic aire retrieval system is used for experimentation.  we used the iit similarity function and rocchio relevance feedback. 
+background 
+unlike alphabets based on the roman script  the orientation of writing in arabic is from right-to-left. the shape of most of the characters depends on their position within a word and the character adjacent to them. most arabic words are morphologically derived from a list of roots. the root is the bare verb form; it can be triliteral  quadriliteral  or pentaliteral. most of these roots are made up of three consonants. the arabic language uses a root-and-pattern morphotactics; patterns can be thought of as templates adhering to wellknown rules. these patterns generate nouns and verbs. roots are interdigitated with the patterns to form arabic surface forms.   
+ 
+arabic words are classified into three main parts of speech  nouns  including adjectives and adverbs   verbs  and particles.  all verbs and some nouns are derived from a root. arabic sentences are either verbal or nominal. verbal sentences contain a verb before the subject  and may contain complements. nominal sentences begin with a subject followed by a noun  an adjective  a prepositional phrase  or an adverb. in formal writing  arabic sentences are delimited by commas and periods as in english. 
+arabic monolingual retrieval  
+unlike indo-european languages such as english  the arabic language is a highly inflected language. from an arabic root  many surface forms can be derived. the surface forms of a word have a great impact on a language like arabic with a strong morphology since surface forms comprise at least two morphemes: a three consonantal root conveying semantic meaning and a word pattern carrying syntactic information. moreover  most connectors  conjunctions  prepositions  pronouns  and possession forms are attached to the arabic surface form.   retrieving based on surface form results in low retrieval effectiveness as concluded in  1 .  
+ 
+another strategy is to retrieve based on the root of the arabic word. the goal of the root-based stemmer is to detect and extract the root of an arabic surface word and it requires very deep syntactic analysis.  alshalabi  developed a system that detects the root and the pattern of arabic words with verbal roots. khoja  designed and experimented a novel algorithm for root detection. the retrieval based on the roots improves the retrieval effectiveness as compared to the surface form of the arabic words. as in our earlier efforts  1   light stemming outperforms the root-based stemming. therefore  light stemming approaches have potential promise  
+ 
+a deeper light stemming approach 
+the aim of this algorithm is to conflate more related terms in a conflation class than the classes  produced in . to achieve this goal  we used a training corpus to identify the frequent suffixes and prefixes. the corpus was obtained from two saudi arabian newspapers  namely  alriyadh and aljazirah from the year 1 to 1. this corpus consists of more than one million words that cover a variety of subjects.  the maximum length of the prefixes and suffixes is four letters and the minimum is two letters. considering more than four letters as prefix of suffix results in ambiguous term after stripping them out. also  one letter is not enough to form a valid suffix or prefix. 
+ 
+this automatic algorithm adheres to the following steps: 
+ 
+1- check whether the given arabic word is arabicized   
+1- remove any diacritics in the given arabic terms  
+1- start an aggressive normalization  1- check for the prefix waw  
+1- check for duplicate prefixes  
+1- detect definite articles  
+1- check for suffixes  
+1- check for prepositions that attached to the given arabic stem  
+1- check for prefixes  
+1- normalize the alf-maksorah and the alf. 
+ 
+throughout the above steps  each step is associated with an event  when the event occurs  an action will be taken. the algorithm checks the length of stem to decide whether to fire the associated action. the minimum length of the stem is three letters. choosing three letters as minimum maintains the semantic of the arabic word since most arabic words are built up from three consonants. in table 1 we describe some candidate suffixes that considered for removal that we obtained from corpus statistics.   
+ 
+ 
+suffix example meaning                          their teachers  plural feminine                    her teachers  singular feminine              their book  dual masculine             civilians              two apples  dual feminine   
+ 	table 1: some suffixes derived from the corpus 
+ 
+a pattern-based stemming approach 
+this approach uses patterns to detect the affixes of the given arabic word. the algorithm starts first to match a pattern on the given arabic word. for the case of liberal matching mode  if the matched letters are greater than one  then the algorithm considers that pattern as valid then prefixes and the suffixes will be removed. a more restrictive mode can be applied  i.e.  increasing the number of matching between the given arabic terms and the patterns to consider the current pattern for candidacy.  the pattern-based algorithm adheres to the following steps: 
+ 
+1. remove any diacritics in the given arabic terms. 
+1. normalization such as alf  and ya-maksorah. 
+1. check for the prefix waw 
+1. check for duplicate prefixes 
+1. detect definite articles 
+1. match the given arabic term on a list of patterns. if there is at least one letter match in the given arabic term  then the algorithm strips out the suffixes and prefixes of that term based on the matched pattern. if the algorithm fails to extract and remove the suffixes or the prefixes from the given arabic terms  then the algorithm proceeds executing from step 1 to the end. 
+ 
+ 
+to clarify the roles of patterns in arabic morphology  consider the  root        . this root is transliterated as 
+ ktb   which is measured with pattern       . the pattern        is transliterated as   f¨¤l .   f  corresponds to the first letter         ¨¤  corresponds to middle letter      and  l  corresponds to last letter    . the pattern preserves f  ¨¤  and l in the same order  whereas vowels and other letters can be added to form a pattern. as shown in table 1  many patterns are derived from the base pattern   f ¨¤ l  of the root  ktb . as shown  the pattern   f ¨¤ alh  form the word          by attaching the vowel      and letter        to the root  ktb . locating the original letters of the given arabic word in the pattern is essential step to remove the prefixes and suffixes.  
+ 
+arabic word pattern meaning      fa¨¤l writer       f¨¤alh writing          f¨¤l the two writer          fa¨¤l the two writers  dual masculine in accusative form    	table 1: patterns  and their surface forms 
+ 
+ 
+                 position                                  1th         1rd         1nd       1st  
+ 	 
+ 	 
+ 	 
+ 
+  position                                  1th         1rd         1nd       1st 
+                    
+ 	figure 1. matching the word             and the pattern        
+ 
+ 
+figure 1 illustrates the process of matching and stripping out the prefixes and suffixes.  before considering a suffix or prefix for removal  a matching process between the pattern and the given arabic term is performed. for liberal matching  at least one letter from the pattern should match the arabic term in same position. 
+arabic cross-language information retrieval  clir  
+in the cross-lingual track  we experimented using the recommended standard resources that are provided by trec for query translation. we used two means of query translations  machine translation system  mt  and the translation probability that are derived from the un corpus via bbn . 
+ 
+ajeeb mt system 
+machine translation systems can be defined as any computer-based system that seek automatically to transform a target text from one language into another language by using context information. one of the approaches being used for clir is using the existing machine translation system which usually involves automatic translation of the queries  from one language to another. we used ajeeb mt system  www.ajeeb.com  for translating the provided 1 queries  titles and descriptions  from english to arabic. 
+ 
+translation probability 
+translation probability means that if a term in the source language has several translations in the target language  each term in the target language gets probability. bbn construct translation probabilities that are derived from parallel corpus. the parallel corpus was obtained from the united nations  un . the statistical machine translation giza++ was used to provide the transaction probabilities. the probability p a|e  has several terms as candidate for translation  we selected the highest probability for each entry. 
+results analysis 
+in arabic monolingual retrieval  our results demonstrate the usefulness of using stemming in improving the retrieval precision. as shown in table 1  the initial investigation of the pattern-based algorithm  which is in the liberal mode  achieved an improvement over the deeper light stemming algorithm.  
+ 
+ deeper light stemming pattern-based stemming average precision 1 1  
+ 	table 1: average precisions of deeper light and pattern-based approaches 
+in both stemming algorithm  some queries got as close as 1% measured in average precision. the reason behind this drop of retrieval effectiveness is that these queries have fatal error in spelling as well as some has ambiguous term. for example query number 1 got 1% measured in average precision. 
+                         
+ 
+the term            appears as one single term. as well as  the term         is an ambiguous term. these reasons make our algorithm performed poorly in this query. 
+ 
+figure 1 demonstrates the average precision at several levels of recalls   1  of the pattern-based and deeper light algorithms. 
+ 
+in cross-lingual retrieval  the results of using the translation probabilities performed poorer than machine translation approach as shown in table 1. the reason behind this drop of retrieval effectiveness is that the construction of the translation probabilities is based on an aggressive stemmer  which increases the chance of the co-occurrence of two different terms.  
+ 
+ machine translation statistical translation average precision 1 1  
+ 	table 1.  average precisions of deeper light and pattern-based approaches 
+ 
+figure 1 demonstrate the average precision at several levels of recall  1   as shown the machine translation system is more effective than the statistical translation. 
+ 
+ 
+
+ 	1.1.1.1.1.1.1.1.1.1
+ 	 	recall
+ 	figure 1. average precision of pattern-based and deeper light algorithms. 
+ 
+ 
+
+ 	1.1.1.1.1	recall1	1	1	1	1	1
+ 	 	 
+   	figure 1. average precision of machine translation and  translationsprobabilities  
+clir summary 
+we showed that stemming is an important approach to improve the retrieval effectiveness of any arabic information retrieval systems. in trec-1  we participated in both monolingual and cross-lingual retrieval.  our focus in this year is on the improvement of arabic monolingual information retrieval systems. we presented a new automatic algorithm for stemming  namely  the pattern-based. we experimented with this algorithm by using the liberal mode. in future work  we plan to make it more restricted for matching the given arabic word and the pattern as well as to increase the number of patterns to enhance the rule-based operations of the algorithm. 
+ 
+in cross-lingual retrieval  we experimented with the standard resources that are provided via trec1. we found that the machine translation system achieved superior performance compared to translation probabilities. one reason for this is that the construction of the translation probabilities derived from the un parallel corpus is based on an aggressive stemmer. in addition  some terms are not covered for translation. we plan to enhance the quality of the extracted parallel terms and to add more terms for wider coverage. 
+ 

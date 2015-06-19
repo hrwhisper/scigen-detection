@@ -1,0 +1,48 @@
+this paper studies the problem of unified ranked retrieval of heterogeneous xml documents and web data. we propose an effective search engine called sailer to adaptively and versatilely answer keyword queries over the heterogenous data. we model the web pages and xml documents as graphs. we propose the concept of pivotal trees to effectively answer keyword queries and present an effective method to identify the top-k pivotal trees with the highest ranks from the graphs. moreover  we propose effective indexes to facilitate the effective unified ranked retrieval. we have conducted an extensive experimental study using real datasets  and the experimental results show that sailer achieves both high search efficiency and accuracy  and outperforms the existing approaches significantly.
+categories and subject descriptors
+h.1  database applications  : miscellaneous
+general terms
+algorithms  performance  languages
+keywords
+keyword search  xml  web pages  unified keyword search
+1. introduction
+　existing web search engines cannot integrate the information from multiple interrelated pages to answer keyword queries meaningfully. the next-generation web search engines require link-awareness  or more generally  the capability of integrating the correlative information that are linked through hyperlinks. for example  to search for the conferences including the topic of  information retrieval  and held in  beijing 1   users issue a keyword query of  conference 1 beijing information retrieval  to a search engine like google. as we all know   www 1  is held in beijing and  information retrieval  is one of its major research topics  but surprisingly  the homepage of  www 1  is not in the top-1 results and not even in the first one hundred answers either. this is because  www
+copyright is held by the author/owner s .
+www 1  april 1  1  beijing  china. acm 1-1-1/1.
+1  splits its information into several pages methodically.
+the page of important date contains keywords  1 conference    information retrieval  is contained in the page of call-for-paper and  beijing  is included in the homepage. consequently  existing search engines often include a number of false negatives due to the limitation of their models which take only a list of individual pages as the result but neglect the fact that interrelated pages linked by hyperlinks may be more meaningful. however  this is not an ad hoc problem but ubiquitous over the internet.
+　as xml is widely recognized as the data interchange standard over the internet  the research community has been introducing keyword search capability into xml documents 1  1  1 . to the best of our knowledge  few existing works could be universally applied to web pages and xml documents. therefore  providing both effective and efficient search ability over such heterogeneous collections within a single search engine remains a big challenge. this calls for a framework for indexing and querying over large collections of heterogeneous data. to address these problems  we propose an effective search engine sailer based on structure-aware indexing for unified retrieval of heterogeneous xml and web documents. as opposed to the traditional search engines  which return a list of individual pages as the results  sailer extracts a set of relevant pages  which are highly interrelated and related to queries.
+1. sailer
+1 graph modeling
+　we model the web pages and xml documents as graphs  where the nodes are respectively pages and elements and links are hyperlinks between pages and parent-child relationships  or idref  in xml documents. we can translate the problem of keyword search over the heterogeneous data to the problem of finding the connected trees with minimal cost over the graphs  which contain all or a part of input keywords  called steiner trees. however  it is fairly difficult to extract the steiner trees in a large graph  which is np-hard . alternatively  we devise indices for facilitating keyword-based search over large graphs.
+1 pivotal trees
+　definition 1.  pivotal node  given a graph g  a keyword ki  and a node n （ g that directly or indirectly contains ki  the node pn ki n   which directly contains ki and has the minimal distance with n  is called a pivotal node. that is  pn ki n =argminnr{δ nr n |nr （ g} 
+where nr directly contains ki and δ nr n  denotes the distance between nr and n.
+1
+www 1 / poster paper	april 1  1 ， beijing  chinadefinition 1.  pivotal tree  given a keyword query
+k={k1 k1 ，，，  km}  and a graph g  consider node n （ g  the subtree rooted at n and containing the pivotal paths from n to every pivotal node pn ki n  is called a pivotal tree.
+　pivotal trees are compact connected trees in the graph  which contain all the input keywords  and therefore they can be taken as the answers of keyword queries.
+1 ranking
+　we present how to effectively rank the pivotal trees. given a pivotal tree pt and a keyword query k={k1 k1 ，，，  km}  we present equation 1 to rank the pivotal tree pt .
+xm
+	score k pt   =	score root pt   ki 	 1 
+k=1
+where root pt   denotes the root of pt . score root pt  ki   denotes the score of ki in pt . given any node n and a keyword ki  we present how to assign the score of ki in n  i.e.  score n ki   as follows. if n directly contains ki  we propose equation 1 to compute score n ki .
+	score	 1 
+where tf ki n  denotes the term frequency of ki in n; idf ki  denotes the inverse document frequency of ki; ntl n  denotes the normalized term length of  where
+|g|
+|n| denotes the number of terms in n and |g| denotes the number of nodes in g; s is a constant and usually set to 1. if n indirectly contains ki  we present equation 1 to compute score n ki .
+　　　　　　　score pn k  n  ki  score	 1 
+where σ is an attenuation factor. obviously  the larger distance between ki and n  the less relevant between them. we experimentally prove that σ is usually set to 1.
+　note that  score pn ki n  ki  can be computed based on equation 1  as pn ki n  directly contains ki and δ pn ki n  n  can be pre-computed off-line. accordingly  we can score the nodes that indirectly or directly contain the keywords based on equation 1 and equation 1.
+1 indexing
+　we note that score n ki  in equation 1 and equation 1 can be pre-computed off-line and thus we can materialize such scores into the index. the entries of the index are the keywords that contained in the graph. different from inverted indices which only maintain the nodes that directly contain the keyword  each entry of index preserves the nodes that directly or indirectly contain the keyword in the form of a triple  node  score  pivotal path   where the score is the assigned score of the keyword in the node  and pivotal path preserves the path from node to the corresponding pivotal node. accordingly  the index captures the rich structural relationships as each entry preserves the paths from a given node to the corresponding pivotal node.
+1. experimental study
+　we have designed and performed a comprehensive set of experiments to evaluate the performance of our approach. we crawled a huge amount of real data from the internet.
+
+figure 1: search efficiency and quality
+there are four types of data in our dataset: i  the homepages of top conferences  such as www  sigir  sigmod and so on; ii  the hompages of research groups; iii  the homepages of researchers; iv  xml  pdf  word and ppt documents. there were approximate 1 1 documents. the experiments were conducted on an intel r  pentium r  1ghz computer with 1gb of ram. the algorithms were implemented in java. we compared sailer with state-of-the-art methods  information unit   and spheresearch . we selected one hundred queries for the experiments. we gave the elapsed time of the first ten queries and the average precision of all the queries as illustrated in figure 1.
+1. conclusion
+　in this paper  we have investigated the problem of unified retrieval over heterogeneous web pages and xml documents. we modeled the heterogeneous data as graphs and identified the pivotal trees to answer keyword queries. we proposed indexes for facilitating the identification of pivotal trees. we have conducted an extensive performance study to evaluate the search efficiency and quality of our method. the experimental results show that our approach achieves both high search efficiency and quality  and outperforms the existing approaches significantly.
+1. acknowledgement
+　this work is partly supported by the national natural science foundation of china under grant no.1  the national high technology development 1 program of china under grant no.1aa1 and 1aa1  the national grand fundamental research 1 program of china under grant no.1cb1.

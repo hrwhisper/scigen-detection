@@ -1,0 +1,283 @@
+we present a probabilistic model-based framework for distributed learning that takes into account privacy restrictions and is applicable to scenarios where the different sites have diverse  possibly overlapping subsets of features. our framework decouples data privacy issues from knowledge integration issues by requiring the individual sites to share only privacy-safe probabilistic models of the local data  which are then integrated to obtain a global probabilistic model based on the union of the features available at all the sites. we provide a mathematical formulation of the model integration problem using the maximum likelihood and maximum entropy principles and describe iterative algorithms that are guaranteed to converge to the optimal solution. for certain commonly occurring special cases involving hierarchically ordered feature sets or conditional independence  we obtain closed form solutions and use these to propose an efficient alternative scheme by recursive decomposition of the model integration problem. to address interpretability concerns  we also present a modified formulation where the global model is assumed to belong to a specified parametric family. finally  to highlight the generality of our framework  we provide empirical results for various learning tasks such as clustering and classification on different kinds of datasets consisting of continuous vector  categorical and directional attributes. the results show that high quality global models can be obtained without much loss of privacy.
+categories and subject descriptors
+h.1  database management : database applications - data mining; i.1  artificial intelligence : machine
+learning
+general terms
+algorithms
+keywords
+distributed learning  privacy  heterogeneous data sources  probabilistic models
+permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. to copy otherwise  to republish  to post on servers or to redistribute to lists  requires prior specific permission and/or a fee.
+kdd'1  august 1  1  chicago  illinois  usa.
+copyright 1 acm 1-1-x/1 ...$1.
+1. introduction
+¡¡recent advances in data acquisition technology have resulted in the creation of large distributed repositories. however  extracting useful knowledge from such repositories is often challenging due to real-world constraints stemming from privacy  proprietary  computational or communication issues.
+such restrictions may prevent one from directly integrating the distributed data into a single dataset
+at a central site. this has led to the emergence of distributed data mining techniques  1  1  that extract high quality information from distributed sources with limited interactions among the data sites. in particular  rising concerns on informational privacy have resulted in an increased focus on privacy-preserving distributed data mining techniques  1  1  1 . most of these techniques are applicable only to scenarios where the data is either vertically partitioned  different sites contain different attributes/ features of a common set of records/objects  or horizontally partitioned  objects are distributed amongst different sites  but have the same set of features . in real life  however  there are a number of more complex situations where the different sites contain overlapping sets of objects and features  i.e.  the data is neither vertically nor horizontally partitioned.
+¡¡in this paper  we focus on privacy-preserving learning in a distributed setting1 where the different sites have diverse  possibly overlapping sets of features  and also need not share objects1. the prototypical application scenario is one in which there are multiple collaborating parties with confidential databases of different  possibly overlapping schemas. the objective is to characterize the entire data using a suitable representation so that learning tasks such as clustering and classification can be readily performed. for example  the collaborating parties could be a group of medical researchers  each owning a database of clinical results. the collective goal in this case is to find patterns and correlations among the various clinical conditions  without compromising the privacy of the patients. the symptoms  features  of the patients  objects  need not be the same for all the researchers. figure 1 depicts a possible scenario with three collaborating parties  each with data on a different pair of symptoms.
+¡¡our formulation of the distributed learning problem assumes that there exists a  unknown  meaningful  underlying distribution that captures the information content in the
+
+different data sources. the individual data sources provide only partial views that need to be effectively integrated in order to reconstruct the original underlying distribution. our first attempt  to address this problem involved dividing the learning process into two sub-tasks: a  learning privacysafe models from the local data  and  b  combining the local models effectively to obtain an appropriate  global  model. we also proposed a definition of privacy based on informa-
+	source x1	source x1	source x1
+s.noalcoholic
+ a cholestrol 
+level  b s.nocholestrol level  b    blood pressure  c s.noalcoholic
+ a    blood pressure  c x1 x1 x1
+.
+. ..
+.
+x11
+1
+1
+.
+.
+.
+1
+1
+1
+.
+.
+.
+1x1 x1 x1
+.
+.
+.
+.
+x11
+1
+1
+.
+.
+.
+1
+1
+1
+.
+.
+.
+1x1 x1 x1
+..
+.. ...
+.
+x11
+1
+1
+.
+.
+.
+1 1
+1
+.
+.
+.
+1	p¦Ë1 a b 	p¦Ë1 b c 	p¦Ë1 a c 
+
+figure 1: distributed learning scenario with overlapping sets of features.
+tion theoretic ideas in order to formalize the first sub-task. this definition effectively captures the non-uniform privacy requirements in most real scenarios and is also applicable to the general setting where the distributed sites have varying schemas. however  the model integration approach in  is applicable only for horizontally partitioned data  wherein all the local and global models correspond to probability distributions on the same domain.
+¡¡in this paper  we substantially extend our previous work and make three new contributions.
+ i  using the maximum-likelihood principle and the relation between data log-likelihood and cross entropy  we formulate the problem of combining probabilistic models based on different sets of features in order to obtain an appropriate joint model. we consider two cases - one in which there are no constraints on the joint model  which is more relevant for discrete domains  and the other in which the joint model is assumed to belong to a particular parametric family.
+ ii  we present algorithms to solve the model integration problem for both the unconstrained and the constrained cases. for discrete domains  we transform the unconstrained model integration problem into a kl-divergence projection problem and show that it can be efficiently solved using iterative algorithms. we also demonstrate that the constrained model integration problem is equivalent to optimizing the log-likelihood of data generated from the available models and address this problem by generating artificial samples using monte carlo markov chain  mcmc  techniques and then fitting a joint model of the desired parametric form using an em-based algorithm.
+ iii  for certain commonly occurring scenarios involving conditional independence or hierarchically ordered feature sets  we provide closed form solutions to the model integration problem and use these to propose efficient alternatives using recursive decomposition.
+¡¡our model integration approach extends the privacy preserving framework proposed in  to a large class of learning tasks that include classification  clustering and semi supervised learning  and to more general scenarios involving distributed sites with diverse schemas. the framework is applicable to a wide range of data types  both discrete and continuous  and only requires the individual sites to provide probabilistic models of the local data.
+¡¡the rest of the paper is organized as follows. section 1 contains a formal definition of the model integration problem. sections 1 and 1 describe solutions to the unconstrained and the constrained model integration problems respectively. section 1 describes a recursive scheme for model integration and presents closed form solutions for certain special scenarios. section 1 contains experimental results. we present related work in section 1 and conclude in section 1.
+¡¡notation: sets such as {x1 ¡¤¡¤¡¤  xn} are enumerated as  and an index i running over the set {1 ¡¤¡¤¡¤  n} is denoted by . matrices are denoted using upper case letters e.g.  a  whereas the lower case letters auv denote the matrix elements  and the bold lower case letters  av atu denote the column and row vectors. transpose of a matrix a is denoted by at. feature sets are denoted by f with appropriate subscripts and feature vectors are denoted by the corresponding bold lower case letters. probability distributions of models are denoted by p with the model name as the subscript  e.g.  p¦Ë ¡¤  and the marginal densities corresponding to the feature set f are identified with a superscript  e.g.  pf¦Ë .
+1. problem formulation
+¡¡our main objective is to address the distributed learning problem for scenarios where there are no restrictions on the features available at the various sites and the different sites need not share objects. we first consider privacy issues.
+1 privacy issues
+¡¡there are two main notions of privacy in the existing literature that are applicable to distributed learning scenarios. the first is based on a secure multi-party computation  point of view where a computation is considered secure if each collaborating party learns nothing beyond its own input and the final result of the computation. the second notion characterizes the privacy of a computation in terms of the uncertainty  1  1  in recovering the input from the result.
+¡¡in this paper  we adopt an uncertainty-based definition of privacy since it takes into account the information disclosed by the final result. in particular  our framework is based on an information-theoretic definition of privacy  where the privacy ¦Ð x ¦Ë  of a dataset x with respect to a probabilistic model ¦Ë is quantified in terms of the likelihood of predicting
+x from the model  i.e. 
+	¦Ð x ¦Ë  =  p¦Ë x   1.	 1 
+using this notion of privacy  it is possible to develop distributed learning techniques based on combining probabilistic models that satisfy the desired privacy constraints. the chief benefits of this approach are that it is scalable for large datasets  does not require the assumption of non-colluding parties  and permits the individual parties to have varying privacy requirements. moreover  it allows the collaborating parties to use proprietary domain knowledge and algorithms in the local learning process.
+1 model integration problem
+¡¡we divide the distributed learning problem into two subproblems - i  learning probabilistic models from the local data while adhering to information-theoretic privacy constraints  and  ii  integrating the local models effectively to obtain an appropriate  global  model. this separation of privacy and integration issues also allows the individual parties to use their own means of sanitizing the local models during the local learning process  e.g.  stripping of unique ids. in the current work  we mainly focus on the model integration problem assuming the availability of privacy-safe models.
+	let	 datasets with feature sets 
+corresponding feature vectors such that |xi| = mi   i 1. let be the local models obtained from these datasets such that the probability distributions closely approximate the true distributions on the corresponding datasets
+as well as satisfy the local privacy constraints  i.e.  ¦Ð xi ¦Ëi  ¡Ý ¦Ñi   i n1 where  are the desired privacy levels for the local models1. the model integration problem involves combining the local models to obtain a  good  global complete model corresponding to a joint probability distribution on the union of all the features  i.e. .
+for example  in figure 1  there are three collaborating parties with feature sets f1 = {a b}  f1 = {b c}  and f1 = {a c} respectively and the goal is to obtain a joint model on the feature set fc = {a b c}. the above formulation encompasses a number of common distributed learning tasks. for example  when all the sites share a class attribute  the distributed classification problem can be posed in terms of learning a joint density on the class labels and all the available features. similarly  the distributed clustering task can be formulated in terms of learning a joint mixture density on all the features. semi-supervised classification and bayesian network learning are other examples of learning problems that can be posed in terms of the above formulation.
+¡¡to concretely formulate the model integration problem  we need to first quantify the quality of the global model. in the absence of any privacy constraints  one could possibly pool all the distributed data and obtain a complete model using the maximum likelihood principle. the quality of any given complete model ¦Ëc can then be measured using the data likelihood or log-likelihood  i.e. 
+n
+	qdl ¦Ëc  =	log p¦Ëc xi 	 1 
+i=1
+since a complete model is defined on the feature set fc  which is the union of the local feature sets  the data likelihoods are in fact the incomplete likelihoods obtained by assuming the unavailable feature values as missing data. now  using the well known relation between loglikelihood and cross entropy   it can be shown that the incomplete data log-likelihood with respect to a complete model is linearly related to the kl-divergence or the relative entropy of true distribution on x with respect to the corresponding marginal distribution of the complete model.
+lemma 1 let be a dataset with feature set f such that px corresponds to the distribution on x and let
+
+1 the phrases 'probability density' and 'probability distributions' are used interchangeably to mean either the probability density function  in case of continuous distributions  or the probability mass function  in case of discrete distributions . p¦Ëc be any probability distribution defined on a feature set fc such that f   fc. then 
+
+where is the marginal distribution of p¦Ëc on f.
+in the above relation  the entropy term is independent of the probability density p¦Ëc. therefore  maximizing the average data likelihood is equivalent to minimizing the kldivergence between the data distribution px and the appropriate marginal density  i.e.  the maximum likelihood principle corresponds to a minimum kl-divergence principle.
+since the local models are obtained from the datasets
+  the corresponding probability distributions can be assumed to be reasonable approximations of the true distributions on the datasets. therefore  using lemma 1  we define the quality cost of the global model to be
+n
+	ckl ¦Ëc  =	¦Íikl p¦Ëi||pf¦Ëci  	 1 
+i=1
+where a lower cost indicates a better model and the weights  are normalized to sum to 1. note that due to the privacy constraints  the local models will not exactly correspond to the true distribution on the datasets {xi}ni   but ckl is a good choice for the cost function since we only have access to the local models and not the original data.
+¡¡with ckl as the quality measure  the problem of finding the optimal global model essentially involves minimizing the kl-divergence between the local models and the appropriate marginal density induced by the global model. since kldivergence is strictly convex in both its arguments   and the marginal densities are linear functions of the complete density function  the overall quality cost function  which is a composition of the two functions  is convex in the complete density p¦Ëc  but not strictly so. therefore  the quality cost has a unique minimum value  but there could be multiple models corresponding to the same minimal cost. in order to choose one of these models  we invoke the maximum entropy principle   which is equivalent to making  no extra assumptions  about the global model. putting together both the maximum entropy and the minimum kl-divergence principles  we can formally state the model integration problem as
+		 1 
+where
+	m = argmin	ckl p¦Ëc  	 1 
+p¦Ëc¡Êp fc 
+and p fc  is the set of all probability distributions over the feature set fc. figure 1 shows a pictorial representation of the problem formulation for the distributed scenario of figure 1.
+¡¡since the kl-divergence cost minimization  1  is a convex optimization problem  the set of minimizers m is also a convex set. further  since entropy is strictly convex  the overall model integration problem has a unique minimizer.
+¡¡we consider two model integration scenarios - the first where we require the optimal estimates of the joint distribution for each element in the domain and the second where it is desirable to have an interpretable global model even if it is
+
+figure 1: model integration in a distributed learning scenario involving different feature sets.
+less accurate than the optimal one. unless the optimal solution has a closed form  numerical solution to the exact model integration problem is feasible only for situations where the complete feature vector fc takes a finite number of distinct values. section 1 addresses the exact model integration problem for discrete domains. to address the second scenario  in section 1  we formulate and solve a modified version of the original model integration problem  parametric model integration  where the global model is sought from a specified parametric family  e.g.  mixture of 1 gaussians.
+1. discrete model integration
+¡¡in this section  we transform the model integration problem for a discrete domain into a projection problem based on kl-divergence. then  we derive properties of this formulation and describe efficient iterative algorithms that are guaranteed to converge to the globally optimal solution.
+1 kl-divergence projection
+¡¡let f be any feature set with corresponding feature vector f. let   f  =   f  denote the set of all distinct values taken by the feature vector f. to solve the model integration problem  1  for a finite discrete domain  we map each discrete distribution p¦Ë ¡Ê p f   the set of all distributions over f  to a unique point in the probability simplex of dimension d = |  f |. the basic idea is to enumerate all the elements in   f  and represent each model ¦Ë with a non-negative vector p ¡Ê d+ consisting of the probabilities associated with these elements. more precisely  if the elements in   f  are ordered such that   f  = {wk}dk=1  then the mapping from the probabilistic model ¦Ë to p is given by
+	pk = p¦Ë f = wk    k d1.	 1 
+hence  kpk1 =	dk=1 p¦Ë f = wk  = 1.
+¡¡using the above representation  every complete distribution p¦Ëc ¡Ê p fc  maps to a unique vector p in the dc-simplex where dc = |  fc |. further  the marginal densities induced on any subset of features f can be shown to be linear projections of the original complete density on appropriate subspaces. letbe the marginal density induced by the complete density p¦Ëc on the feature set f   fc. let ¡¥f be the feature vector corresponding to the complement feature set
+f¡¥ = fc   f. then  w¡¥   or in other words  is obtained by partitioning the set   fc  into |  f | groups  one for each value of f  and summing up the probabilities associated with each group. the marginal density  therefore  corresponds to a d dimensional vector afp where af is the d ¡Á dc membership matrix consisting of entries in {1} with d = |  f | and dc = |  fc | respectively. since each element in the original domain   fc   represented by columns  is included within a single element of   f   represented by the rows   each column in af will have exactly one row entry equal to 1 and the rest equal to 1.
+¡¡let qi  correspond to the local models p¦Ëi in the new representation. then  the quality cost in the kl-divergence minimization problem  1  can be rewritten as
+
+example. consider the model integration example shown in figure 1 where f1 = {a b} f1 = {a b}  f1 = {a c} and fc = 1i=1 fi = {a b c}. let us assume that the features a b c take two values each so that |  fc | = 1. then  any complete model ¦Ëc over the features  a b c  can be mapped to a unique p  where
+p	=	  p¦Ëc a1 b1 c1  p¦Ëc a1 b1 c1  p¦Ëc a1 b1 c1   p¦Ëc a1 b1 c1  p¦Ëc a1 b1 c1  p¦Ëc a1 b1 c1   p¦Ëc a1 b1 c1  p¦Ëc a1 b1 c1   t
+similarly  the local models ¦Ë1 ¦Ë1 ¦Ë1 can be mapped to vectors q1 q1  and q1 respectively where
+¦Ë1¡úq1 =  p¦Ë1 a1 b1  p¦Ë1 a1 b1  ¡¤¡¤¡¤  p¦Ë1 a1 b1  t¦Ë1¡úq1 =  p¦Ë1 b1 c1  p¦Ë1 b1 c1  ¡¤¡¤¡¤  p¦Ë1 b1 c1  t¦Ë1¡úq1 =  p¦Ë1 a1 c1  p¦Ë1 a1 c1  ¡¤¡¤¡¤p¦Ë1 a1 c1  tthe projection matrices for obtaining the marginal density over f1 in this case is given by
+af1 =1
+1 1
+1 1
+1 1
+1 1
+1 1
+1 1
+1 1
+11111similarly  we can obtain the matrices af1 and af1. using the linearity property of kl-divergence  the cost function in  1  can be simplified and written as the kl-divergence between a single discrete distribution q and ap where q and a are uniquely determined by the following result.
+proposition 1 let p ¡Ê	d+c such that kpk1 = 1 and let q1 ¡¤¡¤¡¤  qn be n vectors such that qi  and ||qi||1 =
+. let af1 ¡¤¡¤¡¤  afn be non-negative matrices such that afi is a di ¡Ád matrix where di = |  fi |  dc = |  fc | and the sum of each column in each matrix afi equals 1  i.e. 
+. further  let  be non-negative weights such that i=1 ¦Íi = 1. then 
+n ¦Íikl qi||afip  = kl q||ap 
+¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡i=1 where q =  ¦Í1t ¡¤¡¤¡¤¦Ínqnt t  a =  ¦Í1af1t ¡¤¡¤¡¤¦Ínafnt t.
+using the above result  the kl-divergence minimization in the model integration problem can be restated as
+	min	kl q||ap 	 1 
+p
+where  are determined by proposition 1. since  1  involves minimizing a convex function under the linear constraints p and kpk1 = 1  there is a unique minimum value and the set of minimizers is convex. the following result shows that the solution set is in fact the intersection of an affine space with the d-simplex.
+proposition 1 the solution set for the kl projection problem  1  is given by  where q  is a uniquely determined non-negative vector such that kq k1 =  and at¦Ç = 1. further  when rank a  = rank  a q    then q  = q itself.
+proposition 1 provides a closed form for the solution of  1  for the special cases where rank a  = rank  a q   or when the null space of a can be easily characterized. it also simplifies the entropy maximization problem  since the set of minimizers m in  1  is now characterized by linear constraints p and kpk1 = 1. when a is a full column rank matrix  i.e.  rank a  = dc   then there is a unique minimizer  i.e.  |m| = 1. in general  the entropy maximization problem is
+	h p .	 1 
+p
+1 iterative algorithms
+¡¡the kl-divergence minimization and the entropy maximization problems discussed above are both convex optimization problems with linear constraints and can be solved efficiently using iterative scaling algorithms.
+kl-divergence minimization
+the kl-divergence projection problem  1  has earlier been studied in the context of positron emission tomography  1  1 . it is usually solved using the expectation maximization maximum likelihood  emml  algorithm  see algorithm 1   which is guaranteed to converge to a global minimizer p kl  which can then be used to identify the entire solution set
+. each iteration of the emml
+algorithm requires a computation time that is linear in the size of p and a  i.e.  number of non-zeros .
+¡¡a more efficient approach involves reducing the kl divergence projection problem to a form solvable by the iterative re-weighted least squares  irls  algorithm . the basic idea is to refine the solution using newton-raphson like additive updates  which for the kl-divergence cost function is given by p t+1  = p t  +  p t  where
+	atba p t  = ath	 1 
+d1¡Ád1
+where b =  buu1  ¡Ê such thatand buu1 = 1 whenand h ¡Ê d1 such that hu =
+. since  1  corresponds to the least squares minimization problem
+ 
+where only b and h change in each iteration  the problem can be solved efficiently using the irls algorithm. the computational time of the algorithm is still linear in the size of p and a  i.e.  number of non-zeros   but each iteration only requires computational time that is linear in p.
+entropy maximization
+the linear constrained entropy maximization problem  1  has been studied in a number of contexts  1  1 . it is often solved using the multiplicative algebraic reconstruction technique  mart   which is a cyclic minimization process  see algorithm 1  guaranteed to converge to the optimal distribution for any  such that  and   which is the case in  1 .
+
+algorithm 1 discrete model integration
+input:
+output: p  = argmax h pm 
+pm¡Êm
+	where m =	argmin	kl q||ap .
+                   p method:
+{kl-divergence minimization-emml} a1. initialize p randomly such that kpk1 = 1. b1. repeat
+
+   until convergence c1. q  ¡û ap
+{entropy maximization-mart}
+a1.	 for some z b1. repeat
+
+   until convergence c1. p  ¡û p
+
+1. parametric model integration
+¡¡in this section  we formulate a constrained version of the model integration problem  which we call the parametric model integration problem. then  we show how this problem can be efficiently addressed using sampling techniques and the expectation-maximization  em  algorithm.
+¡¡our formulation of the parametric model integration problem is motivated by the fact that in real scenarios  it is often preferable to obtain a solution that is easy to understand and describe even at the cost of optimality. to incorporate this requirement  we constrain the global model to belong to a specified parametric family g   p fc   e.g.  mixture of k gaussians  k   1 . the kl-divergence cost minimization problem for this case can be stated as
+min ckl p¦Ëc .	 1  ¦Ëc¡Êg
+where g   p fc  is the specified family of parametric distributions. however  unlike the unconstrained case   1  is not necessarily a convex problem since the optimization is over the model parameters and the kl-divergence cost is not always convex in these parameters. as a result  there are usually multiple local minima for the kl-divergence minimization. moreover  the set of minimizers may not be a convex set  which makes it more difficult to solve the entropy maximization problem. to make the constrained model integration problem tractable  we assume that the parametric family g is chosen so that there is a unique minimizer for the kldivergence optimization problem  which eliminates the need for solving the maximum entropy problem. however  in general   1  is itself a difficult problem to solve and it is only possible to obtain the local minimizers since ckl is not always a convex function of the parameters and g need not be a convex set. a direct solution of  1  using regular optimization techniques such as gradient descent  newtonraphson's method  etc.  is computationally infeasible when the local models correspond to continuous probability distributions since only the parameters of the local models are available at the integration. therefore  we pose an approximate version of the model integration problem by generating artificial samples from the local models. the main idea is to approximate the kl-divergence with respect to the local models in terms of the likelihood of the generated data.
+¡¡let the datasets be obtained by sampling from the local models. when the dataset sizes m  i = |x i|   i n1 are large  tend to ¡Þ   then the distribution on the datasets {x}  ni=1 is identical to the corresponding local model distributions. therefore  from lemma 1  it follows that for large sample sizes  the average log-likelihood of each dataset x i with respect to any probabilistic model ¦Ëc ¡Ê g is linearly related to the kl-divergence between the corresponding ¦Ëi and the appropriate marginal density of ¦Ëc. more specifically 
+
+where h p¦Ëi  is the entropy of the local model ¦Ëi  which is independent of ¦Ëc. hence  maximizing the log-likelihoods of the datasets is equivalent to minimizing the kldivergence with respect to the corresponding local models. this observation enables us to pose the constrained model integration problem  1  as a maximum likelihood parameter estimation problem  which can then be conveniently solved using an expectation-maximization  em  algorithm.
+¡¡algorithm 1 shows the main steps in the process  i.e.  generating artificial datasets from the local models and learning the maximum likelihood parametric model based on the combination of these datasets. since the local models are based on a smaller set of features than the global model  the unavailable feature values are modeled as missing and are re-estimated during the e-step of the algorithm.
+¡¡the global model ¦Ëac resulting from the em algorithm is a local minimizer of the approximate problem and not necessarily the same as the optimal solution of  1 . however  it is guaranteed to asymptotically converge to a locally optimal solution as the size of x c goes to ¡Þ. in practice  one can use multiple runs of the em algorithm and pick the best solution among these so that the obtained model is reasonably close to the globally optimal model.
+1. recursive decomposition
+¡¡in this section  we first describe an alternate scheme for solving the model integration problem by recursively decomposing it into smaller sub-problems. then  we present closed form solutions for certain special distributed learning scenarios  which can be incorporated into the recursive scheme to efficiently solve the model integration problem for more general scenarios.
+algorithm 1 parametric model integration
+input: set of models	with weights	summing to 1 
+parametric family g  global sample size m  c.
+output:
+method:
+1. generate  from the local modelsusing mcmc sampling such that .
+1. let. apply em algorithm to obtain the optimal model ¦Ëc such that
+¦Ëac = argmax log p¦Ëc xc  . ¦Ëc¡Êg
+
+1 decomposition strategy
+¡¡solving the model integration problem  1  can be computationally expensive when |  fc | is large since the size of a and p depends on |  fc |. however  it is possible to reduce these computational costs when some of the features can be assumed to be independent or conditionally independent given some other features based on domain knowledge or the available local models. the key idea is that the original model integration problem  1  can be recursively split into smaller model integration problems with closed form solutions. this recursive decomposition process is more efficient than a direct solution since it only estimates the independent parameters required to determine the complete model  which is usually much less than |  fc  |.
+¡¡the recursive decomposition procedure is based on the following result that express the optimal solution to the model integration problem in terms of the solutions to smaller problems on subsets of features.
+proposition 1 let fa f¡¥a be complementary subsets of fc  i.e.  f¡¥a = fc   fa. let.
+let  be the optimal solutions for the model integration problems based on the local marginal densities and respectively with  as the model weights. further  let be the optimal solution to the model
+integration problem involving the conditional densities
+ with model weights given by	 
+ i n1 . the solution to the original model integration problem
+ 1  is given by
+ when fa and f¡¥a are independent.
+ when fa and f¡¥a are not in-
+dependent.
+¡¡the above result outlines a method for reducing the original model integration problem of size   fc  into smaller problems of sizes   fa  and   f¡¥a . when the desired global model exhibits conditional independence  a recursive scheme with judicious choice of fa and f¡¥a at each stage can result in an efficient solution. for example  when the local models all correspond to naive bayes classifiers with the same class attribute  but possibly different data attributes  invoking proposition 1 b  with fa as the class attribute and f¡¥a as the remaining attributes enables us to decompose the overall model integration problem into that of integrating the class priors and the class conditional densities for each class. further  using the naive bayes assumption and proposition 1 a   the optimal conditional density for each class is identical to the product of the optimal densities of the individual attribute given the class.
+¡¡algorithm 1 in  shows a recursive decomposition scheme for model integration. if a given problem has a closed form solution  then the optimal model is computed directly. otherwise  we look for subsets fa and f¡¥a that are independent of each other and when such independent splits are available  we invoke proposition 1 a  to split the model integration problem. when there are no independent splits  we choose any split fa and f¡¥a  preferring those in which one of the subsets can be further split into independent sets and invoke proposition 1 b .
+1 closed form solutions
+¡¡we now describe some special scenarios that admit closed form solutions for the model integration problem.
+identical and disjoint feature sets
+first  we consider two simple base scenarios corresponding to identical and disjoint feature sets respectively. in case of identical feature sets i.e.  horizontally partitioned data   the complete feature set the optimal solution to the model integration problem  1  is given by 
+	.	 1 
+in case of disjoint feature sets  the complete feature set fc = where	. since there is no overlap of features  none of the local models show dependence between any pair of feature sets. hence  a repeated application of proposition 1 a  shows that the optimal solution is just the product distribution  i.e. 
+n
+	p¦Ë c fc  =	p¦Ëi fi .	 1 
+i=1
+hierarchy of feature sets
+we now look at scenarios where the feature sets of the collaborating parties can be organized in a certain hierarchical fashion. first  consider a flat tree  depth =1  configuration where the feature sets of all the parties have a common overlapping feature set f1 corresponding to the root node. the feature sets of the individual parties are assigned to the leaf nodes of this tree. in order to solve the model integration problem for this setting  we first split it into sub-problems corresponding to the complementary sets f1 and f¡¥1 = fc   f1 by invoking proposition 1 b . the sub-problems corresponding to f1 and f¡¥1 can then be directly addressed using the closed form solutions for identical and disjoint feature sets respectively as shown in the following lemma.
+lemma 1 in problem  1   when every pair of collaborating parties have a common set of overlapping features  i.e.   and.
+then  the optimal solution to  1  is given by
+
+for the general case  we adopt the following procedure to construct the tree. first  the feature set of each collaborating party is assigned to a leaf node and for every pair of nodes  an intermediate node corresponding to the features shared between the two nodes is created such that each intermediate node corresponds to a unique set of features  i.e.  no repetition . all the nodes are then arranged in the form of a tree such that for each node  all the nodes corresponding to supersets of the node are contained in the sub-tree under that node. in general  such an arrangement results in some nodes lying under multiple sub-trees as in figure 1 a   i.e.  there are cycles in the tree. however  for situations where the feature sets can be arranged as a tree without cycles as in figure 1 b   the feature sets are considered to be hierarchically ordered and the unconstrained model integration problem  1  admits a closed form solution. note that we have not made any independence assumptions in this setting. more
+¦Õ
+figure 1: figures  a  and  b  show examples of scenarios that can and cannot be arranged in a hierarchical fashion. the shaded nodes are the leaf nodes and the rest are intermediate ones.
+formally  let f n  represent the feature set corresponding to any node n. let c n  denotes the number of immediate children of n and be the children. then  the nodes in the tree satisfy  and
+.
+¡¡to address this general scenario  we observe that lemma 1 enables us to combine the child node distributions to obtain the optimal distribution over the union of the feature sets of all the children. hence  the optimal distribution over all the feature sets in the tree can be obtained by computing the optimal solution at each sub-tree in a bottom-up fashion using repeated invocations of lemma 1.
+1. experimental results
+¡¡in this section  we provide empirical evidence that high quality global models can be obtained without much loss of privacy using our model integration approach for both discrete and continuous data. we present results on artificial and real datasets that show how various factors such as feature correlation and privacy of local models affect the quality of the global model obtained through our method.
+1 datasets
+¡¡for our experiments  we used both artificial and real datasets consisting of continuous vector  discrete and high dimensional directional attributes. table 1 shows details of the datasets. the main purpose of the artificial datasets was to facilitate comparison of the global model quality with the true generative model and to study the effect of correlation between features on the effectiveness of our approach. in order to achieve this  we generated five gaussian datasets from mixtures of 1 spherical gaussians. to ensure that the datasets had increasing degrees of correlation between the features  the mixture centers for each dataset were obtained by sampling from a gaussian with the same mean  but varying covariance matrices  increasing off-diagonal elements . the average absolute pairwise correlation values between features for the five datasets are 1  1  1  1  1 respectively. we also used two real datasets - mini-1newsgroup  subset of the 1 newsgroup dataset   consisting of high dimensional directional text data  and dermatology  from uci  consisting of clinical trial results. the datasets can be downloaded from http://lans.ece.utexas.edu/¡«srujana/mr/.
+1 evaluation methodology
+¡¡for each experiment  the relevant dataset was partitioned at random among the various sites. the features were also partitioned so that each site has access to only some features. in case of classification  we hold out a test set and partition only the training set among the sites. depending on the learning task  we built parametric models from the local data using appropriate em algorithms or direct maximum likelihood estimation  mle  methods. for continuous data  the local models were used to generate artificial samples  which were then used to learn the global model. for discrete data  the local models were directly used to obtain the global model by solving the appropriate kl-projection problem  1 . we also trained a centralized model by pooling data from all the sites.
+¡¡for each experiment  we computed the privacy of the local models as well as the quality of the global  centralized and the various local models. for clustering tasks  the quality was quantified using normalized mutual information  nmi  and for classification  it was quantified using misclassification error  me . in case of artificial data  kl-divergence  kl  with respect to the true model was also computed. further  results were averaged over multiple runs of the experiments performed using either different sets of features or different datasets in the case of artificial data. table 1 shows details of the learning algorithms and performance metrics.
+1 results on artificial data
+¡¡first  we performed controlled experiments on the artificial datasets to analyze the behavior of our algorithms for both discrete and parametric model integration. for a fair comparison  the local models were assumed to have the same form as the global and centralized model and the number of artificial samples used for learning the global model  global sample size  was chosen to equal the combined size of all the local datasets. keeping all other factors unchanged  we studied how the quality of the global solution varies with respect to feature correlation  number of overlapping features  privacy of the local models and the global sample size. the results of our experiments are discussed below.
+ quality of the global model. figure 1 shows the quality of the various models for the gaussian data. in all the cases  the quality of the global model is better than that of the local models and is closer to that of the centralized model.
+ quality vs. feature correlation. figure 1 also shows the variation of the quality of the various models with the correlation between the features and the number of overlapping features. we observe that the difference between the global and the local models is more significant when the average feature correlation is low and there is less overlap between features since in this case  the combined information in the local mod-
+
+figure 1: quality vs. avg. feature correlation for a-gaussian. #clusters = 1  global sample size = 1. columns correspond to the cases #features = 1 and 1.
+
+figure 1: quality vs. privacy for a-gaussian. #features/site=1 and global sample size = 1.
+els is significantly greater than that in the individual models. further  the model quality shows an initial decrease with increasing feature correlation  but eventually improves. this non-monotonic behavior probably arises due to the trade-off between the problem difficulty and the amount of information in a given number of samples. when the features are uncorrelated  the amount of information per sample is the highest  but the difficulty level of the problem is also high  whereas for highly correlated features  it is the opposite.
+ quality vs. privacy. we also studied the trade-off between privacy  and the quality of the global model by varying the resolution of the local models  i.e.  the number of local clusters in this case. figure 1 shows the variation of the quality measures and the average log-privacy with the local model resolution. we note that as the local model resolution increases  the quality of global model improves while the average log-privacy goes down. in particular  the centralized model corresponding to a complete loss of privacy has the highest quality. however  due to the natural structure in data  comparable quality can be obtained with much less resolution and reasonably high privacy.
+ quality vs. sample size. the parametric model integration problem is based on an approximation that is exact only when the number of artificial samples used for learning the
+datasets#features#samples#classes/clusters#sites#features/site#samples/sitea-gaussian111 1mini-1-newsgroup111dermatology111table 1: details of datasets
+datasetproblemtrain-test splitquality measurealgorithmother paramsa-gaussianclustering-nmi  klem#local clusters diagonal gaussians 1 1 1
+#global samples
+ 1 1 1 x1mini-1-newsgroupclustering-nmiem  vmf #local clusters 1 1 1dermatologyclassification1mebayesianindependence assumptionstable 1: details of experimental setup
+figure 1: quality vs. global sample size for agaussian. #features/site=1  #local clusters=1
+global model tends to ¡Þ. hence  we expect the global model quality to improve with increasing sample size. the variation of the global model quality with respect to the global sample size shown in figure 1 supports this hypothesis. in particular  we observe that the quality of the global model steadily increases and approaches that of the centralized model when the global sample size is the same as the combined size of the local data sources.
+1 results on real data
+¡¡we also conducted experiments on some real-life datasets to demonstrate the effectiveness of our model integration techniques for various types of data and applications.
+clustering high dimensional text data. figure 1 shows the quality of the global model and the average log privacy of the local models on the mini-1newsgroup data for varying number of local clusters. we observe that the global model is better than even the best local model. further  for a reasonable number of clusters  the global model is almost as good as the centralized model  while ensuring a high level of privacy.
+classificationof discretemedical data. the dermatology dataset consists of discrete clinical attributes that are relevant for diagnosing skin diseases and hence  classification is the most relevant learning task in this case. to accommodate the large number of attributes  we assume conditional independence of features  naive bayes  or sets of features  partial conditional independence  given the class. table 1 shows the classification results. the ensemble model is based figure 1: performance on mini-1newsgroup.
+on averaging the class posteriors of the local models. when there is no compression  the centralized model is identical to the global model since both the models are based on identical conditional independence assumptions  which make the extra information available to the centralized model redundant. as before  there is a trade-off between the privacy of the local models and the quality of the global model.
+1. related work
+¡¡our work is primarily related to four main areas: distributed learning  privacy preserving data mining  information theory and iterative algorithms. in particular  the problem involves distributed learning in a privacy-preserving setting while the mathematical formulation is based on informationtheoretic ideas such as maximum likelihood and maximum entropy and the proposed solutions are based on iterative optimization techniques.
+¡¡as mentioned earlier  there has been a lot of work on distributed learning techniques. however  most of these techniques  1  1  1  focus only on horizontally or vertically partitioned data. the work in  considers heterogeneous data sources  but is mainly focused on obtaining generalization error bounds for the distributed classification task. in the current work  we propose a distributed model-based learning framework that can simultaneously address a number of learning tasks such as classification  clustering  learning bayesian networks  etc.  and is applicable to a wide range of distributed scenarios where there are no restrictions on the features available at each site. further  unlike some earlier parametric model combining techniques  that are restricted to vector data  our framework is based on generative models and applies to a wide range of complex data types encountered in data mining.
+settingmisclassification erroravg. log-privacyglobalcentralizedensembleavg. localnaive bayes1%1%1%1%1 with compression ¡À1%¡À1%¡À1%¡À1%¡À1naive bayes1 %1%1%1%1¡À1%¡À1%¡À1%¡À1%¡À1partial conditional1%1%1%1%1 independence ¡À1%¡À1%¡À1%¡À1%¡À1table 1: classification performance on dermatology.¡¡in the recent years  there has been considerable work on privacy-preserving distributed data mining techniques a survey of these techniques can be found in . of these  random perturbation based techniques are limited to vector data and there are no theoretical guarantees on the achieved privacy . in contrast  secure multi-party computation based techniques  1  1  do not often capture the privacy requirements of real-life scenarios and also involve high computational and communication costs. our current work extends the framework proposed in   which is based on an information-theoretic notion of privacy and involves sharing only parametric models that satisfy the privacy requirements at each site. the main benefit of our approach is scalability and modularity  which makes it amenable to other privacypreserving transformations such as data swapping  etc.
+¡¡our formulation of the model integration problem is based on the maximum likelihood and the maximum entropy principles  which are known to have applications in a wide range of domains  1  1 . for discrete domains  the kl-projection problem is closely related to inverse problems in positron emission tomography  1  1  highlighting the fact that the model integration problem can also be viewed as reconstructing the original distribution from noisy partial views. a similar projection problem arises in linear multi-variate logistic regression based on multinomial or poisson models . however  the order of the arguments q and ap is reversed in this case  requiring a completely different solution for this case. the solution to the maximum entropy problem is based on iterative projection methods  developed for optimizing convex objective functions associated with bregman loss functions and in particular  kl-divergence.  describes a number of these techniques such as bregman's row action method  mart  smart  etc. for the kl-divergence minimization  we adopt the irls algorithm   which is known to be computationally more efficient  and has in past been applied to problems such as multi-variate logistic regression.
+1. conclusion
+¡¡we proposed a distributed learning framework based on probabilistic models that takes into account privacy constraints  and is applicable to a large class of learning tasks  and to general distributed settings involving diverse schema. in order to achieve this  we formulated the distributed model integration problem using maximum likelihood and maximum entropy principles. we also developed efficient solutions for both discrete and continuous domains  and specialized algorithms for scenarios involving conditional independence assumptions and hierarchically ordered sets. all our algorithms require a computation time that is linear in the size of the local models  thus making our approach scalable for large datasets. experimental evaluation of our algorithms on various types of data  both continuous and discrete  indicates that high quality distributed learning can be performed without much loss of privacy.
+1. acknowledgments
+¡¡we would like to acknowledge support from the nsf under grants iis-1 and iis-1.

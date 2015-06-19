@@ -1,0 +1,328 @@
+the earth mover's distance  emd  was developed in computer vision as a flexible similarity model that utilizes similarities in feature space to define a high quality similarity measure in feature representation space. it has been successfully adopted in a multitude of applications with low to medium dimensionality. however  multimedia applications commonly exhibit high-dimensional feature representations for which the computational complexity of the emd hinders its adoption. an efficient query processing approach that mitigates and overcomes this effect is crucial. we propose novel dimensionality reduction techniques for the emd in a filter-and-refine architecture for efficient lossless retrieval. thorough experimental evaluation on real world data sets demonstrates a substantial reduction of the number of expensive high-dimensional emd computations and thus remarkably faster response times. our techniques are fully flexible in the number of reduced dimensions  which is a novel feature in approximation techniques for the emd.
+categories and subject descriptors
+h.1  information storage and retrieval : information search and retrieval; h.1  database management : systems-multimedia databases
+general terms
+algorithms  performance
+keywords
+earth mover's distance  dimensionality reduction  multimedia databases  lower bound  filter distance
+1.	introduction
+　multimedia databases are prevalent in many scientific applications and entertainment  ranging from magnetic resonance imaging to music recommendation systems. similarity search provides users with desired objects from the
+permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. to copy otherwise  to republish  to post on servers or to redistribute to lists  requires prior specific permission and/or a fee.
+sigmod'1  june 1  1  vancouver  bc  canada.
+copyright 1 acm 1-1-1/1 ...$1.
+database if the underlying similarity model reflects their sense of similarity. the earth mover's distance  emd   developed in computer vision  is a highly adaptable similarity model that incorporates a ground distance on the feature space. it has been successfully used in a number of application domains such as vector fields  music retrieval  image retrieval  phishing detection and shape classification. in an empirical study on dissimilarity measures for images  the authors conclude that emd is especially attractive since it allows superior classification and retrieval performance with a much more compact representation  but at a higher computational cost .
+　the emd is defined as the minimal amount of changes required to transfer one feature representation into the other. changes are weighted with respect to a ground distance. to compute the emd a linear program has to be solved. this can be achieved using e.g. the simplex method for transportation problems. while the exponential theoretical complexity is rarely observed in practice  computation is at least quadratic in the feature dimensionality. this is clearly infeasible for high-dimensional feature spaces.
+　for high-dimensional databases  efficient query processing is crucial for emd-based similarity search. existing multistep approaches rely on specialized lower-bounding filter functions for speedup 1  1  1 . these filters are employed to derive a set of candidates which are refined using the earth mover's distance to find the exact results without loss of effectivity. all of these filter approaches have their merits but are not fully flexible in their application. the approaches in  and  devise filter distance functions other than the emd and are limited by the dimensionality of the features  e.g. 1 in 1-dimensional color histograms  and by the feature space  e.g. 1 in a 1-dimensional color space like hsv   respectively. the filter proposed in  allows for variability regarding the dimensionality of the feature representations in fixed hierarchical steps of factor 1 and is limited to its grid-based image tiling application domain. another approach for fast emd retrieval consists of deriving distance functions that serve as upper bounds to the emd and thus allow for approximate similarity search but do not guarantee completeness of the retrieval process. in  1  1  the emd is embedded into a high-dimensional l1 space with an upper bound for the distortion. in  upper bounds for the minimum of the emd over families of transforms on the input are presented.
+　dimensionality reduction allows for efficiency improvement by means of emd alone and offers flexibility through choice of the target dimensionality. transforming the features and ground distance of the earth mover's distance  the linear program is substantially reduced. for smaller linear programs  average solution times are much lower than for the original problem as the complexity is clearly superlinear. to ensure that dimensionality reduction is a complete filter in the filter-and-refine architecture  the reduced emd must be a lower bound 1  1 .
+　in this work  we propose new techniques for dimensionality reduction of the earth mover's distance which significantly increase efficiency in query processing. in a filter-andrefine architecture  reduced dimensionality emd is used as a filtering step. the resulting set of candidates is refined using the earth mover's distance of the original dimensionality to determine the output. completeness of the filter-andrefine query processing is proven. we formalize the emd reduction and prove that the presented transformation of the ground distance is optimal for merging of dimensions. two possible classes of dimensionality reduction are proposed  a flexible data-independent reduction as a generalization of  and a novel data-dependent method  which is unique in that it incorporates an analysis of emd assignments between different dimensions to generate high quality reductions. we demonstrate that our novel approaches improve reduction quality by producing fewer candidates for the expensive refinement step.
+　advantages of our techniques include the reduced computational complexity  efficiency   the arbitrary number of reduced dimensions  flexibility   possibility of combining with other emd lower bounds  chaining  and the absence of false dismissals  completeness .
+1.	the earth mover's distance
+　the earth mover's distance  emd  is an adaptable distance function that was developed in computer vision as a perceptually meaningful dissimilarity measure . it has been successfully used in a number of application areas as diverse as physics and musicology  1  1 .
+　histograms  denoted as feature vectors x =  xi ... xd   are a widely used representation of the feature distribution of an object. bin-by-bin distance measures like lp norms
+  compute histogram distances
+by comparing one histograms bin at a time. the manhattan distance l1  for example  is the sum of absolute values of the differences in corresponding bins. neighboring bins are ignored. in a color feature space  this means that small changes in color lead to large distances. this contrasts with human perception  where the overall color distribution outweighs small color changes. an example is given in figure 1  top : a slight shift in color might lead to the depicted color histograms x and y for otherwise identical images. an unrelated image might lead to a very different histogram z. according to the manhattan distance x would be more similar to z than to y  1   1 . this is in stark contrast to human perception.
+　the earth mover's distance is based on a cross-bin approach  taking the overall distribution of the histogram entries into account. it measures the minimal amount of work necessary to transform   move   one histogram distribution   earth  or  mass   into the other. the movement of the mass is referred to as  flow . to determine the emd  each flow is multiplied  i.e. weighted  by the corresponding ground distance in the feature space. the total amount of work is
+
+	c =   cij        c   = ij	| i - j |
+figure 1: earth mover's distance
+the sum of these weighted flows. finally  the emd is the minimum over all cost-weighted flows that solve the problem.
+　we formally define the earth mover's distance for nonnegative vectors of normalized total mass:
+　definition 1. earth mover's distance. for two ddimensional vectors x =  x1 ... xd  and y =  y1 ... yd  
+  1 ＋ i ＋ d : xi yi − 1 of normalized total mass  and a cost matrix c =  cij  （ rd〜d  the emd is defined as a minimization over all possible flows f =  fij  under positivity constraints cpos  source constraints csource and target constraints ctarget:
+
+with
+	1	 1 
+ 1 
+ 1 
+the ground distance in feature space is formalized in the cost matrix c  where cij denotes the cost of moving one unit of mass from bin i to bin j. the constraint cpos ensures that only non-negative flows are considered. csource restricts flows from bin i to the amount of mass available in the  source  bin xi. likewise  ctarget requires flows to bin j to equal the mass in the  target  bin yj. referring back to figure 1  manhattan ground distance yields the cost matrix c. the optimal emd flow is depicted by the arrows. the emd between x and y is c1   f1 + c1   f1 +c1 f1 = 1.1 1+1.1 = 1  for x and z it is c1 f1+c1 f1+c1 f1 = 1.1 1+1.1 = 1. thus  cross-bin computation of the emd finds the perceived rating for the dissimilarities of image pairs  x y  and  x z . the earth mover's distance is a special linear program that can be solved using e.g. the simplex method from operations research . the theoretical worst case complexity of the simplex method is exponential in the dimensionality. in practical applications  however  the typical runtime is about cubic . as the optimization is over quadratic matrices in the size of the histograms  the complexity is at least quadratic. for high-dimensional histograms this is clearly infeasible. in   the authors state that coarse histograms are typically inadequate as bins are too large to
+
+figure 1: multistep query processing
+benefit from cross-bin dissimilarity assessment while for fine histograms runtimes are too slow.
+1	multistep query processing
+　from a database perspective  efficiency can be improved by multistep filter-and-refine architectures. a filter which is  1  efficient   1  lower-bounding and  1  selective generates a set of candidates which is refined using the original distance function  cf. figure 1 . the following benefits are obtained from such a setting:
+ 1  efficient filter computation is necessary to obtain a speedup compared to original distance computations.
+ 1  a lower bounding filter guarantees that the original distance is never overestimated. for multistep algorithms such as gemini or k nearest neighbor optimal processing  knop   underestimating asserts completeness  i.e. no false dismissals.  for proofs see  1  1  .
+ 1  selectivity of a filter refers to the tightness of a lower bound. the tighter the filter approximates the original distance  the smaller the set of candidates. hence  fewer refinements and lower runtimes.
+　for the earth mover's distance  specialized lower bounds have been suggested  1  1  1 . these include averages in feature space  weighted lp norms and dimension-wise optimization of emd-components. the filter presented in  is limited by the dimensionality of the underlying feature space  the ones from  by the original dimensionality and  only allows for limited flexibility regarding the reduced dimensionality. neither makes use of information about the database at hand to improve filter selectivity.
+　dimensionality reduction does not rely on separate classes of filter functions. instead  the original type of distance function is used  yet on a smaller representation of the features. this is especially helpful for distance functions with superlinear complexity  like the earth mover's distance. for smaller dimensionalities  distance calculations can be performed in reasonable time. moreover  dimensionality reduction can be chained with existing filter functions for the emd  i.e an existing filter can additionally be applied to the reduced data as the result of the dimensionality reduction is again an earth mover's distance. for most bin-by-bin distances like lp norms  simple dimensionality reduction is straightforward. by discarding histogram dimensions  only non-negative addends are dropped  thus the resulting distance is guaranteed to be a lower bound. for the earth mover's distance  discarding dimensions can result in larger distances  as the resulting match might be worse than the
+
+figure 1: discarding dimensions
+original one. consider the example in figure 1: removing two dimensions results in a larger emd distance. consequently  to avoid false dismissals  simply discarding is not a valid option.
+　a special case of lower bounds is discussed in . focusing on bioinformatics image data  twelve separate mpeg-1 color layout descriptor measures are computed for a 1 tiling of the images. each image is associated with 1 independent 1-dimensional feature vectors. for these features  the authors derive a hierarchy of filters  constructed by merging  neighboring  histogram bins  where  neighboring means adjacent with respect to the tiling of the images. we will see in this paper that this merging constitutes a special case of dimensionality reduction which we generalize in section 1 to derive reductions in sections 1 and 1 that are fully flexible in the number of resulting dimensions and have a substantially wider application domain.
+1.	emd dimensionality reduction
+　as formalized in definition 1  the earth mover's distance of two d-dimensional vectors is defined using a cost matrix c which reflects the feature space ground distance. any dimensionality reduction technique thus has to specify two transformations: first  a rule on how dimensions of the vectors are reduced  and second  a corresponding reduction for the cost matrix. in this chapter we formalize dimensionality reduction of the earth mover's distance. the optimal cost matrix reduction is given and formally proven in section
+1.1. in section 1.1 we then concentrate on the reduction.
+1	dimensionality reduction
+　formally  a linear dimensionality reduction of vectors can be described via a reduction matrix.
+　definition 1. general linear dimensionality reduction. a general linear dimensionality reduction from dimensionality  is characterized by a reduction matrix
+r =  rij  （ rd〜d . the reduction of a d-dimensional vector x =  x1 ... xd  to a d-dimensional vector is defined as:
+		 1 
+a subtype of linear dimensionality reductions especially useful for the reduction of the emd are those reductions that combine original dimensions to form one reduced dimension.
+definition 1. combining dimensionality reduction.
+the set  of linear dimensionality reduction matrices that reduce the data dimensionality fromby combining original dimensions to form reduced dimensions is defined by:
+
+restrictions  1  and  1  together assert that each original dimension is assigned to exactly one reduced dimension  i.e.
+	  where d = {1 ... d} and  
+repre-
+sents dimensions i that are combined to reduced dimension i. additionally  restriction  1  induces the reduced vector to be of equal total mass as the original vector which complies with definition 1. restriction  1  ensures that every reduced dimension is assigned at least one original dimension.
+　a reduced earth mover's distance is defined via a reduction for the query vector and a reduction for the database vectors. both reductions are used to compute a reduced cost matrix  cf. figure 1 .
+   definition 1. reduced earth mover's distance. for two d-dimensional vectors x  y and a cost matrix c according to definition 1 and for two reduction matrices r1 （  and   the lower-bounding reduced emd is defined as:
+	1 	 1 
+where  is a lower-bounding reduced cost matrix.
+　the lower-bounding reduced cost matrix c is formally introduced in definition 1. this reduced cost matrix is based on a worst-case assumption to guarantee the lower-bounding property for the filter step. the sparse combining reduction matrices according to definition 1 limit the worst cases that can occur  cf. section 1.1  when compared to dimensionality reduction techniques such as pca  ica and random projection where rij （ r. our tests with pca  amended by an extra dimension to preserve the total mass  resulted in very poor retrieval efficiency due to the concessions that had to be made for the reduced cost matrix in order to guarantee the lower-bounding property.
+　the two possibly differing reduction matrices r1 r1 of differing dimensionality applied to the emd operands  requiring only minor extension of definition 1 to support two differing vector dimensionalities  allow for handling the feature vectors in the database separately from the feature vectors of the queries. in particular  a database reduction to a low dimensionality for indexing in multidimensional structures  and  at the same time  only slight or no reduction of the query for high approximation quality is possible in our approach.
+1	optimal dimensionality reduction
+　we define optimality of dimensionality reduction with respect to the efficiency of similarity search. during multistep query processing  dimensionality reduction is used to generate a set of candidates which is refined using the original dimensionality  cf. figure 1 . smaller candidate sets induce fewer refinement computations and thus result in less computation time in the refinement step. for given target dimensionalities d1 and d1 the optimal dimensionality reduction is therefore the reduction which yields the smallest candidate sets during query processing.
+
+figure 1: derivation of the reduced cost matrix c from histogram reduction matrices r1 and r1
+1.1	optimal cost reduction
+　any reduction of the dimensionality of the earth mover's distance requires specification of a corresponding reduced cost matrix. this cost matrix provides the ground distance in the new reduced feature space. consequently  the reduced cost matrix depends on the reduction matrices of definition 1. the optimal cost matrix with respect to given reduction matrices is the one which provides the largest lower bound to the emd in the original dimensionality. as we will prove  the tightest possible reduced cost matrix consists of minima over the original cost entries.
+　to illustrate why those minima have to be chosen  we give an example of the worst case that leads to this condition: to ensure the lower bound property  underestimating the true distance means assuming the worst case  i.e. the original mass was transfered at minimum cost. consider x =  1 1  and y =  1 1  and manhattan ground distance  compare cost matrix in figure 1 . their earth mover's distance is then simply 1  moving one unit of mass from dimension x1 to y1 at ground distance 1: 1   1 . combining the first two and the last two dimensions  the reduced features are 1  and 1 . the minimum cost entry from the original dimensions x1 and x1 to dimensions y1 or y1 is the cost from x1 to y1 which is indeed the 1 that was used in the original emd. if this value were to be exceeded  the lower bound property would be lost.
+we formalize this definition and prove optimality.
+　definition 1. optimal reduced cost matrix. for two d-dimensional vectors x  y and a cost matrix c according to definition 1 and for a reduced emdcr1 r1 according to definition 1  the optimal reduced cost matrix is defined by:
+		 1 
+in case of   the reduced cost matrix
+c defined by  1  is equivalent to the lower bounding cost matrix of . we show that c is lower bounding for
+r1  too. furthermore  we prove that the reduced cost matrix results in a greatest lower bound for given reduction matrices r1 and r1.
+　theorem 1. lower bound. given two reduction matrices and  and a cost matrix c （ rd〜d  the reduced cost matrix c according to  1  provides a lower bound:
+　we denote the optimal flow matrix for the original emdc by f =  fij  and the combined flows that satisfy constraints  1  to  1  in definition 1 for the reduced by
+
+and get
+
+　in step  i  we simply split the summation to let it sum over the reduced dimensions using
+and. step  ii  replaces the individual costs within the brackets by the minimum over all these costs  hence the sum can only decrease. since this complies with equation 1  it is replaced by in step  iii . step  iv  substitutes the summed flows in the brackets by the combined flows introduced above.  v  holds since the left side of the equation is a feasible solution to the transportation problem  albeit not necessarily a mimimal one which is given by.
+
+　before we prove the optimality of c according to  1   we introduce a further property of the emd that we call monotony. the monotony states that the quality of a lower bound by dimensionality reduction increases  i.e. the reduced emds are tighter with respect to the original emds  if the values in the cost matrix increase.
+　theorem 1. monotony of the emd. given two cost matrices c1 c1 （ rd〜d it holds:
+	c1 ＋ c1  	 x y : emdc1 x y  ＋ emdc1 x y 
+where
+c1 ＋ c1  	 c1 = c1  ‥
+  i j （ d : c1ij ＋ c1ij …  i j （ d : c1ij   c1ij 
+　proof.  sketch      since the emd is a sum of terms fij ， cij with fij − 1  it can only decrease when the cij are less or equal  c1 ＋ c1 .     the proof is given by contradiction: assume the right side holds for all x and y and  c1 i j   c1 i j  i.e. there is at least one entry in c1 that is bigger than the corresponding entry in c1. then a counter example suffices for the proof. this can be achieved by two histograms x1 and y1 with
+1   if i =  i and
+	1   otherwise	1   otherwise
+which lead to a contradiction of the assumption:
+emdc1 x1 y1  = 1 ， c1 i j   1 ， c1 i j = emdc1 x1 y1 
+
+　after proving the lower bounding property and the monotony of the emd  we now prove that there is no better reduced cost matrix for given reduction matrices r1 and r1  i.e. c according to definition 1 is optimal.
+　theorem 1. optimality. given a cost matrix c （ rd〜d and two reduction matrices  and   there is no greater lower bound than the one provided by c according to  1 :
+
+where
+
+proof. for the proof we assume the negation
+
+and show a contradiction.
+   to comply with the tighter constraint  the monotony of the emd requires. since we have it must hold that was computed
+according to definition 1 we know that 1 … r1j j = 1}.
+　we now construct two vectors x1 and y1 that contradict the lb constraint. we choose two original dimensions i1 （ {i|r1i i = 1} and j1 （ {j|r1j j = 1} that result in and set
+	1   if i = i1	1   if j = j1
+	i =	1   otherwise	and	j =	1   otherwise
+as the only flow in the original emd is between and   we have
+
+and due to i1 （ {i|r1i i = 1} and j1 （ {j|r1j j = 1}
+which together with	j	j	:
+
+
+　theorem 1 proves the reduction of a cost matrix c to c according to definition 1 to be an optimal lower bound for given reduction matrices r1 and r1. therefore  we now focus on how to find good reduction matrices. to simplify the discussion  we assume r1 = r1 and write emdrc x y  := emdr rc  x y . however  our methods can be extended to different simultaneous reductions in a straightforward manner.
+1.1	optimal flow reduction
+　as discussed above  optimal reduction of the cost matrix in the earth mover's distance depends entirely on the reduction matrices. consequently  the efficiency of any emd reduction according to definition 1 depends solely on the choice of r. we define what would constitute an optimal choice of r. as that r is not attainable in practice  we then introduce approximations that are found to result in efficient reductions as shown in our experiments.
+　given a d-dimensional query point x and a query distance   the optimal reduction to dimensionality d can be defined in terms of the number of refinements required to answer an  range query for a database db:
+r = argmin
+due to the lower-bounding property  only elements in the above set can potentially still have a refined distance below . since this optimality is only concerned with one single query x  one typically chooses a workload w representative of the expected queries and defines optimality with respect to said workload.
+definition 1. optimal emd reduction. given a work-
+load   where xi is a query vector and i the corresponding range threshold  the optimal reduction  is:
+r = argmin
+	 	 
+while this equation describes the desired optimal reduction  the search space for the optimization is immense even for small databases and small dimensionalities. due to the size of the combining reduction matrix  a    -variable 1 integer optimization problem with restrictions according to definition 1 has to be solved. summing over the workload  the objective function consists of |w|，|db| individual   variable linear optimization problems. exhaustive enumeration of all possible reductions requires the computation of a total of reduced emds. even for a reduction from 1 to 1 dimensions of a database of size 1 and a workload of size 1  this requires over 1 ， 1 emd computations. as this is practically infeasible  we discuss heuristics that result in efficient reductions as seen in section 1.
+1	clustering-based reduction
+　the first approach we propose is a data-independent dimensionality reduction which is generalized as stated in section 1. it is based on clustering algorithms and is motivated by the monotony of the earth mover's distance  cf. theorem 1 .
+　monotony means that higher cost matrix entries produce tighter dimensionality reductions. therefore we propose a
+
+figure 1: clustering based on the ground distance
+method that combines the original dimensions in such a way that the distances between the resulting reduced dimensions are as great as possible. at the same time the distance information that is lost shall be as small as possible. these two demands correspond to the well known goals of maximum inter-class dissimilarity and minimum intra-class dissimilarity aimed for by clustering algorithms.
+　figure 1 gives an example for d = 1 and = 1  where the original dimensions d1  d1 are combined to the reduced dimension  and . the lost distance information within = 1 and within  it is c1 = c1 = 1. the distance that is preserved between
+and	= 1 which is the minimum according to
+definition 1.
+　a further postulate is flexibility in terms of the number of reduced dimensions d. this flexibility allows users full control of the trade-off between the quality of the approximation and the efficiency of the filter step computation. this is a unique advantage of our method that none of the existing approximation techniques for the emd provide.
+　we meet these demands for flexible data independent dimensionality reduction by clustering on the ground distance between dimensions in the earth mover's distance. specification of d is possible with partitioning clustering algorithms such as k-means or k-medoids . both of these algorithms start with an initial random partition of the data into k groups  where k is the user specified number of clusters. working in an iterative manner  these algorithms assign points to the nearest cluster center and re-compute these centers for the new partitioning until the clustering is stable with respect to a quality criterion. k-means uses the arithmetic mean as center of clusters  whereas k-medoids chooses a central point from the data set as representative. the points in our case refer to the original dimensions of the feature space.
+　in this work we opt for the k-medoids algorithm  because  unlike k-means  it does not require an explicit distance function for the feature space. thus we can handle any data set if the two inputs for the emd calculation are provided  histograms and cost matrix . this holds even if the ground distance function is not explicitly known.
+　we sketch our k-medoids algorithm on the emd dimensions in the following. for details refer to . the algorithm starts by randomly choosing k representatives  medoids  from the set of original dimensions and assigns the remaining ones to their nearest medoid according to the cost matrix. the quality of the clustering is determined as the total distance defined as:
+
+where is the representing medoid of the cluster that corresponds to the reduced dimension i. the total distance thus reflects the degree of dissimilarity within the clusters 
+
+figure 1: flow-based reduction
+i.e. the objective function that the algorithm tries to minimize. in the next step  the algorithm aims at improving the clustering. it determines the total distance that results when swapping a non-medoid with a medoid. in a greedy manner  the configuration with the lowest total distance is chosen and the corresponding pair is swapped. the algorithm terminates if no swapping leads to further improvement of the total distance. the result is a clustering into k partitions.
+　in our case each of the k clusters corresponds to one of the d reduced dimensions. by setting the parameter k  the reduced dimensionality can thus be flexibly chosen. the elements contained in cluster i are the original dimensions that were combined to i. since there is no knowledge about the underlying data set incorporated in this approach  it is likely that one sacrifices great potential of improving the choice of the reduction matrix. we bridge this gap by introducing a second method for dimensionality reduction in the next section.
+1	flow-based reduction
+　we call our second  data dependent method for dimensionality reduction flow-based reduction  fb reduction . our algorithm incorporates knowledge on the underlying data set to generate a tighter reduction. we collect information about the flows of unreduced emd computations to guide the process of generating tighter reduction matrices. at first  computing unreduced emds to later approximate them in a second step might sound like a paradox as this preprocessing step requires additional effort. however  this investment is more than justified through faster search times during query processing  i.e. the preprocessing is done once and does not affect the response times.
+　the unreduced emd is a sum of terms cij ， fij. for a tight lower bound  we want to achieve largest possible terms
+. since we can derive an optimal reduced cost matrix  by applying theorem 1  we have to increase the reduced flows with respect to . this way  the reduced
+emd increases and with it the quality of the lower bound.
+the information we incorporate is the average flow matrix
+fs s =  fijs  with    over a sample of the database. we approximate the flows occurring in a reduced emd by the average original flows aggregated according to the respective reduction matrix.
+		 1 
+　the aggregated flow from the reduced dimensionis based on original flows fij between dimensions i and j that the reduction matrix r combined to i and j respectively.
+　we measure the expected tightness of a reduction r as the sum of the aggregated flows weighted by the cost matrix c optimally reduced according to r:
+		 1 
+　the global optimization of this term requires computing all possible reductions which is clearly infeasible  cf. section 1.1 . therefore  in our proposed algorithms we reassign one original dimension at a time to iteratively improve the reduction matrix. figure 1 illustrates the steps we take to create a reduction matrix with our flow-based heuristic. in the first step we draw a sample s from the database.
+　in the second step the emd  original dimensionality  is calculated on the sample  i.e. we calculate the distances for each pair of histograms in s. while doing this  we sum up the average flows fs. starting from an initial reduction the emd flow matrices f of the histograms pairs to obtain
+matrix  the third and main step of the approach finds a local maximum of the expected lower bound tightness  equation 1  by utilizing the aggregated flow information.
+　we propose two variants of an algorithm that solve step 1. figure 1 shows a pseudo code for the first variant which we named fb-mod  flow-based reduction - modulo . the algorithm takes the current reduction matrix  starts at the first original dimension and changes its assignment. to this end  it iteratively assesses the assignment of the original dimension to each reduced dimension. if the quality of the resulting reduction matrix is better than the current solution  the change is made persistent and the algorithm continues with the next original dimension. once it reaches the last original dimension it starts over at the first one until it visits the same original dimension twice without any changes in assignments.
+　the expected tightness of a reduction matrix is calculated using the calctight method that is displayed in figure 1. it consists of three steps.
+1. change the assignment of the given original dimension from its current assignment to the given reduced dimension.
+1. reduce the original cost matrix according to the resulting reduction matrix.
+1. sum up the products of the reduced costs and the aggregated flows according to  1 .
+
+double calctight r  f  c  origdim  qhz1hg'lpg  {     result = 1; 
+ 
+  //copy reduction matrix and temp. reassign dimension 
+  r  = r.copy  ; 
+  r .reassign origdim  newreddim ; 
+ 
+  //reduce the original cost matrix according to r  
+  c  = reducecostmatrix c  r  ; 
+  //sum up the reduced costs * aggregated flows   for l  = 1; l    g ; l ++  {     for j  = 1; j    g ; j ++  { 
+      result += aggrflow f  r  l   j   * c  l   j  ; 
+    } 
+  }    return result; 
+} 
+
+figure 1: tightness measure for a reduction
+reductionmatrix optimizefb mod r& gg  {    origdim = 1; lastorigdimchanged = 1; 
+ //get the exp. tightness of r without any changes   currenttightness = calctight r c f 1 r.getassignment 1 g  ; 
+ 
+   //iterate over orig dimensions and change their assignment 
+   repeat{ 	     
+  threshold = currenttightness * thresh;//improvement threshold 
+    //try each assignment to a reduced dimension     for reddim = 1; reddim   d ; reddim++  { 
+      //calculate exp. tightness when changing the assignment        swaptightness = calctight r  c  f  origdim  reddim  g  ;       if  swaptightness - currenttightness   threshold {         r.reassign origdim  reddim ;  	//change assignment         lastorigdimchanged = origdim; 	//track last change         currenttightness = swaptightness; 
+        break;  	 	 	 	//found improvement 
+      }     }     origdim  =  origdim  + 1  % d;   	//start over at dim 1  
+   } until  origdim == lastorigdimchanged ; //stop if no improv. 
+  return r; 
+} 
+
+figure 1: computing a reduction using fb-mod
+
+reductionmatrix optimizefb all r& gg  {    bestorigdim = -1; bestreddim = -1;  //track best changes    improved = true; 
+ //get the exp. tightness of r without any changes  currenttightness = calctight r c f 1 r.getassignment 1   g  ; 
+    while improved {     improved = false; 
+  threshold = currenttightness * thresh;//improvement threshold 
+    //iterate over all original dimensions     for origdim = 1; origdim   d; origdim++  {       
+      //try each assignment to a reduced dimension       for reddim = 1; reddim   d uhg'lp++  { 
+        //calculate exp. tightness when changing the assignment         swaptightness = calctight r  c  f  origdim  reddim  g  ; 
+        //track values if change was better         if  swaptightness - currenttightness   threshold {           currenttightness = swaptightness;           bestorigdim = origdim; bestreddim = reddim;           improved = true; 
+        } 
+      } 
+    } 
+ //use best assignment from this iteration     if improved  r.reassign bestorigdim  bestreddim ;      
+ } 
+ 
+ return r; 
+} 
+
+figure 1: computing a reduction using fb-all
+　the second variant of our algorithm does not necessarily apply the first reassignment that yields a better solution  fig. 1 . instead it evaluates all possibilities before choosing the one single reassignment which results in the best reduction matrix. it then starts the next iteration until no further improvement is achieved. we therefore call it fb-all.
+　we propose using one of two differing initial reduction matrices. for a baseline solution  all original dimensions are assigned to the first reduced dimension. alternatively  the result from the clustering based dimensionality reduction  section 1  is used. in this case  our algorithms start from a solution that reflects the ground distances in the feature space. in our experiments we refer to these two initial reductions as base and kmed respectively.
+1.	query processing algorithm
+　in this section  we describe query processing for k nearest neighbor queries. as discussed previously  this extends to range queries in a straightforward manner. while in knnqueries the value for ε is not known a priori  the distance of the kth nearest neighbor corresponds to an ε value for a range query with the same result set. as described in section
+
+figure 1: multi-step setup for query processing
+1  complete multistep query processing in the gemini or knop framework requires lower-bounding filter functions  1  1 . we have shown that our dimensionality reduction techniques provide such lower bounds.
+consequently  we use reduced emd in such an algorithm 
+following the optimal  with respect to the number of refinements  knop framework . the resulting algorithm for k nearest neighbor queries on a ranking with respect to a lower bounding filter function is illustrated in figure 1. for a specified parameter k and a query object  k initial results are retrieved from the getnext-method of the filter ranking. they are refined and inserted into the kneighbors result set  sorted with respect to their actual distance from the query. next  the getnext-method of the base ranking is queried for the next best object with respect to the filter distance. if the filter distance is smaller than the current kth nearest neighbor in the kneighbors set  the object is refined and compared against the current kth nearest neighbor with respect to the actual distance. if smaller  it is sorted into the result set  displacing the furthest one from the set. this is repeated until the filter distance is larger than the current kth result. as soon as the filter distance is larger  none of the remaining objects have a smaller filter distance. and since the filter distance is a lower bound of the actual distance  their actual distance is also larger. the kneighbors set now contains the actual k nearest neighbors.
+　the dimensionality reduction techniques presented can be flexibly combined. as the reduced distance function again is an emd computation  we can use existing filters for the emd on the reduced dimensionality. this chaining of lowerbounding filters  widely used in multistep query processing  allows for efficient query processing as our experiments show. the lbim technique from  is such a lower bound with respect to the earth mover's distance. in our work  we use the chaining multistep setup  i.e. a combination of three different distance functions  is illustrated in figure 1. lbim on dimensionality reduced features  red-im  filter 1  is followed by the reduced emd  red-emd  filter 1  before refinement using the original dimensionality emd computes the final result set. each of the filter functions in the setup chain is a lower bound to the next one  which guarantees completeness in multistep query processing as proven in  1  1 . as indicated  different reduction matrices for query and database  denoted as r1 and r1 respectively  may be used.
+　using all three distance functions requires computation of a red-emd ranking based on the previous red-im filter ranking. pseudo code for this algorithm is given in figure 1. a getnext query is provided given a base filter ranking. initially  a first candidate is retrieved from the base ranking. while the next distance with respect to the
+pairlist id dist  getneighbors q  k  refinementdistf  baseranking { 
+ pairlist id dist  	kneighbors; //candidates; eventually result  pair id dist  	next; 	 //next candidate  
+ 
+ //get k initial candidates 
+ baseranking.init q ; 	//start baseranking for query q  for i=1; i =k; i++ { 	 
+ 	next = baseranking.getnext float max ; 	//no pruning  	kneighbors.insertsorted next.id  next.dist ; 	//sort by dist 
+ } 
+ 
+ //get more candidates until baseranking is worse than refinement  next = baseranking.getnext kneighbors.last  .dist ; //w. pruning  while  next &&  next.dist   kneighbors.last  .dist  { 
+ 	//check if refined distance is lower than current kth candidate  	refinementdist = refinementdistf q  next.id ;   	  	if  refinementdist   kneighbors.last  .dist  {  	kneighbors.insertsorted next.id  refinementdist ;  
+ 	kneighbors.removelast  ; 
+ 	} 
+ 	next = baseranking.getnext kneighbors.last  .dist ;  
+ } 
+ 
+ //kneighbors holds the k nearest neighbors acc. to refinementdist  return kneighbors;  
+} 
+
+figure 1: k nearest neighbor on a base ranking
+
+pair id dist  getnext pruningdistance { 
+ baseranking  	= this.baseranking;//ref. from class   filterdistf  	= this.filterdistf;//ref. from class   q 	 	= this.query; 	//ref. from class 
+ pairqueue id dist  queue = this.queue; 	//ref. from class 
+ 
+ //get more candidates until baseranking is worse than this filter  pair id dist  next   = baseranking.getnext pruningdistance ;  while  next && 
+   	 queue.empty   ||  next.dist   queue.first  .dist  {  	filterdist = filterdistf q  next.id ;  	 	 
+ 	//check if filter distance is lower than pruning distance  	if  filterdist   pruningdistance  { 
+ 	queue.pushsorted next.id  dist ;  //sort by filter distance 
+ 	} 
+ 	next = baseranking.getnext pruningdistance ; 	 
+ } 
+ 
+ //hand failing candidate back to baseranking for next call  if  next  {   baseranking.requeue next ; //add to front in baseranking queue 
+ } 
+ 
+ //return next nearest neighbor according to filter distance  return queue.pop  ; 
+} 
+
+figure 1: ranking on a base ranking
+base filter is smaller than the one in the priority queue  refinement with respect to the second filter is computed. as long as this refined distance is smaller than the pruning distance  it is added to the queue  sorted in ascending order of the refinement. whenever the base filter distance exceeds the current top element in the queue  the first object that can be handed to the next step  the original dimensionality emd computation  is found. using the same reasoning as above  all remaining base filter distances are larger  and consequently  their refined filter distances are larger as well. a detailed discussion can be found in  1  1 .
+1.	experiments
+　setup. the reported results in this section are averages over a workload of 1 k-nearest neighbor queries. each complete data set  -all  was divided into a query set  -q   containing the 1 query objects  and the database  -db   containing the remaining objects. from the database we then drew a sample set  on which we calculate the flow based reduction matrices  cf. figure 1 . we use the terminology  -all  -q  -db  for both data sets throughout this section. all experiments were executed on pentium 1.1ghz work stations with 1gb of ram running windows xp.
+
+ a  retina 	 b  irma  1  1  1 
+figure 1: data sets used in experiments.  a  1 feline retina scans   b  1 radiography images
+　we compare the following approaches using the architecture from figure 1: our four flow-based dimensionality re-
+duction variants  fb-all-base  fb-all-kmed  fb-mod-base  fb-mod-kmed   our clustering-based dimensionality reduction  kmedoids  and  for the retina data set  the 1-dimensional filter from   ljosa  which effectively is a lower resolution 1〜1 grid imposed on figure 1 a . for the irma database  ljosa is not applicable as the 1-dimensional feature space is not organized in a grid-like fashion. however  the generalized approach from section 1  kmedoids  can be applied. in addition to the aforementioned six approaches  we run the weighted averaging filter from   rubner  in a direct filter-and-refine set-up. since the averaging filter requires an explicit ground distance function while the reductions deliver a reduced cost matrix  rubner can only be applied to the original emd. to complete the set of competing approaches  we also evaluate the independent minimization filter from  for non-reduced emds in a direct
+filter-and-refine architecture. all emd computations are based on euclidean ground distance.
+　data sets. we evaluate our approach on two real world data sets referred to as retina and irma  cf. figure 1 . the first image data set consists of 1 feline retina scans labeled with various antibodies and was used in experiments on emd lower bounds in . for each image  twelve 1-dimensional histograms reflecting a tile-based spatial distribution of twelve mpeg-1 color layout descriptor measures were computed by the authors of . the normalized histograms  sum of 1  result in datasets retina1-all through retina1-all  which we divide in query sets of size 1 and database sets of size 1 as described above. as retina1-all through retina1-all exhibited a very low variance in earth mover's distances  cf. table 1   looking
+data setaverage emdvarianceretina1-all11retina1-all11retina1-all11retina1-all11......retina1-all11
+1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 	1 greatest flows	fb-all-kmed	fb-mod-kmed
+ 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 	  1  1 1  1 1 1 1   1 1  1 1 1 1 1 1 1 1    1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1  1  1 1   1 1 	kmedoids	fb-all-base	fb-mod-base
+figure 1: top left: greatest flows within the feature space of a sample of retina1-all. other: partitioning of the feature space into 1 dimensions via our five reduction approachestable 1: average and variance of emd distances in the 1 retina datasets  sorted by desc. variance  for nearest neighbors in those sets is not meaningful. thus  we limit our experiments to retina1-all to retina1-all where we calculate reduction matrices based on sample sets of size 1  roughly 1% .
+　our larger scale experiments use a data set of 1 radiography images from the image retrieval in medical applications  irma  project  1  1 . the raw data set is available from  and was part of the 1 imageclefmed image retrieval competition. for each image  small patches were collected at both salient points and on a uniform grid. a linde-buzo-gray clustering using the euclidean distance on 1 principal component coefficients of the patches resulted in 1 cluster centers after applying a threshold algorithm to remove insignificantly small clusters. details on the feature extraction process can be found in . the dataset irma-all comprises the image-wise cluster frequencies stored as 1-dimensional histograms. the 1-dimensional euclidean distances between the 1 cluster centers are used to compute the cost matrix for the emd. the reduction matrices are calculated on a sample set of size 1 while the database irma-db has cardinality 1.
+　retina experiments. in the top left of figure 1 we see for twelve reduced dimensions that the greatest averaged original  flow 〜 cost  components in retina1 occur in a vertical direction roughly between the two bands of antibody labels that can be seen in figure 1 a . our flow-based reductions keep dimensions separate that induce great  flow 〜 cost  components in the original emd while combining those that do not. as can be seen in figure 1  all four variants adapt to the largely vertical flows by assigning different rows to different reduced dimensions. this also keeps the reduced costs between the new dimensions high compared to the kmedoids reduction where each dimension has between 1 and 1 neighboring reduced dimensions with distance 1. the fb-all-base approach  which has the greatest freedom to find a locally optimal solution  combines a large number of central dimensions into the new dimension 1 as there is little flow originating from this area. the same algorithm initialized with the kmedoids solution shows a more balanced distribution of the new dimensions. for the two modulo variants  little difference can be be seen for the 1dimensional reduction. they are both rather balanced and adapt well to the vertical flows.
+　figure 1 shows the 1-nearest neighbor query processing time averaged over datasets retina1-db to retina1-db. we vary the reduced dimensionality for our approaches while the competing approaches are either fixed in their dimensionality  ljosa  or do not have a reduced dimensionality  sequential emd  rubner  im . computing 1 expensive high-dimensional emd distances each for the feature vectors of retina1-db to retina1-db takes on average 1 seconds. at approximately 1 seconds  the result of the fixed grid reduction  ljosa  is already a significant improvement which the clustering-based reduction  kmedoids  beats using 1 or more dimensions. we suppose that the 1s advantage of ljosa over kmedoids at 1 reduced dimensions
+avg.overretina1 dbtoretina1 db k=1
+
+figure 1: computation time vs. reduced dimensionality  avg. over retina1 to retina1 
+mostly stems from the original feature space partitioning being a regular grid  which is a perfect match for the ljosa approach. the kmedoids approach is fully flexible in the number of reduced dimensions and in their arrangement in feature space and does not optimize for grid-based datasets. the two direct filter-and-refine approaches  rubner  im  give still faster results compared to ljosa  1s and 1s respectively  but they are both surpassed by all of our four flow based approaches at a large majority of reduced dimensionalities evaluated for this experiment  1  1  1  1 and 1 . at 1 seconds  our fb-all-kmed dimensionality reduction with 1 reduced dimensions shows the lowest processing time  closely followed by fb-mod-base and fb-mod-kmed. this means that the flow based reductions achieve an average response time speedup of factor 1 compared to the sequential emd and are 1 times faster than the next best competitor  rubner in this case . the approach with the greatest freedom to choose a reduction matrix  fb-all-base   which produced a rather large combined area in the middle of the feature space  cf. figure 1  is faster than all data-independent approaches  but seems to have overfitted the sample set on which the reduction matrices were computed as the three variants producing more balanced reductions are faster in all evaluated configurations. the reduction to 1 dimensions is a less effective filter step due to producing more candidates than the reduction using 1 dimensions. this leads to higher overall response times even though the 1-dimensional emd computations are less costly than the 1-dimensional ones  cf. fig. 1 .
+　figure 1 illustrates the advantage that the reductionbased approaches  ljosa  kmedoids  fb  were able to achieve by including a reduced im as the first filter chain link according to figure 1. while removing this extra filter step does not change the overall order of approaches seen in figure 1  it is favorable to have this option as it reduces absolute processing times in almost all cases we studied. the higher the reduced dimensionality  the more it is worth to apply the filter. when varying the parameter k of nearest neighbors to retrieve  cf. figure 1   the observed order of relative speed remains stable but for one exception. the im filter performance improves when reducing k. it is consistently faster than rubner at k ＋ 1 but matches our flow based reductions only for k = 1. this means that im was
+effectofred im avg.overretina1 dbtoretina1 db k=1
+
+figure 1: relative speedup gained through applying red-im as the first filter chain link
+avg.overretina1 dbtoretina1 db red.dimensionality=1
+
+figure 1: computation time vs. number of nearest neighbors  retina1 
+particularly good at approximating distances of very similar histograms. im returns the nearest neighbor in 1s for k = 1 where our approaches show response times between 1s and 1s. even for k as small as 1 all four flow-based dimensionality reductions outperform all competitors.
+　irma experiments. figure 1 shows the trade-off between the decreasing selectivity and rising processing time of the filter step with increasing dimensionality d. for the larger irma data set with 1 original dimensions  the required number of expensive emd refinements drops to 1% at a reduced dimensionality of 1 when using fb-all-kmed. at the same time  the superlinear complexity of the emd causes the share of time spent on the filter step to decreases rapidly for low reduced dimensionalities. the optimum for finding 1 nearest neighbors is achieved at a reduced dimensionality of 1 where roughly 1% of the time is spent on filtering and the remainder of the time is spent on computing high-dimensional emd refinements for 1% of the data. for the same setting  the average filter selectivity of im is at 1% and at 1% for rubner.
+　due to the larger number of vectors and the higher dimensionality  overall query processing times are higher for the irma set than for the retina sets. this holds for all evaluated approaches. a complete sequential scan of the
+irma cardinality=1 k=1 fb all kmed
+
+figure 1: computation time shares and selectivity of the filter step  irma 
+irma db cardinality=1 k=1
+
+figure 1: computation time vs. reduced dimensionality  irma 
+database using the emd requires approximately 1 minutes. for 1 nearest neighbors  figure 1 shows that the two approaches which do not rely on a dimensionality reduction  rubner and im  decrease the response times to between 1 and 1 minutes. this is in line with the selectivity values stated above. our data-independent technique  kmedoids  performs similarly well when reducing the dimensionality to between 1% and 1% of the original dimensionality and reaches its optimum of just below 1 minute around dimensionality 1. this value is beaten by our four flow-based reductions  where fb-all-kmed gives the fastest response time at 1 seconds. again  fb-all-base performs slightly worse for most dimensionalities than the other flow-based reductions  which are within rather close proximity of each other. compared to the 1 minutes of the sequential scan and to the 1 minutes of the next best competing approach  rubner  this equates to a speedup of factor close to 1 and close to 1 respectively for our techniques.
+　we subsampled the irma-db data set in three steps to asses the efficiency of our approaches over a range of database cardinalities. each of the smaller databases includes the sample that was taken from irma-db during preprocessing time to compute the flows for our flow-based dimensionality reductions. as figure 1 depicts  all ap-
+irma db reduceddimensionality=1 k=1
+
+ irma 
+irma db reduceddimensionality=1 cardinality=1
+
+figure 1: computation time vs. number of nearest neighbors  irma 
+proaches scale in roughly the same way and the querying improvements reported above transfer to these sets. we can conclude that the sample size of 1 that was used as the basis to compute the reduction matrices sufficed to reflect the flows that are worth of preserving.
+　in the final set of experiments  we varied the parameter k of nearest neighbors to return for the irma set  cf. figure 1 . of foremost interest in this experiment was how our approaches fare compared to im when k is chosen to be lower than 1. while im again shows a comparatively low selectivity and a fast average response time  all our reduction techniques outperform im by a factor of at least 1 to 1 with fb-all-kmed being responsible for the latter value.
+　experiment summary. the experiments showed that both the generalized data-independent dimensionality reduction and the four data-dependent reductions based on original emd flows are able to outperform competing techniques in a large number of settings. this is in part due to their flexibility regarding the reduced dimensionality which allows them to make use of the trade-off between decreasing filter selectivity and rising filter processing time when the reduced dimensionality is increased. the preprocessing step required for our four flow-based approaches has proven to result in significantly lower query response times  especially for data that exhibits pronounced flow patterns matched by the queries. the reduction matrix derived from the dataindependent kmedoids approach showed to be a good starting point for the flow-based reductions. using this initialization  the  all variant slightly outperformed the  mod variant of our algorithm on most cases. we achieved speedup factors up to 1 compared to a sequential scan and 1 compared to the next best competing approach.
+1.	conclusion
+　the earth mover's distance  emd  is inherently adaptable to the feature space through its flexible cost matrix. its computation requires costly minimization of flows between histograms with respect to this cost matrix. in this work  we propose novel dimensionality reduction techniques for the emd. clustering based reduction relies only on the original cost matrix information to create reduced cost matrices. tightness of the reduced emd is greatly improved in flowbased reductions which incorporate flow information from the data. our technique is flexible in the reduced dimensionality of both the data and the query  allows for chaining with existing approaches  and guarantees completeness in multistep query processing. thorough experimental evaluation on real world data sets demonstrates that our dimensionality reduction techniques yield substantial efficiency gains over existing filter-based approaches. in future work  we plan to study the effect of using different reduction matrices for query and database histograms in more depth.
+1.	acknowledgments
+　we would like to thank v. ljos a  t.m. deserno  and t. deselaers for providing us with the data sets. this work was partially funded by dfg grants exc 1 and se 1-1.
+1.	repeatability assessment result
+　figures 1  1  and 1 to 1 have been verified by the sigmod repeatability committee. the experiment described in table 1 has not been repeated due to lack of time.

@@ -1,0 +1,36 @@
+we have developed a web-based search engine for 1d polygonal models. these days  the number of web sites using web 1d technology is increasing. the development of our search engine can be useful for people who are building 1d     e-learning environments  because 1d polygonal models can be quickly retrieved based on similarity of shapes or on certain keywords.  
+keywords 
+web 1d  retrieval  multimedia  database  polygon  e-learning  
+vrml  
+ 
+ 
+1. introduction 
+using the internet as an education resource is one of the most important methods in higher education. to create effective elearning software  1d computer graphic techniques are essential. some 1d based figures  graphs  and animations allow users to visualize class materials more attractively which users can more easily understand. to create 1d based e-learning applications  1d polygonal models are needed. our search engine helps users to find 1d polygonal models based on shape similarity or keywords.  
+ 
+  
+1. web-based retrieval 
+the implemented web-based retrieval system performs the following computations:  
+1  lexical analysis of 1d polygonal model files.  
+1  parsing tokens produced by lexical analysis.  
+1  extraction of shape features based on parser information.  
+1  creation of feature vectors from shape features.  
+1  reduction of hi-dimensional feature vectors based on equivalence classes.  
+1  search of key 1d models in the reduced feature vector spaces.  
+ 
+ 
+ 
+ 
+¡¡¡¡the similarity evaluations were done by comparing the point cloud of each polygonal model. the normalized density of the point clouds was calculated as the feature vectors. the numbers of the feature vectors were then reduced by grouping techniques based on equivalence classes . by using reduced feature vectors  fast similarity retrieval was accomplished. our system allows users to view 1d polygonal models interactively. by using a web-based interface  we can rotate  scale and translate 1d polygonal models. our 1d polygonal model databases include 1 items. we have tested systems with five users. our preliminary experiments show high recall and precision for similarity retrieval testing.  
+ 
+ 
+figure 1. web-based retrieval for 1d polygonal models 
+we can rotate  scale and translate 1d polygonal models by using a web-based interface. 1d polygonal models can be quickly retrieved based on similarity of shapes or on certain keywords.  
+ 
+ 
+  
+ 
+1. conclusions 	 
+the system allows users to collect 1d polygonal models  effectively  thus 1d based software applications can be developed more easily. our similarity retrieval method for 1d  polygonal models can be used not only for the development of  
+1d e-learning applications  but also for many applications including e-commerce.  	 
+ 	 
+ 	 

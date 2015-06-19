@@ -1,0 +1,111 @@
+there has been much recent interest in adapting data mining algorithms to time series databases. most of these algorithms need to compare time series. typically some variation of euclidean distance is used. however  as we demonstrate in this paper  euclidean distance can be an extremely brittle distance measure. dynamic time warping  dtw  has been suggested as a technique to allow more robust distance calculations  however it is computationally expensive. in this paper we introduce a modification of dtw which operates on a higher level abstraction of the data  in particular  a piecewise aggregate approximation  paa . our approach allows us to outperform dtw by one to two orders of magnitude  with no loss of accuracy.
+keywords
+time series  similarity measures  dynamic time warping.
+1. introduction
+time series are a ubiquitous form of data occurring in virtually every scientific discipline and business application. there has been much recent work on adapting data mining algorithms to time series databases. for example  das et al attempt to show how association rules can be learned from time series . debregeas and hebrail  demonstrate a technique for scaling up time series clustering algorithms to massive datasets. keogh and pazzani introduced a new  scaleable time series classification algorithm . almost all algorithms that operate on time series data need to compute the similarity between time series. euclidean distance  or some extension or modification thereof  is typically used. however  euclidean distance can be an extremely brittle distance measure. consider the clustering produced by euclidean distance in figure 1. sequence 1 is judged as most similar to the line in sequence 1  yet it appears more similar to 1 or 1.
+permission to make digital or hard copies of part or all of this work or personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. to copy otherwise  to republish  to post on servers  or to redistribute to lists  requires prior specific permission and/or a fee. 
+kdd 1  boston  ma usa 
+ c  acm 1-1-1/1 ...$1 
+
+figure 1. an unintuitive clustering produced by the euclidean distance measure. sequences 1 to 1 are astronomical time series . sequence 1 is simply a straight line with the same mean and variance as the other sequences.
+the reason why euclidean distance may fail to produce an intuitively correct measure of similarity between two sequences is because it is very sensitive to small distortions in the time axis. consider figure 1.a. the two sequences have approximately the same overall shape  but the shapes are not aligned in the time axis. the nonlinear alignment shown in fig 1.b would allow a more sophisticated distance measure to be calculated.
+a method for achieving such alignments has long been known in the speech processing community . the technique  dynamic time warping  dtw   was introduced to the data mining community by berndt and clifford . although they demonstrate the utility of the approach  they acknowledge that the algorithms time complexity is a problem and that  ...performance on very large databases may be a limitation .
+as an example of the utility of dtw compare the clustering shown in figure 1 with figure 1.
+in this paper we introduce a technique which speeds up dtw by a large constant. the value of the constant is data dependent but is typically one to two orders of magnitude. the algorithm  piecewise dynamic time warping  pdtw   takes advantage of the fact that we can efficiently approximate most time series by a piecewise aggregate approximation.
+the rest of this paper is organized as follows. section 1 contains a review of the classic dtw algorithm. section 1 introduces the piecewise aggregate approximation and pdtw algorithm. in section 1 we experimentally compare dtw  pdtw and euclidean distance on several real world datasets. section 1 contains a discussion of related work.  section 1 contains our conclusions.
+
+
+	1	1	1	1	1	1	1	1
+figure 1. two sequences from an australian sign language dataset. note that while the sequences have an overall similar shape  they are not aligned in the time axis. euclidean distance  which assumes the ith point on one sequence is aligned with ith point on the other  a   will produce a pessimistic dissimilarity measure.  a nonlinear alignment  b  allows a more sophisticated distance measure to be calculated.figure 1. when the dataset used in figure. 1 is clustered using dtw the results are much more intuitive.
+1. dynamic time warping
+suppose we have two time series q and c  of length n and m respectively  where:
+q = q1 q1 ... qi ... qn  1 c = c1 c1 ... cj ... cm  1 to align two sequences using dtw we construct an n-by-m matrix where the  ith  jth  element of the matrix contains the distance d qi cj  between the two points qi and cj  with euclidean distance  d qi cj  =  qi - cj 1  . each matrix element  i j  corresponds to the alignment between the points qi and cj. this is illustrated in figure 1. a warping path w  is a contiguous  in the sense stated below  set of matrix elements that defines a mapping between q and c. the kth element of w is defined as wk =  i j k so we have:
+	w = w1  w1  ... wk ... wk max m n  ¡Ü k   m+n-1	 1 
+the warping path is typically subject to several constraints.
+  boundary conditions: w1 =  1  and wk =  m n   simply stated  this requires the warping path to start and finish in diagonally opposite corner cells of the matrix.
+  continuity: given wk =  a b  then wk-1 =  a' b'  where a-a' ¡Ü1 and b-b' ¡Ü 1. this restricts the allowable steps in the warping path to adjacent cells  including diagonally adjacent cells .
+  monotonicity: given wk =  a b  then wk-1 =  a' b'  where a-a' ¡Ý 1 and b-b' ¡Ý 1. this forces the points in w to be monotonically spaced in time.
+there are exponentially many warping paths that satisfy the above conditions  however we are interested only in the path which minimizes the warping cost:
+	dtw  q c = min    ¡Ækk=1wk k     	  1 
+the k in the denominator is used to compensate for the fact that warping paths may have different lengths.
+this path can be found very efficiently using dynamic programming to evaluate the following recurrence which defines the cumulative distance ¦Ã i j  as the distance d i j  found in the current cell and the minimum of the cumulative distances of the adjacent elements:  
+	 ¦Ã i j   = d qi cj  + min{ ¦Ã i-1 j-1    ¦Ã i-1 j     ¦Ã i j-1  }	 1 
+the euclidean distance between two sequences can be seen as a special case of dtw where the kth element of w is constrained such that wk =  i j k   i = j = k. note that it is only defined in the special case where the two sequences have the same length. the time complexity of dtw is o nm .
+this review of dtw is necessarily brief; we refer the interested reader to  for a more detailed treatment.
+
+figure 1. an example warping path.
+1. a higher level representation
+in 	this 	section 	we 	introduce 	the 	piecewise 	aggregate approximation and a dtw algorithm for the representation.
+1 the piecewise aggregate representation
+we denote a time series query as x = x1 ... xn . let n be the dimensionality of the transformed time series we wish to work with  1 ¡Ü n ¡Ü n . for convenience  we assume that n is a factor of n. this is not a requirement of our approach  however it does simplify notation.
+a time series x of length n is represented in n space by a vector
+
+x=x1   xn . the ith element of x is calculated by the following equation:
+n i
+	xi =xj	 1 
+j=nn  i 1 +1
+ simply stated  to reduce the data from n dimensions to n dimensions  the data is divided into n equi-sized  frames . the mean value of the data falling within a frame is calculated and a vector of these values becomes the data reduced representation. figure 1 illustrates this notation. the complicated subscripting in eq. 1 is just to insure that the original sequence is divided into the correct number and size of frames.
+
+figure. 1: an illustration of the data reduction technique utilized in this paper. a time series consisting of eight  n  points is projected into two  n  dimensions. the time series is divided into two  n  frames and the mean of each frame is calculated. a
+vector of these means becomes the data reduced representation.
+two special cases worth noting are when n = n the transformed representation is identical to the original representation. when n = 1 the transformed representation is simply the mean of the original sequence. more generally the transformation produces a piecewise constant approximation of the original sequence  we therefore call our approach piecewise aggregate approximation  paa . figure 1 illustrates a natural time series and its paa approximation. we denote the ratio of the length of the original time series to the length of its paa representation  the compression rate c.
+	c =  n/n	 1 
+in choosing a value for c there is a classic tradeoff between memory savings and fidelity. in this work we do not address the problem of choosing the  best  compression rate. the  best  compression rate depends on the structure of the data itself and the task at hand  i.e. clustering/classification/retrieval etc . for most applications the best approach may be to have an expert interact with the data and choose this parameter  although automated approaches to similar problems have been suggested  1 .
+
+figure 1: the sequence x and its piecewise aggregate approximation x'.
+1 warping with the paa representation
+in section 1 we showed how to perform dynamic time warping on two sequences q and c. here we will show how to perform dynamic time warping using the reduced dimensionality versions
+
+of q and c  which we denote qi and ci respectively. for clarity we call the algorithm defined on the reduced dimensionality representation piecewise dynamic time warping  pdtw .
+to align two sequences using pdtw we construct an n-by-m matrix where the  ith  jth  element of the matrix contains the
+
+distance d qi  ci   between the two elements qi and ci . the distance between two elements is defined as the square of the distance between them:
+
+	d qi  ci   =  qi -ci  1   	            1 
+apart from this modification the matrix-searching algorithm is essentially unaltered. equation 1 is modified to reflect the new distance measure:
+
+ ¦Ã i j   = d qi  ci   + min{ ¦Ã i-1 j-1    ¦Ã i-1 j     ¦Ã i j-1  }    1 
+when reporting the dtw distance between two time series  eq. 1  we compensated for different length paths by dividing by k  the length of the warping path. we need to do something similar for pdtw but we cannot use k directly  because elements in the warping matrix now correspond to aggregate segments of data and we would like pdtw to be measured in the same units as dtw to facilitate comparison between the two measures. to compensate for this we can use a distance measure that is similar to eq. 1 but where the denominator is the square root of the compression rate.
+
+	pdtw  q c  = min    ¡Ækk=1wk	c	 1 
+because the length of the warping path is measured in the same units as dtw we have:
+
+	pdtw q  c      dtw q c 	      1 
+figure 1 shows strong visual evidence that sdtw finds alignments that are very similar to those produced by dtw. in the next section we will provide strong experiment evidence to the same effect.
+the time complexity for a pdtw is o nm   where m = m/c and n = n/c. the time complexity for the original dtw algorithm is o nm . so the speedup obtained by pdtw should be
+
+figure 1: a  two similar time series and the alignment between them  as discovered by dtw. b  the same time series in their paa representation  and the alignment discovered by pdtw.  this presents strong visual evidence that pdtw finds approximately the same warping as dtw.o nm /o mn  which is o c1 .
+1. experiment results
+we are interested in two properties of the proposed approach. the speedup obtained over the classic dtw algorithm and the quality of the alignment. in general  the quality of the alignment is subjective  so we designed experiments that indirectly  but objectively measure it.
+1 clustering
+for our clustering experiments we utilized two datasets  one natural and one synthetic.
+1  the australian sign language  asl  dataset from the uci kdd archive . the dataset consists of various sensors that measure the x-axis position of a subject's right hand while signing one of 1 words in australian sign language.
+1  the cylinder-bell-funnel  cbf  synthetic dataset as used in  1 1 . this dataset contains three classes  which are generated by the following equations.
+c t  =  1+¦Ç    x a b  t  + ¦Å t 	  1 t  t a  a
+  1 aa¡Ü t¡Ü¡Ütb¡Ü b
+b f tt    =  1+=  1+¦Ç¦Ç        xx  a ba b    t    t      bt--aa  //  bb--at   +  + ¦Å¦Å  tt   xx a  ab  b  ==       1 t  t b  b
+where  ¦Ç and  ¦Å t  are drawn from a standard normal distribution n 1   a is an integer drawn uniformly from the range  1  and  b-a  is an integer drawn uniformly from the range  1  1 .
+figure 1 shows some examples of the cylinder and funnel class  members of the bell class look like mirror images of the funnel class .
+for every possible pairing of the ten words in the asl dataset  we clustered the 1 corresponding sequences  using group-average hierarchical clustering. at the lowest level of the corresponding dendrogram  the clustering is subjective. however  the highest level of the dendrogram  i.e. the first bifurcation  should divide the data into the two classes. any dendrogram that correctly partitions the data in this fashion we consider correct and any other partition we consider incorrect.  there are 1 1 possible ways to cluster 1 items  of which 1 of them correctly separate the two classes  so the default rate for an algorithm which guesses randomly is only 1%.
+we performed the same experiments for the cbf dataset  with every possible pairing of the three classes. figure 1 shows the results of one experiment with the cylinder and funnel classes. here we had the luxury of unlimited data so we ran each experiment 1 times and averaged the results.
+ we compared four distance measures:
+1  dtw: the classic dynamic time warping algorithm as presented in section 1.
+1  pdtw: the piecewise dynamic time warping algorithm proposed in this paper.
+1  euclidean: we also tested euclidean distance measure to facilitate comparison to the large body of literature that utilizes this distance measure.
+1  peuclidean: because it might argued that any increased accuracy of pdtw was due solely to the smoothing effects of the piecewise aggregate approximation  we also tested the euclidean measure using the paa representation.
+table 1 summarizes the results.
+distance
+measureaslcblmean
+time
+ seconds correct
+clusterings
+ percentage mean
+time
+ seconds correct
+clusterings
+ percentage dtw1111pdtw1111euclidean1111peuclidean1111although the euclidean distance can be quickly calculated  it performance is only a little better than random. while the smoothing effect of the paa representation does help slightly for the cbl dataset  both of the euclidean based metrics have great difficulty differentiating between two classes in both datasets. both dtw and pdtw have essentially the same high accuracy  but pdtw faster by a factor of 1 for the asl dataset and a factor of 1 for the cbl dataset.
+1. related work
+dynamic time warping has enjoyed success in many areas where its time complexity is not an issue. it has been used in gesture recognition   robotics   speech processing   manufacturing  and medicine .
+conventional dtw  however  is much too slow for searching large databases. for this problem  euclidean distance  combined with an indexing scheme is typically used. faloutsos et al  extract the first few fourier coefficients from the time series and use these to project the data into multi-dimensional space . the data can then be indexed with a multi-dimensional indexing structure such as a r-tree. keogh and pazzani address the problem by declustering the data into bins  and optimizing the data within the bins to reduce search times .
+1. conclusions
+the most important contribution of this paper is to show that to euclidean distance metric  although popular  is an extremely brittle distance measure that degrades rapidly in the presence of time axis distortion. we reintroduced dtw to the kdd community and demonstrated a modification of dtw that exploits a higher level representation of time series data to produce one to two orders of magnitude speed-up with no decrease in accuracy. we experimentally demonstrated our approach on several real world datasets and showed a speedup of one to two orders of magnitude.

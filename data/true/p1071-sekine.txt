@@ -1,0 +1,44 @@
+this paper presents the motivation  resources and results for the first web people search task  which was organized as part of the semeval-1 evaluation exercise. also  we will describe a survey and proposal for a new task   attribute extraction   which is planned for inclusion in the second evaluation  planned for autumn  1. 
+categories and subject descriptors 
+h.1  information storage and retrieval : online 
+information systems  web-based service 
+general terms 
+performance  design  experimentation  security  human factors  languages. 
+keywords 
+disambiguation  person names  attributes of people  information extraction. 
+1. introduction 
+finding information about people in the world wide web is one of the most common activities of internet users. person names  however  are highly ambiguous. in most cases  the results for a person name search are a mix of pages about different people sharing the same name. the user is then forced either to add terms to the query  probably losing recall and focusing on one single aspect of the person   or to browse every document in order to filter the information about the person he/she is actually looking for. in an ideal system the user would simply type a person name  and receive search results clustered according to the different people sharing that name. and this is  in essence  the weps  web people search  task we conducted at semeval-1  artiles et al. 1 . the participating systems receive a set of web pages for a 
+person name  and they have to cluster them into different entities. 
+1. the first evaluation 
+the first evaluation was conducted in early 1 and the results were reported at the semeval-1 workshop. please refer to  artiles et al. 1  and the participant's papers for details.  
+1 data 
+ 
+in order to provide different ambiguity scenarios  we selected person names from different sources as seen in table 1. for each name  which was randomly selected from the sources  a collection of web pages is obtained from the 1 top results using yahoo! api. given this set of approximately 1 documents  two annotators work on manual clustering of the documents according to the actual entity referred to. the differences are resolved by a meta-annotator  one of the organizers . 
+table 1 training and test data 
+training test source av. entityav. doc. source av. entityav. doc. wikipedia1 1 wikipedia 1 1 ecdl1 1 1 acl1 1 1 web1* 1 1 census 1 1 total av. 1 1 total av. 1 1 1 results 
+1 teams submitted their results. each participant tries to create clusters as similar as possible to the clusters created by the annotators. the results were measured by f-measure  based on purity and inverse purity. 1 systems outperformed one of the simplest baselines  each name belongs to one cluster   and the best system achieved 1 f-measure. however  the score is well below the human performance of 1 and 1 for the two annotators. 
+almost all the systems worked as follows. first  the text part is extracted from the html page by a tool or simple rules. then the text is processed by nlp and/or web tools  such as a stemmer  pos tagger  chunker  named entity  ne  tagger  coreference  fact extraction  extraction of e-mail and url  or  link analyzer. using the values of these features as a vector of the documents  the similarity is calculated  mostly by td/idf weighted cosine metric  but there are variations   and then clustering  mostly agglomerative clustering  but there are variations  was conducted. in order to determine the clusters  a threshold is needed; this was mostly tuned using the training data. it was notably discussed by many participants that an ne tagger is one of the most important technologies  as well as the threshold tuning for clustering. 
+table 1 shows a strange disparity in the number of entities between the training data and test data. we don't really know the cause unless we analyze the search engine. but it has to be noted that this has an undesirable effect on threshold tuning. fixing this is one of the motivations for holding the second evaluation. 
+
+ 
+copyright is held by the author/owner s . 
+www 1  april 1--1  1  beijing  china. 
+acm 1-1-1/1 
+ 
+another motivation is the observation that the most rational clue to solve the problem was found to be the attributes of people. this will be discussed in the next section. 
+
+1
+www 1 / poster paper	april 1  1 ¡¤ beijing  china
+
+1. the second evaluation 
+with the new challenges to be solved  we are planning to hold the second evaluation in 1. in this evaluation  we will have an additional subtask   attribute extraction  for people on the web pages. it was noticed by the systems and the annotators that the attributes  such as birth date  spouse name  occupation and so on  are very important clues for the disambiguation. we believe it is the right direction to study such problem and try to implement technologies to identify such attributes. we will make this evaluation an independent subtask. 
+in order to set up the task  the first challenge is to define what are  the attributes of people . these have to be general enough to cover most people  useful for the disambiguation  and meaningful for the evaluation. we took an empirical method to define them; we extracted possible attributes from the web pages and created a set of attributes which are frequent and important enough for the evaluation. we looked at 1 documents from the weps corpus  and annotators extract as many attribute-value pairs as possible. the annotators are instructed to extract attributes of people which can be expressed as  person's attribute is value . the attribute and the value must be a noun or its equivalent. an attribute and value pair may be expressed in a tabular format  or only the value may be mentioned in a sentence. if the name of the attribute is not explicit in the web page  e.g.  i am a professor  means person's occupation is professor   then the annotator creates the attribute name. from the 1 documents  the annotators found 1 kinds of attributes; the 1 most frequent attributes are occupation  1   work  1   affiliation  1   full name  1   person to work with  1  and alma mater  1 . the number in parenthesis is the number of pages in which the information was mentioned. among 1 attributes  there are attributes which are not suitable for the evaluation. for example  domain dependent attributes  such as  career points for a basketball player   or an attribute of an attribute value  such as  birthday of spouse  are not suitable for the evaluation. also  there are a set of attributes which might be meaningful even if we merge them together  such as  father    mother    sibling  as  relatives . by selecting and merging the 1 attributes  we finally made up 1 attribute classes  as shown in table 1. 
+the subtask is going to involve extracting the values of those attributes as accurately as possible from web pages. it would be ideal if we can merge the information for a single person entity from multiple pages  but if we set up such evaluation  it is not easy to handle the effect of clustering mistakes. so  we will evaluate the result for a given page  based on precision  recall and f-measure. 
+we expect the problem will be solved by a combination of many technologies  such as named entity recognition and classification  text mining  pattern matching  relation discovery  information extraction and more! conducting this evaluation will definitely give a good opportunity to develop and collect useful resources  such as lists of named entities  such as occupation names and so on  annotation tools or text mining tools. as the outcome  we hope that this evaluation will provide fundamental research opportunities  as well as practical industrial application opportunities in the near future. 
+ 
+table 1 sixteen attribute classes 
+ attribute class freq. example 1 date of birth 1 march 1  1 1 birth place 1 tokyo  japan 1 other name 1 mister s 1 occupation 1 research associate professor 1 affiliation 1 new york university 1 work 1 apple pie parser 1 award 1 best painter at elementary school 1 education 1 phd  computer science 1 mentor 1 ralph grishman 1 location 1 new york  usa 1 nationality 1 japanese 1 relatives 1 shigeru sekine 1 phone 1 +1-1 1 fax 1 +1-1 1 email 1 sekine cs.nyu.edu 1 web site 1 http://nlp.cs.nyu.edu/sekine  
+1. conclusion 
+in this paper  we explained the results of the first web people search task  which was conducted in 1 with considerable success  with 1 participants from all over the world. we are planning to hold the second evaluation in 1  which includes a new task of  attribute extraction . you can find the tools and datasets of the first evaluation and more details at http://nlp.uned.es/weps. 
+1. acknowledgments 
+our thanks to all participants and collaborators of the weps task. 

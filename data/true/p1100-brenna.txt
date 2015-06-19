@@ -1,0 +1,64 @@
+we propose a demonstration of cayuga  a complex event monitoring system for high speed data streams. our demonstration will show cayuga applied to monitoring web feeds; the demo will illustrate the expressiveness of the cayuga query language  the scalability of its query processing engine to high stream rates  and a visualization of the internals of the query processing engine.
+categories and subject descriptors
+h.1  database management : query processing
+general terms
+experimentation  design  performance
+keywords
+publish/subscribe  complex event processing  continuous query processing
+1. introduction
+¡¡an ever increasing amount of data arrives as high speed event streams. stock ticker data  network traffic data  data gathered in sensor networks  rfid streams are just a few examples of such streams. in addition  as the amount of dynamic content on the web  blogs  news  auctions  grows rapidly  the web is becoming a source of many interesting and complex event streams.
+¡¡an emerging class of enterprise applications such as healthcare  environmental monitoring  supply chain management  and compliance checking  as well as consumer applications
+
+ 
+ this material is based upon work supported by the national science foundation under grant 1 and by the air force under grant afosr fa1-1. any opinions  findings  and conclusions or recommendations expressed in this material are those of the authors and do not necessarily reflect the views of the sponsors.
+ 
+ the author is also affiliated with the university of troms   norway  but this work was done while visiting cornell university.
+copyright is held by the author/owner s . sigmod'1  june 1  1  beijing  china acm 1-1-1/1.
+such as personalized news feeds and information aggregation  all require filtering  correlation  and aggregation of individual events. the resulting complex event queries go beyond publish/subscribe in that the queries involve correlations among multiple events instead of simple predicates on individual events.
+¡¡at cornell  we have built the cayuga system  a highperformance system for complex event processing  1  1 . cayuga combines a simple query language for composing stateful queries with a scalable query processing engine based on nondeterministic finite state automata with buffers. an important feature of cayuga is its ability to scale not only with the arrival rate of events in the stream  but also with the number of queries; the latter dimension of scalability is especially important for consumer applications where millions of users could have queries registered with the system.
+¡¡in this demo  we show an application of cayuga to monitor event streams from a web feed aggregator for personalized news aggregation and notification. we first give a high-level overview of the cayuga system  introducing some of the cayuga queries that we will show in the demo  section 1 . we then describe the actual demonstration in detail  section 1 .
+1. cayuga
+¡¡in cayuga  each event stream has a fixed relational schema  and events in the stream are treated as relational tuples. each event has two timestamps  a start time and a detection time  modeling the fact that events can have a non-zero but finite duration. events are serialized in the order of their detection times; events with the same detection time are considered to happen simultaneously  and there is no guarantee about their serialization order. several interesting theoretical issues have led to this design .
+¡¡the cayuga query language is derived from an event algebra ; it is a simple mapping of the algebra operators into a sql like syntax  similar in spirit to the complex event language in sase . each query has the following form:
+select hattributesi
+from halgebra expressioni publish houtput streami
+the select clause specifies the attributes in the output stream schema  the from clause specifies a cayuga event pattern  and the publish clause gives the output stream a name. the event pattern can be built with three differitem url http://news.zdnet.com/1 1-... feed url http://news.zdnet.com/1 1... titlelouisiana joins battle over violent video g... summary similar laws in other states found unconst...
+timestamp mon  1 jun 1:1 pdt streamid webfeeds starttime 1 endtime 1
+table 1: event schema
+ent operators. the filter{¦È} operator selects those events from the input stream that satisfy the predicate ¦È.
+¡¡demo query 1: in the demo  we will illustrate the filter operator with the following query that finds all news items published by google news in the overall stream  webfeeds  with a schema that is shown in table 1.
+select * from
+filter {feed url='http://news.google.com/'} webfeeds 
+publish google news items
+¡¡a powerful construct that allows us to correlate events over time is the sequencing operator next{¦È}. when applied to two input streams s1 and s1 as s1 next{¦È} s1 the operator combines each event from s1 with the next event in s1 that satisfies the predicate ¦È and occurs after the detection time of the event in s1.
+¡¡demo query 1. this query finds all news items that are published by some site  followed by an article on google news that refers to it. note that this query takes the output of query 1 as one of its input streams. the user-defined function contains performs substring matching; $1 and $1 refer to the two input streams of the next operator.
+select $1.summary  $1.item url from
+ webfeeds  next {contains $1.item url $1.item url =1}
+ google news items 
+publish reffed by google news
+¡¡while next allows us to correlate two events  there are many situations where we need to iterate over an a-priori unknown number of events until a stopping condition is satisfied. this capability is supplied by the fold operator. intuitively  fold is a generalization of the next operator because it looks for patterns comprising two or more events. we will describe fold using the next example.
+¡¡demo query 1. this query sends out a notification whenever an ipod is popular in the news  i.e.  there are at least ten articles talking about the ipod in a certain time duration . the fold operator contains three expressions:  1 condition for the iteration  1 stopping condition for iteration  1 mapping between iteration steps.
+select * from
+ select *  cnt as 1 from
+filter {contains summary  ipod  =1} webfeeds  
+fold {true  cnt 1 and dur 1 day  cnt as cnt+1}
+ select * from
+filter {contains summary  ipod  =1} webfeeds  
+publish ipod popularity
+¡¡cayuga processes events in epochs; during an epoch all events with the same detection time are processed. the queries are implemented as nondeterministic finite state automata with buffers and self-loops that work as follows. each state in an automaton is assigned a fixed relational schema. each edge  say between states p and q  is labeled by a triple hs ¦È fi  where s identifies an input stream; ¦È is a predicate over schema p  ¡Á schema s ; and f  the schema map  is a function taking schema p  ¡Á schema s  into schema q . the nfas operate as follows. suppose an nfa instance is in state p with stored data x  note x conforms to schema p  . let an event e arrive on stream s such that ¦È x e  is satisfied. then the machine nondeterministically transitions to state q  and the stored data becomes f x e . cayuga supports resubscription  a concept similar to a query plan in a relational database system: the output event stream from one query can be used as the input stream to one or more other queries. resubscription enables very complex event pattern queries  and it significantly extends the expressiveness of the query language. more details of the system can be found in our recent publications  1  1 .
+1. demonstration outline
+¡¡in this section we provide an overview of how we demo the queries shown above  taking demo query 1 as the running example. our demo has the following three components:  i  a web based front end for users to enter queries;  ii  a trace visualizer which displays the internal state of the cayuga engine and the automata based query representation; and  iii  an output visualizer which displays the results of query evaluation. during the demonstration  we will run queries on a stream of events from a web feed aggregator. let us now present each of the above components by walking through the execution of query 1. this query was processed against a stream of events containing 1 feed items from 1 channels recorded between june and october 1.
+1 submitting a cayuga query
+the web-based frontend is running on a custom python
+web server  with ajax-based controls for asynchronous communication and user-friendly interfaces in the browser. cayuga has a web-based frontend where users can enter persistent queries and register them with a running cayuga engine. for convenience  users are given a choice of predefined templates for the described query language from a dropdown menu. then  they can modify these to their need  or write one from scratch. since cayuga queries can easily span multiple lines  we supply a multi-line input box bigger than typically seen in web-based query interfaces. the query selected for editing in figure 1 is a screenshot of our query frontend which displays query 1. note that this version of the query is inlined and without resubscription.
+¡¡upon submitting a query  the query will be compiled and buffered outside cayuga. users will get a message back with a query id or an error message that the query did not compile and must be re-submitted after changes. users can choose to batch up a number of queries before they press execute to register their queries with cayuga. a batch can be cleared by pressing clear.
+1 trace visualizer
+¡¡cayuga can output a continuous trace of how its internal state changes between events. this trace is written to a file  which contains a description of the query automata  followed by events and state instances. our visualizer reads the trace file and uses a java swing-based gui to display how events are matched to predicates in the query automata.
+figure 1: an empty automaton  an- lated nodes.
+figure 1: web frontend initialized notated with predicates.with query 1.
+¡¡to see precisely how the loaded queries work against the events in the input stream  users can choose to play forward  pause at any given point  or go through the trace step by step. this allows users to investigate in detail how any single event affects the internal states of the query automata. the controls seen on the toolbar of the visualizer in figures 1 and 1 are  in order from left to right  to zoom the automaton in and out  adjust the vertical distance from the toolbar  and for playback. the input- and output streams are named and given different colors in the animation. at any time  if the user clicks at one of the states in the automaton  a text box will pop up to show the instances in this state. clicking on an edge will show the predicate on that edge.
+¡¡figure 1 shows the automaton for query 1 with the transition edges annotated with their predicates. in figure 1  the automaton has processed some events. the stream has so far produced 1 instances of state 1  and 1 instances of state 1. the text box on the right shows the content of state 1  scrolled down to see the last instance to reach this state. from the text we can see that a story published by http://news.zdnet.com on wed  1 jul 1 was linked to by http://news.google.com at 1 the same day.
+1 witness output
+¡¡when witness events  i.e.  query results  are produced  cayuga currently dumps them in a file that the web frontend is tailing. these are then put in a buffer where a frequently polling ajax function can get them and display in the html page on the web browsers of end users  sorted by queries. figure 1 is a screenshot showing the first two witnesses that appeared for query 1.
+1. conclusions
+¡¡cayuga is a mature event processing system with an interesting processing model. we believe a demo of its capabilities will be of interest to the database community.

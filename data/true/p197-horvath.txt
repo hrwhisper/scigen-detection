@@ -1,0 +1,287 @@
+in recent years there has been an increased interest in frequent pattern discovery in large databases of graph structured objects. while the frequent connected subgraph mining problem for tree datasets can be solved in incremental polynomial time  it becomes intractable for arbitrary graph databases. existing approaches have therefore resorted to various heuristic strategies and restrictions of the search space  but have not identified a practically relevant tractable graph class beyond trees. in this paper  we define the class of so called tenuous outerplanar graphs  a strict generalization of trees  develop a frequent subgraph mining algorithm for tenuous outerplanar graphs that works in incremental polynomial time  and evaluate the algorithm empirically on the nci molecular graph dataset.
+categories and subject descriptors
+f.1  nonnumerical algorithms and problems : pattern matching; h.1  database applications : data mining; j.1  physical sciences and engineering : chemistry
+general terms
+algorithms  experimentation
+keywords
+graph mining  frequent pattern discovery  computational chemistry
+1.	introduction
+¡¡the discovery of frequent patterns in a database  i.e.  patterns that occur in at least a certain specified number of elements of the database  is one of the central tasks considered in data mining. in addition to be interesting in their own right  frequent patterns can also be used as building blocks or features for predictive data mining tasks  see  e.g. 
+permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. to copy otherwise  to republish  to post on servers or to redistribute to lists  requires prior specific permission and/or a fee.
+kdd'1  august 1  1  philadelphia  pennsylvania  usa.
+copyright 1 acm 1-1/1 ...$1.
+ . for a long time  work on frequent pattern discovery has concentrated on relatively simple notions of patterns and elements in the database as they are typically used for the discovery of association rules  simple sets of atomic items . in recent years  however  due to the significance of application areas such as the analysis of chemical molecules or graph structures in the world wide web  there has been an increased interest in algorithms that can perform frequent pattern discovery in databases of structured objects such as trees or arbitrary graphs.
+¡¡while the frequent pattern mining problem for trees can be solved in incremental polynomial time  see  for an overview on frequent subtree mining   i.e.  in time polynomial in the combined size of the input and the set of frequent tree patterns so far computed  the frequent pattern mining problem for graph structured databases in the general case cannot be solved in output polynomial time   i.e.  in time polynomial in the combined size of the input and the set of all frequent patterns. existing approaches to frequent pattern discovery for graphs have therefore resorted to various heuristic strategies and restrictions of the search space  see  e.g.   1  1  1  1    but have not identified a practically relevant tractable graph class beyond trees.
+¡¡in this paper  we define the class of so called tenuous outerplanar graphs  which is the class of graphs that can be embedded in the plane in such a way that all of its vertices lie on the outer boundary  i.e. can be reached from the outside without crossing any edges  and which have a fixed limit on the number of inside diagonal edges. this class of graphs is a strict generalization of trees  and is motivated by the kinds of graphs actually found in practical applications. in fact  in one of the popular graph mining data sets  the nci data set1  1% of all elements are tenuous outerplanar graphs. we develop an algorithm for enumerating frequent tenuous outerplanar graph patterns  and prove that this algorithm is guaranteed to work in incremental polynomial time.
+¡¡our approach is based on a canonical string representation of outerplanar graphs which may be of interest in itself  and further algorithmic components for mining frequent biconnected outerplanar graphs and candidate generation in an apriori style algorithm. to map a pattern to graphs in the database  we define a special notion of block and bridge preserving  bbp  subgraph isomorphism  which is motivated by application and complexity considerations  and show that it is decidable in polynomial time for outerplanar graphs. we note that for trees  which form a special class of outerplanar
+
+1
+http://cactus.nci.nih.gov/
+graphs  bbp subgraph isomorphism is equivalent to subtree isomorphism. thus  bbp subgraph isomorphism generalizes subtree isomorphism to graphs  but is at the same time more specific than subgraph isomorphism. since in many applications  subgraph isomorphism is a non-adequate matching operator  e.g.  when pattern matching is required to preserve certain type of fragments in molecules   by considering bbp subgraph isomorphism we take a first step towards studying the frequent graph mining problem w.r.t. non-standard matching operators as well. beside complexity results  we also present empirical results which show that the favorable theoretical properties of the algorithm and pattern class also translate into efficient practical performance.
+¡¡the paper is organized as follows. in section 1  we first introduce the necessary definitions as the basis for our paper. in section 1  we define the class of tenuous outerplanar graphs and the notion of subgraph isomorphism used in this paper  arriving at a definition of our frequent pattern mining problem. section 1 is the main part of the paper  and describes in detail our algorithm for mining tenuous outerplanar graphs. section 1 contains our experimental evaluation on the standard benchmark data set from nci. section 1 concludes and discusses some open problems. due to space limitations  proofs are only sketched or even omitted in this short version.
+1.	preliminaries
+¡¡in this section we recall the most important definitions and notions related to graphs  see  e.g.   for more details .
+¡¡graphs an undirected graph is a pair  v e   where is a finite set of vertices and e   {e   v : |e| = 1} is a set of edges. if  in addition  parallel edges  i.e.  multiple edges connecting the same pair of vertices  and loops  i.e.  edges joining a vertex to itself  are also allowed  we speak of undirected multigraphs. a labeled undirected graph is a quadruple  v e ¦² ¦Ë   where  v e  is an undirected graph   is a finite set of labels associated with some total order  and ¦Ë : v ¡È e ¡ú ¦² is a function assigning a label to each element of v ¡È e. unless otherwise stated  in this paper by graphs we always mean labeled undirected graphs and denote the set of vertices  the set of edges  and the labeling function of a graph g by v  g   e g   and ¦Ëg  respectively. let  be graphs. g is a subgraph of
+   and for every . for a vertex v ¡Ê v  g   n v  denotes the set of vertices of g connected by an edge with v  and n v  is the set n v  ¡È {v}.
+¡¡trees in this paper  unless otherwise stated  by trees we mean labeled free trees  i.e.  unrooted and unordered labeled trees . for a tree t and vertices r v ¡Ê v  t   tr denotes the rooted tree obtained from t by choosing r to be its root  cr v  denotes the set of children of v in tr  and fr v  denotes the parent of ; otherwise fr v  is undefined. we denote by tv r1 the largest subtree of tr rooted at v  and tv r1 denotes the tree obtained from
+by removing	 for every. clearly 
+tv r1 is defined iff fr v  is defined.
+¡¡blocks and bridges a graph g is connected if there is a path between any pair of its vertices; it is biconnected if for any two vertices u and v of g  there is a simple cycle containing u and v. a block  or biconnected component  of a graph is a maximal subgraph that is biconnected. edges not belonging to blocks are called bridges. the definitions imply that the blocks of a graph are pairwise edge disjoint and that the set of bridges forms a forest. for the set of blocks and the set of trees of the forest formed by the bridges of a graph g it holds that their cardinalities are bounded by |v  g | and they can be enumerated in time o |v  g | + |e g |  .
+¡¡isomorphism and subgraph isomorphism let g1 and g1 be graphs. g1 and g1 are isomorphic  denoted
+1	  such that
+ i  u v   1  iff   u    v    1    ii  g1 u  = ¦Ëg1   u     iii  and if {u v} ¡Ê e g1  then ¦Ëg1 {u v}  = ¦Ëg1 {  u    v }  hold for every u v ¡Ê v  g1 . in this paper  two graphs are considered to be the same if they are isomorphic. g1 is subgraph isomorphic to g1 if g1 is isomorphic to a subgraph of g1. deciding whether a graph is subgraph isomorphic to another graph is np-complete  as it generalizes e.g. the hamiltonian path problem.
+¡¡analogously to the list homomorphism problem defined in   we introduce the list subgraph isomorphism problem defined as follows: given graphs g and h  and sets lu   v  g  for every u ¡Ê v  h   decide whether there exists a subgraph isomorphism   from h to g such that   u  ¡Ê lu for every u ¡Ê v  h . we denote by
+
+that there is a list subgraph isomorphism   from h to g satisfying   u  ¡Ê lu for every u ¡Ê v  h . notice that the list subgraph isomorphism problem is a generalization of the ordinary subgraph isomorphism where lu = v  g  for every u ¡Ê v  h . if lu = v  g  for some particular vertex u  we will sometimes remove the pair  from the set below the arrow in the above notation.
+¡¡planar graphs informally  a graph is planar if it can be drawn in the plane in such a way that no two edges intersect except at a vertex in common. to give a topologically rigorous definition of planar graphs  we need some auxiliary notions. a simple curve is the image of an injective continuous function; its endpoints are ¦Ã 1  and ¦Ã 1 . notice that by definition  simple curves are non selfintersecting. let g be a graph. an embedding of g in the plane is a function s mapping each vertex of g to a distinct point of the plane and each edge {u v} of g to a simple curve of the plane connecting s u  and s v . if  in addition  it holds that any two distinct curves representing edges do not intersect except possibly at their endpoints then s is a planar embedding of g. a graph is planar iff it has a planar embedding.
+¡¡let g be a planar graph and s be some planar embedding of g. removing from the plane all points and curves corresponding to the vertices and edges of g  respectively  we obtain a set of connected pieces of the plane  called faces. since the number of vertices of g is finite  exactly one of the faces  called the outer face  is unbounded. for g and s  one can construct an undirected multigraph g   called the dual graph of g  as follows: g  has a distinct vertex for each face  and for every edge e of g we connect the two vertices representing the faces having the boundary simple curve s e  in common. the weak dual graph of g is the multigraph obtained from g  by removing the vertex representing the outer face and each edge containing this vertex.
+¡¡outerplanar graphs an outerplanar graph is a planar graph which can be embedded in the plane in such a way that all of its vertices lie on the boundary of the outer face. throughout this work we consider connected outerplanar graphs and denote the set of connected outerplanar graphs over an alphabet ¦² by o¦². clearly  trees are outerplanar and hence  a graph is outerplanar iff each of its blocks is outerplanar . furthermore  as the blocks of a graph can be computed in linear time  and outerplanarity of a block can be decided also in linear time  1  1  one can decide in linear time whether a graph is outerplanar.
+¡¡a biconnected outerplanar graph g with n vertices contains at most 1n   1 edges and has a unique hamiltonian cycle which bounds the outer face of a planar embedding of g . this unique hamiltonian cycle can be computed efficiently  see  e.g.   . thus  g can be considered as an n-polygon with at most n   1 non-crossing diagonals. it also holds that the weak dual graph of g is always a tree with at most n   1 vertices corresponding to the interior faces of g's planar embedding. this property implies the following bound for the number of cycles of g. due to space limitation  we omit the proof of the next proposition.
+¡¡proposition 1. let g be a biconnected outerplanar graph with d diagonals. then g has at most 1d+1 cycles.
+¡¡given outerplanar graphs g and h  deciding whether h is subgraph isomorphic to g is an np-complete problem. this follows from the fact that outerplanar graphs generalize forests and deciding whether a forest is subgraph isomorphic to a tree is an np-complete problem . the following stronger negative result is shown in .
+¡¡theorem 1. deciding whether a connected outerplanar graph h is subgraph isomorphic to a biconnected outerplanar graph g is np-complete.
+if  however  h is also biconnected  the following positive result holds .1
+¡¡theorem 1. the problem whether a biconnected outerplanar graph h is subgraph isomorphic to a biconnected outerplanar graph g can be decided in time
+o`|v  h | ¡¤ |v  g |1¡ä .
+finally we cite another positive result from  on subgraph isomorphism for the special case of trees.
+¡¡theorem 1. the problem whether a tree h is subgraph isomorphic to a tree g can be decided in time o `|v  h |1 ¡¤ |v  g |¡ä .
+the subtree isomorphism problem can be solved in fact in time o ` |v  h |1/log|v  h |  ¡¤ |v  g |¡ä . for the sake of simplicity  in section 1 we will generalize the algorithm in  to outerplanar graphs by noting that the complexity of our algorithm can also be improved using the idea given in  for trees.
+1.	problem setting
+¡¡in this section we define the frequent subgraph mining problem for a practically relevant class of outerplanar graphs
+
+1
+ we note that both outerplanarity testing algorithms in  1  1  must be extended by an additional step checking condition  iii  of theorem 1 in   as otherwise a class of nonouterplanar graphs will be misclassified by both algorithms.
+1
+ although this positive result has been shown for unlabeled graphs  the algorithm in  can be generalized to labeled graphs as well.
+with respect to a matching operator that preserves the pattern graph's bridge and block structure. we start the problem description with the definition of the graph class to be mined.
+¡¡tenuous outerplanar graphs let d ¡Ý 1 be some integer. a d-tenuous outerplanar graph g is an outerplanar graph such that each block of g has at most d diagonals. for an alphabet ¦² and integer denotes the set of connected d-tenuous outerplanar graphs labeled by the elements of ¦².
+¡¡the main contribution of this work is an algorithm mining d-tenuous outerplanar graphs. this problem is motivated by the observation that d-tenuous outerplanar graphs form a practically relevant graph class e.g. in computational chemistry. consider for example the nci dataset which is one of the largest chemical graph databases used as a benchmark domain by the data mining community. out of the 1 pharmacological molecules in this dataset  1  i.e.  1%  compounds have an outerplanar molecular graph. furthermore  among the outerplanar compounds  there is no molecular graph having a block with more than 1 diagonals. in fact  there is only one compound containing a block with 1 diagonals; 1  i.e.  1%  compounds among the outerplanar graphs have at most 1 diagonals per block.
+¡¡bbp subgraph isomorphism we continue our problem definition by introducing a matching operator between outerplanar graphs. let  for some d ¡Ý 1. a bridge and block preserving  bbp  subgraph isomorphism from h to g  denoted  is a subgraph isomorphism from h to g mapping  i  the set of bridges of h to the set of bridges of g and  ii  different blocks of h to different blocks of g. notice that for trees  which are special outerplanar graphs  i.e.  block-free   bbp subgraph isomorphism is equivalent to the ordinary subtree isomorphism. thus  bbp subgraph isomorphism can be considered as a generalization of subtree isomorphism to outerplanar graphs which is more specific than ordinary subgraph isomorphism.
+¡¡besides complexity reasons raised by theorem 1  the use of bbp subgraph isomorphism as matching operator is motivated by recent results in chemoinformatics which indicate that more powerful predictors can be obtained by considering matching operators that map certain fragments of the pattern molecule to certain fragments of the target molecule. one natural step towards this direction is to require that only ring structures  i.e.  blocks  can be mapped to ring structures and that edge disjoint ring structures are mapped to edge disjoint ring structures.
+¡¡the ftosm problem using the above notions  we define the frequent d-tenuous outerplanar subgraph mining problem  ftosm  as follows: given  i  an alphabet ¦²   ii  a finite set of transactions for some integer d ¡Ý 1  and  iii  an integer threshold t   1  enumerate the set of all connected d-tenuous outerplanar graphs in o¦²d that match at least t graphs in d w.r.t. bbp subgraph isomorphism 
+i.e.  the set
+	  	 1 
+where ¦°t d h  is the frequency property defined by
+		 1 
+by definition   does not contain isomorphic graphs. furthermore  it is closed downwards w.r.t. bbp subgraph isomorphism  i.e.    whenever 
+and. given d and t  we call a graph h satisfying  1  t-frequent.
+¡¡the parameters of the ftosm problem are the cardinality of the transaction dataset  i.e.  |d|  and the size of the largest graph in d  i.e.  max{|v  g | : g ¡Ê d} . since d is usually small  it is assumed to be a constant. note that the cardinality of  can be exponential in the above parameters of d. clearly  in such cases it is impossible to enumerate f¦²t d d  in time polynomial in the parameters of d. we therefore ask whether the ftosm problem can be solved in incremental polynomial time  see  e.g.     that is  whether there exists an enumeration algorithm listing the first k elements of  in time polynomial in the combined size of d and the set of these k elements for every k = 1 ... |f¦²t d d |. notice that the ftosm problem generalizes the frequent itemset mining problem solved by the apriori algorithm  in incremental polynomial time.
+¡¡we note that in the literature  see  e.g.    one usually considers also the notion of output polynomial time  or polynomial total time  complexity for enumeration algorithms. algorithms belonging to this more liberal class are required to enumerate a set s in the combined size of the input and the entire set s. this implies that  in contrast to incremental polynomial time  an output polynomial time algorithm may have in worst-case a delay time exponential in the size of the input before printing the kth element for some k ¡Ý 1. although several algorithms mining frequent connected subgraphs from datasets of arbitrary graphs w.r.t. subgraph isomorphism have demonstrated their performance empirically  we note that this general problem cannot be solved in output polynomial time  unless p = np .
+¡¡on the other hand  the frequent graph mining problem is solvable in incremental polynomial time when the graphs in the dataset are restricted to forests and the patterns to trees. this follows e.g. from the results given in . since tenuous outerplanar graphs form a practically relevant graph class that naturally generalizes trees  by considering the ftosm problem we take a first step towards going beyond trees in frequent graph mining.
+1.	the mining algorithm
+¡¡in this section we present an apriori-like  algorithm  that solves the ftosm problem in incremental polynomial time. the main steps of the algorithm are sketched in algorithm 1. it takes as input a set -tenuous outerplanar graphs and a frequency threshold t ¡Ý 1  and computes iteratively the set of t-frequent k-patterns from the set of t-frequent  k  1 -patterns  where a k-pattern is a graph such that the sum of the number of blocks of g and the number of vertices of g not belonging to any block is k.
+¡¡in step 1 of the algorithm  we first compute the set of t-frequent 1-patterns  that is  the set of t-frequent graphs consisting of either a single vertex or a single block. the first set  denoted by fv in step 1  can be computed in linear time. the second set  denoted fb  can be computed in time polynomial in the parameters of d; an efficient apriori-based algorithm for this problem is presented in section 1.
+¡¡in step 1 of the algorithm  we compute the set of t-frequent 1-patterns  i.e.  the set of graphs in consisting of either  1  a single edge or  1  two blocks having a common vertex or  1  a block and a bridge edge having a common vertex.
+algorithm 1 frequentouterplanargraphs
+require: for some alphabet ¦² and integer d ¡Ý 1  and integer t   1
+ensure:   defined in eq.  1  1: l1 = fv ¡È fb  where
+fv = {h ¡Ê o¦² : |v  h | = 1 ¡Ä ¦°t d h }
+ is biconnected ¡Ä ¦°t d h }
+1: l1 = fe ¡È fbb ¡È fbe  where
+
+1: k = 1
+1:do
+1:	=	+ 1
+1:	ck = generatecandidates lk 1 
+1:	lk = {h ¡Ê ck : ¦°t d h }
+1: endwhile
+1: return
+
+we denote the corresponding three sets in step 1 by fe 
+ fbb  and fbe  respectively. in the definitions of fbb and fbe   denotes the set of graphs that can be obtained from the union of g1 and g1 by contracting1 a vertex from
+ g1 with a vertex from g1 that have the same label. clearly   for every . the set fe of tfrequent edges can be computed in linear time. since the cardinalities of both fbb and fbe are polynomial in the parameters of d  and bbp subgraph isomorphism between outerplanar graphs can be decided in polynomial time by the result of section 1 below  it follows that both fbb and fbe and hence  the set l1 of t-frequent 1-patterns can be computed in time polynomial in the parameters of d.
+¡¡in the loop 1  we compute the set of t-frequent k-patterns for k ¡Ý 1 in a way similar to the apriori algorithm . the crucial steps of the loop are the generation of candidate kpatterns from the set of t-frequent  k   1 -patterns  step 1  and the decision of t-frequency of the candidate patterns  step 1 . in sections 1 and 1 below we describe these steps in detail.
+¡¡putting together the results given in theorems 1 - 1 stated in sections 1 - 1  respectively  we can formulate the main result of this paper:
+¡¡theorem 1. algorithm 1 is correct and solves the ftosm problem in incremental polynomial time.
+¡¡before going into the technical details in sections 1 - 1  in the next section we first describe a transformation and a canonical string representation of outerplanar graphs that will be used in different steps of the mining algorithm. 1 canonical string representation
+¡¡one time consuming step of mining frequent d-tenuous outerplanar graphs is to test whether a particular graph
+
+1
+ the contraction of the vertices u and v of a graph g is the graph obtained from g by introducing a new vertex w  connecting w with every vertex in n u  ¡È n v   and removing u and v  as well as the edges adjacent to them.  belongs to some subset . to apply some advanced data structure  e.g.  hash tables  b-trees  etc.  that allows fast search in large subsets of  we need to define a total order on. similarly to many other frequent graph mining algorithms  we solve this problem by assigning a canonical string to each element of o¦² such that  i  two graphs have the same canonical string iff they are isomorphic and  ii  for every g ¡Ê o¦²  the canonical string of g can be computed in time polynomial in |v  g |. using some canonical string representation satisfying the above properties  a total order on o¦² and thus  on  as well  can be defined by some total order  e.g. lexicographic  on the set of strings assigned to the elements of o¦². furthermore  property  i  allows one to decide isomorphism between two outerplanar graphs by comparing their canonical strings. although isomorphism can be decided efficiently even for planar graphs   the canonical string representation for outerplanar graphs described in this section may be of some interest in itself.
+¡¡we first define a transformation on outerplanar graphs by means of contraction of blocks into new vertices. more precisely  for a graph¡È{ } g ¡Ê o¦²  let ge denote the graph over the alphabet ¦² # derived from g by the following transformation: for each block b in g   i  introduce a new vertex vb and label it by #   ii  remove each edge belonging to b  and  iii  for every vertex v of b  connect v with vb by an edge labeled by #  if v is adjacent to a bridge or to another block of g; otherwise remove v. in the following proposition we state some basic properties of ge.
+proposition 1. let g ¡Ê o¦². then
+ is biconnected 
+ ii  for every e ¡Ê e ge   at most one vertex of e is labeled by #  and
+ iii  ge is a free tree.
+¡¡proof sketch. the proof of  i  and  ii  is trivial. to see a vertex v labeled by #. but this implies that the bicon-e  iii   suppose that g has a cycle c. then c must contain
+nected subgraph of g corresponding to v is not maximal contradicting the definition of ge. 
+since g is a tree  we call it the block and bridge tree  bb-
+tree  ofeg.	¡Ê o	¡Ê	e
+¡¡for a graph g ¦² and v v  g   let ¦Ó v  denote the subgraph of g corresponding to v  i.e.  it denotes the block of g represented by v if ¦Ëg v  = #; otherwise it is the subgraph of g consisting of the single vertex corresponding to v.
+¡¡using the above notions and notations  we define the proposition 1  ge is a free tree. we utilize this propertye canonical representation of g by means of g. by  iii  of
+and generalize the depth-first canonical representation for free trees to outerplanar graphs  see  for an overview on canonical string representations for trees . given some distinguished vertex¡Ê ¡È ¡È {r ¡Ê v  ge}   we assign recursively a stringe ¦Ñr v   ¦² n $ #      to every vertex v of gr  and define a string encoding of g w.r.t. r by the string ¦Ñr r 
+associated with r. to define ¦Ñr v  for a vertex v ¡Ê v  ge   we distinguish two cases:
+ i  suppose	= #. then we define ¦Ñr v  by
+¦Ñr v  = l1li1¦Ñr vi1 ...lik¦Ñr vik $  
+where
+- l1 is the label of v 
+- {vi1 ... vi }	gr 
+- for every q = 1 ... k  liq
+connecting q q = #; otherwise liq = 1  and
+- lip¦Ñr vip  ¡Ü liq¦Ñr viq  for every 1 ¡Ü p   q ¡Ü k.1
+ ii  suppose ¦Ëge v  = #. then ¦Ó v  must be a block of g and has thus a unique hamiltonian cycle h. let  denote the length of h. clearly  there are 1 sequences of vertices defining h. let  be such a sequence. for s  we define the string ¦Ñr s v  by ¦Ñr s v  =  sv se¦Äsdi1¦Ñr vi1 ...ik¦Ñr vik $  
+where
+-  
+-  
+- ¦Ä is the number of diagonals in ¦Ó v  
+- sd is the unique sequence i1l1 ...i¦Äj¦Äl¦Ä of integers satisfying  1  iq   ir or  iq = ir and jq   jr  for every 1 ¡Ü q   r ¡Ü ¦Ä and  1  {viq vjq} is a diagonal with label liq in g for every q = 1 ... ¦Ä 
+-   and
+- {vi1 ... vik} is the set of children of v in ger.
+let s be the set of 1 sequences defining h  if v has where s1 andes1 are vertex sequences definings {h and} no parent in g  i.e.  v = r ; otherwise let = s1 s1  
+	are of the form	 and  respectively.
+using the above definitions of ¦Ñr s and s  we define ¦Ñr v  by
+¦Ñr v  = min¦Ñr s v  .
+s¡Ês
+givene	g and r ¡Ê v  ge   the strings assigned to the vertices ofe
+gr can be computed efficiently by traversing g in postorder.
+¡¡using the above definition of ¦Ñr  the canonical string representation of an outerplanar graph can be defined by the center-based canonical string representation of free trees  see  e.g.   . a center of a free tree is a vertex minimizing the maximum distance to any other vertex in the tree. clearly  a tree has at most two centers. consider first the case when representation ofe	g by g has one center  say r. then we define the canonical string
+¦Ñ g  = ¦Ñr r  .
+sider the trees g eand ge obtained from ge by removing the otherwise  when g has two centers  say r1 and r1  we con-
+edge connectinge  by
+¦Ñ g  = ¦Ñr1 g1 #l#¦Ñr1 g1   
+where l is the label of the edge connecting r1 and r1  and g1 respectively. for ¦Ñ g   the following result can be showne e: and g1 are the subgraphs of g corresponding to g1 and g1 
+
+1
+ we assume some total order on the set of symbols and define the total order ¡Ü on strings by the lexicographic order.
+algorithm 1 frequentbiconnectedgraphs
+require: for some alphabet ¦² and integer d ¡Ý 1  and integer t   1
+ensure: fb defined in step 1 of algorithm 1
+1: let be the set of t-frequent cycles in d
+1: for k = 1 to d do
+1:	let be the set of biconnected graphs
+for every diagonal ¦¤ of h
+1:	lk = {	¡Ê ck : ¦°t   h }
+1: endfor
+1: return
+
+¡¡theorem 1. let g ¡Ê o¦² with n vertices. then ¦Ñ g  is a canonical string representation of g and it can be computed in time o`n1 logn¡ä.
+1	mining frequent biconnected graphs
+¡¡in this section we present algorithm 1 that computes the set fb of t-frequent d-tenuous biconnected graphs used in step 1 of algorithm 1. since d is assumed to be constant  algorithm 1 runs in time polynomial in the parameters of d.
+¡¡in step 1 of algorithm 1  we first compute the set l1 of t-frequent cycles as follows: we list the cycles of g for every g ¡Ê d and count their frequencies. proposition 1 in section 1 implies that the number of cycles of a d-tenuous outerplanar graph g is bounded by o  |v  g |  if d is assumed to be constant. furthermore  from  1  1  it follows that the cycles of a graph can be listed with linear delay. since isomorphism between cycles can be decided efficiently  these results together imply that l1 can be computed in time polynomial in the parameters of d. as a cycle may be compared to many other cycles  to decide isomorphism  we use the canonical string representation described in section 1. in loop 1 of algorithm 1  we compute the sets of tfrequent biconnected graphs containing k diagonals for every k = 1 ... d. in particular  in step 1 we compute the set ck of candidate biconnected graphs satisfying the following conditions: h has exactly k diagonals and the removal of any diagonal from h  denoted by  in step 1  results in a t-frequent biconnected graph.
+for k = 1 in particular  c1 can be computed as follows: for every cycle h ¡Ê l1 and for every t-frequent edge symbol l ¡Ê ¦²  we connect each pair of non-adjacent vertices of h by an edge  label this new diagonal by l  and add the obtained graph. to decide the membership in c1  here we use again the graphs' canonical string representations.
+for k   1  we compute ck by the following algorithm: for every pair h1 h1 ¡Ê lk 1 with the same hamiltonian cycle  and for every pair d1 and d1 of diagonals of h1 and h1  respectively  for which
+ is a diagonal of hj}
+holds for i = 1  consider the graphs  and obtained from h1 and h1 by removing d1 and d1  respectively. if then for every isomorphism   from  we take the graph h obtained from algorithm 1 generatecandidates
+
+require: set lk 1 of frequent k 1-patterns for some k   1
+ensure: set ck of candidate k-patterns
+1: ck =  
+1: forall g1 g1 ¡Ê lk 1 do
+1:	forall g1 ¡Ê leaf g1  and g1 ¡Ê leaf g1  do
+1:	if then
+1:	forall	 leaf  do
+1:	if g1 is attachable to consistently with g1 then
+1: attach consistently with g1 and denote the obtained graph by c
+1:	if g1 g1 have the top two string encodings in c 
+	  and	for every g ¡Ê leaf c 
+1:	then add c to ck
+1:	endfor
+1:	endfor
+1: endfor
+1: return ck
+h1 by connecting the images of the endpoints of d1 by an edge labeled by the symbol assigned to d1 in h1. if h remains outerplanar  i.e.  the new diagonal doesn't cross any other diagonal  then for every diagonal ¦¤ of h except the new one and d1  we remove ¦¤ from h and check whether the graph obtained belongs to lk 1. if this is the case for every ¦¤  we add h to ck if. notice that this step corresponds to the pruning technique applied in the candidate generation step of the apriori algorithm. we note that the number of isomorphisms between h1 and h1 is at most 1|v  h1 |. furthermore  in the selection of h1 h1 and d1 d1 above  h1 and h1  or even d1 and d1 can be identical because automorphisms  i.e.  isomorphisms from a graph to itself  must also be considered.
+one can show that the method described above is complete  i.e.  for every k = 1 ... d  ck contains the set of t-frequent biconnected graphs in.
+¡¡finally  in order to compute the set of t-frequent biconnected graphs from the ck's  step 1   we have to decide the existence of bbp subgraph isomorphisms from biconnected outerplanar graphs to outerplanar graphs. for this case  bbp subgraph isomorphism is equivalent to subgraph isomorphism because the pattern graph consists of a single block  and no bridge   and blocks are mapped to blocks by any subgraph isomorphism. since the blocks of a graph can be computed in linear time   it is therefore sufficient to consider the efficiency of subgraph isomorphism between biconnected outerplanar graphs. theorem 1 in section 1 below deals with a more general case implying that this problem can be solved in cubic time.
+¡¡putting the above results together  one can show the following theorem.  we omit the proof in this short version. 
+¡¡theorem 1. algorithm 1 is correct and computes the set of t-frequent d-tenuous biconnected outerplanar graphs in time polynomial in the parameters of d.
+1	candidate generation
+¡¡in step 1 of algorithm 1  we generate the set of candidate k-patterns. in this section we give algorithm 1  a generalization of the candidate generation algorithm for free trees described in   that computes the set of candidate k-patterns from the set of frequent  k   1 -patterns.  recall that a kpattern is a graph such that the sum of the number of its blocks and the number of its vertices not belonging to any block is k.  applying the candidate generation principle of the apriori algorithm   each candidate is obtained by joining two frequent  k   1 -patterns that have an isomorphic  k   1 -pattern core.
+¡¡in the outer loop 1 of the algorithm  we consider each possible pair g1 g1 of frequent  k   1 -patterns. for completeness  we have to allow g1 and g1 to be the same. in loop 1  we consider each pair g1 and g1 of leaf subgraphs of g1 and g1  respectively. by a leaf subgraph of a k-pattern h for k ¡Ý 1 we mean the graph ¦Ó v  for some leaf v of the belonging to a block and adjacent to exactly one other ver-e bb-tree h  i.e.  a leaf subgraph is either a vertex of h not
+tex or it is a block which has exactly one common vertex with a bridge or with another block. if g1 and g1 are the same graphs then  for completeness  we consider also the case when g1 and g1 are isomorphic leaf subgraphs. from g1 and g1  we remove g1 and g1  respectively  denoted this operation by  in the algorithm  and check whether the obtained graphs and  are isomorphic  step 1 . the removal of a biconnected component means the deletion of each of its edges and vertices except the distinguished vertex which is adjacent to a bridge or to another block.
+¡¡if  and are isomorphic then we consider every leaf subgraph  loop 1  and check whether g1 can be attached to consistently with g1  step 1 . more precisely  let be a block or a vertex not belonging to a block in g1 such that g1 is hanging from  i.e.  the only edge adjacent to g1 is adjacent also to. we say that g1 can be attached to  consistently with isomorphic to . thus  if the condition in step 1 holds then we attach consistently with g1 and denote the obtained graph by c  step 1 .
+¡¡notice that c can be generated in many different ways  depending on the particular choice of g1 and g1. to reduce the amount of unnecessary computation  we consider only those pairs which are among the top leaf subgraphs of c  i.e.  which have the top two string encodings w.r.t. a center of c . by definition  a vertex representing a leaf subgraph of c is always a leaf in c . if this condition holds then we add c to the set of candidates in step 1 if for every leaf subgraph g of c  the  k   1 -pattern obtained from c by removing g is frequent  see step 1 .
+we omit the proof of the following statement.
+¡¡theorem 1. let ck be the output of algorithm 1 and lk the set of frequent k-patterns for any k   1. then lk   ck  the cardinality of ck is polynomial in the cardinality of lk 1  and ck can be computed in time polynomial in the size of lk 1.
+1	bbp subgraph isomorphism
+¡¡algorithms 1 and 1 contain the steps of deciding whether a candidate pattern-frequent  i.e.  whether it is bbp subgraph isomorphic to at least t graphs in d. while subgraph isomorphism between outerplanar graphs is npcomplete even for very restricted cases  see theorem 1   theorem 1  the main result of this section  shows that this constrained subgraph isomorphism can be decided efficiently between outerplanar graphs if the pattern graph h is connected. this result holds for arbitrary outerplanar graphs  i.e.  we do not assume any bound on the number of diagonals in a block. the connectivity is necessary  as otherwise the problem would generalize the np-complete subforest isomorphism problem . we note that the result of theorem 1 generalizes the positive result on subtree isomorphism given in theorem 1 and may thus be of some interest in itself. for the rest of this section  we fix an alphabet ¦² and a distinguished symbol  say #  satisfying #
+   theorem 1. for every g ¡Ê o¦² and connected graph  can be decided in polynomial time.
+¡¡to sketch the proof of theorem 1  we need some further notations and assertions. we start with a theorem generalizing theorem 1  the positive result from  on ordinary subgraph isomorphism between unlabeled biconnected outerplanar graphs to list subgraph isomorphism between labeled biconnected outerplanar graphs. due to space limitation  we only sketch the proof.
+¡¡theorem 1. let g h ¡Ê o¦² be biconnected outerplanar graphs and lu   v  g  for every u ¡Ê v  h . then one can decide whether there exists a list subgraph isomorphism
+
+in time o`|v  h | ¡¤ |v  g |1¡ä.
+¡¡proof sketch. the proof is similar to that of theorem 1  see  for the proof . it is based on constructing first a directed graph d with a distinguished source and target vertex s and t  respectively  and then determining whether there is a directed path from s to t. the edges in d represent whether there is a subgraph isomorphism from a certain subgraph of the pattern graph containing an edge {ui ui+1} to a certain subgraph of the text graph containing an edge {vi vi+1} such that ui and ui+1 are mapped to vi and vi+1  respectively. this constraint can be generalized to list subgraph isomorphism between labeled biconnected outerplanar graphs without changing the asymptotic time complexity of the special case considered in theorem 1. 
+we need some further notations. let g ¡Ê o¦² and 
+be a subtree of g rooted at   denotes the subgraph of g v ¡Êv  tg        . further-
+                 ¦²	h rooted at	  denotes that there is a bbp sub-
+  mapping v  ¦Ó u  
+to v  ¦Ó v  . the proof of the following proposition is immediate from the definitions.
+   proposition 1. let g h ¡Ê o¦² and r ¡Ê v  ge . then  iff there are	such that
+	h h    bbp g gv 1  .	 1 
+applying the above proposition  can be decided as follows: select an arbitrary vertex¡Ê r¡Ê¡Ê v  ge  and compute holds. below we show that for givene u¡Êande v   1  can be for every u v  h  and for every v v  g   whether  1  computed by deciding first for every w n u   whether
+	 	 1 
+
+holds  where ¦Ä is the complement of kronecker delta  i.e. 
+
+¦Äu w¡Ê = 1e if u{ =¡Êw; otherwise it is 1 . for v ¡Ê v  ge  and u v  h   we define the set
+	s v u  = w	n u  : h	 .
+notice that by definition 	and hence  by proposition 1 and eq.  1  we have that
+	e	e  such that u ¡Ê s v u  .
+depending on the label of u  we distinguish two cases and characterize  1  accordingly by one of the following two lemmas.
+¡¡lemma 1. let g h ¡Ê o¦². let r v ¡Ê v  ge   u ¡Ê v  he   and w ¡Ê n u . if ¦Ëhe u  = # then eer there is an injection   : chew u  ¡ú cg  v  such that
+ for all  
+	 ii e	¦Ó v   where
+u w}
+proof sketch. since ¦Ëhe u  = #  ¦Ó u  is biconnected.
+by  ii  of proposition 1  for every   we have that
+= # and hence    must be a vertex belonging to the block ¦Ó u . the proof can be shown by considering the cases u = w and separately. 
+¡¡lemma 1. let the graphs g h and vertices r v u  and w be defined as in lemma 1. if = # then
+ew	¡ú eer	there is an injection
+	  : ch  u 	cg  v  such that
+ for all  
+ ii  and if
+- is defined  
+- ¦Ëhe w  = ¦Ëge fger v   
+- ¦Ëhe {u w}  = ¦Ëge {v fger v }   and
+-represents
+a block  i.e.  ¦Ëhe w  = #.
+¡¡proof sketch. the proof can be shown by considering the following cases separately:  1  and ¦Ëhe w  = #  and  1  and = #. 
+¡¡proof sketch of theorem 1. using the above notions and statements  we are now ready to sketch a bottom-up algorithm decidingfor some g h ¡Ê o¦² in polynomial time. due to space limitation  we do not provide the pseudo code of the algorithm. notice that it is sufficient to consider the case when g and h satisfy
+	1   |v  he | ¡Ü |v  ge | .	 1 
+indeed  if |v  he | = 1 then  by  i  of proposition 1  h consists of either a single vertex or a block. deciding bbp subgraph isomorphism is obvious for the first case; for the second case the problem can be considered as a special instance of the list subgraph isomorphism problem between biconnected outerplanar graphs and thus  theorem 1 can be applied. furthermore  if¡Ê o |v  he |   |v  ge | then there is no bbp subgraph isomorphism from h to g.
+	given g h	¦² satisfying  1   we select an arbitrary
+¡Ê ve¡Ê v  gr   compute the sete s v u  for every vertex r v  g   traverse gr in postorder  and  for each
+e  in the following way:
+suppose v is a leaf of gr. then  1  implies that and
+thus  is defined. for this case we have thate
+s v u for some
+  = ¦Ëge v   ¦Ë   and if ¦Ëhe u  = #  resp.   = #  then there is a list subgraph isomorphism from ¦Ó u  to ¦Ó v   resp. to    which maps the vertex    resp. ¦Ó u  to ¦Ó v  . otherwise  i.e.  when conditions  i  and  ii  above do not hold we set s v u  =  .
+suppose v is an internal vertex of gr. then let n u  and
+	n v  be {u1 ... us} and {v1 ... ve	t}  respectively. if
+s   t h g   as in this case there is no w ¡Ê n u  satisfying  1 .
+otherwise  i.e.  when ¦Ëhe u  = ¦Ëge v  and s ¡Ü t + 1  we distinguish two cases depending on ¦Ëhe u . consider first the case when ¦Ëhe u  = #  i.e.  ¦Ó u  is biconnected. then  ¦Ó v  is also biconnected  as ¦Ëhe u  = ¦Ëge v   and hence  ¦Ó z  is a vertex for every z ¡Ê n u ¡È n v  by  ii  of proposition 1. by lemma 1 we have that
+  u ¡Ê s v u  iff there is a list subgraph isomorphism from ¦Ó u  to ¦Ó v  mapping ¦Ó ui  to one of the elements of {¦Ó vk  : 1 ¡Ü k ¡Ü t u ¡Ê s vk ui } for every i = 1 ... s and
+  for every and there is a list subgraph isomorphism from ¦Ó u  to ¦Ó v  mapping ¦Ó ui  to ¦Ó fger v   and ¦Ó uj  into  for every j 
+in both cases  the existence of the corresponding list subgraph isomorphism between biconnected outerplanar graphs can be decided in polynomial time by theorem 1.
+for the second case  i.e.  when = #  we construct a bipartite graph b1 defined as follows:
+v  b1  = n u  ¡È n v 
+e b1  = {{x y} : x ¡Ê n u  y ¡Ê n v  u ¡Ê s x y }.
+let bi denote the subgraph of b1 obtained by removing ui and the edges adjacent to ui. using these notations  by lemma 1 we have that
+  u ¡Ê s v u  iff b1 has a maximum matching of size s and
+  for every i = 1 ... s  ui ¡Ê s v u  iff bi has a maximum matching of size  is de-
+fined  i.e. 
+   and if ¦Ëhe ui  = # then there is a list subgraph isomorphism from ¦Ó ui  to ¦Ó fger v   which maps the vertex ¦Ó u  to ¦Ó v  .1
+thus  s v u  can be computed in polynomial time for every
+  and v ¡Ê v  ger  completing the proof sketch of
+1.	experimental evaluation
+¡¡in our experiments  we used the nci dataset consisting of 1 chemical compounds. for our work  it was important to recognize that 1  i.e.  1%  of these compounds have outerplanar molecular graph. thus  outerplanar graphs form a practically relevant class of graphs. among the outerplanar molecular graphs  there are 1 trees  i.e.  1% of the outerplanar subset . in the experiments  we have removed the non-outerplanar graphs from the dataset. altogether  the outerplanar molecules contain 1 blocks  with up to 1 diagonals per block. however  1  i.e.  1%  of the outerplanar molecular graphs have at most 1 diagonals per block. this empirical observation validates our approach to assume the number of diagonals to be constant.
+¡¡the database contains a wide variety of structures  and a low relative frequency threshold is needed to mine a significant number of patterns. e.g. though there are 1 pairwise non-isomorphic cycles in the database  only a few of them are really frequent; the only one above 1% is the benzene ring with frequency 1%.
+¡¡matching blocks is more expensive than matching bridges  but the number of bridges is much larger. in all our experiments  roughly half of the time is used for each of the two types of matching.
+1	results
+¡¡our results are given in table 1. it shows the number of candidate  #c  and frequent  #fp  k-patterns discovered for k = 1 ... 1  as well as the runtime  t  in seconds for the computation and evaluation of the candidates using the frequency thresholds 1%  1%  1% and 1%. as expected  the number and the size of the discovered patterns is much larger when the frequency threshold is lower. even though the embeddings of  k  1  patterns are computed  again  in level k  the time needed to complete one level does not necessarily increase with k. it is interesting to note that after the number of frequent k-patterns drops a bit when k gets larger then 1  this number again increases when k exceeds 1  and the number of frequent patterns gets close to the number of candidate patterns. this is because this particular dataset contains large subsets with molecules sharing large biconnected structures  such as the hiv active substance dataset . the time needed for candidate generation is always smaller than 1% of the total time. the time needed for coverage testing per pattern depends on how much structure these patterns share. if the number of patterns is large  the time needed per pattern is usually lower.
+¡¡one can make several conclusions. first  our algorithm can mine an expressive class of molecular patterns from a relatively large database. although the presented experiments
+
+1
+ we note that it is sufficient to compute a maximum bipartite matching m in b1 because we can compute the size of a maximum matching in b1 ... bs from m in time o  st 
+ see  for the details .
+happened entirely in memory  taking about 1mb   our approach does not depend on storing intermediate results in memory between the different passes over the database. this means that we could also perform this algorithm with a database on disk. in our application e.g.  this would bring an overhead of about 1 seconds per pass over the database. second  we can conclude that the complexity of the coverage testing scales well as the pattern size grows  as predicted by theory. in this application  due to the implementation exploiting shared structure among patterns  the time needed for evaluation per pattern does not even depend in a clear systematic way on the pattern size.
+1.	conclusion and open problems
+¡¡we have presented an incremental-polynomial time algorithm for the enumeration of the frequent patterns from a set of d-tenuous outerplanar graphs w.r.t. bbp subgraph isomorphism. to the best of our knowledge  no fragment of the frequent subgraph mining problem beyond trees has so far been identified  for which the problem can be solved in incremental polynomial time. our result is not only theoretical  but also practical; most of the graphs in the nci dataset consisting of more than 1 compounds are 1tenuous outerplanar graphs.
+¡¡our algorithm is based on a canonical string representation of outerplanar graphs which may be of interest in itself  and further algorithmic components for mining frequent biconnected outerplanar graphs and candidate generation in an apriori style algorithm. motivated by application and complexity considerations  we introduced a special kind of subgraph isomorphism which generalizes subtree isomorphism but is at the same time more specific than ordinary subgraph isomorphism  and gave a proof sketch that it is decidable in polynomial time for outerplanar graphs. we presented also empirical results with a large dataset indicating the effective practical performance of our algorithm. we believe that the identification of tractable practical fragments of the frequent subgraph mining problem is an important challenge for the data mining community.
+¡¡it is natural to ask whether the positive result of this paper can be generalized to arbitrary outerplanar graphs. notice that our algorithm exploits the constant bound on the number of diagonals only in the computation of the set fb of frequent biconnected graphs in step 1 of algorithm 1. therefore  to generalize the result of this paper to arbitrary outerplanar graphs  we first consider the following special problem: given a finite set d   o¦² of biconnected outerplanar graphs and a non-negative integer t  compute the set of t-frequent patterns in d w.r.t. bbp subgraph isomorphism. notice that this problem definition implicitly requires t-frequent patterns to be biconnected because by definition  there is no bbp subgraph isomorphism from a non-biconnected graph to a biconnected outerplanar graph. we do not know whether this special problem can be solved in incremental or at least in output polynomial time.
+acknowledgments
+tam¡äas horv¡äath and stefan wrobel were partially supported by the dfg project  wr 1-1  hybride methoden und
+systemarchitekturen fu¡§r heterogene informationsr¡§aume. jan ramon is a post-doctoral fellow of the fund for scientific research  fwo  of flanders.
+table 1: number of patterns  #c   number of frequent patterns  #fp   and runtime in seconds for candidate generation and evaluation  t  with frequency thresholds 1%  1%  1%  and 1%
+
+	size	1%	1%	1%	1%
+	 k 	#c	#fp	t	#c	#fp	t	#c	#fp	t	#c	#fp	t

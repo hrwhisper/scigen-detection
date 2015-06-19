@@ -1,0 +1,262 @@
+the relationship between constraint-based mining and constraint programming is explored by showing how the typical constraints used in pattern mining can be formulated for use in constraint programming environments. the resulting framework is surprisingly flexible and allows us to combine a wide range of mining constraints in different ways. we implement this approach in off-the-shelf constraint programming systems and evaluate it empirically. the results show that the approach is not only very expressive  but also works well on complex benchmark problems.
+categories and subject descriptors
+h.1  database management : database applications- data mining; f.1  mathematical logic and formal languages : mathematical logic-logic and constraint
+programming
+general terms
+algorithms  theory
+keywords
+itemset mining  constraint programming
+1. introduction
+¡¡for quite some time  the data mining community has been interested in constraint-based mining  that is  the use of constraints to specify the desired properties of the patterns to be mined  1  1  1  1  1  1  1  1  1  1 . the task of the data mining system is then to generate all patterns satisfying the constraints. a wide variety of constraints for local pattern mining exist and have been implemented in an even wider range of specific data mining systems.
+¡¡on the other hand  the artificial intelligence community has studied several types of constraint-satisfaction problems and contributed many general purpose algorithms and systems for solving them. these approaches are now gathered
+permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. to copy otherwise  to republish  to post on servers or to redistribute to lists  requires prior specific permission and/or a fee.
+kdd'1  august 1  1  las vegas  nevada  usa. copyright 1 acm 1-1-1/1 ...$1.
+in the area of constraint programming  1  1 . in constraint programming  the user specifies the model  that is  the set of constraints to be satisfied  and the constraint solver generates solutions. thus  the goals of constraint programming and constraint based mining are similar  not to say identical ; it is only that constraint programming targets any type of constraint satisfaction problem  whereas constraintbased mining specifically targets data mining applications. therefore  it is surprising that despite the similarities between these two endeavours  the two fields have evolved independently of one another  and also  that - to the best of the authors' knowledge - constraint programming tools and techniques have not yet been applied to pattern mining  and  vice versa  that ideas and challenges from constraint-based mining have not yet been taken up by the constraint programming community.
+¡¡in this paper  we bridge the gap between these two fields by investigating how standard constraint-programming techniques can be applied to a wide range of pattern mining problems. to this aim  we first formalize most well-known constraint-based mining problems in terms of constraint programming terminology. this includes constraints such as frequency  closedness and maximality  and constraints that are monotonic  anti-monotonic and convertible  as well as variations of these constraints  such as ¦Ä-closedness. we then incorporate them in off-the-shelf and state-of-the-art constraint programming tools  such as gecode1  and eclipse1   and run experiments. the results are surprising in that 1  using the constraint programming approach  it is natural to combine complex constraints in a flexible manner  for instance  ¦Ä closedness in combination with monotonic and anti-monotonic constraints ; unlike in the existing constraint-based mining systems  this does not require modifications to the underlying solvers; 1  the search strategy of constraint programming systems turns out to parallel the search strategy of existing  specialized constraint-based mining approaches among which eclat   lcm  and dualminer ; 1  even though the constraint programming methods were not meant to cope with the specifics of data mining  such as coping with large data sets  having 1s of constraints to solve   and even though the focus of this study is not on the development of efficient algorithms  it turns out that existing constraint programming systems already perform quite well as compared to dedicated data mining solvers in that on a number of benchmark problems their performance is similar  and in some cases even better com-
+
+1
+http://www.gecode.org/
+1
+http://eclipse.crosscoreop.com/
+pared to state-of-the-art itemset miners . at the same time  it should be clear that - in principle - the resulting constraint programming methods can be further optimized towards data mining.
+¡¡this paper is organized as follows: in section 1 we introduce a wide variety of constraints for itemset mining problems; in section 1 we introduce the main principles of constraint programming systems; section 1 then shows how the contraint-based mining problems can be formulated using constraint programming principles; section 1 then compares the operation of constraint programming systems with those of dedicated itemset mining algorithms. section 1 reports on an experimental evaluation comparing an off-the-shelf constraint programming system with state-of-the-art itemset mining implementations  and finally  section 1 concludes.
+1. itemset mining
+¡¡let i = {1 ... m} be a set of items  and t = {1 ... n} a set of transactions. then an itemset database d is a binary matrix of size n¡Ám. furthermore    : 1i ¡ú 1t is a function that maps an itemset i to the set of transactions from t in which all its items occur  that is 
+  i  = {t ¡Ê t | i ¡Ê i : dti = 1}
+dually  ¦× : 1t ¡ú 1i is a function that maps a transactionset t to the set of all items from i shared by all transactions in t  that is 
+¦× t  = {i ¡Ê i| t ¡Ê t : dti = 1}
+it is well-known that   and ¦× define a galois connection between the lattices  t     and  i   . this means that the following properties are satisfied:
+ t1 t1   t:t1   t1 ¡ú ¦× t1    ¦× t1  i1 i1   i:i1   i1 ¡ú   i1      i1  i   i:  i  = ¡Éi¡Êi  {i}  t   t:¦× t  = ¡Ét¡Êt¦× {t} in the remainder of this section  we will introduce several well-known constraints in itemset mining by making use of these operators. we will show that many itemset mining problems can be formulated as a search for pairs  i t   where i is an itemset and t a transaction set.
+frequent itemsets. our first example are the traditional frequent itemsets . the search for these itemsets can be seen as searching for solution pairs  i t   such that
+	t	=	  i 	 1 
+	|t|	¡Ý	¦È	 1 
+where ¦È is a frequency threshold. the first constraint specifies that t must equal the set of transactions in which i occurs; the next constraint is the well-known minimum frequency requirement: the absolute number of transactions in which i occurs must be at least ¦È. the properties of the   operator imply that minimum frequency is an antimonotonic constraint: every subset of an itemset that satisfies the frequency constraint  also satisfies the constraint.
+anti-monotonic constraints. other examples of anti-monotonic constraints are maximum itemset size and maximum total itemset cost  1  1 . assume that every item has a cost ci  in the case of a size constraint  ci = 1 . then we satisfy a maximum cost  size  constraint  for c i  =
+pi¡Êi ci  if
+	c i 	¡Ü	¦Ã.	 1 
+monotonic constraints. the duals of anti-monotonic constraints are monotonic constraints. maximum frequency  minimum size and minimum cost are examples of monotonic constraints  1  1 . maximum frequency can be formulated similar to  1  as:
+	|t|	¡Ü	¦È	 1 
+while minimum cost is expressed similar to  1  by
+	c i 	¡Ý	¦Ã.	 1 
+these constraints are called monotonic as every superset of an itemset that satisfies the constraints  also satisfies these constraints.
+convertible anti-monotonic constraints. some constraints are neither monotonic nor anti-monotonic  but still have properties that can be exploited in mining algorithms. one such class of constraints are the convertible  anti- monotonic constraints . let us illustrate these by the minimum average cost constraint  which can be specified as
+	c i /|i|	¡Ý	¦Ã.	 1 
+this constraint is called convertible anti-monotone as we can compute an order on the items in i such that for any itemset i   i  every prefix i¡ä of the items in i sorted in this order  also satisfies the constraint. in this case  we can order the items decreasing in cost: the average cost can only go up if we remove the item with the lowest cost.
+closed itemsets. closed itemsets are a popular condensed representation for the set of all frequent itemsets and their frequencies . itemsets are called closed when they satisfy
+	i	=	¦× t 	 1 
+in addition to constraint  1 ; alternatively this can be formulated as i = ¦×   i  . a generalization are the ¦Ä-closed itemsets   which are itemsets that satisfy
+            i¡ä   i : |  i¡ä |    1   ¦Ä |t|;  1  the traditional closed itemsets are a special case with ¦Ä = 1.
+maximal itemsets. maximal frequent itemsets are another condensed representation for the set of frequent itemsets . in addition to the frequent itemset constraints  1  and  1  these itemsets also satisfy
+                i¡ä   i : |  i¡ä |   ¦È;  1  all itemsets that are a superset of a maximal itemset are infrequent  while all itemsets that are subsets are frequent. maximal frequent itemsets constitute a border between itemsets that are frequent and not frequent.
+emerging patterns. if two databases are given  one can be interested in finding itemsets that distinguish these two databases. in other words  one is interested in finding triples  i t 1  t 1    containing an itemset i and two transaction sets t 1  and t 1   such that some distinguishing property
+
+figure 1: there are two combinations of closedness and maximum size
+between t 1  and t 1  holds. among the many ways to score a pattern's ability to distinguish two datasets is the following constraint:
+t 1 = 1 i t 1 = 1 i |t 1 |/|t 1 |¡Ý¦Ñ for a given threshold ¦Ñ; we assume that for every database we have separate   and ¦× operators. an itemset that satisfies these constraints is called emerging .
+combining constraints. as pointed out in the introduction  it can also be interesting to combine constraints. defining combinations is not always straightforward when working with constraints such as maximality and closedness . for example  assume we want to mine for ¦Ä closed frequent itemsets that have a size lower than a threshold. two interpretations are possible. we can define closedness with respect to the set of all frequent itemsets  which means we combine  1    1    1  and  1  into:
+t=  i |t|¡Ý¦È i¡ä   i : |  i¡ä |  1   ¦Ä |t|c i ¡Ü¦Ãthe other interpretation is that we mine for the itemsets that are ¦Ä closed within the set of small itemsets:
+t=  i |t|¡Ý¦È i¡ä   i : `|  i¡ä |    1   ¦Ä |t|¡Åc i¡ä    ¦Ã¡äc i ¡Ü¦Ãthe difference between these two settings is illustrated in figure 1 for ¦Ä = 1 and ¦Ã = 1. itemsets closed according to constraint  1  are dashed in this figure. in the first setting  only the itemset {1} satisfies the constraints; in the second setting  the itemsets {1} and {1} are also closed considering the maximum size constraint.
+¡¡similarly  combinations of maximality and anti-monotonic constraints also have 1 interpretations. further combinations can be obtained by combining them with emerging patterns. the challenge that we address in this paper  is how to solve such a broad range of queries and their combinations in a unified framework.
+1. constraint programming
+¡¡constraint programming is a declarative programming paradigm: instead of specifying how to solve a problem  the user only has to specify the problem itself. the constraint algorithm 1 constraint-search d 
+
+1: d :=propagate d 
+1: if d is a false domain then
+1:	return
+1: end if
+1: if  x ¡Ê v : |d x |   1 then
+1:	x := argminx¡Êv d x  1 f x 
+1:	for all d ¡Ê d x  do
+1:	constraint-search d ¡È {x 1¡ú {d}} 
+1:	end for
+1: else
+1:	output solution 1: end if
+
+programming system is then responsible for solving it. constraint programming systems solve constraint satisfaction problems  csp . a csp p =  v d c  is specified by
+  a finite set of variables v;
+  an initial domain d  which maps every variable v ¡Ê v to a finite set of integers d v ;
+  a finite set of constraints c.
+a constraint c x1 ... xk  ¡Ê c is a boolean function from variables {x1 ... xk}   v. a constraint is called unary if it involves one variable and binary if it involves two. a domain d¡ä is called stronger than the initial domain d if d¡ä x    d x  for all x ¡Ê v. a domain is false if there exists an x ¡Ê v such that d x  =  ; a variable x ¡Ê v is called fixed if |d x | = 1. a solution to a csp is a domain d¡ä that fixes all variables   x ¡Ê v : |d¡ä x | = 1  and satisfies all constraints: abusing notation  we must have that  c x1 ... xk  ¡Ê c : c d¡ä x1  ... d¡ä xk   = 1; furthermore d¡ä must be stronger than d  which guarantees that every variable has a value from its initial domain d x .
+¡¡example 1. assume we have four people that we want to allocate to 1 offices  and that every person has a list of other people that he does not want to share an office with. furthermore  every person has identified rooms he does not want to occupy. we can represent an instance of this problem with four variables  which represent the persons  and inequality constraints  which encode the room-sharing constraints:
+d x1  = d x1  = d x1  = d x1  = {1} c = {x1= 1 x1= x1 x1= x1}.
+¡¡the simplest algorithm to solve csps enumerates all possible fixed domains  and evaluates all constraints on each of these domains; clearly this approach is inefficient. the outline of a general  more efficient constraint programming  cp  system is given in algorithm 1 above . essentially  a cp system performs a depth-first search; in each node of the search tree the algorithm branches by assigning values to a variable that is unfixed  line 1 . it backtracks when a violation of constraints is found  line 1 . the search is further optimized by carefully choosing the variable that is fixed next  line 1 ; a function f x  ranks variables  for instance  by determining which variable is involved in most constraints.
+¡¡the main concept used to speed-up the search is constraint propagation  line 1 . propagation reduces the domains of variables such that the domain remains locally consistent. one can formally define many types of local consistencies  but we skip these definitions here. in general  in a locally consistent problem a value d does not occur in the domain of a variable x if it can be determined that there is no solution d¡ä in which d¡ä x  = {d}. the main motivation for maintaining local consistencies is to ensure that the backtracking search does not unnecessarily branch  thereby significantly speeding up the search.
+¡¡to maintain local consistencies propagators or propagation rules are used. a propagator takes as input a domain and outputs a stronger  locally consistent domain. the propagation rules are derived by the system from the user specified constraints. a checking propagator is a propagator that produces a false domain once the original constraint is violated. most propagators are checking propagators. the repeated application of propagators can lead to increasingly stronger domains. propagation continues until a fixed point is reached in which the domain does not change any more  line 1 . there are many different constraint programming systems  which differ in the type of constraints they support and the way they handle these constraints. most systems assign priorities to constraints to ensure that propagators of lower computational complexity are evaluated first. the main challenge is to manipulate the propagators such that propagation is as cheap as possible.
+¡¡example 1  example 1 continued . the initial domain of this problem is not consistent: the constraint x1= 1 cannot be satisfied when d x1  = {1}; consequently 1 is removed from d x1 . subsequently  the binary constraint x1= x1 cannot be satisfied while x1 = 1. therefore value 1 is removed from the domain of x1. the propagator for the constraint x1= x1 has the following form: if d x1  = {d} then delete d from d x1 .
+after applying all propagators in our example  we obtain a fixed point in which d x1  = {1} and d x1  = {1}  which means persons one and two have been allocated to an office. two rooms are possible for person 1. the search branches therefore. for each of these branches  the second inequality constraint is propagated; a fixed point is then reached in which every variable is fixed  and a solution is found.
+¡¡to formulate itemset mining problems as constraint programming models  we only use variables with binary domains  i.e. d x  = {1} for all x ¡Ê v. furthermore  we make extensive use of two types of constraints. the first is a summation constraint  whose general form is as follows:
+	x wxx ¡Ý ¦È.	 1 
+x¡Êv
+in this constraint  v   v is a set of variables and wx is a weight for variable x and can be either positive or negative. to make clear how this constraint can be propagated  we show a propagator here  such as implemented in most cp systems. let us use the following notation: xmax = maxd¡Êd x  d and xmin = mind¡Êd x  d. furthermore  v + = {x ¡Ê v |wx ¡Ý 1} and v   = {x ¡Ê v |wx   1}.
+¡¡at any point during the search the following constraint must be satisfied in order for equation  1  to be satisfied:
+x wxxmin + x wxxmax ¡Ý ¦È.
+	x¡Êv 	x¡Êv+
+the correctness of this formula follows from the fact that the lefthand side of the equation denotes the highest value that the sum can still achieve.
+¡¡a checking propagator derived from the constraint for a variable x¡ä ¡Ê v + conceptually has the following effects:
+1: if px¡Êv	wxxmin + px¡Êv+ wxxmax ¡Ý ¦È then
+1:	ifthen
+1:
+1:	end if
+1: else
+1:	d x¡ä  =  
+1: end if
+only in line 1 an effective domain reduction takes place. a similar propagator can be derived for a variable x¡ä ¡Ê v  .
+¡¡example 1. let us illustrate the application of the propagator for the summation constraint on this problem:
+x1 + x1 + x1 ¡Ý 1 
+d x1  = {1} d x1  = {1} d x1  = {1};
+in this case  we know that at least one of x1 and x1 must have the value 1  but we cannot conclude that either one of these variables is certainly zero or one. the propagator does not change any domains. on the other hand  if
+x1 + x1 + x1 ¡Ý 1 
+     d x1  = {1} d x1  = {1} d x1  = {1}; the propagator determines that d x1  = d x1  = {1}.
+¡¡another special type of constraints that we will use are reified constraints:
+c   x 
+where c is a constraint and x is a boolean variable. a reified constraint binds the value of one variable to the evaluation of a constraint. an example of such a constraint is
+	x wxx ¡Ý ¦È   x¡ä 	 1 
+                           x¡Êv which states that if the weighted sum of certain variables v is higher than ¦È  variable x¡ä should be true  and vice-versa. we can decompose a reified constraint in two directions:
+	c ¡ú x	and	c ¡û x.
+we show the propagation that can be performed for both directions  in the special case of equation  1 . for the direction c ¡ú x  the propagation is:
+ 1: if 1 ¡Ê d x  and px¡Êv  wxxmax + px¡Êv+ wxxmin ¡Ý ¦È then delete 1 from d x  1: if d x  = {1} then apply propagators for  c for the reverse direction the propagation is:
+1: if 1 ¡Ê d x  and px¡Êv  wxxmin + px¡Êv+ wxxmax   ¦È then delete 1 from d x 
+1: if d x  = {1} then apply propagators for c
+¡¡it is important to note the difference between a summation constraint c and its reified version x ¡ú c. as we can see from the code above  the propagator for x ¡ú c is not as expensive to evaluate as the propagator for c as soon as 1¡Ê d x .
+¡¡even though the c   x constraint can be expressed in both eclipse and gecode  we found that the reified implications c ¡û x and c ¡ú x are not available by default; in our implementations  see section 1  we use additional variables to express one direction of reified constraints.
+1. reformulating constraints on itemsets
+¡¡we now introduce the models of itemset mining problems that can be provided to constraint programming systems. we choose the following representation of itemsets and transactions. for every transaction we introduce a variable tt ¡Ê {1}  and for every item a variable ii ¡Ê {1}; thus  we can conceive an itemset i as a vector of length m with binary variables; a transaction set t is a vector of length n.
+¡¡theorem 1  frequent itemsets . frequent itemset mining is expressed by the following constraints:
+ t ¡Ê t : tt = 1 xii 1   dti  = 1.
+i¡Êi 1  i ¡Ê i : ii = 1¡úxttdti ¡Ý ¦È. 1 t¡Êt
+¡¡proof. the first constraint  1  is a reformulation of the coverage constraint  1 :
+t =   i ={t ¡Ê t | i ¡Ê i : dti = 1}    t ¡Ê t:t ¡Ê t    i ¡Ê i : dti = 1    t ¡Ê t:t ¡Ê t    i ¡Ê i : 1   dti = 1.    t ¡Ê t:tt = 1   xii 1   dti  = 1.i¡Êi
+the second constraint  1  is derived as follows. we can reformulate the frequency constraint as:
+	xtt ¡Ý ¦È.	 1 
+t¡Êt
+together with the coverage constraint  this constraint defines the frequent itemset mining problem. as argued in the previous section  however  reified constraints can sometimes be desirable. to this purpose  we rewrite the frequency constraint further. first  we can observe that  i ¡Ê i : |t| = |t ¡É   {i} |  as t =   i      {i}   and therefore that in a valid solution
+	 i ¡Ê i	:	|t ¡É   {i} | ¡Ý ¦È
+	    i ¡Ê i	:	ii = 1 ¡ú x ttdti ¡Ý ¦È.
+¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡t¡Êt please note that reification increases the number of constraints significantly; it will depend on the problem setting if this increase is still beneficial in the end. in the next section we will study how a constraint programming system operates in practice on these constraints. 
+¡¡many other anti-monotonic constraints can also be specified in a straightforward way.
+¡¡theorem 1  anti-monotonic constraints . the maximum total cost constraint is expressed by:
+xciii ¡Ü ¦Ã.
+i¡Êi
+¡¡theorem 1  monotonic constraints . a monotonic minimum cost constraint is specified by
+xciii ¡Ý ¦Ã
+i¡Êi
+or  equivalently  reified as
+	 t ¡Ê t : tt = 1	¡ú xciiidti ¡Ý ¦Ã.	 1 
+i¡Êi
+¡¡proof. the reified version of the constraint exploits that i   ¦× {t}  for every t ¡Ê   i ; starting from  1 :
+xci ¡Ý ¦Ã     t ¡Ê t	:	x	ci ¡Ý ¦Ã i¡Êi	i¡Ê i¡É¦× {t}  
+	    t ¡Ê t	:	tt = 1 ¡ú xciiidti ¡Ý ¦Ã.
+i¡Êi
+
+¡¡theorem 1  convertible constraints . the convertible minimum average cost constraint is specified as follows:
+x ci   ¦Ã ii ¡Ý 1
+i¡Êi
+equivalently  a reified version can be used similar to  1 .
+proof. this follows from rewriting constraint  1 :
+xci/|i| ¡Ý ¦Ã   xciii ¡Ý ¦Ã xii   x ci   ¦Ã ii ¡Ý 1.
+i¡Êi	i¡Êi	i¡Êi	i¡Êi
+
+¡¡theorem 1  closed itemsets . the frequent closed itemset mining problem is specified by the conjunction of the coverage constraint  1   the frequency constraint  1  and
+	 i ¡Ê i : ii = 1   xtt 1   dti  = 1.	 1 
+t¡Êt
+the more general ¦Ä closed itemsets are specified by
+	 i ¡Ê i : ii = 1   x tt 1   ¦Ä   dti  ¡Ü 1.	 1 
+t¡Êt
+¡¡proof. formulation  1  follows from the second galois operator in  1  similar to the reformulation of  1  above. we skip the derivation for the ¦Ä-closed itemsets due to lack of space. 
+	theorem 1	 maximal frequent itemset mining .
+the maximal frequent itemset mining problem is specified by the coverage constraint  1  and constraint
+	 i ¡Ê i : ii = 1	  xttdti ¡Ý ¦È	 1 
+t¡Êt
+¡¡proof. the maximality constraint is reformulated as follows:
+ i¡ä   i:|  i¡ä |   ¦È    i ¡Ê i   i:|  i ¡È {i} |   ¦È    i ¡Ê i   i:|t ¡É   {i} |   ¦È    i ¡Ê i:ii = 1 ¡ú x ttdti   ¦È 1                                                    t¡Êt together with the minimum frequency constraint  1  this becomes a two sided reified constraint. 
+
+figure 1: search tree for the frequent itemset mining problem.
+¡¡theorem 1	 emerging patterns . the problem of finding frequent emerging patterns is specified by:
+ k ¡Ê {1} :  t ¡Ê t  k  : t k t = 1	  xii 1   dti k   = 1.
+i¡Êi
+ i ¡Ê i : ii = 1¡úx ttdti 1  ¡Ý ¦È.
+t¡Êt1 i ¡Ê i : ii = 1¡úx tt 1 dti 1    ¦Ñ x tt 1 dti 1  ¡Ý 1 	t¡Êt 1 	t¡Êt 1 
+proof. this follows from the reification of
+|t 1 |/|t 1 | ¡Ý ¦Ñ   x tt 1    ¦Ñ x tt 1  ¡Ý 1;
+	t¡Êt 1 	t¡Êt 1 
+furthermore  given that two datasets are given  coverage is expressed for both datasets. 
+1. constraint programming systems as itemset miners
+¡¡we now investigate the behavior of constraint programming systems applied to itemset mining problems and compare this to standard constraint-based mining techniques.
+¡¡let us start with the frequent itemset mining problem. the search tree for an example database is illustrated in figure 1. we use a minimum frequency threshold of ¦È = 1. in the initial search node  n1  the propagator for frequency constraint  1  sums for each item the number of transactions having that item  and determines that item 1 is only covered by 1 transaction  and therefore sets d i1  = {1}. the propagators for coverage constraint  1  determine that transaction 1 is covered by all items  and hence d t1  = {1}. this leads to the domain in node n1  where we have to branch. one of these branches leads to node n1  setting d i1  = {1}  thus including item 1 in the itemset. coverage propagation sets transaction d t1  = {1}; frequency propagation determines that itemset {1} is not frequent and sets d i1  = {1}. coverage propagation determines that transaction 1 is covered by all remaining items and sets d t1  = {1}. propagation stops in node n1. here both possibilities in d i1  are considered  but no further propagation is possible and we find the two frequent itemsets {1} and {1}.
+¡¡in this example  the reified constraint is responsible for setting an item d ii  = {1}. without reification the frequency constraint would never influence the domain of items. in our example  the system would continue branching below node n1 to set d i1  = {1}  and only then find out that the resulting domain is false. by using the reified constraints  the system remembers which items were infrequent earlier  and will not try to add these deeper down the search tree. this example illustrates a key point: by using reified constraints  a cp system behaves very similar to other wellknown depth-first itemset miners such as eclat  and fpgrowth . for a given itemset also these miners maintain which items can still be added to yield a frequent itemset  in fp-growth  for instance  a projected database only contains such items . the transaction variables store a transaction set in a similar way as eclat does: the variables that still have 1 ¡Ê d tt  represent transactions that are covered by an itemset during the search. a difference between well-known itemset miners and a cp system is that a cp system also maintains a set of transactions that are fixed to 1; furthermore  the cp system explicitly sets item variables to zero  while other systems usually do this implicitly by skipping them.
+¡¡let us consider the maximal frequent itemset mining problem next. compared to the search tree of figure 1  the search tree for maximal frequent itemset mining is different below node n1: applying the additional propagator for the maximality constraint  1   the cp system would now conclude that a sufficient number of transactions containing item 1 have been fixed to 1 and would remove 1 from the domain of item i1. as all variables are fixed  the search stops here and itemset {1} is found. this behavior is very similar to that of a well-known maximal frequent itemset miner: mafia   and its generalization dualminer   uses the set of 'unavoidable' transactions  obtained by computing the supporting transactions of the head-union-tail  hut  itemset   and immediately adds all items if the hut turns out to be frequent.
+¡¡likewise  we can consider closed frequent itemset mining: in node n1 the cp system would conclude that all transactions with d tt  = {1} support item 1  and would remove value 1 from d i1  due to constraint  1 ; in general  this means that for every itemset  the items in its closure are computed; if an item is in the closure  but is already fixed to 1  the search backtracks  otherwise  the search continues with all items added. the same search strategy is employed by the well-known itemset miner lcm .
+¡¡if we look at a monotonic minimum cost constraint  where we assume c1 = c1 = c1 = 1 and c1 = 1  and the cost threshold is at ¦Ã = 1  the search tree would differ already at node n1: if the reified constraint  1  is used  the items in transaction 1 are not expensive enough to exceed the cost threshold  and d t1  = {1} is set. the effect is that item 1 does not have sufficient support any more  and is set to zero. this kind of pruning for monotonic constraints was called exante pruning and was implemented in the examiner .
+¡¡until now we did not specify how a cp system selects its next variable to fix  algorithm 1  line 1 . a careful choice can influence the efficiency of the search. this situation occurs when dealing with convertible anti-monotonic
+constraints on data minimum frequencyxxxxxmaximum frequencyxxemerging patternsxcondensed representations maximalxxxxclosedxxx¦Ä closedxconstraints on syntax max/min total costxxxminimum average costxxmax/min sizexxxxxtable 1: comparison of itemset miners
+constraints such as minimum average cost constraints. we can show that for a well-chosen order of variables  which reflects the cost constraint  the cp system will never encounter a false domain  similar to systems such as fp-growth extended with convertible constraints  .
+¡¡summarizing our observations  it turns out that the search strategy employed by many itemset miners parallels that of standard cp systems applied to constraint-based mining problems. furthermore  the cp approach is able to deal with combinations of constraints in a straight-forward manner. a comparison is given in table 1.
+1. implementation and experiments
+¡¡in this section we study the practical benefits and drawbacks of using state-of-the-art cp systems. in the first section  we consider this issue from a modeling perspective: how involved is it to specify an itemset mining task in cp systems  in the second section  we study the performance perspective  answering the question: how efficient are cp systems compared to existing itemset mining systems 
+1 modeling efficiency
+¡¡to illustrate how easy it is to specify itemset mining problems  we develop a model for standard frequent itemset mining in the eclipse constraint programming system  a logic programming based solver with a declarative modeling language . this model is given in algorithm 1. it is almost identical to the formal notation.
+¡¡this model generates all frequent itemsets  given a 1dimensional array d  minimum frequency freq  and predicate prodlist in1 in1 out   which returns a list where each element is the multiplication of the corresponding elements in the input lists. next to procedures for reading data all functionality is available by default in eclipse.
+¡¡models for other constraints  and combinations of them  can be created in a similar way. for example  if we only want maximal itemsets  we replace line 1 by i #=  sum plist  # = freq . if we only want itemsets of size at least 1  then we can add before line 1: sum items  # = 1.
+¡¡a similar model can be specified using the gecode cp library . compared to the development of specialized algorithms  significantly less effort is needed to model the problem in cp systems
+
+1
+ these results are based on the parameters of the most recent implementations of the original authors  or  if not publicly available  on the original paper of these authors.
+algorithm 1 frequent itemset mining in eclipse
+
+% input: d: the data matrix; freq: frequency threshold
+% output: items: an itemset; trans: a transaction set
+1. fim clp d  freq  items  trans  :1.	dim d   nri nrt   
+1. length items  nri  	% decision variables
+1. length trans  nrt  
+1. items ::  1..1   trans ::  1..1  
+1.   foreach i items   count k 1    	% model
+1. param trans  nrt  d  freq 
+1. do col is d 1..nrt k  
+1. prodlist trans  col  plist  
+1. i =   sum plist  # = freq 
+%  i ¡Ê i : ii = 1 ¡ú pt¡Êt ttdti ¡Ý ¦È
+1.   
+1.   foreach t trans   count k 1    
+1. param items  nri  d 
+1. do row is d k 1..nri  
+1. prodlist compl items  row  plist c  
+1. t #=  sum plist c  #= 1 
+%  t ¡Ê t : tt = 1   pi¡Êi ii 1   dti  = 1
+1.   
+1. labeling items .
+
+1 computational efficiency
+¡¡in these experiments we only use the gecode constraint programming system ; we found that eclipse was unable to handle the amounts of constraints that are needed to cope with larger datasets. we implemented models for frequent itemset mining  closed itemset mining  maximal itemset mining  and combinations of frequency  cost and size constraints. we compare with the most recent implementations of lcm and mafia from the fimi repository ; furthermore  we obtained the patternist system  which implements the exante property . all these systems are among the most efficient systems available. we use data from the uci repository1. properties of the data are listed in table 1. to deal with missing values we preprocessed each dataset in the same way as : we first eliminated all attributes having more than 1% of missing values and then removed all examples  transactions  for which the remaining attributes still had missing values. numerical attributes were binarized by using unsupervised discretization with 1 bins. where applicable  we generated costs per items randomly using a uniform distribution between 1 and 1. experiments were run on pcs with intel core 1 duo e1 processors and 1gb of ram  running ubuntu linux. the code of our implementation and the datasets used are available on our website1.
+¡¡the density of a dataset is calculated by dividing the total number of 1s in the binary matrix by the size of this matrix. we encountered scalability problems for the large datasets in the fimi challenge  and decided to restrict ourselves to smaller  but dense uci datasets. we restrict ourselves to dense datasets as these are usually more difficult to mine. the numbers of frequent itemsets in table 1 for a support threshold of 1% are given as an indication  and were computed using lcm. all our experiments were timed out after 1 minutes. the experiments indicate that additional constraints are needed to mine itemsets for low support values on the segment data.
+
+1
+http://archive.ics.uci.edu/ml/
+1
+http://www.cs.kuleuven.be/¡«dtai/cp1im/
+#trans.#itemsdensity#patterns 1%german credit111 1letter111 1segment11 time out table 1: description of the datasets
+
+figure 1: runtimes of itemset miners on standard problems for different values of minimum support
+experiment 1: standard itemset mining.
+in our first experiment  we evaluate how the runtimes of our gecode-based solver  denoted by fimcp  compare with those of state-of-the-art itemset miners  for the problems of frequent  maximal and closed itemset mining.
+¡¡results for two datasets are given in figure 1. the experiments show that in most of the standard settings  which require the computation of large numbers of itemsets  fim cp is at the moment not very competitive. on the other hand  the experiments also show that the cp solver propagates all constraints as expected; for instance  maximal itemset mining is more efficient than frequent itemset mining. the system behaves very similar to other  specialized  systems from this perspective. in particular  if we compare fim cp with lcm  we see that fim cp sometimes performs better than lcm as a maximal frequent itemset miner for low support thresholds; similarly fim cp sometimes outperforms mafia as closed itemset miner. this is an indication that further improvements in the implementations of cp solvers could lead to systems that perform satisfactory for most users.
+experiment 1: standard constraint-based mining.
+in this experiment we determine how fim cp compares with other systems when additional constraints are employed.
+¡¡results for two settings are given in figure 1. in the first experiment we employed a  monotonic  minimum size constraint in addition to a minimum frequency constraint; in the second a  convertible  maximum average cost constraint. the results are positive: even though for small minimum size constraints the brute force mining algorithms  such as lcm  outperform fim cp  fim cp does search very effectively when this constraint selects a small number of very
+
+figure 1: runtimes of itemset miners on segment data under constraints
+large itemsets  1 items or more ; in extreme cases fim cp finishes within seconds while other algorithms do not finish within our cut-off time of 1 minutes. patternist was unable to finish some of these experiments due to memory problems. this indicates that fim cp is a competitive solver when the constraints require the discovery of a small number of very large itemsets. the results for convertible constraint are particularly interesting  as we did not optimize the item order in any of our experiments.
+experiment 1: novel constraint-based mining.
+in our final experiments we explore the effects of combining several types of constraints.
+¡¡our problem setting is related to the problem of finding itemsets that are predictive for one partition  or class  in the data; one way to find such itemsets is to look for itemsets that have high support in this partition and have low support in the remaining examples. furthermore  it is desirable to condense the itemsets found; we investigate the use of ¦Ä-closedness; ¦Ä-closedness has not been studied in combination with other constraints in the literature. finally  to reduce the complexity of the individual patterns found  we investigate the use of size constraints on the itemsets; we consider both minimum and maximum size constraints.
+¡¡in our experiments  we divided the segment dataset randomly in 1 partitions. as default parameters for the constraints we chose: a minimum support of 1%  a maximum support of 1%  a minimum size of 1  a maximum size of 1 and ¦Ä = 1. results are summarized in table 1.
+¡¡the issues that we study in this table are the following. first  as discussed in section 1 and illustrated in figure 1  there are two ways of combining maximum size and ¦Ä closedness  referred to as setting 1 and setting 1. we are interested in the difference in size in the resulting sets of itemsets. in practice it turns out that setting 1 yields significantly less itemsets than the second setting. second  we study the influence of the minimum size constraint. the experiments show that the cp system achieves significantly lower runtimes when this additional constraint is applied  thus pushing the constraints effectively  while finding fewer patterns. third  we study the influence of the ¦Ä parameter. we mined for several values of ¦Ä  as can be seen in figure 1  without size constraints. the results show for higher values of ¦Ä less patterns are returned and the algorithm runs faster. please note that the runtimes of the cp system are much lower than those obtained by lcm for the same support threshold; the cp approach is more efficient than running lcm and post-processing its results.
+constraintsetting 1setting 1on |i|# patternstime  s # patternstime  s none1.11|i| ¡Ü 111.1 ¡Ü |i|1.111 ¡Ü |i| ¡Ü 111.1table 1: applying size constraints on segment data
+
+figure 1: mining segment under ¦Ä-closedness
+1. conclusions
+¡¡we have reformulated itemset mining problems in terms of constraint programming. this has allowed us to implement a novel mining system using standard constraint programming tools. this approach has several benefits. at a conceptual level  constraint programming offers a more uniform  extendible and declarative framework for a wide range of itemset mining problems than state-of-the-art data mining systems. at an algorithmic level  the general purpose constraint programming methods often emulate well-known itemset mining systems. finally  from an experimental point of view  the results of the constraint programming implementation are encouraging for constraints that select many short itemsets  and are competitive or better for constraints that select few long itemsets. this despite the fact that constraint programming systems are general purpose solvers and were not developed with the large number of constraints needed for data mining in mind.
+¡¡the main advantage of our method is its generality. the framework can be used to explore new constraints and combinations of constraints much more easily than is currently possible. in our approach  it is no longer necessary to develop new algorithms from scratch to deal with new types of constraints.
+¡¡there are several open questions for further research. 1  how can constraint-programming algorithms be specialized and optimized for use in data mining  1  which other types of constraints can be used for mining with the constraint programming approach  and 1  can the introduced framework be extended for supporting the mining of structured data  such as sequences  trees and graphs 
+¡¡to summarize  we have contributed a first step towards bridging the gap between data mining and constraint programming  and have formulated a number of open questions for future research  both on the constraint programming and on the data mining side.
+acknowledgements. siegfried nijssen was supported by the eu fet ist project  inductive querying   contract number fp1. tias guns was supported by the institute for the promotion and innovation through science and technology in flanders  iwt-vlaanderen . we are grateful to francesco bonchi for providing the patternist system  and to albrecht zimmermann
+and elisa fromont for discussions.¡ä

@@ -1,0 +1,29 @@
+a networked learning environment to support health education in five institutions was developed using xml  sql and object databases and zope. paragraphs from curriculum documentation  communication tools and learning resources are assembled dynamically from distributed databases  with distributed authorship  into a unified student portal. information can be dynamically reconfigured for different kinds of output. this paper describes the technologies and processes used to drive the printed word from web based databases.   
+keywords 
+networked learning environments  vle  zope  medicine. 
+1. introduction 
+standard web based technologies of xml  sql and object databases  python  perl and zope were used to develop and deliver a 'networked learning environment' in three medical schools and two related programmes  subjects allied to medicine and biomedical sciences  in the united kingdom as part of a project funded by the higher education funding councils for england and northern ireland.  
+learning in health-related subjects is under pressure from increasing numbers of students  reduction in the burden of factual knowledge in favour of evidence based and communication  vocational  skills  and increasingly distributed 'geography' for learning. in order for staff and students to adhere to a centrally planned curriculum it is necessary to deliver curriculum documents and resources  including problem based learning cases  from and to a variety of distributed locations . in addition  medical students are increasingly 'shared' between one or more higher education institutions and the nhs.  
+the flexibility of this home-grown approach facilitated delivery of existing curriculum documentation  much of which contained complex structure and formatting  and facilitated the upkeep of information in the on-line version by the primary owners. curriculum documents no longer exist as a single word processed files and printed versions are dynamically derived  in pdf  from distributed databases via the web-based version.  
+1. method and results 
+the use of xml  databases  python  perl and zope allowed for the integration of information and communication tools  access to learning resources  self-selection  self-assessment and feedback  currently being adapted to include personal and academic reflective records of achievement and problem based learning . prior experience of learning support systems indicated that the method needed to adhere to five simple principles: 
+  replace administratively-heavy processes with accessible  flexible and accurate tools; 
+  enable rapid prototyping and discardable interfaces; 
+  utilize data available from existing sources  e.g. student record   and dynamically manage information in 
+distributed relational databases; 
+  distribute maintenance of information to the information owners by providing authenticated on-line editing; 
+  achieve the above with minimal training requirements for staff and students. 
+the interactive on-line curriculum  figure 1  was based on databased versions of degree programme handbooks and module study guides which were initially structured using styles in ms word in order to aid navigation when represented online  and provide contextual information about the item of information being translated. the guides were translated and  uploaded into a relational database using xml as a translation format.  
+ 
+ 
+figure 1. a list of available first year study guides are illustrated on the left  resources and events/news on the right. access to other tools are available from button bars.  
+documents are generated dynamically from multiple databases and the content delivery system creates some links from linkbases  figure 1 . searches retrieve specific paragraphs  rather than whole web pages  and can be either free-text or based on xml tags  enabling users to create a tailored document containing  for example  just the reading lists from all of the first year study guides.  
+ 
+ linkbases. 
+areas designated to house learning resources  such as handouts  slides  animation  urls and courseware  are owned and maintained by geographically dispersed staff using web forms and 'file upload'  figure 1 . some meta-data is added dynamically to uploaded resources which increases the precision of searches e.g. all resources associated with first year 'basic cell biology'. on-line self-assessment questions can be modified directly by staff. 
+ 
+figure 1. documents with complex formatting  superscripts  extended ascii character set and images  can be output to web or pdf pages. 
+1. conclusions 
+the use of non-proprietary software enables the content of the databases to be re-purposed and re-sited easily and link in with new features  such as reflective personal development plans. the use of ims is being investigated in order to facilitate data exchange with other systems. the unified student portal has grown with the addition of  information types which increases the navigation options and adds considerable value to the overall experience.    
+1. acknowledgments 
+the authors would like to acknowledge all the consortium members of this project and especially the 1 project officers. 

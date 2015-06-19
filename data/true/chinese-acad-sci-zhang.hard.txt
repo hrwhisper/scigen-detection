@@ -1,0 +1,75 @@
+1. introduction
+　　we participated in hard track of hard 1 and our research mainly focuses on the following 1 aspects: 1. to classify all 1 hard queries into 1 categories to see whether the different kind of queries have various effects in feedback tasks; 1.try to use various feedback sources to observe whether they perform equally in feedback tasks; 1.to explore the internal structure of corpus and try to estimate the distribution of relevant documents within sub-corpus according to the relevance feedback results.
+　　we can draw the preliminary conclusions from the experimental results: 1.the different kinds of queries perform differently in feedback tasks and the  case   and  event  queries are more sensitive to the feedback source. 1. the technology of exploring the internal structure of corpus in feedback task is partly effective and the main existing problem is how to predict the distribution more precisely.
+   in the following parts of the paper  we will describe our research goals and experimental results more clearly.
+1. research goals
+in hard track of trec 1  we focus our research on the following 1 goals:   query category
+　　the queries of 1 hard track are the hardest queries selected from the previous trec tests. as stressed by cronen-townsend et.al.   poorly-performing queries considerably hurt the effectiveness of an ir system. many research work has been done to predict the difficulty of query  1 1 1 
+     so the first thing for us is to classify these hardest queries into several categories and analyze the reason why this type of query can't be satisfactorily processed by current ir technology.
+the following table shows the query category we made in trec 1:
+category namequeries which belongs to the categoryfeature patterns of querycase1/1/1
+/1/1/1/
+1/11. identify	concrete	cases	of something...
+1. identify individual or corp.which ....event1/1/1
+1
+/11. identify	instances	of	doing something... reason1/1/1 /1.what	are	the	causes	of
+something...relationship1/11.find document that discuss a and b...measure1/1. what steps has been taken... status1.what	is	the	status	of
+something...common1/1/1
+/1/1/1
+/1/1common questionstable 1.details of query category
+　　apparently the failure of the  case  and  event  queries is due to the reason that information need is too general to find the relevant documents just under the current  bag of words  framework. as for the other type of queries  there is no apparent clue which can explain why the current ir technology fails to find good results. however  a very common problem by the tf.idf approach  1  no matter what the category the query belongs to  is that the retrieved top documents always focus on just one theme even though the information need contains several themes. these irrelevant documents occupy most top positions. for example  the topic of query number 1 is  home schooling  while the top retrieved documents focus on just  home  or  schooling  instead of both of them. this indicates that the proximity information is a very important factor to improve ir performance under the tfidf paradigm for many queries.
+　　after classifying the query into several categories  we want to know weather the different type of queries will have different effect on ir performance in feedback tasks. the experimental results tell us that the query category really has different effect on the feedback performance.   various feedback sources
+to evaluate the effect of various relevance feedback sources  we make use of 1 different collections as feedback source in our experiments: the corpus of trec1 hard track  aquaint    the corpus of trec1 hard track a collection of news from 1 collated especially for hard  and the web using the google to find out the relevant documents . we want to know answers of the following 1 questions:
+1. weather the different feedback source will bring different feedback effect 
+1. does the query category have effect on these various feedback source  if the answer is yes  what kind of effect it will be 
+     we firstly retrieval the different results from the above-mentioned 1 different corpus and extract the titles and 1 keywords of the top 1 initially retrieved document to form the cf for relevance judgment. then the initial query is changed by adding the title and the keywords of all relevant documents into it to process the next retrieval  they are 1 different runs .
+　　we call the aquaint corpus  inside corpus  and the other 1 corpuses as  outside corpus  in the following part of this paper for easier description.
+  exploring the collection structure in feedback procedure
+   the aquaint corpus consisted of three different newspapers: xinhua news xie   new york times nyt  and awp. we suppose that the different news source may focus on different topics. for given query topic  the distribution of the relevant documents within these 1 sub-collections may different. for example  xinhua news will have a bigger probability to publish the report about  three gorges project  than the other 1 news sources. so we plan to estimate this  relevant document distribution probability  through the feedback and hope this estimation parameter can be used to facilitate the ir performance. here the probability can be regarded as the possibility that which sub-collection a relevant document should belongs to for any given query.
+   the first problem is how to estimate the parameters of the relevant document distribution within the 1 different news source given the query topic. we estimate the parameters as the following steps: firstly  the relevant documents within top 1 search results  which are judged by nist  are collected to form the  relevant doc set  for any given query topic. it's not hard to see which sub-set each document came from because the first 1 chars of document's name contain this information. for example  if the name of the document is  awp1   we know that this document comes from awp sub-collection. after labeling each relevant document with the news source  we can estimate the  relevant document distribution probability  as following
+:
+	ri	i =1 xie  1 nyt  1 awp 	 1 
+pi =
+               r where ri means the number of relevant documents which belongs to different feedback source ; r means the number of all relevant documents in top 1 search results for any given query;
+   the second problem is how to tune the ranks of retrieved documents by applying the distribution parameters. we re-rank the initial retrieval result by the following formula:
+	finalscore = *originalscore+ 1   * pi	 1 
+where   =1 and pi is the probability computed by formula 1.
+1. experimental results and analysis
+1 effect of various relevance feedback source
+average precisionchange compared with cassbase r-precisionchange compared with cassbase cassbase1null1nullcassgoogle1-1%1-1%casstopdoc1-1%1-1%cassself1+1%1+1%table 1. performance of different feedback source
+   in order to observe the effect of various relevance feedback sources  we design 1 runs in our experiments :cassbase  cassgoogle  casstopdoc and cassself. cassbase is a blind feedback run by adding the 1 keywords extracted from top 1 retrieved documents  from aquaint corpus  into the initial query and this run is regarded as the baseline. cassgoogle is a run which use the web as feedback source and the title and 1 keywords of each relevant document  which are judged by nist   are added into initial query to perform another retrieval. the casstopdoc and cassself are like the cassgoogle run except the different feedback sources. the casstopdoc run use the corpus of 1 hard track as feedback source and cassself run use the aquaint corpus corpus of 1 hard track  as the feedback source.
+　　the experimental results listed in table 1 show that the  outside corpus  as the feedback source decrease the ir performance as a whole compared with the baseline run while the  inside corpus  greatly increase the performance.
+   however  we analyze the performance of each query topic and found out that the query category effect the performance greatly. for easier description  we can compare the results of cassgoogle with cassself run. we found that the performance of most queries  1 queries among all 1 queries  from  case  and  event  category in cassgoogle run decrease dramatically compared with the cassself run. however  for the other type of query  sometimes the cassgoogle win and sometimes cassself win. among all 1 queries which don't belong to  case  and  event  category  1 of them outperform the cassself in cassgoogle run. the bad performance of  case  and  event  category query are main reasons to explain the failure of the  outside corpus  compared with. inside corpus  as feedback source.
+we can draw the following conclusions:
+1. using the  outside corpus  as the feedback source  the query category will be the main factor to decide whether the feedback source will help increase the ir performance. for most  case  and  event  queries  it will decrease the ir performance if the  outside corpus  is used as the feedback source. while for other type of query  the effect of  outside corpus  as feedback source still need further research. that is  the  case and  event  query are much more sensitive to the feedback source compared with other type of query.
+1. compared with blind feedback run  casstopdoc run decrease the performance slightly while cassgoogle decrease dramatically. we thought it's maybe because the trec corpus are all news paper and the google search result vary very much in the text format.
+   as for the reason why the  case  and  event  query are more sensitive to the feedback source  we thought it's maybe the relevant document of this type of query focus on concrete cases which involve many proper names or concrete event  so these documents share little information and the information from  outside corpus  will give little help to find relevant information in another corpus. while the  case  query will be effective to use the  inside corpus  as the feedback source because there are similar reports in the same corpus.
+1 exploring the collection structure
+no re-rankingre-rankingchangegroup 1 cassbase 
+ap: 1
+rp: 1 cassbasere 
+ap: 1
+rp: 1ap:-1%
+rp:-1%group 1 cassallfb 
+ap: 1
+rp: 1 cassallre 
+ap: 1
+rp: 1ap:-1%
+rp:-1%group 1 cassallfb1 
+ap: 1
+rp: 1 cassallfb1re 
+ap: 1
+rp: 1ap:-1%
+rp:-1%group 1 cassself 
+ap: 1
+rp: 1 cassselfre 
+ap: 1
+rp: 1ap:-1%
+rp:-1%	table 1.	the details of re-ranking runs
+　　we design 1 group experiments to test the re-ranking approach described in section 1 according to the formula 1. we can see from table 1 that the re-ranking technology through exploring the collection structure fails to increase the ir performance and with the increase of the initial retrieval performance  the negative effect has increased.
+   we also analyze each query to find out the reason why this technology fails. for convenient description  we take the cassself and cassselfre run as example 1 runs in group 1 . it's found that 1 queries benefit from this technology  1 queries remain unchanged scores and the other 1 queries suffer from the technology. as for the performance of other 1 groups  it's almost the same 1 queries benefit from the technology.
+   we thought whether the distribution parameter is precise or not have important effect on the performance. if the estimation is near the true distribution of the relevant document within sub-collections  the technology will help to increase the ir performance  sometimes dramatically change the performance  while it will has negative effect if the parameters estimation is far from the truth. so the conclusion is the technology is sometime effective and the problem of this technology is how to estimate the distribution more precisely.
+1. conclusion
+　in hard track of hard 1  we classify the all 1 query into 1 categories and make use of 1 kind of different feedback source in various tasks. we find that the different kinds of queries perform differently in feedback tasks and the  case   and  event  queries are more sensitive to the feedback source. we also explore the internal structure of corpus and try to estimate the distribution of relevant documents within sub-collections  the experiments show that this technology is partly effective and the main existing problem is how to predict the distribution more precisely.
+acknowledgments
+partly supported by the national natural science foundation of china under grant no.1 and the new star plan of science & technology of beijing under grant no.h1.

@@ -1,0 +1,99 @@
+ 
+institute of software  chinese academy of sciences  iscas  participated in trec-1  submitting 1 runs. we focus on studying the problem of the combination of the user- and query-information from clarification forms and metadata. we provided two kinds of clarification form. our experiment shows the cf1 is more effective than cf1. we use google as a resource for query expansion base on metadata subject and familiarity together  and the r-prec is increased from 1  baseline  to 1  +1% . our approach to exploiting the metadata genre and geography yield negative result when used alone  however  surprisedly  when combinate metadata genre and metadata geography with cf1 respectively  we get an increase  +1%  and  +1%  than use cf1 alone. our combination of cf1 and metadata relt text is the best results of all the trec runs  r-prec   and in this run  the r-prec is increased from 1  cf1 alone  to 1  +1%   and from 1  metadata rel-text alone  to 1  +1% . from the results we can see the information from user  cf1  and the information from query  metadata relt-text  may complement each other. 
+ 
+1 introduction 
+ 
+institute of software  chinese academy of sciences  iscas  participated in trec-1 in all the three aspects of the hard task. we focus on studying the problem of the combination of the user- and query-information from clarification forms and metadata. we provided two kinds of clarification form. one is a term list; the other is a title list. metadata subject and familiarity are used together base on google. feature term lists are built for metadata genre and geography respectively. for passage retrieval  we first cut these documents into small pieces and then do the same run as document retrieval. we totally submitted 1 results that are constructed automatically though some of them are time consuming. the following subsections describe the system design for each of the runs.  
+ 
+1. system description 
+ 
+1 ir model  
+ 
+we focus our research on the using of the cf and metadata  so no much work is done about the ir model. vsm is employed to calculate the similarity between query vector and document vector 1 1 1 . the term of vector is word. if t={ tj } is a term set  then query vector vj of topic j can be express vj= vj1 vj1 ....vjn   in which vjk denotes the weight of tk in vj. the vector di= di1 di1 .... din  denotes a document  dik denotes the weight of tk in di. the similarity between vj and di is calculated by following formula: 
+n
+s j =¡Ædik  v jk ¡Ædik1 +¡Æv1jk 
+k=1
+the ir system we used is the lemur toolkit  version 1  developed by cmu . the lemur toolkit is designed to facilitate research in language modeling and information retrieval  where ir is broadly interpreted to include such technologies as ad hoc and distributed retrieval  cross-language ir  summarization  filtering  and classification. the toolkit supports indexing of large-scale text databases  the construction of simple language models for documents  queries  or sub-collections  and the implementation of retrieval systems based on language models as well as a variety of other retrieval models. the system is written in the c and c++ languages  and is designed as a research system to run under unix operating systems. 
+ 
+1 clarification forms 
+ 
+we provided two kinds of clarification form. one is a list of keywords that might appear in relevant documents  the other is a list of the title and keywords of the top 1 relevant documents. the user is asked to judge the keywords or the title and keywords for a query as being  good    bad   or  unknown . the user can also input additional terms that help define or disambiguate the topic area for a query. the clarification form chas1 and chas1 are show in the following figure 1 and 1.  
+ 
+ 
+figure 1: chas1 clarification form for query hard-1 
+
+figure 1 chchas1 clarification form for query hard-1 
+ 
+1 exploiting metadata 
+ 
+subject & familiarity 
+we use metadata subject & familiarity together base on google. google is used as a resource for query expansion. first input the title of a query to google. then choose the related web site from the top 1. if the sites' google directory is classified the same as the subject show at metadata of the query  then these web sites are related sites for the query. as a special case  if none of the top 1 sites is classified the exactly same as the metadata subject  we only choose top 1 as related site. 
+how many texts within the related site should be used as related texts is decided by metadata familiarity based on an assumption  that is  the less the user is familiar with a topic  the more he wants to know. for example  if the metadata of a query is little  then use crawler to get 1 level of web pages as the resource for query expansion; if the metadata of a query is much  then only get 1 level of web pages as the resource for query expansion. the texts of the related web pages are extracted and pos tagged. only use these frequently appeared noun words in the related texts for query expansion. here is the example for query hard-1  1 and 1.  
+ 
+number topic 
+title metadata 
+subject google directoryhttp1 the level 
+we need metadata familiarityhard-1 bass amps technologynone http://www.ampeg.com/ 1 little hard-1 identity theft society societyhttp://www.consumer.gov/idtheft/ 1 much hard-1 heaven's gate society societyhttp://religiousmovements.lib.virginia.edu
+/nrms/hgprofile.html 1 much  
+genre 
+two feature term lists related to different genres  named report feature word list rfwl  and opinion feature word list ofwl   are constructed manually. 
+¡¡¡¡rfwl contains some words which often appear in the news reports with high frequency such as  report     say     quote  .  for news report usually starts by location and time information such as  local daily the new vision reported tuesday    so we also add the time information like  tuesday   monday  into the rfwl to represent the features of news report. ofwl contains some words which can be regarded as the features of opinion-biased document such as  editorial       opinion      perspective     comment .  
+¡¡the basic assumption is that if one document contains enough feature words listed in rfwl or ofwl  it will be regarded as the news report or opinion-editorial.  so we re-rank the retrieval results by adopting the following strategy: 
+ a  if the requirement of the genre metadata is  news-report   in the query  we will count the feature words in the document by looking up the rfwl. when the count is above 1 in one document  we will promote the ranking position of the document  1   position higher . 
+ b  if the requirement of the genre metadata is  opinion-editorial    we will count the feature words in the document by looking up the ofwl. when the count is above 1 in one document  we will promote the ranking position of the document in ranking list  1 position higher . 
+ c  if the requirement of the genre metadata is  other    we will punish the document that belongs to  news-report  or   opinion-editorial  by decreasing the ranking position of the document in ranking list  1 position lower . 
+ d  if the requirement of the genre metadata is  any   we will keep the original ranking list without any position promotion or decreasing. 
+ 
+geography: 
+in order to make use of the geography metadata in queries  we construct a list that contains the main u.s. state names and some big city names. the basic assumption is that the topic of the document is relative with u.s. if it contains many u.s. state or city names. so we re-rank the retrieval results by adopting the following strategy: 
+ a  if the requirement of the geography metadata is  u.s.  in the query  we will count the city names and state names in the document by looking up the name list. when the count is above 1 in one document  we will promote the ranking position of the document  1 position higher . 
+ b  if the requirement of the geography metadata is  non-u.s.   we will count the city names and state names in the document by looking up the name list. when the count is above 1 in one document  we will decrease the ranking position of the document in ranking list  1 position lower . 
+ c  if the requirement of the geography metadata is  any   we will keep the original ranking list without any position promotion or decreasing. 
+ 
+related text: the relevant texts are used as the basis for automatic query expansion. a pos tagger is used and only high frequency noun words  except stop words  in the related text are used for query expansion. 
+ 
+1. results analysis 
+ 
+we submitted 1 baseline run and  1 other runs all together. we combined all the above information by different ways and wish could get more accurate ranked lists. the details of our submission experiments are show in table 1 that denotes an experiment and how the original query was constructed. 
+table 1 submission experiment's detail 
+run id cf metadata relt textsgranularity note iscas 1 no no no document baselin-1 chastdn 1 no no               no document/passage baseline-1 chascfw 1 cf1 no no document/passage  chascfd 1 cf1 no no document/passage  chascfwd 1 cf1 no no document/passage same as chascfd 1  only 
+different at word weight chasbsubfam 1 no subject&familiarityno document/passage based on google chasbcsubfam 1 no subject&familiarityno document/ptassage cf1 is used to decide to use google or not chascfsubfam 1 cf1 subject&familiarityno document/passage same as chasbsubfam 1  only different at word weight chasccsubfam 1 cf1 subject&familiarityno document/passage same as chasbsubfam 1  only different at word weight chasbaserel 1 no no yes document/passage only use noun word in relt texts chasbasegen 1 no genre no document/passage  chasbaseger 1 no geography no document/passage  chascfrel 1 cf1 no yes document/passage only use noun word in relt texts chascfgen 1 cf1 genre no document/passage  chascfger 1 cf1 geography no document/passage  chasregenger 1 cf1 genre & geographyyes document/passage  chasdcfd 1 cf1 no no document  chasdcfwd 1 cf1 no no document same as chasdcfd 1  only different at word weight chasdcfw 1 cf1 no no document   
+in table 1 the r-prec and avg prec of our submission runs for document level are showed. iscas 1 is our baseline-1 run and no query expansion is used. there are two differences between iscas 1 and chastdn 1. one is iscas 1 only use title section of a query but chastdn 1 use both title and description section of a query. the other is iscas 1 is document level but chastdn 1 is document and passage level. in the following experiments  we always use title and description section of a query as input.  
+ 
+table 1 tthe r-prec and avg prec of our submission run for doc level 
+run id r-prec  hard-rel avg prec 
+ hard-rel  r-prec 
+ soft rel  avg prec 
+ soft rel  iscas 1 1 1 1 1 chastdn 1 1 1 1 1 chascfw 1 1 1 1 1 chascfd 1 1 1 1 1 chascfwd 1 1 1 1 1 chasbsubfam 1 1 1 1 1 chasbcsubfam 1 1 1  1 1 chascfsubfam 1 1 1 1 1 chasccsubfam 1 1 1 1 1 chasbaserel 1 1 1 1 1 chasbasegen 1 1 1  1 1 chasbaseger 1 1 1  1 1 chascfrel 1 1 1 1 1 chascfgen 1 1 1 1 1 chascfger 1 1 1 1 1 chasregenger 1 1 1 1 1 chasdcfd 1 1 1 1 1 chasdcfwd 1 1 1 1 1 chasdcfw 1 1 1 1 1 trec median 1 1 1 1 trec max 1 1 1 1  
+ 
+as we can see from table 1  the r-prec of chasfw 1 is increased from 1  chastdn 1  baseline-1  to 1  +1%  for use cf1 as query expansion  and the r-prec of chascfd 1 is increased from 1 to 1  +1%  for use cf1 as query expansion. so the cf1 is more effective than cf1. there is no significant improvement between chascfd 1 and chascfwd 1 for the only difference is word weight at query expansion.  
+ 
+at chasbsubfam 1 we use google as a resource for query expansion base on metadata subject and familiarity together  and the r-prec is increased from 1 to 1  +1% . at chasbcsubfam 1  we use cf1 to decide to use google as a resource for query expansion or not  that is  if there are above 1 documents at cf1 which are denoted by user as good  then no query expansion is used. we can see from table 1 there is no significant r-prec improvement between chassubfam 1 and chasbcsubfam 1. at chascfsubfam 1 and chasccsubfam 1  we use both cf1 and metadata subject & familiarity as query expansion  and we can see the r-prec of chascfsubfam 1 is increased from 1  chascfd 1  cf1 alone  to 1  +1% .  
+ 
+at chasbaserel 1  we only use metadata related text as query expansion  and get an improvement from 1 to 1  +1%  for r-prec.  
+ 
+we use metadata genre and metadata geography respectively at chasbasegen 1 and chasbaseger 1  and get a decrease of r-prec from 1 to 1  -1%  and from 1 to 1  -1% . so our approach to exploiting the metadata genre and geography yield negative result when used alone. 
+ 
+as we can see from table 1 the chasfrel 1 is the best of all the trec runs. at this run  we use both the cf1 and metadata relt text as the base for query expansion. the combination of the user- information  cf1  and query-information  metadata relt text  get significant improvement  and the r-prec is increased from 1  chascfd 1  cf1 alone  to 1  +1%   and from 1  chasbaserel 1  metadata rel-text alone  to 1  +1% . from the results we can see the information from user  cf1  and the information from query  metadata relt-text  may complement each other. 
+ 
+at chascfgen 1  we combinate the user- information  cf1  and query-information  metadata genre    and get a little increase from 1  chascfd 1  cf1 alone  to 1  +1% . similarly  at chascfger 1  we combinate the user- information  cf1  and query-information  metadata geography    and get an increase from 1  chascfd 1  cf1 alone  to 1  +1% . finally  we combinate the user- information  cf1  and query-information  metadata rel-text  metadata genre  metadata geography   and get an improvement for r-prec from 1  chascfger 1  to 
+1  +1% . 
+ 
+in figure 1  the comparison of trec median and maximum to iscas's submitted baseline run  iscas 1  and iscas's best submitted run  chascfrel 1  is showed. 
+
+figure 1 comparison of trec median and maximum to iscas's submitted baseline run and iscas's best submitted run  chascfrel . 
+ 
+1 conclusions 
+ 
+we participated in all the three aspects of the hard task and focus on studying the problem of the combination of the user- and query-information from clarification forms and metadata. we totally submitted 1 results that are constructed automatically. we provided two kinds of clarification form. cf1 is a list of keywords that might appear in relevant documents  and cf1 is a list of the title and keywords of the top 1 relevant documents. from our experiment  we can see the cf1 is more effective than cf1. we use google as a resource for query expansion base on metadata subject and familiarity together  and the r-prec is increased from 1  baseline  to 
+1  +1% .  
+ 
+it's seems our approach to exploiting the metadata genre  r-prec -1%  and geography  r-prec -1%  yield negative result when used alone  however  surprisedly  when combinate metadata genre and metadata geography with cf1 respectively we get an increase  +1%  and  +1%  than cf1 alone.  
+ 
+our combination of the user- information  cf1  and query-information  metadata relt text  is the best results of all the trec runs  r-prec   and in this run  the r-prec is increased from 1  cf1 alone  to 1  +1%   and from 1  metadata rel-text alone  to 1  +1% . from the results we can see the information from user  cf1  and the information from query  metadata relt-text  may complement each other.  
+ 
+more experiments and analysis are needed in near future. 
+ 
+acknowledgements 
+partly supported by the national natural science foundation of china under grant no.1 and the new star plan of science & technology of beijing under grant no.h1. 
+ 

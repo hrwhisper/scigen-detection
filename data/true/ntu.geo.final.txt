@@ -1,0 +1,56 @@
+in this paper  we present a system for information retrieval of biomedical texts at passage level. our system used kl-divergence as the underlying retrieval model. we further added query expansion and performed post-processing on the results. we were able to obtain a document map of 1  passage map of 1 and aspect map of 1 on one of the three runs. 
+ 
+1. introduction 
+ 
+the genomics track this year only has a single task  which is information retrieval. unlike the retrieval tasks of previous years  the task this year deals with the retrieval of passages from full-text documents rather than abstracts. the query format is based on last year's generic topic templates  gtt . in fact  this year's queries are generated from four of last year's templates. the use of gtt allows us to identify the occurrences of gene names  disease names  biological processes and organ functions more easily than freeform queries. 
+ the corpus consists of full-text biomedical articles in html format. we extracted the content texts from the html files and separated them into paragraphs for indexing. our system used the lemur implementation of kl-divergence retrieval model as the main search algorithm . lemur is a toolkit aimed at making information retrieval research easier. it provides basic indexing functionalities and retrieval models  such as tf-idf  okapi and kl-divergence. 
+ several techniques independent of lemur were applied in an attempt to increase the retrieval performance. our system expanded queries prior to submitting them to lemur. after the returning of possibly relevant paragraphs from lemur  the paragraphs were further analyzed to locate the relevant passages within the paragraphs. 
+ the rest of the paper is organized as follows. section 1 sketches the overview of the system architecture. the details of the proposed system are explained in section 1. our evaluation results are presented in section 1. we also make some discussions in this section. finally  we make some conclusions in section 1. 
+ 
+1. system overview 
+
+ 
+figure 1 shows the overall architecture of the proposed system. first  we prepared the corpus for indexing. then  we identified biological terms and phrases in the query. after that  query expansion was made before we retrieved paragraphs from the indexed paragraphs. finally  we post-processed the retrieval results. 
+ 
+1. methods 
+1 corpus preprocessing and indexing 
+ 
+since the retrieval task this year requires the output to be passages  each of which is no longer than a paragraph  we separated every document in the corpus into paragraphs and indexed them. as the documents are in the html format  we defined a paragraph to be a portion of the html text bounded by the html tag  p  or a blank line. 
+ the next step in corpus preprocessing was to convert the html paragraphs into human-readable text without the html tags. we did this by passing the html passages into lynx  a text-based web browser  and output the formatted texts using the dump option . 
+¡¡¡¡we used lemur to build an index suitable for doing searches by the kl-divergence method. for the stopwords  pubmed's list was used . we also used porter's stemming algorithm to stem each word. 
+ 
+1 biological term and phrase recognition 
+ 
+since the topics follow specific formats  we extracted gene names  disease names  biological processes and organ functions from the topics by simple pattern matching. 
+ 
+1 query expansion 
+ 
+query expansion was done before retrieval to increase recall. our source of synonymous names for genes came from the ncbi entrez gene database . we downloaded the gene info file from entrez gene and constructed sets of synonyms from the symbol  synonyms and description fields of the gene entries. as for expanding other biological terms  such as disease names  biological processes and organ functions  the mesh database was used . we used mh  print entry and entry fields in the d1.bin file to identify synonyms. 
+ we did not use every single synonym we found to expand queries. instead  only those synonyms that co-occurred at least once in pubmed medline abstracts with other terms in the original query were selected . we will use the query  what is the role of prnp in mad cow disease   as an example. for the query  three synonyms of  prnp  are  prn-p    prp   and  prion protein . for each of the three synonyms  we checked whether it appeared together with mad cow disease in at least one pubmed medline abstract. if it did  we added it to the expanded query. a similar procedure was applied to the synonyms of mad cow disease: we checked whether they co-occur with  prnp  or not. 
+ 
+1 retrieval model 
+ 
+we used lemur to perform the retrieval of paragraphs using the kl-divergence model  which was introduced by lafferty et al. in 1 . the basic idea behind model is to compute p d|q : the probability of a document d given the query q. we also used lemur's implementation of pseudo-relevance feedback. the number of feedback documents was set to 1. 
+ 
+1 result post-processing 
+ 
+according to the task protocol  the output of the retrieval system has to be passages each no longer than a paragraph. since we indexed the corpus by paragraphs  the output generated by lemur was a list of paragraphs. we trimmed each paragraph returned by lemur to filter out irrelevant parts of the paragraph surrounding the potentially relevant passage. to do this  each paragraph was first segmented into sentences. the first sentence and the last sentence in the paragraph which contained at least one term from the expanded query were identified. for the final answer passage  we kept  inclusively  only the sentences between these two sentences. 
+ 
+1. results and discussion 
+ 
+we submitted three runs to trec for evaluation. the first run is ntuadh1  which was constructed using all the methods we described in section 1 of this paper. the second run is ntuadh1  which is similar to ntuadh1 except that query expansions were not used. our last run is ntuadh1  which used manually-edited queries. on the task protocol webpage  nur-1 is considered to be a synonym of nurr-1  which appears in topics 1 and 1. we added the term nur-1 to these two topics manually. after adding nur-1  the same methods that were applied to generate ntuadh1 were used to generate ntuadh1. the results for the three runs are given in table 1. 
+ 
+table 1: results of the runs 
+run document map passage map aspect map ntuadh1 111ntuadh1 111ntuadh1 111 
+ from table 1  we see slight differences between the document map of the three runs. ntuadh1 is better than ntuadh1 and ntuadh1. as we checked the document map for topics 1 and 1  we noticed an increase in map for both of these topics when we included the term nur-1. this explains why ntuadh1 has a higher document map than ntuadh1. we also examined the difference in document map between ntuadh1 and ntuadh1 for each of the topics to see whether query expansion was helpful for the majority of topics. we found that query expansion increased document map for 1 topics  decreased document map for 1 topics and did not affect the score of the rest of the topics. the absolute value of total increase in document map for the 1 topics is higher than absolute value of the total decrease in document map for the 1 topics  so the overall score of ntuadh1 is higher than ntuadh1. in reality  our query expansion method was harmful to more topics than it was helpful with. 
+ for passage map  there is almost no difference between the scores of ntuadh1 and ntuadh1. this is not surprising  since the two runs only differ from two of the topics. ntuadh1 has a slightly higher score than ntuadh1. as we had done for the comparison of document map  we checked the passage map for each of the topics. we discovered that query expansion increased passage map for 1 topics and decreased passage map for 1 topics. so  our query expansion was neither completely helpful nor completely harmful to passage map. 
+ unlike other two evaluation measures  ntuadh1 has the highest aspect map among the three runs. but further comparing the aspect map for each topic yielded the same observations as we had obtained for document map and passage map: the number of topics that were benefited by query expansion was about the same as the number of topics that were harmed by query expansion. 
+ 
+1. conclusion 
+ 
+in this paper  we presented our methods for information retrieval at passage level. we submitted three different runs for evaluation. based on the comparison done on our runs  we saw that our query expansion does not affect the retrieval performance very much. 
+ 
+acknowledgements 
+ 
+research of this paper was partially supported by national science council  taiwan  under the contract nsc-1-e-1-pae. 
+ 

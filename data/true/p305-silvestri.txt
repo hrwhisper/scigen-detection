@@ -1,0 +1,216 @@
+web search engines provide a large-scale text document retrieval service by processing huge inverted file indexes. inverted file indexes allow fast query resolution and good memory utilization since their d-gaps representation can be effectively and efficiently compressed by using variable length encoding methods. this paper proposes and evaluates some algorithms aimed to find an assignment of the document identifiers which minimizes the average values of d-gaps  thus enhancing the effectiveness of traditional compression methods. we ran several tests over the google contest collection in order to validate the techniques proposed. the experiments demonstrated the scalability and effectiveness of our algorithms. using the proposed algorithms  we were able to sensibly improve  up to 1%  the compression ratios of several encoding schemes.
+categories and subject descriptors
+h.1  information storage and retrieval : systems and software performance evaluation-efficiency and effectiveness; e.1  data : coding and information theory data compaction and compression
+general terms
+algorithms  experimentation  performance
+keywords
+clustering property  index compression  web search engines  document identifier assignment
+1. introduction
+¡¡compressing the huge index of a web search engine  wse  entails a better utilization of memory hierarchies and thus a lower query processing time . during the last years several works addressed the problem of index compression. the
+permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. to copy otherwise  to republish  to post on servers or to redistribute to lists  requires prior specific permission and/or a fee.
+sigir'1  july 1  1  sheffield  south yorkshire  uk.
+copyright 1 acm 1-1/1 ...$1.
+r.perego isti.cnr.it
+majority of them focused on devising effective and efficient methods to encode the document identifiers  docids  contained in the posting lists of inverted file  if  indexes  1  1  1  1  1 . since posting lists are ordered sequences of integer docid values  and are usually accessed by scanning them from the beginning  these lists are stored as sequences of d-gaps  i.e. differences between successive docid values. d-gap lists are then compressed by using variable-length encodings  thus representing smaller integers in less space than larger ones. variable-length encoding schemes can be bitwise  or bytewise:
+  in bitwise schemes  the list of integers is stored as a sequence of variable-length codewords  each composed of a variable number of bits. well-known bitwise schemes include: elias' gamma  delta  golomb-rice   and binary interpolative coding . bitwise codes  in general  achieve very good compression ratios. the main of these methods is the relatively high decoding time  which may negatively impact on the query processing performance of the system. to overcome this drawback  anh and moffat recently proposed a very effective bitwise encoding schema  which enhances considerably the decoding performance .
+  in bytewise encoding  each integer is represented using a fixed and integral number of bytes. in its simplest form  the seven least significant bits of each byte are used to encode an integer  while the most significant bit is used as a sort of  continuation bit   to indicate the existence of following bytes in the representation of the integer. an effective bytewise method  where word-alignment is retained  even at the cost of some bits wasted within each word  has been recently proposed by anh and moffat . bytewise codes have low decoding time  but are  in general  less effective than bitwise ones.
+¡¡since small d-gaps are much more frequent than large ones within postings lists  such variable-length encoding schemes allow if indexes to be represented concisely. this feature of posting lists is called clustering property  and is passively exploited by compression algorithms. however  by permuting docids in a way that increases the frequency of small d-gaps  we may likely enhance the effectiveness of any variable-length encoding schema. only three works previously addressed this possibility  1  1  1 .
+¡¡shieh et al.  proposed a docid reassignment algorithm adopting a travelling salesman problem  tsp  heuristic. a similarity graph is built by considering each document of the collection as a vertex  and by inserting an edge between any pair of vertexes whose associated documents share at least one term. moreover  edges are weighted by the number of terms shared by the two documents. the tsp heuristic algorithm is then used to find a cycle in the similarity graph having maximal weight and traversing each vertex exactly once. the suboptimal cycle found is finally broken at some point  and the docids are reassigned to the documents according to the ordering established. the rationale is that since the cycle preferably traverses edges connecting documents sharing a lot of terms  if we assign close docids to these documents  we should expect a reduction in the average value of d-gaps  and thus in the size of the compressed if index. the experiments conducted demonstrated a good improvement in the compression ratio achieved. unfortunately  this technique requires to store the whole graph in the main memory  and is too expensive to be used for real web collections: the authors reported that reordering a collection of approximately 1 documents required about 1 hours and 1 gbytes of main memory.
+¡¡also blelloch and blandford  proposed an algorithm  hereinafter called b&b  that permutes the document identifiers in order to enhance the clustering property of posting lists. starting from a previously built if index  a similarity graph g is considered where the vertexes correspond to documents  and the edges are weighted with the cosine similarity  measure between each pair of documents. the b&b algorithm recursively splits g into smaller subgraphs gl i =  vl i el i   where l is the level  and j is the position of the subgraph within the level   representing smaller subsets of the collection. recursive splitting proceeds until all subgraphs become singleton. the docids are then reassigned according to a depth-first visit of the resulting tree. the main drawback of this approach is its high cost both in time and space: similarly to  it requires to store the whole graph g in the main memory. moreover  the graph splitting operation is expensive  although the authors proposed some effective sampling heuristics aimed to reduce its cost. in  the results of experiments conducted with the trec1 ad hoc track collection are reported. the enhancement of the compression ratio obtained is significant  but execution times reported refer to tests conducted on a sub-collection of only 1 documents. the paper addresses relevant issues  but due to its cost  also the b&b algorithm seems unfeasible for real web collections.
+¡¡in our opinion  another drawback of the previous approaches is that they focus on reassigning docids appearing in a previously built if index. the innovative point of our work is a bunch of docid assignment techniques according to which docids are assigned on the fly  during  and not after  the inversion of the document collection. in order to compute efficiently and effectively a good assignment  a new model to represent the collection of documents is needed. we propose a model that allows the assignment algorithm to be placed into the typical spidering-indexing life cycle of a wse. our model  hereinafter called transactional model  is based on the popular bag-of-words model  but it does not consider the within-doc frequency of the terms. in a previous work   we presented preliminary results relative to one of the algorithms discussed in this paper. here we extend and complete the work by proposing and comparing several scalable and space-effective algorithms that can be used to assign docids while the spidered collection is being processed by the indexer. this means that when the index is actually committed on the disk  the new docid assignment has been already computed. conversely  the other methods proposed so far require that the if index has already been computed before.
+¡¡the rest of the paper is organized as follows. section 1 introduces the docid assignment problem more formally  and defines the goals of our algorithms. section 1 introduces the model of document collection on which we will base the proposed algorithms. section 1 presents and discusses our novel docid assignment algorithms. the complexity in time and space is also evaluated. in sections 1 and 1 we discuss the experimental performance of the algorithms  measured on the publicly available google programming contest collection. finally  section 1 reports some conclusions along with a description of the research directions we plan to investigate in the near future.
+1. the assignment problem
+¡¡let be a set of |d| textual documents. moreover  let t be the set of distinct terms ti  i = 1 ... |t|  present in d. let g be a bipartite graph g =  v e   where the set of vertexes v = t ¡Èd and the set of edges e contains arcs of the form  t d   t ¡Ê t and d ¡Ê d. an arc  t d  appears in e if and only if term t is contained in document d.
+¡¡definition 1. a document assignment for a collection of documents d is defined as a bijective function ¦Ð: ¦Ð : d ¡ú {1 ... |d|} that maps each document di into a distinct integer identifier ¦Ð  di .
+¡¡definition 1. let li¦Ð be the posting list associated with a term ti. this list refers to both the set of vertexes dj ¡Ê d making up the neighborhood of vertex ti ¡Ê t  and a given assignment function ¦Ð:
+           li¦Ð = h¦Ð dj | ti dj  ¡Ê ei i = 1..|t| the posting list is ordered. more formally  if li u¦Ð and li v¦Ð are respectively the u-th and v-th elements of li¦Ð  then li u¦Ð   li v¦Ð iff u   v.
+¡¡the compression methods commonly used to encode the various posting lists li¦Ð exploit a dgap-based  representation of lists. before encoding li¦Ð  the list is thus transformed into a list of dgaps of the form     i.e.  gaps between
+successive document identifiers. let li be the dgap-based representation of li¦Ð.
+¡¡definition 1. let l¦Ð be the set of all making up an if index. we can define the size of the if index encoded with
+psizel
+i=1 ... |t|
+where encodem is a function that returns the number of bits required to encode the list .
+¡¡definition 1. the document assignment problem is an optimization problem  which aims to find the assignment ¦Ð that yields the most compressible if index with a given method m:
+minpsizeml¦Ð
+¦Ð
+¡¡the above definition is very informal  since the optimality of an assignment also depends on the specific encoding method. however  we can observe that a practical simple measure of compressibility is the value of the average gap appearing in the various lists. when we reduce the average gap  the resulting if results smaller almost independently from the encoding method actually adopted.
+1. collection model
+¡¡differently from the approaches proposed so far  our algorithms adopt a collection model which does not assume the existence of a previously built if index. all the algorithms take in input a transactional representation of the documents belonging to the collection. each document di ¡Ê d is represented by the set  of all the terms that the document contains. we denote the collection of documents n	o in its transactional form with de =	de1 de1 ... de|d| . basically  the transactional representation is very similar to the more popular bag-of-words one  but it does not consider the frequency of occurrences of the word within the documents  i.e. the within-doc frequency 
+   the transactional representation is actually stored by using a sort of digest scheme for each term. that is  for each  we store a list of integers obtained from the digest of the terms contained within. in our case  for each term we proceed as follows: we compute the md1 digest  and pick the first four bytes of the computed digest. since the md1 features a very low collision rate for arbitrary long texts  it is very likely that it remains true even considering just the first four bytes of the digest. to support our claim  we tested this digest scheme on the terms contained in the google collection. we measured a collision ratio of 1  i.e. roughly a collision every thousand distinct terms.
+¡¡finally  we used the jaccard measure  to evaluate document similarity. the jaccard measure is a well known metric used in cluster analysis to estimate the similarity between two generic objects described by the presence or absence of attributes. it counts the number of attributes common to both objects  and divides this number by the number of attributes owned by at least one of them. more formally  the jaccard measure used to measure the similarity between two distinct documents   and is given by:
+
+1. our algorithms
+¡¡from a first analysis of the problem we could devise two different assignment schemes:
+  top-down assignment: we start from the collection as a whole  and we recursively partition it by assigning  at each level  similar documents to the same partition. at the end of this partitioning phase a merging phase is performed until a single and ordered group of documents is obtained. the assignment function ¦Ð is then deduced by the ordering of this last single group. this is the approach also followed by b&b. within this scheme we propose two different algorithms which will be discussed in the following: transactional b&b and bisecting;
+  bottom-up assignment: we start from a flat set of documents and extract from this set disjoint sequences containing similar documents. inside each sequence the documents are ordered  while we do not make any assumption on the precedence relation among documents belonging to different sequences. the assignment function ¦Ð in this case is deduced by first considering an arbitrary ordering of the produced sequences and then the internal ordering of the sequences themselves. in our case to order the produced sequences we simply consider the same order in which the sequences are produced by the algorithms themselves. within this approach we propose two different algorithms: singlepass k-means and k-scan.
+1 top-down assignment
+¡¡in the top-down scheme we start from the set de. the general scheme of our top-down algorithms is the following  see algorithm 1 :
+1. center selection  steps 1 of algorithm 1 : according to some heuristic h  we select two  groups of  documents from de which will be used as partition representatives during the next step;
+1. redistribution  steps 1  : according to their similarity to the centers  we assign each unselected document to one of the two partitions de1 and de1. actually  we adopt a simple heuristic which consists in assigning exactly  documents to each partition in order to equally split the computational workload among the two partitions;
+1. recursion  steps 1 : we recursively call the algorithm on the two resulting partitions until each partition becomes a singleton;
+1. merging  steps 1 : the two partitions built at each recursive call are merged  operator ¨’  bottom-up thus establishing an ordering    between them. the precedence relation  is obtained by comparing the borders of the partitions to merge  de1 and  and  according to the distance measure adopted  we put before  if the similarity between the last document s  of and the first document s  of de1 is greater than the
+similarity computed by swapping the two partitions.
+¡¡it is also possible to devise a general cost scheme for such top-down algorithms.
+¡¡claim 1. let de be a collection of documents. the cost of our top-down assignment algorithms is
+
+¡¡proof. let ¦Ò be the cost of computing the jaccard distance between two documents  and ¦Ó the cost of comparing two jaccard measures. computing the jaccard similarity mainly consists in performing the intersection of two sets  while comparing the similarity of two document only requires to compare two floats. we thus have that. furthermore  let ch be the cost of the heuristic h used to select the initial centers  and cs be the cost of the merging step.
+algorithm 1 tdassign d he  : the generic top-down assignment algorithm.
+
+1: input:
+  the set de.
+  the function h used to select the initial documents to form the centers of mass of the partitions.
+1: output:
+  an ordered list representing an assignment function ¦Ð for de.
+1: ;
+1: c1 = center of mass;
+1: c1 = center of mass;
+1: for all not previously selected do
+1:	if then
+1:	assign d to the smallest partition;
+1:	else
+1:	dist1 = distance c1 d ;
+1:	dist1 = distance c1 d ;
+1:	if dist1   dist1 then
+;
+1:	else
+;
+1:	end if
+1:	end if
+1: end for
+1: df1ord = tdassign df1 h ;
+ tdassign ;
+1: eord = ford ¨’ f ord
+1: else
+1:	deord = df1ord ¨’ df1ord
+1: end if
+1: return deord;
+
+¡¡at each iteration  the top-down algorithm computes the initial centers. then it computes at most |de|   1 jaccard distances in order to assign each document to the right partition. the total cost of this phase at each iteration is thus bounded by:.
+¡¡at the end of the center selection and distribution phases  the top-down algorithm proceeds by calling recursively itself on the two equally sized sub-partitions obtained so far  recursion step  and then proceeds to order and merge the two partitions obtained  merging step .
+¡¡the total cost of the algorithm is thus given by the following recursive equation:
+		 1 
+this equation corresponds to the well known:
+
+
+furthermore  we can compute the space occupied by the top-down assignment algorithm.
+¡¡claim 1. the space occupied by our top-down assignment algorithm is given by
+
+¡¡proof. since we need to keep  at each level  a bit indicating the assigned partition  we need in total
+ bits to store the par-
+tition assignment map. in practice defines the total space occupied by the partitions d1 and d1 at all levels.
+
+¡¡now  let |s| be the average length of a document. the total space of the algorithm is thus given by:
+	+	documents
+space for d1 and d1
+we can get rid of the linear term thus obtaining:
+		 1 
+
+¡¡as for the time  also the space complexity of the algorithm is super-linear in the number of documents processed. in practice  anyway  this is not a correct assertion. in fact the linear term dominates the nlogn one until 1 ¡¤ logn ¡Ü 1. the last value for which the inequality holds is given by logn ¡Ü 1   n ¡Ü 1. obviously the size of the whole web is considerably smaller then 1 documents!
+¡¡we designed two different top-down algorithms: transactional b&b and bisecting.
+1.1	transactional b&b
+¡¡the transactional b&b algorithm is basically a porting under our model of the algorithm described in . we briefly recall how the original b&b algorithm works. it starts by computing a sampled similarity graph: it chooses a document out of |de|¦Ñ  ¦Ñ is the document sampling factor 1   ¦Ñ   1  only considering terms appearing in less than ¦Ó documents. after this reduced similarity graph has been built  it applies the metis graph partitioning algorithm   which splits the graph in two equally sized partitions. the algorithm than proceeds with the redistribution  recursion  and merging steps of the generic top-down algorithm. however  since in our model we do not have an if index previously built over the document collection  we cannot know which terms appear in less than ¦Ó documents  and thus we did not introduce sampling over the maximum term frequency as in the original implementation.
+¡¡in transactional b&b the cost ch at each iteration is thus given by the cost of picking up a subset of documents with a sampling factor equal to ¦Ñ  plus the cost of building the distance graph over this subset and computing the metis algorithm over this graph.
+1.1	bisecting
+¡¡the second algorithm we propose is called bisecting. in this algorithm we adopt a center selection step which simply consists of uniformly choosing two random documents as centers. the cost of the centers selection step is thus reduced considerably. the algorithm is based on the simple observation that  since in transactional b&b the cost ch may be high  the only way to reduce it is to choose a low sampling parameter ¦Ñ  thus selecting at each iteration a very small number of documents as centers of the partitions. thus we thought to just get rid of the first three phases  i.e.
+sampling  graph building  and metis steps.
+1 bottom-up assignment
+¡¡these algorithms consider each document of the collection separately  and proceed by progressively grouping together similar documents. our bottom-up algorithms thus produce a set of non-overlapping sequences of documents.
+¡¡the two different assignment algorithms presented here are both inspired by the popular k-means clustering algorithm :
+  a single-pass k-means algorithm;
+  k-scan which is based on a centroid search algorithm which adapts itself to the characteristics of the processed collection.
+1.1 single-pass k-means
+¡¡k-means   is a popular iterative clustering techniques which defines a centroid voronoi tessellation of the input
+space. the k-means algorithm works as follows. it initially chooses k documents as cluster representatives  and assigns the remaining |de|   k documents to one of these clusters according to a given similarity metric. new centroids for the k clusters are then recomputed  and all the documents are reassigned according to their similarity with the new k centroids. the algorithm iterates until the position of the k centroids become stable. the main strength of this algorithm is the space occupancy. on the other hand  computing the new centroids is expensive for large values of |de|  and the number of iterations required to converge may be high. the single-pass k-means consists of just the first pass of this algorithm where the k centers are chosen using the technique described in : buckshot. we will not describe here the buckshot technique  the only thing to keep into account is that the complexity of this step do not influence the theoretical linear performance of k-means which remains. since the k-means algorithm does not produce ordered sequences but just clusters  the internal order of each cluster is given by the insertion order of documents into each cluster.
+1.1 k-scan
+¡¡the other bottom-up algorithm developed is k-scan. it resembles to the k-means one. it is  indeed  a simplified version requiring only k steps. at each step i  the algorithm selects a document among those not yet assigned and uses it as centroid for the i-th cluster. then  it chooses among the unassigned documents the 1 ones most similar to the current centroid and assign them to the i-th cluster. the time and space complexity is the same as the singlepass k-means one and produces sets of ordered sequences of documents. such ordering is exploited to assign consecutive docids to consecutive documents belonging to the same sequence. the k-scan algorithm is outlined in algorithm 1. it takes as input parameters the set de  and the number k of sequences to create. it outputs the ordered list of all the members of the k clusters. this list univocally defines ¦Ð  an assignment of de minimizing the average value of the d-gaps.
+algorithm 1 the k-scan assignment algorithm.
+1: input:
+  the set de.
+  the number k of sequences to create.
+1: output:
+  k ordered sequences representing an assignment ¦Ð of de.
+1: sort de by descending lengths of its members;
+1: ci =  	i = 1 ... k;
+1: for i = 1 ... k do
+1:	current center = longest member
+1:de = de   current center1:for alld doe
+
+1:	sim j  = compute jaccard current center 
+1:end for1:m = select members sim m
+1:	ci = ci ¨’ current center
+1:	dump ci 
+1: end for
+k
+1: return l ci;
+i=1
+
+¡¡the algorithm performs k scans of de. at each scan i  it chooses the longest document not yet assigned to a cluster as current center of cluster ci  and computes the distances between it and each of the remaining unassigned documents. once all the similarities have been computed  the algorithm selects the 1 documents most similar to the current center by means of the procedure reported in algorithm 1  and put them in ci. it is worth noting that when two documents result to have the same similarity  the longest one is selected. in fact  since the first docid of each posting list has to be coded as it is  assigning smaller identifiers to documents containing a lot of distinct terms  maximizes the number of posting lists starting with small docids.
+¡¡the complexity of k-scan in terms of number of distance computation and in space occupied is given by the following two claims.
+claim 1. the complexity of the k-scan algorithm is:
+
+¡¡proof. since we are focusing on the number of distance computations  the initial ordering step  at point 1  of algorithm 1 should not be considered when computing the complexity of the algorithm. let ¦Ò be the cost of computing the jaccard similarity between two documents  and ¦Ó the cost of comparing two jaccard measures. computing the jaccard similarity mainly requires to intersect two sets  while comparing two similarity measures only requires to compare two floats. we thus have that.
+at each iteration  k-scan computes jaccard meaalgorithm 1 the select members procedure.
+1: input:
+  an array sim: sim j  contains the similarity between current center and sj.
+1: output:
+  the set of the 1 documents more similar to current center.
+1: initialize a min heap of size 
+1: for i = 1 ... |de| do
+1: if  sim i    sim heap root     or   sim i  = sim heap root     and  length i    length heap root      then
+1:	heap insert i 
+1:	end if
+1: end for
+1: m =  
+1: for do
+1:	m = m ¨’ heap extract  
+1: end for 1: return m
+
+sures. the total cost of this phase at each iteration i is thus:
+!
+once all the entries in the vector of similarities sim have been computed  k-scan calls the select members procedure which performs |de|   i|dke| insertions into a heap of size
+1. since an insertion is actually performed only if the element in the root of the heap is smaller than the element to be inserted  we should scale down the cost by a factor 1. the total time spent in select members is thus:
+! ¦Ø = ¦Ó ¡¤ ¦Ó1.
+the total time spent by the algorithm is thus given by:
+k 1
+t |de| k  = xt1
+i=1
+where
+ .
+sincewe have that:
+
+
+claim 1. the space occupied by the k-scan algorithm is:
+
+proof. let |s| be the average length of a document. the
+
+k-scan algorithm thus uses |s||de| words for storing the documents  1|de| for the array of similarities and 1 for the heap data structure used by algorithm 1. the total space is thus given by
++	documents
+	+1|de|+	array of similarities
+	+	the heap data structure
+
+1. experimental setup
+¡¡to assess the performance of our algorithms we tested them on a real collection of web documents  the publicly available google programming contest collection.1 the main characteristics of this collection are:
+  it contains about 1 documents coming from real web sites;
+  it is monolingual;
+  the number of distinct terms is about 1 1.
+¡¡on the considered collection we performed a preprocessing step consisting in the transformation of the documents considered in the transactional model.
+¡¡for each method proposed we evaluated: the completion time  the space occupied  and the compression ratios achieved after the assignment. the effectiveness gains resulting by adopting binary interpolative   gamma 
+and variable byte  encoding methods were evaluated. we ran our tests on a xeon 1ghz pc equipped with 1gb of main memory  and an ultra-ata 1gb disk. the operating system was linux.
+1. comparisons
+¡¡in figure 1 the performance in terms of completion time  a   and space consumed  b  are shown. all the time reported are the actual times taken by all the algorithms to finish their operations and do not include i/o.
+¡¡from figure 1. a  we can draw several important conclusions. first of all  the execution time of the original b&b algorithm is remarkably higher than the time spent by all our algorithms. in particular  on the whole google contest collection  i.e. about 1 documents  the b&b algorithm ran out of memory before finishing its operations. please note that the values plotted in the curve of the original b&b do not consider the time spent in preliminarly computing the input if index. if we look at the curve related to the original implementation of the b&b algorithm we can observe an nlogn behavior that is typical of topdown approaches described above. looking at the curves of our algorithms  it is evident that the single-pass k-means algorithm is the one that takes the highest time to compute the assignment. on the other hand  the others transactional techniques have relatively low completion times. in particular the k-scan algorithm sensibly outperforms the others. obviously  the linear behavior exhibited by this algorithm
+
+ a 
+
+ b 
+figure 1:  a  time  in seconds  and  b  space  in kbytes  consumed by the proposed transactional assignment algorithms as a function of the collection size.
+evidentiates that on large collections k-scan will remarkably outperforms the others which instead show a nlogn trend.
+¡¡figure 1. b  shows the space occupancy of our algorithms. since the tests with the original b&b algorithm were performed by using the implementation kindly provided to us by the authors  we were not able to measure directly the space occupied by this algorithm. however the algorithm is memory consuming and  as said above  on the whole google contest collection it ran out of memory. obviously  also in our case we cannot fit completely in memory large collections. in those cases we can split the collections in several partitions and then proceed to reorder each partition separately. the curves plotted in figure 1. b  show that  as expected  transactional b&b and bisecting use the same amount of memory and exhibit a linear scale-up trend. this last fact follows directly from the observations made in section 1 about the space complexity of the top-down approaches. anyway  the space occupied by all our algorithms appears to grow linearly with respect to the collection size.
+¡¡the docids of four collections of different size  with up to 1 documents  were assigned by exploiting the various algorithms. for each assignment we measured the compression performance. table 1 reports the average number of bits required to represent each posting of the if obtained after the docid assighment with three popular encoding methods: interpolative  gamma  and variable byte. in all the cases we can observe a reduction in the average number of bits used with respect to a random docid assignment  i.e.  the baseline for comparisons reported in the first block of rows of the table. we can see that the original implementation of the b&b algorithm outperforms our algorithms. the gain in the compression performance of b&b is  in almost all the cases  about 1% which corresponds to ¡« 1 bits saved for each posting. however  our methods spend remarkably less time than the b&b one. we can also observe that our methods are similar in terms of compression gain. for the largest collection the performance obtained is approximately the same for all the encoding methods and for all the assignment algorithms implemented. moreover  we can note that the transactional b&b algorithm obtains worse results than the original b&b algorithm. we think that this may depend on the term sampling which cannot be exploited by our transactional b&b.  see section 1 . the higher gains in compression performance were obtained by using the gamma algorithm. this is a very important result since a method which is very similar to gamma was recently presented in . this method is characterized by a very good compression performance and a relatively low decoding overhead  in some cases lower than those of the variable byte method. the results on the gamma algorithm are thus very important to validate our approaches.
+1. summary
+¡¡in this paper we presented an analysis of several efficient algorithms for computing approximations of the optimal docid assignment for a collection of textual documents. we have proved that our algorithms are a viable way to enhance the compressibility  up to 1%  of if indexes.
+¡¡the algorithms proposed operate following two opposite strategies: a top-down approach and a bottom-up approach. the first group includes the algorithms that recursively split the collection in a way that minimizes the distance of lexicographically closed documents. the second group contains algorithms which compute an effective reordering employing linear space and time complexities. although our algorithms obtain gains in compression ratios which are slightly worse than those obtained by the b&b algorithm  their performance in terms of space and time are instead remarkably higher. moreover  an appealing feature of our approach is the possibility of performing the assignment step on the fly  during the indexing process. as future work we plan to test the performance of our algorithms on some recently proposed encoding methods. in particular we would like to evaluate the method described in  for which we should be able to obtain good results. furthermore  we want to investigate possible adaptations of the algorithms proposed to collections which change dynamically in the time.
+1. acknowledgments
+¡¡we thank guy e. blelloch and dan k. blandford for kindly providing us with the source code of their reordering algorithm. we also thank ronny lempel  paolo ferragina  and mirco nanni for the many helpful discussions we had
+assignment algorithmcollection sizebits per postingsinterpolativegammavar byterandom assignment1111111111111111b&b1111111111111n/an/an/atransactional b&b1111111111111111bisecting1111111111111111single-pass k-means1111111111111111k-scan1111111111111111table 1: performance  as average number of bits used to represent each posting  as a function of the assignment algorithm used  of the collection size  no. of documents   and of the encoding algorithm adopted. the row labeled  random assignment  reports the performance of the various encoding algorithms when docidsare randomly assigned.
+and for some helpful hints on the problem analysis. finally  we would like to thank alistair moffat for its suggestions about how to improve this work. moreover  we acknowledge the financial support of the italian ministry of university and research which funded this work conducted within the ecd project.

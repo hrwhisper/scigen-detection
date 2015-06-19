@@ -1,0 +1,73 @@
+the correctness of the z semantics of owl is the theoretical foundation of using software engineering techniques to verify web ontologies. as owl and z are based on different logical systems  we use institutions to represent their underlying logical systems and use institution morphisms to prove the correctness of the z semantics for owl dl.
+categories and subject descriptors
+f.1  mathematical logic and formal lan-
+guages : miscellaneous; i.1  artificial intelligence : knowledge representation formalisms and methods-representation languages
+general terms
+languages  theory  verification
+keywords
+owl  z  institution  comorphism of institutions
+1. introduction
+¡¡in our previous works   we proposed to use software engineering techniques in a combined approach to verify the correctness of web ontologies. the validity of the combined approach relies on the correctness of the z semantics of the ontology language. as owl and z are based on different logical systems  description logics and first-order logic   the proof of the correctness requires a high-level device that is able to represent and relate different logical systems.
+¡¡the notion of institutions  was introduced to formalize the concept of  logical systems . institution morphisms  captures the migration between logical systems. in this paper  we prove the correctness of the z semantics 1 for owl dl using institutions and institution morphisms  by representing the underlying logical systems of owl dl and z as institutions and applying institution comorphisms.
+1. the owl institution o
+¡¡we recall from  the definition of the institution formalizing the logic owl dl. the owl institution o is given by
+
+1the semantics can be found at http://www.comp.nus.edu.
+sg/~liyf/owl1z.tex
+copyright is held by the author/owner.
+www 1  may 1  1  chiba  japan. acm 1-1/1.
+o =  sign o   sen o   mod o  |=o . the definition of o follows mainly the lines described in . the use of the institution theory offers several significant advantages: ability to work with structured ontologies  use of constraints to distinguish between owl dl and owl full ontologies  and a solid foundation for tools extending  linking owl languages with other formalisms similar to those presented in .
+¡¡briefly  an owl signature consists of a quadruple o =  c r u i   where c is the set of concept  class  names  r and u are the sets of individual-valued and data-valued property names  respectively  and i is the set of individual names. given an owl signature  an o-structure  model  is a
+¡¡tuple a =   a   a resa resa  consisting of a set of resources resa  a subset  a   resa called domain  a function resa : n o  ¡È d ¡ú resa associating a resource with each name in o or d  and an interpretation function
+  a : c ¡È r ¡È u ¡ú p res  ¡È p res  ¡Á p res . the set of o-sentences is defined by:
+f ::=c v c | c ¡Ô c | disjoint c ... c 
+| tr r  | r v r | r ¡Ô r
+| u v u | u ¡Ô u
+         | o : c |  o o1  : r |  o v  : u | o ¡Ô o1 | o 1¡Ô o1 where o and o1 range over individuals names  v ranges over data values  c ranges over owl class descriptions and restrictions and u and r range over datatype- and objectproperties  respectively.
+the details of the satisfaction relation can be found in .
+1. the institution z
+¡¡we briefly recall from  the institution z  formalizing the logic underlying the specification language z.
+¡¡a z signature z is a triple  g  op ¦Ó  where g is the set of the given-set names  op is a set of the identifiers  and ¦Ó is a function mapping the names in op into types t  g .
+¡¡given a z signature z =  g  op ¦Ó   a z-structure  model  is a pair  ag aop  where ag is a functor from g  viewed as a discrete category  to set  and aop is a set { o  v  | o ¡Ê
+op} where v  the functor ag is the standard extension of ag to ag : t  g  ¡ú set.
+¡¡given a z signature z  the set of z-sentences p are defined by:
+p ::= true | false | e ¡Ê e | e = e |   p | p ¡Å p | p ¡Ä p
+| p   p |  s.p |  s.p
+where e and s represent the sets of z-expressions and
+1z-schema-expressions  respectively.
+¡¡the details of the z environment  the satisfaction relation and the use of mathematical toolkit can be found in .
+1. encoding o in z
+¡¡the main idea is to associate a z specification ¦µ o f  with each owl specification  o f  such that an  o f model can be extracted from each ¦µ o  f -model. the construction of ¦µ o  f  is given in two steps: we first associate a z specification ¦µ o  with each owl signature o and then we add to it the sentences f translated via a natural transformation.
+¡¡since ¦µ o f  can be seen as a z semantics of  o f   it includes a distinct subspecification  z  p   defining the main owl concepts and the operations over sets. more precisely  we consider  z  p   as being the vertex of the colimit having as base the standard library  the specification of the data types  together with the z specification about owl dl .
+we define  follows. let o =
+ c r u i  be an owl signature. then is defined as follows:
+g = g ; op = op  ¡È c ¡È r ¡È u ¡È i;
+¦Ó c  = resource for each c ¡Ê c  ¦Ó r  = resource for each r ¡Ê r  ¦Ó u  = resource for each u ¡Ê u  ¦Ó o  = resource for each o ¡Ê i.
+if   : o ¡ú o1 is an owl signature morphism and 
+ g  op ¦Ó 	¦µ  	  =  	 	 ¦Ó    then
+¦µ o1  is the z signature morphism     : op ¡ú op1  such that op is the identity over the subset
+op  and  for each name n in o.
+¡¡we extend  by defining ¦µ o  =    where p is p  together with the following sentences:
+{c ¡Ê class  | c ¡Ê c} ¡È
+{r ¡Ê objectproperty | r ¡Ê r} ¡È {u ¡Ê datatypeproperty | u ¡Ê u} ¡È {o ¡Ê individual | o ¡Ê i}.
+if o is an owl signature  then ¦Áo : sen o  o  ¡ú sen z  ¦µ o  
+is defined by:
+¦Áo ¡Í  = nothing  ¦Áo    = thing  ¦Áo n  = n for each name n in o
+¦Áo c1 u c1  = intersectionof ¦Áo c1  ¦Áo c1   
+...
+¦Áo  r.c  = allvaluesfrom ¦Áo r  ¦Áo c   
+... ¦Áo e  = {¦Áo e  | e ¡Ê e}.
+¡¡lemma 1. ¦Á = {¦Áo | o ¡Ê sign o } is a natural transformation; sen z . 1
+if o =  c r u i  is an owl signature and a1
+a  -model  then ¦Âo a1  is the o-model a =   a      a  resa resa  defined as follows:
+
+ resource  
+resa n  = v where  for each name n¡Êo 
+ a = v where  thing v  ¡Ê a1op  if c ¡Ê c  then   c  a = vc where  instances v  ¡Ê a1op and  c vc  ¡Ê v  if r ¡Ê r  then   r  a = vr where  subval  and  r vr  ¡Ê v 
+if u ¡Ê u  then   u  a = vu where  subdval v  ¡Ê aop1 and  u vu  ¡Ê v.
+where instances and subval are the corresponding expansion functions. a is indeed an o-model. for instance  if  instances   then v is the graph of the function defined in a1 by instances and vc is just the value of this function for the argument c. since ¦Ó  instances  = p resource¡Áp resource    it follows that vc resource . we obtain   c  a    a applying the sentences in p . we extend ¦Âo to a functor follows: if h : a1 ¡ú b1 is a  -homomorphism  then ¦Âo h  is the o-homomorphism ¦Âo h  : ¦Âo a1  ¡ú ¦Âo b1  given by ¦Âo h  = hresource.
+¡¡lemma 1. ¦Â = {¦Âo | o ¡Ê sign o } is a natural transformation.
+¡¡theorem 1.  ¦µ ¦Á ¦Â  : o ¡ú z is a simple theoroidal comorphism.
+1. conclusion
+¡¡in this paper  we demonstrated the soundness of the z semantics for owl through the use of institution morphisms. this allows us to use z reasoners for proving properties of owl ontologies. if e is a property of the owl ontology  o f  and we prove that the z-encoding of  o f  satisfies the translation of e  ¦Áo e   then  o f  satisfies e by the satisfaction condition from the definition of the comorphism. the data type is a parameter for the owl institution. this allows to use the built-in z data types for proving properties of the owl ontologies. the correctness of the properties is then preserved by the institution morphism induced by the translation of the data type.
+¡¡the paper exhibits also a practical way to put at work the theoretical results concerning the migration between logical systems.

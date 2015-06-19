@@ -1,0 +1,38 @@
+forecast composition is a time consuming task requiring the interaction and the integration of knowledge about meteorology  knowledge about language and knowledge about the conventions used to communicate the right amount of information to meet the needs of diverse user communities. the project  kairos  facilitates this work by  semi- automating the configuration and the generation of forecasts in two languages  english and greek via  a web-based system. among the major innovative features of  kairos  are the following: generator configuration by means of several resources in which the user specifies different textual plans  the output format of the forecasts  the terminology that will be used as also the concept mappings of the data. additionally  the modular design and the user intervention functionality of the system enforce two valuable characteristics: reusability and maintainability. in this paper  brief analysis of the architecture of the system under development  kairos  is given. 
+keywords 
+web-based system  language generation  xml  metadata  meteorological terminology  weather forecast. 
+ 
+1. introduction 
+ 
+with the ever-increasing use of computer technologies in research and development efforts in meteorology  there is a considerable amount of information stored in digital format. specialized personnel for whom this information has been stored mainly utilize this information  for statistical analyses  predictions  etc . however  a question arises whether this digital information can be configured in order to meet the needs of diverse user communities. the project  kairos   which is cofunded by the greek general secretariat of research and technology  is looking for ways to help meteorologists in the automatic composition of weather forecasts from digital meteorological data collections  via a specialized web system. this project adds significant value to the meteorology science because weather forecast composition is a time consuming task requiring the interaction and the integration of knowledge about meteorology  knowledge about language and knowledge about the conventions used to communicate the right amount of information to diverse audience. because of the  kairos  system  the automatic configuration and the generation of weather forecasts is now being made in two languages  english and greek. 
+ 
+1. the architecture of the  kairos  system 
+ 
+　　in figure 1  the architectural blueprint of the kairos system is shown. it is an incremental modularized architecture comprised of: 
+  the unit for designing weather forecasts consisting of two major subsystems: the cd  content determination  component responsible for what information should be included in the text and what is minor information that should be eliminated  and the forecast structuring component responsible for designing xmlbased forecast structures  based on xml schemata  and the enrichment of these structures with the selected meteorological concepts. these two processes  discourse organisation and text planning are based on a particular user model. for example  in the case of weather summaries  all the information about temperature may be collected into one paragraph and presented before another paragraph which presents all the information about snowfall. 
+  the unit for designing structures of sentences which consists of a subsystem for selection of textual units  lexicalisation   and a subsystem for synthesis of textual units into sentences 
+ aggregation .  
+  the surface linguistic realisation unit catering for the generation of morphologically and syntactically correct forecasts. the surface realiser deals with all these issues that are effectively non-content aspects of the final sentential form.  
+in a simplistic way  the weather forecasts are generated as follows: the numerical meteorological data retrieved from the data base are transformed into xml documents of weather forecasts. then the alphanumerical data become textual data with the aid of the specific sub-language of meteorology. for example  for the wind direction  the numerical data 1 is transformed into  southwest . the same happens with other values  such as volume  etc. 
+ 
+ 
+ 
+ 
+figure  1: kairos' architecture 
+ 
+　　we use a model-driven mapping  which means that a data model is imposed on the structure of the xml document and this is mapped explicitly to the structures in the database and vice versa. what is lost in flexibility  in comparison to template-driven mappings  is gained in simplicity  since the system  which is based on a concrete model  generally does more work for the user. because the result of transferring data from the database to an xml document follows a single model  xsl is integrated into model-driven products so as to provide the flexibility found in template-driven systems. as a model for data in an xml document  we use a tree of data-specific objects  in which element types generally correspond to objects and content models  attributes  and pcdata correspond to properties. 
+　　the way of generating forecasts into natural language is based on reiter's pipeline architecture   as shown in figure 1. the outputs are web-based weather forecasts which are easily comprehensible by the laymen.  
+ 
+ 
+ 
+
+ 
+figure 1: reiter's pipeline architecture 
+ 
+1. concluding remarks 
+ 
+the project  kairos  is still undergoing. the prototype of the system has been formatively evaluated very positively. however  it was found that there was a need for a special  and formal  sub-language on meteorology for the automatic generation of weather forecasts into natural language as precisely as possible.  
+for this purpose  a complete catalogue of textual phrases found in a forecast has been created  including their translation into english-greek . in addition  specific innovation has been made in:  a  the development of specific dtds for weather forecasts  b  the concept mappings of the meteorological data  and c  the output format of the forecasts in a natural language. the kairos system can be easily used for automating the configuration and the generation of forecasts in more languages than english and greek due to its open and modular architecture. 
+1. acknowledgments 
+ 
+epet program of the general secretariat of research and technology. co-ordinator is the institute for language and speech processing. partners to this project are the national observatory of athens  and the aristotle university of thessalonica. 

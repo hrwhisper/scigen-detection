@@ -1,0 +1,17 @@
+we present svte  a tool to validate relational database schemas that allows performing several tests to determine the correctness of a schema. when a test is satisfied  our tool provides an example of a database state satisfying the test. otherwise  it gives an explanation. we describe the main functionalities of svte  its architecture and provide some experimental results.   
+categories and subject descriptors 
+d.1  software engineering : testing and debugging - testing tools; h.1  database management : logical design - schema and subschema.  
+general terms 
+design  verification. 
+keywords 
+database schema  validation  explanation. 
+1. introduction 
+the correctness of a database schema is largely determined early in the development cycle  i.e. during requirements specification and schema design. moreover  errors introduced at these stages are usually much more expensive to correct than those of implementation. thus  it is desirable to detect and correct errors as early as possible in the development process. determining the correctness of a schema is an important problem in database engineering  particularly since database schemas are becoming more complex. 
+the correctness of a schema can be seen from two different points of view. from an internal point of view  correctness can be determined by reasoning on the definition of the schema  without taking the user requirements into account and it is equivalent to answering to the question is the database schema right . there are some typical properties that can be automatically tested on a schema to determine correctness from this internal point of view  like schema satisfiability or liveliness . 
+as a simple example  assume we have three tables containing information about persons  concerts and tickets that people buy for concerts: * 
+create table person    name char 1  primary key   birthyear int constraint nnullbirth not null   constraint chname check  name    'john'   
+ constraint chbirth check  birthyear   1   
+create table concert    name char 1  primary key   minprice int constraint nnullminp not null   maxprice int constraint nnullmaxp not null   singer char 1  constraint nnullsing not null   constraint chminprice check  minprice 1   
+ constraint chmaxprice check  maxprice 1    
+ constraint chrel check  minprice maxprice   
+ constraint chsinger check  singer  'john'   

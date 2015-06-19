@@ -1,0 +1,14 @@
+most existing clustering algorithms cluster highly related data objects such as web pages and web users separately. the interrelation among different types of data objects is either not considered  or represented by a static feature space and treated in the same ways as other attributes of the objects.  in this paper  we propose a novel clustering approach for clustering multi-type interrelated data objects  recom  reinforcement clustering of multi-type interrelated data objects . under this approach  relationships among data objects are used to improve the cluster quality of interrelated data objects through an iterative reinforcement clustering process. at the same time  the link structure derived from relationships of the interrelated data objects is used to differentiate the importance of objects and the learned importance is also used in the clustering process to further improve the clustering results. experimental results show that the proposed approach not only effectively overcomes the problem of data sparseness caused by the high dimensional relationship space but also significantly improves the clustering accuracy.  
+categories and subject descriptors 
+i.1  pattern recognition : clustering  algorithms 
+general terms 
+algorithms  performance 
+keywords 
+clustering  reinforcement  multi-type  interrelated 
+1. introduction 
+clustering analysis is a process that partitions a set of objects into groups  or clusters in such a way that objects from the same cluster are similar and objects from different clusters are dissimilar. traditional clustering approaches assume that data objects to be clustered are independent and of identical class  and 
+
+permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. to copy otherwise  or republish  to post on servers or to redistribute to lists  requires prior specific permission and/or a fee. 
+sigir'1  july 1-august 1  1  toronto  canada. 
+copyright 1 acm 1-1/1...$1. 
+are often modeled by a fixed-length vector of feature/attribute values. the similarities among objects are assessed based on the attribute values of involved objects. in the recent surge of data mining research  this classical problem was re-examined in the context of large databases. however  homogeneity of data objects to be clustered seems still the basic assumption. 

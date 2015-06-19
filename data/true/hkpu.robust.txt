@@ -1,0 +1,127 @@
+in the trec 1 robust retrieval track  we tested our adaptive retrieval model that automatically switches between the 1-poisson model/adaptive vector space model and our initial predictive probabilistic context-based model depending on some query characteristics. our 1-poisson model uses the bm1 term weighting scheme with passage retrieval and pseudo-relevance feedback. the context-based model incorporates the term locations in a document for calculating the term weights. by doing this  different term weights are assigned to the same query term depending on its context and location in the document. we also use wordnet in the term selection process when doing pseudo-relevance feedback. the performance of our model is comparable to the median among all participants in the robust track on the whole query set including the title  descriptive and long queries. 
+ 
+1. introduction 
+in the formal runs of the trec 1 robust retrieval track  we used the 1-poisson model  or the  adaptive  vector space model  together with the probabilistic context-based retrieval model . in the informal runs  we tested the performance of the 1-poisson model and estimated the optimal performance of our model. our search engine has migrated from unix to linux and our search engine is now called matrix. 
+ 
+in natural language processing  there are problems due to polysemy and synonyms. polysemy is a term with multiple meanings while synonyms are different terms with the same meaning. in the context of information retrieval  polysemy causes the degradation of precision since a query term found in a document may not carry the same meaning as in the query. that is  the spelling of a term matches but its meaning does not match. the similarity score of the document with the query term is erroneously increased.  the problem of synonyms is that the term used by the author of the document may be different from that used by the user of the information retrieval system while they both refer to the same meaning. that is  the spelling of the terms does not match but their meaning matches. this will cause a decrease in recall as the similarity score of the document is erroneously decreased. these problems can be generalized to the problem of finding term dependencies. work has been done to solve the problem by using wordnet  1  or/and co-occurrence of query terms in a document  1 . for the problem of synonyms  we use wordnet to find terms with similar meaning like the previous work. in contrast to the previous work  we solve the problem of polysemy by considering the location of the query terms in a document when calculating the term weights; this is our context-based model. 
+ 
+the rest of the paper is organized as follows. section 1 describes the models used in our formal runs in the robust retrieval track and the performance of the runs. section 1 presents the performance of the first part of our informal runs which use the 1-poisson model solely. section 1 is the second part of our informal runs. we tested our model retrospectively  i.e.  when relevance judgment is present  in order to estimate the optimal performance of our vector space model. section 1 provides a conclusion. 
+ 
+1. formal runs 
+in our formal runs  we adaptively switch between two models  namely the passage-based 1-poisson model with bm1 term weighting scheme  or the adaptive vector space model  avsm  combined with the predictive version of the probabilistic context-based retrieval model . 
+ 
+1. passage-based 1-poisson model 
+in our 1-poisson model  we use the bm1 term weighting scheme with passage-based retrieval. pseudorelevance feedback  prf  is also performed for expanding the query after the first pass retrieval. each passage has a fixed length of 1 terms  unless the end of file is encountered. the document similarity score sim .  is computed by combining passage scores using a weighted boolean disjunction operation  or generalized mean function  conforming to the drd principle : 
+sim di q  = a 1 ¡Æki rel pi  j  q a 
+	ki	j=1
+ 
+where q is the query  di is the i-th document  pi j is the j-th passage of the i-th document  ki is the number of passages in the i-th document   rel .  is the relevance score assigned by the 1-poisson retrieval model with bm1 term weights  and a   =1  is a soft-hard decision parameter. 
+ 
+from the experiment results of the past trec data collections  using pseudo-relevance feedback can improve the retrieval performance. however  the parameters  e.g.  number of feedback terms  in pseudo-relevance feedback should be carefully set in order to have performance gain. in the trec 1 robust track  we use the top n  =1  documents from the first pass retrieval for selecting the feedback terms. forty top ranked terms in the retrieved documents are selected for expanding the query  and then a second pass retrieval is performed using the expanded query. 
+ 
+1. probabilistic context-based model 
+in order to solve the problem of polysemy  we consider the context of a query term for weighting the query term in a document. we would like to differentiate the meaning of context here with the meaning of the user context analysis . we believe that the meaning of a term is highly related to its context terms  that is  for a term which has two different meanings  say meaning a and meaning b  the occurrence of the context terms for meaning a should be quite different from the occurrence of the context terms for meaning b. intuitively  the meaning of a term can be determined by looking into where the term is used  that is  the context of the term. 
+ 
+define ti k to be the term occurred at the k-th location of the i-th document. if ti k is a query term  then we denote it qi k  a query term occurred at the k-th location of the i-th document  where qi k is equal to ti k. for a 
+query term qi k  a context c qi k  n  is defined as a window of terms with size n  i.e.  n-term window  which the slots of the window follows the requirement below  in our robust track experiments  n is set to 1 : 
+	 ti k  1n  j 	if j   ceiling 1n 
+	c  j =   qi k	if j = ceiling 1n  
+	  ti k +  j 1n 	if j   ceiling 1n 
+ 
+where j ¡Ê 1 n  and the function ceiling .  takes a real number x and returns the smallest integer that is greater than or equal to x. strictly speaking  the context of a query term qi k occurred at the k-th location of the i-th document is the terms surrounding and including qi k.  
+ 
+using the notion of the context  we can develop a probabilistic context-based retrieval model . we calculate the log-odds ratio of the probabilities of relevant and irrelevant given a particular context and assign the value to the query term weight. this is similar to the famous probabilistic model proposed by sparck jones et al . 
+w qi k   = log    pp  irrelevantrelevant | |cc  qqi ik k  nn          
+ 
+ 
+using bayse' rule  
+p relevant | c qi k  n   = p c qi k  n  | relevant  ¡Á p relevant  
+	p irrelevant | c qi k  n  	p c qi k n  | irrelevant  	p irrelevant  
+ 
+since p relevant  and p irrelevant  are constants  their ratio is also a constant and can be ignored for the purpose of ranking. the term weighting function becomes: 
+w qi k   = log     pp  cc  qqi ik k  nn  | irrelevant| relevant         
+ 
+like many other probabilistic models  we assume that the terms inside a context are independent to each other  so that we can multiply the probabilities of individual context terms. the probabilities of seeing a context term given the relevant and irrelevant term sets are calculated by the relative frequencies estimates of that term inside relevant and irrelevant term sets respectively. since each document may contain more than one context  we need to aggregate the term weights of the contexts in order to determine the score of the document. there are various ways of aggregating the query term weights  such as averaging them  adding them together  picking the maximum and picking the minimum. we use the maximum weight as the score of the document that is consistent with the drd principle : 
+sim di  q  = maxi k¡Êq {w qi k  } 
+q
+ 
+where q is the query  di is the i-th document and qi k is the query term occurred at the k-th location of the i-th document. 
+ 
+the retrospective experiments  i.e.  relevance information is present  in  showed that context information can improve the retrieval performance. however  as we do not have the relevance judgments of the trec 1 robust track in our formal runs  we need to estimate the probabilities of relevant and irrelevant of a particular context or a particular term. originally in the retrospective experiments  we use the relative frequency estimates to estimate the probabilities p ti k | relevant  and p ti k | irrelevant   . in the predictive experiments  we should either estimate the probabilities directly  e.g.  using relevance-based language model   or estimate the sets of relevant and irrelevant terms. we adopt the latter approach in our robust track experiments. in order to estimate the relevant term set  we use the top n  =1  documents from the first pass retrieval  then we extract the contexts in these documents and the context terms are our estimated relevant terms. similarly for the irrelevant term set  we use the bottom m  =1  documents for doing the estimation. we use a smaller number of documents for estimating the relevant term set than the irrelevant term set because we need an accurate relevant term set with as little noise as possible in order to have good results.  
+ 
+1. adaptive switching model 
+the problem of our context-based model is that when the number of contexts in the top n retrieved documents is small  the size of the estimated relevant term set decreases. this will cause the problem of data scarcity as in the language modeling approach  as many of the terms are unseen terms  they will be assigned zero probabilities which is not desirable. smoothing is one approach to tackle the problem . another approach is to use an adaptive model to switch between the 1-poisson model and the context-based model  if the number of contexts found in the top n retrieved documents is small  we do not use the context-based model but the 1poisson model for ranking the documents. this forms our basic model in the formal runs of the robust track.  
+ 
+1. performance of our formal runs 
+table 1 shows the performance of our formal runs in the trec 1 robust track while table 1 compares our performance with all the participants' performance in the robust track. our performance is slightly better than the median for the title and long queries while the performance of the descriptive queries is comparable to the median of all participants. the runs with an infix  1  are the runs using 1-poisson model and the runs with the infix  v  are the runs using the avsm. the hkpucd run uses only the context-based retrieval model. 
+ 
+figure 1 and 1 shows the difference in performance for each query between our formal runs' map and all participants' median map in title and long queries respectively. the difference for a query is simply calculated by subtracting the median map of all participants from our map for that query. from the results  we can discover that our performance is worse than the median map of all participants for a particular set of queries such as query 1  cult lifestyles   1  law enforcement  dogs  and 1  uv damage  eyes . queries 1 and 1 have a common characteristic that they are combination of two different concepts. further investigation is needed for the reasons of the decrease in performance in these queries. 
+ 
+table 1: performance of our five formal runs 
+run name map p 1 p 1 r-precision gmap hkpuvct 1 1 1 1 1 hkpu1ct 1 1 1 1 1 hkpucd 1 1 1 1 1 hkpuvctdn 1 1 1 1 1 hkpu1tdn 1 1 1 1 1  
+table 1: comparison of our formal runs with all participants' runs 
+
+query 
+	run name 	type 	our 	all participants' runs 	our 	all participants' runs 
+runs best median worst runs best median worst hkpuvct 
+hkpu1ct t 
+t .1 
+.1 .1 .1 .1 .1 
+.1 .1 .1 .1 hkpucd d .1 .1 .1 .1 .1 .1 .1 .1 hkpuvctdn 
+hkpu1tdn tdn 
+tdn .1 
+.1 .1 .1 .1 .1 
+.1 .1 .1 .1  
+ 
+figure 1: difference in performance between hkpuvct and all participants' median map in title queries 
+
+ 
+figure 1: difference in performance between hkpuvctdn and all participants' median map in long queries 
+
+ 
+1. storage cost  
+the trec 1 data collection consists of 1 1 documents and consumes about 1 gigabytes  block size . there are 1 1 passages where each passage has at most 1 terms. we use elias delta code and elias gamma code for the compression of the documents and term frequencies respectively . table 1 shows the storage size of the dictionary  document information and our extensible inverted index with compression. the indexing time was about 1 hours. this is achieved with an un-optimized index program code  e.g.  includes many software flags  double document scanning  etc. . 
+ 
+table 1: size of dictionary  document information and extensible inverted index with compression 
+ dictionary  document information extensible 
+compressed 
+inverted index total size  mb  1 1 1 1  
+1. informal runs 
+in the first part of our informal runs  we solely tested our passage-based 1-poisson model on the trec 1 data collection. we also use wordnet to find the related terms for query expansion in the pseudo-relevance feedback. the results of the runs are showed in table 1  hkpuinf1 and hkpuinf1 . it is noticed that the performance of our passage-based 1-poisson model is better than the adaptive switching model in our formal runs. the performance difference between our informal runs' map and all participants' median map is statistically significant for the long queries  p=1   however  the title queries do not have statistical significant improvement  p 1 . the result reveals that using our context-based model has a negative performance gain actually. the main reason for this may be due to the incorrect estimation of the relevant and irrelevant term sets in our context-based model. also  the assumption that the terms inside a context are independent to each other is obviously unrealistic.  
+ 
+in hkpuinf1  we merge the retrieval list of hkpuinf1  l1  with the retrieval list of the fuzzy boolean model with passage-based retrieval on the conjunction of title queries  l1 . the number of documents in l1 is less than that in l1 because it requires all title query terms to appear in a particular passage in order to be retrieved. the scores of the documents in the retrieval lists are normalized to be between 1 and 1. for a particular query  define si l1 to be the score of document i in l1. if document i does not in l1  then si l1 = 1  similarly for si l1 . further define r =l1¡Él1 l1 which is the ratio between the number of documents found in both lists and the number of documents in l1. if r  d d¡Ê 1   we perform a linear interpolation between si l1 and si l1 using the weight l : 
+si = l ¡Ási l1 +  1  l  ¡Á si l1 
+ 
+after the experiments  we found that d = 1 and l = 1 produce the best result with a slight improvement over hkpuinf1. 
+ 
+table 1: performance of our informal runs 
+run name query type map p 1 p 1 r-precision gmap hkpuinf1 t 1 1 1 1 1 hkpuinf1 tdn 1 1 1 1 1 hkpuinf1 tdn 1 1 1 1 1  
+ 
+1. retrospective informal runs 
+ 
+our experiments in these informal runs focused on estimating the retrieval effectiveness based on a retrospective study that makes use of the formulae in relevance feedback  rf .  
+ 
+1. setup 
+in our experiments  we used the vector space model  vsm  as our retrieval model because the vsm and rf are based on the same idea that queries and documents are modeled as vectors in the hyperspace of term weights. therefore  vsm is consistent with rf conceptually. our vsm uses the pivoted unique normalization  to compute the similarity score between the query and the document. our similarity calculation was similar to the one used by at&t in trec  except the query weight was calculated by query term frequency rather than ltu formula. our vsm model in these runs are not based on passages but based on the whole documents. the index terms are found in the documents as strings between two  white  space characters. unwanted words were filtered using a list of 1 stop words and candidate index terms are stemmed by the porter stemming algorithm .  
+ 
+table 1 shows the retrieval effectiveness of our fourth and fifth informal runs. the fourth run is labeled hkpuinf1 and the fifth run is labeled hkpuinf1. title queries were used for these two runs and the pseudo-relevance feedback  prf  was applied in the hkpuinf1 run but not in the hkpuinf1. in the prf cycle  the new query was formulated by the title query and top 1 terms which was selected from top 1 documents in the retrieval list. the main purpose of these runs is to investigate the baseline performance of our system. the measures used for assessing the performance are map  p 1  p 1 and r-precision. the map performance of the system is clearly lower than the formal runs using vsm with the adaptive pivoted document length normalization based on passage retrieval  table 1  but the gmap performances of the passage and document retrievals are similar. 
+ 
+table 1: the baseline performance of our system using title queries 
+run name map p 1 p 1 r-precision gmap hkpuinf1 1 1 1 1 1 hkpuinf1 1 1 1 1 1  
+1. performance limit of using relevance feedback 
+relevance feedback  rf  is a popular and effective query reformulation technique for improving retrieval performance since its initial conception by rocchio  in the 1's. rf modifies the query iteratively  based on the user's judgments of the top retrieved documents. many researchers have tried to improve the effectiveness of rf and many were interested to find a good term selection method for rf. however  the estimation of the best retrieval effectiveness of rf itself is still unknown. since trec have published all the relevant documents for each topic  these results can help us to estimate the best retrieval effectiveness of rf more accurately. it can be thought of as the user who examines the entire retrieval list rather than just the top ten or twenty documents for a single rf iteration.  
+ 
+briefly  our algorithm for estimating the performance limit of rf is similar to the prf but takes all the relevant documents in a single iteration rather than taking top n documents in many rf iterations. besides  the stop words  numerals and the terms with the occurrence in collection less than two are filtered. this is designed to avoid formulating trivial optimal queries where each relevant document can be potentially picked up by one term that only occurred in that relevant document. our term ranking function is based on the common term weight function w1 . furthermore  the top 1 terms in the term ranking list and the 'title' part in the topic are combined to formulate the new query for each topic. the reason for using w1 and choosing the same query length for all topics is because we want to investigate the average performance limit of using rf rather than analyzing the performance limit of each topic. 
+ 
+1. experiments in robust track  
+the experimental results using our algorithm on the dataset of robust track this year is shown on table 1 and is labeled hkpuinf1. from the table we can see that  the map and p 1 of this run is 1 and 1 respectively. it is far beyond our performance in table 1 and the best performance on trec automatic formal runs as well as manually assisted formal runs  i.e.  1 for map and 1 for p 1 . it means that there is still room to formulate a better query or  near optimal  query for current existing retrieval system to improve its effectiveness. 
+ 
+table 1: the estimated performance limit of using relevance feedback in robust track 
+run name map p 1 p 1 r-precision gmap hkpuinf1 1 1 1 1 1  
+1. conclusion 
+in this year's robust track  we tested our probabilistic context-based retrieval model with the passage-based 1poisson model or with the adaptive vector space model. in our formal runs  the performance is comparable to the median of all participants in the robust track. while in our first part of informal runs  the performance is better than the median of the performance of all participants in the robust track and the difference is statistically significant for the long queries  p=1 . the results indicates that further investigation is required in order to come up a more accurate estimation of relevance and irrelevance models for the context-based retrieval model. in our second part of informal runs  we tested the optimal performance of our model retrospectively and the result indicates that there is still room for current models to improve.  
+ 
+acknowledgement 
+we would like to thank the center for intelligent information retrieval  university of massachusetts 
+ umass   for facilitating robert luk to develop in part the basic ir system  when he was on leave at umass. this work is supported by the cerg project # polyu 1e and the extensible inverted index compression is supported by the project # a-pe1. 
+ 

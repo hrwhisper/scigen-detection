@@ -1,0 +1,199 @@
+in this paper we present a new approach to mining binary data. we treat each binary feature  item  as a means of distinguishing two sets of examples. our interest is in selecting from the total set of items an itemset of specified size  such that the database is partitioned with as uniform a distribution over the parts as possible. to achieve this goal  we propose the use of joint entropy as a quality measure for itemsets  and refer to optimal itemsets of cardinality k as maximally informative k-itemsets. we claim that this approach maximises distinctive power  as well as minimises redundancy within the feature set. a number of algorithms is presented for computing optimal itemsets efficiently.  
+categories and subject descriptors 
+f.1 analysis of algorithms and problem complexity. g.1 probability and statistics. h.1 systems and information theory. 
+i.1 learning 
+general terms 
+algorithms  theory. 
+keywords 
+maximally informative k-itemsets  binary data  feature selection  information theory  joint entropy  subgroup discovery. 
+1. introduction 
+in this paper we present a novel class of regularities to be mined from binary datasets. if we think of the binary features  items  in such datasets as means of distinguishing examples within the dataset from each other  we could wonder which features are best at doing so. furthermore  we could wonder whether some features provide any meaningful and additional distinction  given a number of the other features. in other words  we are interested in selecting a small set of binary features that provides as good a distinction of the examples as possible. a subset of binary features that maximises the joint entropy of its features provides exactly that notion. we will refer to such feature sets of cardinality k as maximally informative k-itemsets  or miki's . 
+as information theory dictates   the joint entropy of a set of k binary features is optimal when the distribution of possible combinations of binary values is uniform. in other words  the database is partitioned into 1k parts of equal size. this happens if all selected features are independent and each feature has a probability of p x = 1  = 1. a nice property of favouring sets with high joint entropy is that features are only selected if they provide distinctive power that is additional to the remaining features. a feature may be distinctive in isolation  i.e. have an entropy of 1 bit   but is of no use if this information is already conveyed by the remaining features. 
+although the definition of miki's is fairly basic  they are of use in a wide array of domains. the general applicability becomes clearer if we interpret binary features in the most general sense: any function d ¡ú {1  1} that splits a database in two mutually exclusive parts. this includes the obvious binary attributes  items   but also subgroups or patterns  examples are either covered by a pattern  or not . furthermore  one can think of binary classifiers as binary features. the following potential applications explain our motivation for working on miki's: 
+  feature selection  in binary databases. a considerable number of data mining techniques is hindered by the presence of many attributes  either due to the presence of irrelevant attributes  or for reasons of efficiency. if we can select a small number of attributes  while retaining most of the discriminative power  the results of such techniques may be improved. 
+  subgroup discovery . subgroup discovery  whether supervised or unsupervised  typically produces an abundance of interesting patterns that is very hard to inspect manually. there may be considerable redundancy because relevant subsets of the data may be described in several  nearly  equivalent ways. furthermore  some patterns constitute logical combinations of two or more alternative patterns reported by the subgroup discovery algorithm. selecting patterns by means of miki's will condense the original set of individually interesting patterns to a manageable set of important findings.  
+
+ 
+permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. to copy otherwise  or republish  to post on servers or to redistribute to lists  requires prior specific permission and/or a fee. 
+kdd'1  august 1  1  philadelphia  pennsylvania  usa. 
+copyright 1 acm 1-1/1...$1. 
+  propositionalisation in multi-relational data mining  mrdm  . an important task within mrdm is the translation of multi-relational data to a propositional format. the obvious application of this operation is to allow the deployment of attribute-value learning systems that could otherwise not be used due to 
+the non-determinate nature of the data. the transformation is typically run in an unsupervised setting  and many binary features  each corresponding to a discovered multi-relational pattern  are produced. without proper filtering  the resulting binary table will contain too many redundant features.  
+ 
+maximally informative k-itemsets have a number of features that set them apart from frequent itemsets  which have been the dominant class of models for mining binary data . first of all  miki's are symmetric in their treatment of the values 1 and 1. the two values are merely seen as identifiers for the two distinct groups. in fact  swapping these values in any of the features considered has no effect on the computation. in many applications  this symmetry is desirable. a symmetrical treatment of 1 and 1 also implies that it makes sense to not just have a minimum support threshold of the 1's  as is the case in most frequent itemset algorithms  but also on the 1's  in a sense a maximum support threshold for the 1's . the use of a minimum on the entropy replaces these two thresholds  as the entropy of a feature decreases if either of the values becomes dominant. 
+the goals of frequent itemsets and miki's are orthogonal in a sense. whereas frequent itemsets favour items that are positively associated   miki's aim at optimising the independence of items within the miki. frequent itemset mining is sensitive to items with high support  because their addition to any frequent itemset has little effect on the support. such items are ignored when mining for miki's  because they are frequent and thus provide little information  but also because internal correlation is minimised.  
+in this paper  we present some basic results concerning miki's and information theory  section 1 . more importantly  we introduce a number of algorithms for computing miki's  section 1 . we start by describing four algorithms for computing exact miki's. as the number of candidate miki's can be very large  efficiency is a major concern. we start by considering an exhaustive algorithm  and improve on that by applying a number of the observations from section 1. as the scale of the search space becomes prohibitive with larger values of k  we also describe a greedy algorithm that computes approximate miki's efficiently  at a small penalty for optimality. 
+in section 1  we perform a series of experiments to demonstrate the value of maximally informative k-itemsets  and to assess the efficiency of the algorithms presented. we also empirically test the error introduced by the greedy algorithm. the paper finishes with related work and conclusions in section 1 and 1. 
+1. preliminaries 
+in this section  we will provide definitions for basic concepts related to maximally informative k-itemsets  and introduce a number of useful properties. these properties will be exploited by the algorithms introduced in the next section. in the remainder  we will assume that we have a collection of items i. we will use lowercase x1  x1 ... to indicate items  and capitals x and y to indicate itemsets. we assume that we can obtain a probability estimate p x = a  by scanning the database associated with i  and counting the relative number of occurrences of value a. 
+we start with a number of basic definitions and properties  based on information theoretical notions presented in . we begin by defining the notion of joint entropy of an itemset  a measure for the amount of information conveyed by the itemset. a maximally informative k-itemset  or miki in short  is then simply the itemset of specified cardinality that maximises this joint entropy. joint entropy is measured in bits. 
+definition 1  joint entropy . suppose that x = {x1 ... xk} is an itemset  and b =  b1 ... bk  ¡Ê {1}k is a tuple of binary values. the joint entropy of x is defined as 
+h x  =  ¡Æp x1 =b1 k  xk =bk  lg p x1 =b1 k  xk =bk   
+b¡Ê{1}k
+definition 1  maximally informative k-itemset . suppose that i is a collection of n items. an itemset x   i of cardinality k is a maximally informative k-itemset  iff for all itemsets y   i of cardinality k   
+h y ¡Ü h x  
+note that the joint entropy of an itemset increases as more items are added to it. because items are binary features  every item provides at most 1 bit of additional information. 
+proposition 1  monotonicity of joint entropy . suppose x and y are two itemsets such that x   y. then 
+h x ¡Üh y  
+proposition 1  unit growth of joint entropy . suppose x and y are two itemsets such that x   y. then 
+h y  ¡Ü h x + y   x 
+as proposition 1 shows  the joint entropy is a non-decreasing function of the number of items involved in the itemset. this raises the issue of choosing a good value for the parameter k. in theory larger values of k will give a better distinction between examples. on the other hand  feature selection calls for small numbers of items. in many cases  the right value of k will be implied by the application. the problem is very similar to the selection of the right number of clusters in clustering tasks  where this number is often determined by considering increasing values  and stopping when there is a clear drop in improvement. an example of this is given in our experiments in section 1. 
+algorithms for computing miki's of a desired cardinality k will have to consider a large amount of candidate itemsets and compute their joint entropy by scanning the database. computing the joint entropy of a given itemset essentially comes down to a bucket sort  where each bucket corresponds to a cell in a contingency table of k dimensions. this table scan can be performed in o kn   where n equals the number of records in the database. in theory a total of  k  itemsets will have to be n
+considered. as n is typically large and therefore a table scan is an expensive operation  it is important to have upper bounds on the value of h x  that are relatively cheap to compute. such a bound can then be used to discard candidates that are clearly not maximal  without having to scan the data for verification. a simple  moderately tight  upper bound can be obtained by considering the entropy of the individual items in the itemset. 
+proposition 1  independence bound on joint entropy . suppose that x = {x1 ... xk} is an itemset. then 
+h x ¡Ü¡Æh xi   
+i
+although the proof  see   of this proposition is non-trivial  and involves among others jensen's inequality  the intuition behind it is straightforward. every item provides a certain amount of information to the joint entropy. if all pairs of items are independent  the joint entropy equals the sum of entropies. however  if items are dependent  they share a certain amount of information  which is ignored when simply adding the individual entropies. 
+note that  although our specific interest in this paper is with binary features  definitions 1  1 and proposition 1 can be easily generalised to categorical features . 
+example 1. consider the following database consisting of four items. items a to c all have equal numbers of 1's and 1's  hence 
+h a  = 1  h b  = 1  h c  = 1. h d  =    lg     lg  ¡Ö 1. the itemset {a  b  c} is a maximally informative k-itemset of cardinality 1. its joint entropy equals 1 bits which is less than the 1 bits of information provided by the three items separately  proposition 1 .  
+	a 	b 	c 	d 
+
+1 	1 	1 	1 	1 	1 	1 	1 	1 	1 	1 	1 	1 	1 	1 	1 	1 	1 	1 	1 	1 	1 
+	1 	1 	1 	1 
+ 
+the fact that mutual information between items is ignored by proposition 1 suggests that we can obtain a potentially tighter bound by grouping items that share a considerable amount of information  and taking the joint entropy within this group rather than the sum of the entropies. this amounts to treating each such group as a single categorical feature with all binary combinations as possible values. joint entropies for such  small  subsets of items can for example be obtained cheaply by pre-computing and storing the results in a datastructure for future reference. we continue by presenting a number of results that will be exploited in algorithms presented in the next section. we show that grouping items within the itemset can be used to compute upper bounds for h x  that are potentially tighter than the independence bound  proposition 1 . furthermore  bounds become tighter as more items are grouped together. 
+definition 1  partition of itemset . suppose that x = {x1 ... xk} is an itemset. a partition of x is a set of itemsets p = {b1 ... bm} such that 
+ i  j :i ¡Ù j   bi ¡Ébj =   
+m
+ubi = x  i: bi ¡Ù   m ¡Ý 1 
+i=1
+the itemsets bi are known as the blocks of p. 
+definition 1  joint entropy of partition . suppose that p = {b1 ... bm} is a partition of an itemset. the joint entropy of p is defined as 
+h p  =¡Æh bi   
+i
+proposition 1  partitioned bound on joint entropy . suppose that p = {b1 ... bm} is a partition of an itemset x. then 
+h x  ¡Ü h p  
+this proposition shows that h p  is an upper bound on the joint entropy. if we think of each block bi in p as a categorical feature with at most 1bi values  and apply the categorical version of proposition 1  see    we can easily proof that  
+h x  =h b1 ... bm   ¡Ü¡Æh bi   =h p  
+i
+proposition 1  independence bound on partitioned joint entropy . suppose that p = {b1 ... bm} is a partition of an itemset x = {x1 ... xk}. then 
+h p ¡Ü¡Æh xi   
+i
+this proposition shows that h p  is at least as tight as the independence bound  proposition 1 . this follows from 
+h p  =¡Æh bi   ¡Ü¡Æ¡Æh bij   =¡Æh xi   
+	i	i	j	i
+where bij refers to the jth item of the ith block bi. 
+propositions 1 and 1 demonstrate that partitions of the itemset at hand can provide a tighter upper bound. we could thus consider all possible partitions and select the lowest value  hoping to avoid unnecessary table scans. unfortunately  the number of partitions of a k-itemset can become very large  even with reasonably small values of k. this number is known as the bell number  b k   and satisfies the following recurrence relation : 
+b k  =¡Æki= 1    k  i 1    b i  
+where b 1  = 1. 
+fortunately  the following results show that we need only consider partitions of 1 blocks. this still leaves us with 1k 1 partitions to examine  which is likely to be too expensive. furthermore  computation of the partitioned joint entropy requires the joint entropy of itemsets of cardinality up to k 1. in this paper we will therefore only consider partitions with blocks of up to 1 items  even though this produces sub-optimal bounds. 
+definition 1  inclusion of partitions . suppose that p and p¡ä are partitions of an itemset. p includes p¡ä  p¡ä¡Ü p  iff 
+ x ¡Êp q   p¡ä: x = uqi 
+i
+proposition 1  anti-monotonicity of partitioned bound . suppose that p and p¡ä are partitions of an itemset  and p¡ä ¡Ü p. 
+then 
+h p  ¡Ü h p¡ä  
+proposition 1  1-partitions . suppose that x is an itemset. the tightest partitioned bound on h x  can be found among the partitions of x of cardinality 1. 
+example 1. the itemset {b  c  d} in example 1 produces 1 partitions:  
+{{b}  {c}  {d}}  {{b  c}  {d}}   
+{{b  d}  {c}}  {{c  d}  {b}}. 
+the lowest partitioned joint entropy for these partitions is produced by {{b  d}  {c}}: 1 bits. the joint entropy of {b  c  d} equals 1 bits. note that similar items  b and d  are grouped together. assuming a search algorithm has already considered {a  b  c}  and is therefore looking for itemsets exceeding 1 bits  itemset {b  c  d} would then be discarded  proposition 1 . the upper bound on the basis of proposition 1  1 bits  would not be sufficient to do so. 
+1. algorithms 
+in this section we present a number of algorithms for computing maximally informative k-itemsets. the basic outline of these algorithms is to consider all subsets of size k in lexicographic order  and compute the joint entropy of each  in order to find the maximum. we then proceed to apply a number of the results from section 1 in order to discard itemsets that can be proven nonmaximal  or even prune large portions of the search space. 
+we will write a k-element subset of i as a list of integers that refer to the elements of i. 
+x = x1 k  xk   
+where 
+x1  k  xk 
+the algorithms will rely on a simple algorithm for computing the lexicographic successor of a given itemset  presented in . this algorithm  lexicographicsuccessor  works as follows  see pseudocode . the first while-loop identifies the last item i in x that can be increased  i.e. replaced by a succeeding item . if no such item can be found  all the subsets have been exhausted. otherwise the item i is increased  and all elements to the right of i are reset to refer to successive items.  
+algorithms 1 to 1 all report a single miki  the last one found   although they can be easily modified to report all miki's  because every algorithm tests all candidate miki's. the fifth algorithm reports a single approximation that may or may not be an actual miki. 
+ 
+
+algorithm lexicographicsuccessor x  k  n  
+ 
+y ¡û x i ¡û k while i ¡Ý 1 and xi = n - k + i  i ¡û i   1 
+if  i = 1  
+return  undefined  
+else for j ¡û i to k 
+y j ¡û xi +1+ j  i 
+return y 
+
+ 
+algorithm 1. the first algorithm  exhaustivemiki  now simply considers all k-itemsets exhaustively  and reports the maximally informative one  the last one if more than one miki exists . all itemsets are considered by calling lexicographicsuccessor repeatedly until a value undefined is returned  see pseudocode . the joint entropy is computed by projecting the binary table on the selected items  and counting the different combinations that occur  definition 1 . 
+ 
+
+algorithm exhaustivemiki k  n  
+ 
+x ¡û 1 k k  
+hmax ¡û jointentropy x  
+y ¡û x 
+while lexicographicsuccessor x  n  ¡Ù  undefined  x ¡û lexicographicsuccessor x  n  h¡û jointentropy x  if h¡Ýhmax 
+hmax ¡ûh 
+y¡ûx 
+return y 
+
+ 
+algorithm 1. a first improvement on the exhaustive algorithm can be obtained by applying proposition 1. this proposition provides a cheap way of computing an upper bound on the itemset at hand that can potentially be used to discard a large part of the candidates. a single condition needs to be added to the basic algorithm that checks whether the upper bound of the current itemset exceeds the current maximum. if this condition is satisfied  we still need to compute the joint entropy by performing an expensive table scan. computation of the independence bound  proposition 1  requires the computation and storage of the entropies of the n individual items  as a preparatory step. 
+algorithm 1. especially when correlated items abound  the independence bound cannot be expected to be very tight. proposition 1 provides a tighter bound  and thus a potentially faster algorithm. this algorithm computes an upper bound by choosing a partition of the itemset at hand  and computing the joint entropy of this partition. although it is tempting to consider all possible partitions of an itemset  and pick the lowest value  the discussion in section 1 shows that this becomes too expensive with large values of k. instead  we only consider partitions of blocks of at most 1 items. initial experimentation shows that picking such a partition at random provides the fastest algorithm. even though this method may not consider the tightest upper bound  it is faster because only a single bound needs to be computed. partitioned bounds can be computed by looking up  and adding  pre-computed joint entropies of individual items and pairs of items. 
+algorithm 1. assuming proposition 1 provides a substantial 
+reduction in table scans  we can expect the running time of algorithm 1 to be dominated by the computation of the upper bound for each of the  k  itemset. in algorithm 1  we aim to n
+improve on this by skipping a range of candidates on the basis of the joint entropy of the sub-itemset they have in common. by applying proposition 1  we know that if an itemset x of size k-l cannot be extended with any l items  at most l bits  to exceed to the current maximum  we can skip all k-itemsets starting with x. this procedure introduces a new parameter l. larger values of l lead to larger portions of the search space being skipped. however  lower values increase the odds of producing a tight enough upper bound to allow a skip. informal experimentation shows that l = 1 typically provides the best trade-off  and is thus used in our experiments in section 1. 
+algorithm 1. so far  we have considered algorithms that provide exact solutions. we will see in section 1 that such exact algorithms become impractical with increasing values of k. we therefore present a final algorithm  forwardselection  that produces approximate miki's. the major advantage of this algorithm is that it considers only a tiny fraction of all potential kitemsets. the reported itemset is computed by progressively adding items to the initial empty set until k items are selected. at each step the new item to be added is chosen such that the increase in joint entropy is maximised  see pseudocode . this constitutes a greedy step. the algorithm has an asymptotic complexity of o k1nn . 
+ 
+
+algorithm forwardselection k  n  
+ 
+x¡û  
+for i¡Ê{1 k k} 
+hmax =1 
+for j¡Ê{1 k n} h¡û jointentropy x ¡È{j}  if j  x ¡Ä h   hmax hmax ¡ûh m ¡û j 
+x ¡û x ¡È{m} 
+return x 
+
+ 
+1. experiments 
+we start our experiments informally  by demonstrating the usefulness of miki's in the context of subgroup discovery  which is our main motivation for this work. figure 1  left  shows two numeric features  lumo en logp  associated with 1 molecules appearing in the mutagenesis database . molecules appear in two classes  mutagenic  grey dots  and non-mutagenic  black dots . the axis-parallel lines represent the decision boundaries formed by the collective of 1 subgroups  rules  discovered by the mining package safarii . the package produces conjunctive rules  and as is clear from the figure  there is considerable redundancy in the individual conditions  as well as among the conjunctions. the 1-dimensional space is divided into far fewer areas than can be expected from the number of rules discovered. 
+by interpreting each rule as an item  we can use our approach to reduce redundancy in the set of rules. the figure on the right demonstrates a selection of 1 rules that form a miki. clearly  this subset of rules captures most of the partitioning produced by the 1 rules. redundant and overly specific decision boundaries  individual conditions  are avoided. the only location where important distinction between examples is discarded is in the lower left corner. the two important decision boundaries in this area can be added by increasing the number of selected subgroups to 1. in our further experiments we will see that the joint entropy reaches an optimum of 1 at k = 1 and remains constant after addition of more items  see last table . 
+in the remainder  we analyse how well the different algorithms presented scale with increasing values of k. three datasets of varying sizes were used: the well-known mushroom and chess datasets  as well as lumologp  a dataset derived from the 1 rules discovered in the previously mentioned mutagenesis  datasets can be obtained from the authors . we have run all five algorithms on these datasets with values of k between 1 and 1. typical applications of miki's tend to fall well within this range. for each run  we state the number of table scans  the total time  m:ss  and the joint entropy of the result. runs lasting more than 1 minutes were terminated. in cases where none of the exact algorithms ran under 1 minutes  a single run was executed with low priority  in order to obtain an exact value for the joint entropy. 
+clearly  algorithm 1 performs impractically slow on all datasets  and can only serve as a baseline for the remaining results. the application of proposition 1  algorithm 1  and especially proposition 1  algorithm 1  provides a significant improvement on the first two datasets. a reduction of number of table scans of more than a factor 1 is common. in these cases  considering all candidates rather than scanning the data becomes the governing factor in the running time. although algorithm 1 exploits this fact  its advantages turn out to be only marginal  because relatively few additional candidates can be skipped. for all these algorithms k = 1 seems to be the upper limit. 
+unfortunately  the first four algorithms perform poorly on lumologp. the high level of redundancy means that most items 
+can be potential elements of a miki  and few candidates can be discarded directly. although the process that generated this dataset would typically be made more selective  some degree of redundancy is normal in applications of miki's  which makes these algorithms problematic. 
+the greedy fifth algorithm takes less than one second on each dataset for each chosen value of k  and is hence a fast alternative. the joint entropy of its  potentially suboptimal  solution is always within a few percent of the optimal value. in this case the redundancy in the data is advantageous  because making suboptimal greedy choices is less likely. 
+
+
+ 
+figure 1 partitioning of a 1-dimensional space based on the full rule set of 1 rules  and the filtered rule set of 1 rules.
+ 
+mushroom  1 x 1  
+	 	k = 1 	k = 1 	k = 1 
+ts time max ts time max ts time max 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1     1 1 1 1 1 1 1 1 1 1 1 algorithm 
+1 
+1 1 
+	 	k = 1 	k = 1 	k = 1 
+ts time max ts time max ts time max 1 1  1 1 1  1 1 1  1 1 1 1 1 1 1 1  1 1 1 1 1 1 1 1 1 1  1 1 1 1 1 1 1  1 1 1 1 1 1 1 1 1 1 algorithm 
+1 
+1 
+1 
+1 
+chess  1 x 1  
+	 	k = 1 	k = 1 	k = 1 
+ts time max ts time max ts time max 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1     1 1 1 1 1 1 1 1 1 1 1 algorithm 1 1 
+1 
+	 	k = 1 	k = 1 	k = 1 
+ts time max ts time max ts time max 1 1  1 1 1  1 1 1  1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 algorithm 1 
+1 1 
+lumologp  1 x 1  
+	 	k = 1 	k = 1 	k = 1 
+ts time max ts time max ts time max 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1      1 1 1 1 1 1 1 1 1 1 algorithm 1 
+1 
+1 
+1 
+	 	k = 1 	k = 1 	k = 1 
+ts time max ts time max ts time max 1 1  1 1 1  1 1 1  1 1 1 1 1 1  1 1 1  1 1 1 1 1 1 1 1 1  1 1 1  1 1 1 1 1 1  1 1 1  1 1 1 1 1 1 1 1 1 1 algorithm 1 
+1 
+1 
+1 
+1 
+
+ 
+1. related work 
+we have already mentioned the relation between miki's and frequent itemsets. another obvious role for miki's is in feature selection. many algorithms have been developed for this purpose  see  for an overview   particularly in a supervised setting: select only those features that are relevant for predicting the value of a class variable. our framework on the other hand is unsupervised. the aim is simply to select features that allow the optimal distinction between examples  regardless of any specific classification or regression task. 
+a well-known example of a supervised feature selection algorithm is relief . it works by assigning a weight to features on the basis of their ability to distinguish between class values. the weights are updated according to an instance based learning approach  and only features with sufficient weight are returned as relevant features. an important limitation of this approach is that features are selected on relevancy only. no attempt is made to prevent redundancy within the selected features. this is in fact the inverse from our approach which returns a non-redundant feature set  but relevancy does not apply  due to its unsupervised nature. 
+alternative approaches  do address redundancy  and are thus feature subset selection methods rather than feature selection methods. most of these approaches work in a supervised setting. they come in two varieties: filter methods and wrapper methods . wrapper methods employ the performance of a specific learning algorithm  such as c1 or an instance based approach  to select features. a straight-forward example of this is given in  and   where the performance of a simple decision table is used to judge the quality of a particular feature subset. filter methods on the other hand select feature subsets on the basis of quality measures that are relatively independent of the learning algorithm to be applied subsequently. these measures typically come from information theory . 
+most authors recognise the exponential nature of the search space of feature subsets  and present heuristic search algorithms similar to our fifth algorithm. typical examples of search strategies are forward selection  backward selection  and variations thereof   or more randomised methods. unfortunately  few papers compare such greedy solutions to an exhaustive analysis  making a good judgement of the error with respect to the optimal solution difficult. 
+the framework presented is related to our previous work on discovering primary keys and functional dependencies . in a sense  miki's can be seen as noisy counterparts of  candidate  keys  as they aim to optimise the distinction between examples. in fact  a miki of joint entropy equal to log n  forms a candidate key. similarly  the feature subsets produced by a different method  called focus   correspond to functional dependencies between the feature subset and the class variable. 
+somewhat related to our work is the notion of independent component analysis  ica  . it is a statistical method that expresses the original multidimensional  and typically numeric  data into a small number of variables that are more or less statistically independent. these variables are typically latent  in the sense that they do not appear as actual attributes in the original data. clearly  our approach only returns attributes that appear in the data. 
+1. conclusion 
+we have presented a new framework for mining binary data  based on information theoretical notions. items are selected on the basis of their distinctive power  also relative to other selected items  such that redundant items will be ignored. as such  it provides an interesting alternative to the common frequent itemset framework. the framework has a number of interesting applications  notably the reduction of results produced by other pattern discovery techniques. especially in rich domains such as structured or multi-relational data  where the expressiveness of pattern languages used cause high levels of redundancy  miki's allow the discovery of important patterns rather than simply interesting ones. this application was demonstrated by our first experiment  and will be further investigated in future work. 
+we have presented a number of algorithms of varying efficiency. based on some basic information theoretical observations  it is often possible to prune large parts of the search space  and thus find optimal solutions. unfortunately  the exact algorithms break down in some data sets with high levels of redundancy  where few candidate itemsets can be discarded without going back to the data. finally we have presented an approximate algorithm that is extremely fast  even with larger values of k  while still producing results comparable to the optimal solution. 
+our application of choice for miki's is as a means of filtering results obtained by subgroup or rule discovery. in this context miki's capture the intuitive requirement that results be nonredundant. however  one can envisage alternative intuitions that would inspire different filtering methods. as an example  one could require selected patterns to be mutually exclusive  or optimal with respect to further classification  wrapper approach . in fact any quality measure for itemsets can be applied. in future work we intend to compare such measures. 

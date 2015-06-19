@@ -1,0 +1,252 @@
+most learning methods assume that the training set is drawn randomly from the population to which the learned model is to be applied. however in many applications this assumption is invalid. for example  lending institutions create models of who is likely to repay a loan from training sets consisting of people in their records to whom loans were given in the past; however  the institution approved loan applications previously based on who was thought unlikely to default. learning from only approved loans yields an incorrect model because the training set is a biased sample of the general population of applicants. the issue of including rejected samples in the learning process  or alternatively using rejected samples to adjust a model learned from accepted samples only  is called reject inference.
+﹛the main contribution of this paper is a systematic analysis of different cases that arise in reject inference  with explanations of which cases arise in various real-world situations. we use bayesian networks to formalize each case as a set of conditional independence relationships and identify eight cases  including the familiar missing completely at random  mcar   missing at random  mar   and missing not at random  mnar  cases. for each case we present an overview of available learning algorithms. these algorithms have been published in separate fields of research  including epidemiology  econometrics  clinical trial evaluation  sociology  and credit scoring; our second major contribution is to describe these algorithms in a common framework.
+categories and subject descriptors
+g.1  probability and statistics : statistical computing; h.1  database management : database applications- data mining; i.1  artificial intelligence : learning- parameter learning; i.1  information storage and retrieval : design methodology-classifier design and evaluation
+permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. to copy otherwise  to republish  to post on servers or to redistribute to lists  requires prior specific permission and/or a fee.
+kdd'1  august 1  1  seattle  washington  usa.
+copyright 1 acm 1-1/1 ...$1.
+general terms
+algorithms  economics  human factors  theory.
+keywords
+reject inference  sample selection bias  heckman estimator  propensity scores  expectation-maximization  bayesian networks.
+1. the reject inference problem
+﹛in the typical reject inference application  the aspect of the data that is to be learned  called the outcome  cannot be observed in some of the samples  called the rejects. these rejects are usually not randomly drawn from the training set  but are related in some way to the outcome. therefore  if a model is learned from only the data with observable outcomes  the accepts   the model will have been trained on samples with biased selection  as opposed to random selection   since the accepts constitute a skewed sample of the general population. the reject inference problem is to include the rejected data in the learning process to avoid this sample selection bias.
+﹛one common instance of reject inference arises in the problem of loan application approval. when people apply for a loan  their application is either accepted or rejected  depending on the lender's guess as to how likely the applicant is to repay the loan. then the people whose applications were accepted either eventually repay the loan or default on the loan  the outcome . we would like to use a mathematical model to predict how likely a person is to repay the loan  so we can better decide whom to reject or accept  by using a database created by a financial institution; however such databases only have repay/default behavior recorded for the people whose applications were accepted  since the rejected people never had a chance to repay or default on the loan. the accepts clearly constitute a biased sample of all the applicants  so reject inference should help us develop an unbiased model.
+﹛another common example is that of medical treatment. we would like to develop a mathematical model for a particular treatment that predicts the extent to which it will help the patient  measured perhaps by the expected lifetime increase. to create such a model  we would use a database describing many patients and their responses to the treatment. any realistic database  however  will be biased by sample selection  since it only contains patients whom doctors recommended for the treatment; certainly whether or not a doctor recommends someone for a particular treatment is related to how much that treatment is expected to benefit the patient. reject inference should be used to create an unbiased model of how well each patient is likely to respond to the treatment.
+﹛so-called active learning is the situation where a learning agent chooses which training examples should be labeled  instead of using a randomly sampled training set . typically the agent is given a set of unlabeled examples and repeatedly requests labels for the members of this set for which labels are likely to be most informative. sample selection bias arises in the context of active learning in two ways. most obviously  a training set chosen via active learning is not a random sample from the whole population. less obviously  sample selection bias is also an issue when measuring the performance  e.g. the accuracy  of a classifier acquired via active learning. if obtaining labels for examples is expensive  then we will not have the luxury of having a large randomly chosen evaluation set of examples with which to measure performance. we will need to obtain somehow unbiased performance estimates from biased evaluation sets.
+﹛reject inference problems can have binary outcome variables  as in the loan application example  or be regression problems  as in the medical example. rejection/selection is usually binary  but in some applications it can be multivalued. for example  we can model whether or not to make a particular investment  a binary selection choice   or how much money to invest  a multi-valued choice .
+1. bayesian networks
+﹛an important part of reject inference lies in the assumptions about how the selection mechanism and the outcome mechanism are related. bayesian networks provide a natural tool for representing possible relationships  both because they have intuitive causal interpretations  and because they represent knowledge about their variables in a precise way  in the form of conditional independence relationships. bayesian networks cannot encode that the outcome is observable only when a sample has been selected  but they can encode the conditional independence relationships between selection and outcome.
+﹛a bayesian network is a graphical way to represent how a joint distribution of random variables can be factored. in general any joint probability distribution may be factored in the following way:
+p a1 a1 a1 ... an 
+= p a1 p a1|a1 p a1|a1 a1 ...p an|a1 a1 a1 ... an 1 .
+to represent such a distribution over binary variables requires 1n   1 parameters; however  bayesian networks encode information about which variables are conditionally independent  leading to a simpler factoring of the joint distribution  and therefore simpler mathematical models. for example  consider the following bayesian network:
+
+this network encodes the fact that b depends only on a and c depends only on b. in other words  a and c are conditionally independent given b. the general factoring of the joint distribution can now be simplified because p c|a b  = p c|b : p a b c  = p a p b|a p c|a b  = p a p b|a p c|b .
+in the case that a  b  and c are binary  representing the joint distribution factored in this form can be accomplished with five parameters instead of seven. this reduction in the number of model parameters is possible whenever the situation is described by a bayesian network whose skeleton  i.e. the graph with the edge directions removed  is not a complete graph. the following bayesian network has a skeleton that is a complete graph:
+
+the joint distribution factoring implied by this graph is p a b c  = p a p b|a p c|a b ; however this factoring is true of any distribution over three variables  without loss of generality. this generality can conflict with intuitions about bayesian networks. because the edges on the network are directed a particular way we might expect the network to be able to model only particular distributions  i.e. distributions arising from circumstances with the same causal relationships as the network implies   whereas the factoring shows that this network is completely general  for all distributions over three variables .
+﹛bayesian networks are good tools for organizing sets of conditional independence relationships because those sets correspond to properties of graphs over which the joint distribution factors. two variables  a and b  in a probability distribution are conditionally independent given a set of other variables  x  if information cannot flow between their corresponding vertices in the bayesian network describing that distribution. for information to flow between a and b  there must be an  active path  between them. clearly there must be a series of edges  a path  connecting the two  but for the path to be active  every pair of two consecutive edges on that path must follow one of three patterns :
+.........  ↘  ↙↙ ccc   ↘ ↙↙ .........where c is not in x where c is not in x where c or a descendant of c is in x.in these patterns c is the vertex between the two edges. if there is no active path between a and b  then we say x  d-separates  a and b  written a ﹠ b|x . the last case  in which the two edges point to the same vertex  is called a v-structure  and unless the two vertices that both point to c share an edge  in which case we have a so-called moralized v-structure   conditioning on c or a descendant of c  a vertex with a directed path from c  allows information to flow through the path segment .
+1. outcome modeling
+﹛in this paper  we assume that some existing model  the old model  has consistently been used to select samples for a database. we want to create a mathematical model  the new model  with this database that will hopefully better predict the outcome  and therefore be a better tool for future use. the old model can be either a formal selection model  such as a logistic regression on a feature vector  or informal  such as an interview by a loan agent. both cases are discussed in later sections.
+﹛bayesian networks are used to represent the relationship between the selection and outcome processes. as previously stated  the structure of the network depends on our assumptions about conditional independence  but the random variables corresponding to the vertices of the different graphs will be the same in all cases.
+﹛following are the definition of each variable  with an example in parentheses of what the variable would represent in the case of loan applications.
+  y is the outcome variable. if y is binary  y = 1 if the outcome was good  loan repaid; the applicant was a good borrower   otherwise y = 1.
+  s is the selection variable  indicating whether a loan application was accepted . if s is binary  s = 1 when the data point is selected for observation and y is observable  otherwise s = 1 and we cannot observe y.
+  x1 is a set of observed variables  also called covariates or features  available for training the new model  credit history  income level  age  etc. 
+  x1 is a set of unobserved variables  for example  unquantified traits such as an interviewer's general impression of the applicant's responsibility . these might have been used in the old model to help with selection  and might be variables influencing the outcome  but they are not available for training a new model.
+  x is sometimes used to mean x1 ﹍ x1. this can be done in a bayesian network without loss of generality by grouping the x1 and x1 vertices together into an x vertex  which corresponds to not factoring the p x1 x1 ...|...  = p x1 ...|x1... p x1 ...|...  term of the joint probability.
+﹛our learning task can always be described by the following bayesian network  since its skeleton is a complete graph and therefore the implied factoring of the joint distribution is completely general:
+
+template for alternative reject inference scenarios.
+﹛this network is a template for the different cases considered in this paper; all of the conditional independence relationships in the next section will follow from subgraphs of this graph  where we require the solid edges to be present and the dashed edges are optional. this results in eight different sets of assumptions  the first of which has no optional edges and the last of which has all the optional edges.
+﹛these constraints restrict the set of bayesian networks to those with valid semantic interpretations  in terms of causality   even though those that lack valid causal interpretations may lead to equally useful statistical models. in general the x-variables are causes  and the outcome and selection variables  y and s  are effects  so there should never be an edge from y or s to an x variable. in the case of the selection procedure  this constraint conforms to what is done in practice: data points are selected for observation depending on features of that data point. in the case of the outcome event  this constraint conforms to our intuitive notions about causality: the outcome for a data point is influenced by the features of that data point.
+﹛we always assume the outcome  y  is dependent both on the observable variables x1 and on the unobservable variables x1. the edge from x1 to x1 conforms to our intuitive notions because observable variables  such as one's credit history  are influenced by unobservable variables  such as one's responsibility. this also helps in practice because it is often the case that the variables used in an old model are not present to train the new model. for example if an interview is part of the loan application process  the interviewer's general impression of the applicant can affect the decision to select the applicant  but it is not recorded in a database and will not be present for learning a new model.
+﹛in most cases there should be no edge between y and s. even though there can be a direct influence of s on y  for example if s represents selecting someone for treatment and y represents survival  we do not add this edge into the graph. in this paper we are not trying to measure the probability of an outcome conditioned on whether or not an individual is selected  but instead to obtain an unbiased model of what the outcome would be for any individual in the general population  if selected. it is important to distinguish  between modeling the average risk difference  which is a function of p outcome|treatment  and p outcome|no treatment   and modeling only p outcome|treatment   which is the focus of this paper.
+﹛the reject inference problem can now be defined more formally. note that it is actually a learning problem  not an inference  i.e. reasoning  problem. our data set contains samples drawn independently at random from some underlying distribution  p x1 x1 y s   where each sample for which s = 1 is missing the value of y. the goal is to model the distribution of the outcome y as a function of the observable variables x1  i.e. to learn p y|x1 .
+1. cases of conditional independence
+﹛the subsections in this section describe different possible independence relationships between the four variables  and how these relationships change the reject inference problem. each set of conditional independence relationships follows from a bayesian network that is a subgraph of the template in section 1. also provided are real-world situations in which these cases could arise. algorithms for learning under these different assumptions are given in section 1.
+1 random selection
+in this case the following independence relationship holds:
+s ﹠ y x1 x1
+which implies
+.
+this can be represented by a bayesian network in which s is not connected to any other random variables.
+
+case 1.
+this is the most general subgraph  of the template  satisfying the independence relationships because any probability distribution with the given independence relationships will factor over it; a proper subgraph g of this graph will certainly have the given independence relationship  but a probability distribution in which the marginal p x1 x1 y  cannot be further factored will not factor over g but will factor over the graph of case 1.
+factoring the joint probability of x1 x1 y  and s once gives p x1 x1 y s  = p x1 x1 y|s p s .
+we find the marginal distribution p x1 x1 y  by summing over s:
+p x1 x1 y  =	p x1 x1 y s 
+s
+= p x1 x1 y|s = 1 p s = 1  + p x1 x1 y|s = 1 p s = 1 .
+since s is independent of all other variables  we have p x1 x1 y|s = 1  = p x1 x1 y|s = 1 .
+making this substitution 
+	p x1 x1 y 	=	p x1 x1 y|s = 1 p s = 1 
++ p x1 x1 y|s = 1 p s = 1 
+	=	p x1 x1 y|s = 1  p s = 1  + p s = 1  
+	=	p x1 x1 y|s = 1 
+so the distribution of the selected samples  those for which s = 1  is the same as the underlying distribution of x1  x1  and y. any learner that only uses the selected data to learn this distribution will be learning an unbiased classifier.
+﹛this situation arises in randomized studies  in which samples are selected for observation completely at random. in the literature  this case is called missing completely at random  mcar  .
+1 selectionconditionallyindependentofoutcome
+﹛in this case  we allow only the observable features to influence the selection. thus the outcome and selection are conditionally independent:
+s ﹠ y|x1
+which implies the constraints
+p s|x1 y =p s|x1 p y|x1 s1 =p y|x1 .this case is less restrictive than case 1 since any distribution satisfying the unconditional independence relationships of case 1 will also satisfy the conditional independence relationships of case 1. the most general bayesian network that has this property and is a subgraph of the template is
+
+case 1.
+in this graph  observing x1 d-separates y and s  so the conditional independence relationships are preserved. in this case  selection may depend on x1  but given x1  y adds no additional information about selection  or  equivalently  given x1  knowing s gives no information about the outcome  for example  whether or not someone is a bad borrower .
+﹛this situation can arise if a formal selection model is used  where s is some function of the observable variables  x1. rather confusingly  in the literature  this case is called missing at random  mar  .
+﹛an important consequence of this conditional independence relationship is that the distribution of selected samples  p x1  y|s = 1   is related to the underlying distribution p x1 y  in the following way: lemma 1: under case 1 
+if all three probabilities are non-zero.
+proof: apply bayes' rule to the right hand side of this equation and then use the assumed conditional independence relationship:
+p s = 1 
+p s = 1|x1 p x1 y|s = 1 
+	p s = 1 	p s = 1 x1 y p x1 y 
+	=	|
+	p s = 1|x1 	p s = 1 
+	p s = 1 	p s = 1 x1 p x1 y 
+	=	|
+	p s = 1|x1 	p s = 1 
+= p x1 y .
+﹛lemma 1 is applied in section 1 to learn an unbiased model in this case. sample weights are created to rebalance the training set so that the weighted distribution of the selected samples is the same as the  unweighted  distribution of the general population .
+1 selection dependent on outcome
+﹛in this case  the selection is dependent on the outcome  but given the outcome  selection is not dependent on the covariates  observed or unobserved:
+s ﹠ x|y
+or in other words p s|x y  = p s|y  p x|s y  = p x|y .
+the most general subgraph that has this property is
+
+case 1.
+the important feature of this graph is that y d-separates s and x.
+﹛if the variables s and y are binary  this situation corresponds to differences in the base rates of y for the selected data and the general population. this situation arises most often when the record-keeping procedure deletes outcome labels depending on the outcome label  also known as censoring . an example in medical studies is estimating expected survival time from a database in which patients who lived longer than five years do not have a survival time recorded. section 1 discusses what may and may not be learned in this case.
+﹛this situation also arises when the biased selection changes the distribution of y  but the conditional distributions of x given each possible outcome y are unchanged  because in the network y d-separates x and s. for example  suppose we learn to diagnose a disease y based on patients x encountered at one hospital. at a different hospital  the prevalence of the disease p y  may be different  but it is often reasonable to assume that the characteristics of affected and unaffected patients  i.e. p x|y = 1  and p x|y = 1   are unchanged. this scenario has been analyzed previously .
+1 conditional independence with selection that can be modeled
+﹛in this case  the only conditional independence relationship asserts that the unobserved covariates cannot influence selection:
+s ﹠ x1|x1 y
+or p s|x1 x1 y  = p s|x1 y .
+the most general graph that has this property is a combination of the previous two. this creates two possible vstructures  but both are moralized so there are no unconditional independence relationships due to the v-structures:
+
+case 1.
+this situation could arise in practice if a formal selection model is used to determine s  and then in addition p y  changes as discussed in the previous subsection. learning under these assumptions is discussed in section 1.
+1 conditionally independent selection with missing features-selection that cannot be modeled
+﹛this case is a generalization of case 1 in which the unobserved features in x1 may influence selection. this occurs in practice when a selection decision is made based on unrecorded information  such as an interviewer's general impression  or numerical features which are not available for learning the new model. the conditional independence relationship describing this case is
+s ﹠ y|x1 x1.
+﹛however  x1 can never be observed  so it is impossible to make use of any independence relationships.
+
+1 outcome conditionally independent selection with only missing features-unlearnable selection
+﹛this case is a special case of the previous case. all the features that influence the selection variable are in x1 and not x1:
+
+case 1.
+in this case it is impossible to learn a model of the selection mechanism. this case rarely arises. intuitively  if the selection mechanism and the outcome mechanism are related  as they are in loan applications; loan approval attempts to predict loan repayment  and the outcome depends in some way on the available features in x1  then it is reasonable to expect the selection to depend in some way on x1.
+﹛this case could arise if a lending institution is just beginning to use statistical methods in its loan application procedure. such an institution would have a training set consisting entirely of people whose loan applications were approved solely on the basis of an agent's subjective judgment  and not recordable features.
+1 selection that cannot be modeled
+﹛this cases features a selection mechanism that is not influenced by the observable features  x1  but is influenced by unobservable features x1 and by the outcome y:
+
+case 1.
+this scenario arises if the predictive features of the selection mechanism are not present for training a new model  and in addition outcome labels are missing in a way that depends on the value of the outcome.
+1 arbitrarily biased selection
+﹛this case is the most general: there are no assumptions about conditional independence relationships. the bayesian network representing this case is
+
+case 1.
+since this bayesian network represents a completely general factoring of the joint distribution  we would be able to use it to model a situation in which any of the previous conditions hold. this model should be used in practice when nothing is known about the selection mechanism.
+1. reject inference algorithms
+﹛as stated above  bayesian networks have no capability to encode the relationship between the outcome and selection variables  so our algorithms must learn from a heterogeneous training set  one in which there exist two different schemas for data in the training set.
+1 learning under case 1
+﹛since the distribution p y x1 x1|s = 1  is the same as the underlying distribution p y x1 x1   any classifier that learns from only the selected samples will learn an unbiased model of the outcome. however  because this classifier is based on fewer data points  it will have increased variance.
+1 learning under case 1
+﹛when we want to predict y based on x  we usually have the choice of learning p y|x  or learning p x y . the former is often called discriminative learning  while the latter is called learning a generative model. under case 1  these two types of learning are very different.
+discriminative modeling
+given any particular x  the distribution of y for the selected data is the same as the distribution of y for the unselected data  because p y|x1 s = 1  = p y|x1  = p y|x1 s = 1 .
+so learning a model of the outcome based only on selected data provides an unbiased estimate of p y|x  in the entire population.
+﹛intuitively the samples with unobserved outcomes can contribute nothing to the model  since the values of the variable whose density we are trying to estimate are missing. this can be shown formally by looking at the contribution of each sample to the likelihood of the parameters of a model. assuming samples are drawn independently  the likelihood of the parameters given the data equals the product of the probabilities of every sample  given those parameters. if a value is missing in a particular sample  the probability of that sample equals the full joint distribution marginalized with respect to the missing feature. for example if the probability of some sample i should be p a = ai b = bi c = ci|成  but the value of b is missing  the probability becomes b p a = ai b = b c = ci|成  . it may seem counterintuitive that the likelihood increases if features are missing; however  if we interpret the likelihood as the goodness-of-fit of our model  then with less information  due to missing features   there is less opportunity to criticize our model and the likelihood should therefore be greater.
+﹛rejected samples are missing the value of y  so y should be treated as a missing feature in the conditional likelihood equation:
+n
+	l 成|x  =	lj 成 
+j=1
+where
+lj 成  = p y1 = i|xj;成  if yi = i if sj=1 i=1 p y = i|xj;成  if sj = 1.
+the sum equals 1 because p y = 1  = 1   p y = 1   so the contribution to the likelihood of the unselected data is an uninformative factor of 1.
+generative modeling
+if instead of modeling p y|x  we want to model p x y   without loss of generality we can use a mixture model with one mixture component for the data in which y = 1 and one mixture component for the data in which y = 1. these mixture components come from the factoring p x y  = p y p x|y   which can be written in the case of binary y as
+p x y  = p y = 1 p x|y = 1  + p y = 1 p x|y = 1 .
+the factors p y = i  are the mixing proportions  renamed 羽i  and the conditional distributions p x|y = i  are modeled by the mixture components  written p x|y = i  = pi x . now all samples are modeled as being drawn from the two component mixture p x|y  = 羽op1 x  + 羽1 x .
+we only observe which mixture component generated a sample for those samples with observed outcomes. the contribution to the likelihood for the observed samples is
+p xi yi  = p yi p xi|y = yi  = 羽yipyi xi .
+as before  the contribution to the likelihood for those samples with an unobserved outcome is obtained by marginalizing with respect to the outcome variable:
+.
+assuming there are m rejected samples and n accepted samples  the full likelihood of all data is
+	m	1	m+n	1
+   l = 羽ipi xj|牟i  zij羽ipi xj|牟i  j=1 i=1 j=m+1 i=1 where the indicator zij equals 1 if yj = i and 1 otherwise. the log likelihood is
+	m	1
+log l  = log 羽ipi xj|牟i  j=1 i=1
+	m+n	1
+	+	zij log 羽ipi xj|牟i 
+j=m+1 i=1
+this equation contains a logarithm of sums for the unobserved samples  which makes an analytic maximum likelihood approach intractable. the em algorithm is a common algorithmic approach to this maximization. em iteratively optimizes the so-called complete-data log likelihood
+m+n 1
+logl 成 t   = zij t  log羽ipi xj|牟i  j=1 i=1
+where zij t  is the estimate during iteration t of the probability that y = i for sample j. first  the e-step uses some initial estimate 成 1  of the parameters  based only on observed data  to estimate the probabilities zij 1 . these probabilities are then used in the m-step to learn a new set of parameters  成 1   that maximizes the likelihood of the data  including zij 1 . the e and m steps are iterated until convergence .
+reweighting  stratification  and propensity scoring
+reweighting methods used to solve the reject inference problem  sometimes called inverse probability of treatment weighting  iptw   weight each selected sample so that the distribution of weighted samples equals the underlying distribution ignoring selection . these methods take advantage of lemma 1.
+﹛the iptw method first learns a select/reject model using the entire data set. after the model is adjusted to yield well-calibrated probabilities  sampling weights are created for each selected sample: p s = 1 /p s = 1|x . a model for p y|x1  is then learned using the weighted  selected  samples  ignoring the unselected samples .
+﹛stratified analysis  also called banded analysis  is a special case of reweighting. like the iptw method  the rejected samples are used only to create weights for the accepted samples. the stratified analysis presented in  is an approximation of the iptw method. first an accept/reject model is estimated using the entire data set. the range of the classifier's output is partitioned into several strata or bands  usually so they contain similar numbers of samples. within band j  the probability of selection is estimated as the ratio of selected samples in band j to the total number of samples in band j. this essentially bins the classifier to
+estimate the conditional probability of selection given x1. for a more adaptive binning method  see   which also divides the range of the classifier score into several bands  typically many more than stratified analysis  and assigns a probability to each band  estimated from the samples in that band and its neighbors. this calibration algorithm simultaneously determines an appropriate population size for each band and enforces the monotonicity of the probability given the score.
+﹛within each band j  all of the accepted samples are given a weight of 1/p s = 1|j   which is an estimate of 1/p s = 1|x . here j is a function of x defined by a range of scores determined by the accept/reject model. this is the same weight used for the iptw method  except for the constant factor p s = 1 . since resampling is done with probability proportional to each sample's weight  and is not sensitive to constant factors  stratified analysis is equivalent to the iptw method.
+﹛the propensity score method is a technique similar to stratified analysis  except that it is usually used to find an unbiased estimate of the average effect of some treatment on the general population  a function of p y|treatment  and p y|no treatment   as opposed to solving the reject inference problem  which is to learn a per-individual model of the effect of treatment.
+﹛the propensity score method is described here to illustrate the similarities to stratified analysis. the propensity score is the function e x  = p s = 1|x   the conditional probability of selection given x. it is a special case of the more general balancing score  any function b x  such that x ﹠ s|b x . it is shown in  that if selection and outcome are conditionally independent given x  i.e. case 1 applies   then y ﹠ s|e x ; for any particular value of e x   the distribution of the outcome variable is independent from the selection variable. accepted samples are grouped  banded  together according to their propensity score . since the treatment effect  outcome  and selection are conditionally independent within one band  the treated population and the untreated population within the same band may be directly compared. an unbiased estimate of the average treatment effect is the average of the average treatment effects in each band  weighted by the number of samples in that band.
+﹛when the outcome is continuous  for example  the increase in white blood cells  the pair matching method may be used. when one treated sample and one untreated sample both have the same propensity score e x   the two are called a matched pair and the difference in outcome values is an unbiased estimate of the outcome difference at e x  .
+1 learning under cases 1 and 1
+﹛in case 1  selection is independent of the covariates  both observed and unobserved  given the outcome: s ﹠ x|y. the bias only depends on the outcome label. therefore the only difference between the distribution of selected samples and the distribution of the general population is a different prior for the outcome probability.
+﹛without making further assumptions  it is impossible to infer the true baseline probability of a specific outcome in the general population  as can be seen by first applying bayes' rule and then using the conditional independence relationship:
+| 1p x1 
+p x1|y = 1 s = 1 p y = 1 	p y = 1 x  	=	p x1|y = 1 p y = 1 
+	=	.
+p x1 
+the quantity p x1|y = 1 s = 1  can be estimated from only observed samples  as can p x1   but it is impossible to estimate p y = 1  since this could have been arbitrarily altered.
+﹛if we learn separate models of the covariates of the good outcomes p x1|y = 1  and of the covariates of the bad outcomes p x1|y = 1   from the selected samples  and we have outside information that p y = 1  = p1  then we can create an unbiased model of p y = 1|x1  using bayes' rule:
+.
+for further discussion of this case  see .
+﹛under case 1  the selection variable depends both on the observable features and the outcome variable. without making further assumptions about the selection mechanism  it is impossible to learn an unbiased model to predict y  just as for case 1.
+1 learning under cases 1  1  1  and 1
+﹛in each of these cases  the selection mechanism can depend  at least in part  on unobservable features. this is especially relevant when correcting for self-selection bias  an example of which is estimating something about the general population from survey results when returning the surveys is voluntary  and therefore not random . the unobservable features prevent us from building an accurate model of the selection mechanism. however  even if we make no conditional independence assumptions we can still estimate an unbiased model of the outcome if we are willing to assume a particular functional form of the relationship between the outcome and selection processes. the usual approach given this new assumption is the bivariate probit  which assumes a normal distribution for the outcome and selection variables. heckman's two-step estimator  an approximation of the maximum likelihood estimate of the bivariate probit parameters  is also explained below.
+probit models
+the univariate probit model is used to represent the conditional distribution of a single response variable y given a vector of features  based on a linear relationship between the features and a dummy variable y  which is not observed
+:
+		 1 
+here xi is the vector of features for sample i  汐 is a vector of parameters  and  is a normally distributed random variable with zero mean and variance 考1. the response yi for sample i is related to yi  by
+yi = 1 if yi  ≡ 1 yi = 1 if yi    1.
+﹛given this linear relationship  we can write the functional form of
+	 	 1 
+here 朴考 .  is the cumulative normal distribution function with variance 考1 and mean 1  while 朴 .  is the standard cumulative normal distribution function. equation  1  is known as the probit equation. given this functional form  the log likelihood of parameters 成 given data set x with n samples is
+n
+logl 成|x  =	yi log朴 xi汐/考 + 1 yi log 1 朴 xi汐/考  .
+i=1
+there are iterative methods for estimating 汐/考 given this model. note that 汐 and 考 are not uniquely defined since they only enter into the model as the ratio 汐/考 .
+bivariate probit models
+bivariate probit is an extension of univariate probit  in which there are two response variables  our outcome and selection variables  . for all samples i = 1 ... n
+	 	i
+and
+s i = xi汕 + 糸i.
+here s i and yi  are unobserved variables. analogously to the univariate probit  let the binary s and y equal 1 if the associated continuous variable is nonnegative  or 1 if it is negative. the vectors 汐 and 汕 are the coefficients of the linear models  whileare the errors of those models for each sample  with variances 考1 and 考1 respectively.
+﹛we assert the selection rule: for sample i  yi is only observed if si = 1. assume the errors are bivariate normally distributed:
+		  曳
+each of the three possible types of observation has a different form for its contribution to the likelihood:
+s = 1 : p s = 1  = 1   朴 xi汕/考1  1 s = 1 y = 1 : p s = 1 y = 1  = 1 ﹛﹛﹛﹛﹛﹛﹛朴 xi汕/考1    朴老 xi汐/考1 xi汕/考1  s = 1 y = 1 : p s = 1 y = 1  = 朴老 xi汐/考1 xi汕/考1   1 
+here 朴 is the standard univariate normal cumulative distribution function  as above  and 朴老 is the standard bivariate normal cumulative distribution with correlation .
+equation  1  holds by the definition of the probit model  p s = 1  = 朴 xi汐/考1   and the fact that p s = 1  =
+1   p s = 1 . similar reasoning yields equation  1 . equation  1  holds because
+p s = 1 y = 1 =p y = 1|s = 1 p s = 1 =	 	p s = 1 =p s = 1    p y = 1 s = 1 	=	 1	 p s = 1 
+and applying the probit model equations yields  1 . these three expressions can combined into one log likelihood function:
+logl 汐/考1 汕/考1 老|x  = n
+ 1   si log 1   朴 xi汐/考1  
+i=1
++si 1   yi log 朴 xi汐/考1    朴老 xi汐/考1 xi汕/考1  
++siyi log朴老 xi汐/考1 xi汕/考1 
+﹛from this equation we can derive iterative maximum likelihood estimators of 汐/考1  汕/考1  and 老. the correlation 老 between the errors of the two linear models   and 糸  indicates how and if the samples were selected in a biased way. if 老 is zero there is no correlation  and selection is independent from the outcome given the observable features  so we can use one of the methods for case 1 to estimate an unbiased model. if 老 is positive  then the unobserved features do affect selection and the outcome in a way that makes them positively correlated. similarly  if 老 is negative  then selection is an indicator of a bad outcome .
+﹛the maximum likelihood estimation of the outcome given the features is then p y = 1|x  = 朴 x汐/考1   which is the probit equation  1 . this estimate is asymptotically unbiased in theory  with its performance in practice depending on the correctness of the parametric assumption stated in equation  1 .
+the two step heckman estimator
+the computation of the model identified by the bivariate probit maximum likelihood equation was until recently prohibitively computationally intensive . for this reason  heckman developed a two step estimator to solve the reject inference problem when the outcome y is continuous . many problems with binary outcomes have a natural correspondence with problems with a continuous outcome. for example  the problem of estimating the probability of survival  a problem with a binary outcome  can be extended to finding an unbiased estimate of the expected survival time. in the domain of credit scoring  the problem of estimating the probability of loan repayment can be cast as estimating how profitable a customer will be to the lending institution. for consistency of notation  the outcome of sample i  now continuous  is denoted yi  and is observed in samples for which si = 1. the heckman estimator relies on a property of the conditional distribution of yi  given that s i   1  i. e. given si = 1  the sample was selected . from  
+	 	 1 
+where 耳 is the standard normal density function. the last term is usually expressed in terms of the function 竹    known
+as the inverse mills ratio:耳 zi 	竹 zi 	=	
+1   朴 zi 
+x
+zi	=	  i汕. 考1
+the two step heckman procedure is as follows :
+1. estimate the parameters 汕/考1 describing the probability of selection given x. this is a simple univariate probit as in equation  1   and the maximum likelihood solution can be found by iterative methods. for each sample  zi can be estimated  and therefore the inverse mills ratio can be estimated as 竹 i = 竹 zi .
+1. equation  1  becomes the linear regression
+e yi |si = 1 x  = xi汐 + 考1/考1竹 i
+using xi and 竹 i as the regressors. solve this regression using ordinary least squares to estimate 汐 and 考1/考1.
+from the second step  we get an estimate of 考1/考1. call this c. let v i1 be the squared residuals from the regression in the second step  and let i1 be the number of samples for which s = 1. now we can estimate 考1 as
+
+analogously to the bivariate probit model  the unbiased estimated model of the outcome given the features is e y |x  = x汐.
+﹛an interesting similarity between the reweighting methods of section 1 and the heckman procedure is that both first learn a model of the selection mechanism and then use that model to learn a model of the outcome mechanism.
+1. conclusions and future work
+﹛the main contribution of this paper is to apply bayesian networks to describe the different assumptions one may make in the course of developing a procedure to learn an unbiased model from a training set with sample selection bias  i.e. in the course of solving the reject inference problem . our framework describes previously published cases as well as several novel ones. the use of bayesian networks makes recognizing which case is applicable easier and more intuitive  since conditional independence relationships are easy to spot in the simple networks involved in reject inference.
+﹛for each case  we have provided an overview of the probabilistic learning algorithms that are available  to the extent to which a model can be learned in each case. in some cases a provably unbiased model can be learned  while in other case selection bias is impossible to overcome. in the most general case  we can only learn an unbiased model if a particular functional form for the outcome and selection models is assumed.
+﹛future work includes investigating what algorithms exist to learn the parameters of bayesian networks with a heterogeneous training set  i.e. a training set that contains examples with differing patterns of observed and unobserved variables.
+﹛none of the algorithms described above are specifically bayesian network training algorithms . an important direction for future work is to investigate how existing bayesian network methods perform with a heterogeneous training set  i.e. a training set that contains examples with differing patterns of observed and unobserved variables. these algorithms can be used in principle to solve the reject inference problem. a related research direction is to apply structural learning algorithms to discover which of the cases in section 1 best describes a given data set.
+﹛alternatively  perhaps algorithms developed specifically to solve reject inference problems can be extended to learn the parameters of bayesian networks given a heterogeneous training set.
+1. acknowledgments
+﹛the authors thank fair isaac corporation for funding this research through california micro grant 1. this research was also supported by a gift from sun microsystems.

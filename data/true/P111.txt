@@ -1,0 +1,319 @@
+representation of negotiations in electronic markets and their support are important issues in today's e-commerce research. whereas most activities are focused on automation aspects  only few efforts address the design of electronic negotiations - e.g. the sequence of actions  or obligations and responsibilities of the negotiating parties. however  an explicit negotiation design can also address what is commonly referred to as the ontology problem of electronic negotiations: how can one ensure that the negotiating parties have the same understanding regarding the issues that are subject to the negotiation  
+the solution this paper proposes is to perform a communication design for electronic negotiations that explicitly specifies the common syntax and semantics of the negotiating parties  the logical space of the electronic negotiation. furthermore  xml schema is suggested as the mechanism for the runtime representation of the logical space and the validation of actual negotiations from a syntactical and semantical perspective. on the basis of this approach  organisations creating an electronic market or sellers who intend to offer their buyers the ability to bargain can design and generate support mechanisms for electronic negotiations in a flexible and efficient way. the communication design action- and meta-model presented are part of silkroad  a design and application framework for electronic negotiations.  
+categories and subject descriptors 
+d.1  software engineering : design 
+d.1  software engineering : design tools and techniques - computer-aided software engineering  state diagrams. 
+h.1  information systems : logical design 
+general terms 
+design 
+keywords 
+application framework  electronic negotiation  ontology  xml 
+1. introduction 
+let us assume that a new electronic market for multiple sellers and buyers is being created. due to the nature of the goods traded  price-focused coordination mechanisms such as auctions are not 
+ 
+copyright is held by the author/owner. 
+www1  may 1  1  hong kong. 
+copyright 1 acm 1-1/1. 
+ 
+ 
+applicable because an agreement between a seller and a buyer has to consider multiple attributes of the good or item  e.g. price and quality  as well as the terms and conditions of the transaction  e.g. delivery time and return policy .  
+a critical factor for the efficiency of the future negotiation processes on this market and the success of the potential settlements is an a-priori agreement among the negotiating parties about how the issues of a negotiation  item attributes  transaction terms and conditions  are represented as abstract objects in the negotiation and what this representation means to each of the negotiating parties. if  for instance  party x offers a delivery date of '1/1' for a workstation to party y  one potential conflict arises if this syntax is misinterpreted by y as 'october 1' whereas x intended to offer 'december 1'. a semantical problem could occur if the meaning of this date to x is the point in time where the product will leave the premises of x  whereas y assumes this is the date the workstation will arrive on the premises of y. this problem is referred to as the ontology problem of electronic negotiations . 
+like any other information system  the creation of an electronic market can be structured along the system development phases of analysis  design and implementation. for an electronic market intended to support electronic negotiations  the design activity has to comprise the agreement scenario  which defines how potential trading partners reach an agreement if conflicts arise regarding the transaction or item configuration. choice and further specification of this scenario will vary depending on the market requirements identified in the analysis phase. in the implementation phase  the agreement scenario is mapped to a technical architecture and application system.  
+however  if the agreement scenario is supposed to include some kind of negotiations between buyers and sellers  there are no common means by which the market creator and its stakeholders can reason about the potential form of these negotiations. in 1  holsapple et al.  have identified this need for general models of negotiations  which could be used to characterise the nature and process of the negotiation as well as to formalise its aspects  and which have the flexibility to describe a wide range of possible structures and interactions. but modelling aspects have been largely neglected in related research  with the undesirable consequence that it is difficult to discuss agreement scenarios on a conceptual level  and that design efforts cannot be reused and refined in the implementation phase in a formal way. 
+this lack of support for the design of agreement scenarios is the underlying motivation for silkroad - a design and implementation framework for electronic negotiations. the silkroad framework can be used  for instance  by organisations creating electronic markets  for the design and implementation of electronic negotiation support. two deliverables of this project  the design action- and meta-model for the specification of the common object syntax and semantics in an electronic negotiation  are presented in this paper.  
+after referring to theoretical foundations of this work in the next section  the approach chosen for silkroad will be illustrated in more detail in section 1. details of the communication design approach are presented in section 1. following the communication design in silkroad  the integrated design of agreement scenarios is outlined in section 1. the consecutive generation of xml schemata for the runtime representation of logical spaces is then demonstrated in section 1. lastly  section 1 discusses conclusions  as well as related and future work. 
+1. negotiation media 
+in silkroad  the notion of media and the media reference model  are used to conceptualise electronic negotiations. media are platforms where the exchange of tangible or intangible items by means of transactions is coordinated through agent interaction. these platforms can be described in terms of three main components:   channels: 
+agents access a medium via channels that can transport the items to be exchanged. 
+  logical space: 
+the syntax and semantics defined for representing the items  which the agents exchange. 
+  organisation: 
+roles describing the types of agents and protocols specifying their interactions. 
+an electronic medium in particular is a medium with electronic  digital  channels that transport data. the agents  however  might still be humans or organisational units and do not necessarily have to be software agents. 
+the media reference model identifies several phases of agent interaction  see figure 1 . offers  expressions of will concerning the configuration of a transaction or its associated item s  communicated to other agents  are one possible means of representing this interaction. depending on the actual phase transition  offers may assume different states of formality:  
+  advertisement 
+in the knowledge phase  agents gather information concerning the items offered or the profiles of other agents. an offer in the form of an advertisement can be issued in the knowledge phase. this advertisement might relate to a general class of items  e.g. the types of products or services offered by this agent  and is typically not related to another offer from a different agent  but targeted at a group of potential trading partners. an advertised offer is also persistent in the sense that it is valid for a certain period of time. 
+ 
+  bid 
+in the intention phase  demand and supply are specified. an offer in the form of a bid can be a response to an advertisement in the intention phase of an electronic transaction  and is therefore specific to the transaction and item configuration proposed in the advertisement. bids might also result from an advertisement  which spawns bids specific to received requests. this is  for instance  often the case if the item is configurable or has certain options. in such an example  an interested agent might bid to buy an advertised item with certain options and the advertisement 'generates' a complementary bid with a total price for this choice of item options. the validity of a bid is limited by the validity of the associated advertisement or complementary bid  but is usually even constrained further  e.g. 'please respond to this bid by...' . 
+  contract 
+as a result of a successful agreement phase  a final offer in the form of a contract can seal mutually accepted bids with legally binding signatures of the agents. a contract marks the transition to the settlement phase where the agreed-upon transaction is executed and is therefore persistent beyond the duration of the agreement phase.  
+a negotiation takes place in the agreement phase when  based on the offers  bids  made in the intention phase  an agreement  a contract  cannot be reached  or the initial agreement has a potential for optimisation and the agents are willing to discuss their offer positions. from the perspective of one agent  negotiating is characterised by the modification of its own bid or the efforts to change another agent's bid. 
+an electronic medium supporting negotiation processes in the agreement phase  is denoted an electronic negotiation medium 
+ enimem . an enimem provides electronic negotiation support  meaning the assistance or automation of certain tasks  e.g. decisions  within the negotiation process. if a negotiation process is conducted using an enimem and no other media  e.g. letters   an electronic negotiation takes place. depending on the level of support provided by the medium  electronic negotiations can be completely  or partly automated - the latter case requires human intervention in the negotiation process. 
+a magnitude of technologies can be used to build electronic negotiation media. these technologies are core elements of development efforts that have historically come to be known as negotiation support systems  nss   . the notion of electronic negotiation media comprises nss as services on the transaction layer of the media reference model  see figure 1 . in addition to this service level  the goal of an enimem is to support negotiations in the agreement phase of electronic transactions also from a community  process  and infrastructure point of view. 
+the enimem definition used in this proposal does not refer to negotiation media  which support agreements in electronic markets  but do not specifically provide assistance for negotiation processes. a medium might  for instance  support agents in legally accepting fixed offers with only one mechanism - signature validation. hence  contractual obligation can be created and the agreement phase can be completed without any actual negotiation taking place. an enimem might offer the same signature validation  but also has to include support for some form of negotiation mechanisms  e.g. auctions. 
+finally  negotiation support is not restricted to electronic media. if a human mediator joins the negotiation process  for instance  to suggest an agreement in a dispute  this constitutes as well a negotiation support activity  but not a form of electronic negotiation support. 
+
+figure 1: agreement phase in the media reference model . 
+1. silkroad approach 
+the primary goal for the silkroad framework is to facilitate the design and implementation of electronic negotiation media according to the definition discussed in this section.  
+the two core elements of silkroad are the roadmap and the skeleton. the skeleton provides several modular and configurable negotiation service components and can be classified as an application framework  - the skeleton of an enimem. hence  an enimem is an instantiation of the skeleton framework  which supports one or multiple agreement scenarios. following the reuse and 'inversion of control' paradigm of frameworks  silkroad developers can subclass framework components to implement specific application logic. but the most common usage of the framework will be the customisation and deployment of enimem instances of the skeleton. the customisation affects the runtime behaviour of the enimem and is based on specifications generated in the enimem design. 
+following the concept of media  the design of an enimem has to encompass three dimensions : 
+  the communication design provides the structures of the logical spaces of the enimem - syntactical and semantical representations of the agents  attributes of the items  and the terms and conditions of the transactions. 
+  the organisational design describes the roles  structure  and protocols  behaviour  of agreement scenarios that will be supported by the enimem. 
+  the it design addresses the architecture of the enimem  its technical channels and interfaces. 
+silkroad assists all of the introduced design dimensions with the roadmap design action-model  which prescribes how the design of an agreement scenario is performed on the basis of the silkroad design meta-model  sdmm . hence  in the case where one enimem should support various agreement scenarios  the roadmap design action model has to be applied several times  each time complementing the design of one agreement scenario. 
+in silkroad the complexity of the final it design and implementation of electronic negotiation media is reduced to a generation of executable agreement scenario representations  which customise the behaviour of the skeleton negotiation service component instances at runtime. 
+before the design action-model can be applied  it is essential to perform an analysis of the preconditions of the agreement phase of the electronic transaction. for the organisation design  characteristics such as the transaction value  high  low  perishable etc.   the risk for the agents involved in this transaction  or the customisability of the item of the transaction have to be investigated in order to select an appropriate design for the electronic negotiation  see  for example   . in addition to the characteristics of the transaction  this analysis also has to cover aspects of the agents' roles  their beliefs  desires  intentions...  as well as the relationships between the agents  dependency  distribution of market power  level of confidentiality  intensity of information exchange  etc. . for the communication design  see below   this analysis needs to identify typical and necessary elements of the logical space  such as standard terms for transactions  delivery time  return policy  etc.  or common representation formats for the transaction items in a certain domain  e.g. computers are always specified on the basis of cpu speed  ram etc. . 
+
+figure 1: silkroad roadmap. 
+figure 1 illustrates the sequence of actions in the design action model and the input/output relations between these actions. the first action to be performed in the roadmap is the agreement scenario communication design  which is based on the findings of the analysis of preconditions and the sdmm. then the organisation design is performed  using the results of the communication design  the precondition analysis and the constructs provided by the sdmm for the organisation design. finally  in the integrated design activity  the results from the organisation and communication design are refined  merged  and verified - resulting in one complete and consistent agreement scenario model  which can be used to generate runtime specifications for the deployed skeleton instance. 
+referring back to the layers of the media reference model  silkroad specifically addresses the community  implementation and transaction view. the roles and protocols of the community layer are modelled within the silkroad design phase. actual processes on the implementation layer are then executed on the basis of the generated runtime specifications and the negotiation service component instances in the transaction layer. 
+the basis for all design activities in the roadmap is the silkroad design meta-model  sdmm  see in figure 1   which introduces the principal entity types and the relations between these types for the organisation design as well as the communication design.  
+	is a	interacts with	 1  is part of	 1 
+ 
+figure 1: silkroad design meta-model. 
+all entity types in the sdmm have associated properties except the relation and transition types marked in lighter grey  which are used to formalise relations between other entity types.  
+the sdmm captures both structural and behavioural aspects of agreement scenarios. the semantics of the entity types can be summarised as follows: an actor is a service or an agent. items  transactions and agents are represented as concepts in an offer. an offer has three or more associated states. actors create  delete or modify offers and cause events  which can stimulate transitions between the states of an offer. one event can be caused by multiple actors and might be associated with a set of offers. a transition always transfers an offer from one state to another  and will only occur if the guard condition is true. the 'firing' of a transition might also invoke an action.  
+the concept of state charts is the underlying modelling paradigm  for both the organisation and communication design . the advantage of state charts is that they are commonly used in information systems design and also part of uml . therefore it can be assumed that most designers are familiar with this approach.  
+for the remainder of this paper  the focus is set on the communication design aspects of silkroad. organisation design issues are only referenced if they are coupled to constructs in the communication design. for details regarding the organisation design  see . 
+1. communication design 
+the goal of the communication design is to structure the logical space of an electronic negotiation medium for a particular agreement scenario. the central objects of the communication design are the offers exchanged in a negotiation. offer instances are the primary means of communication in the agreement phase  see  for example    and in the silkroad framework are the only supported type of structured interaction. 
+the sdmm distinguishes between two types of offers that can be issued by agents: offers-to-buy  o1b  and offers-to-sell  o1s . depending on the agreement scenario chosen  a final contract might require that two compatible offer instances be found that are both signed by the originator with respect to the complementary offer  one-sided contracting   or that one offer instance of one type is signed by both agents  double-sided contracting . 
+in the roadmap the design of offer types is separated into the definition of offer ontologies for the semantical aspects  and the specification of offer states for the syntactical aspects of offer communication in a negotiation. 
+1 offer ontology design 
+the goal of commercial negotiations is to conduct one or more transactions between the agents involved in the negotiation. a transaction transfers one or more items  e.g. a product  money etc.  from one agent to another and vice versa. the transaction  the item  and the agent s  involved can be described with sets of attributes such as the delivery date of the transaction  the colour of the item or the location of the agent. an attribute has a value or value domain such as '1-1'  'green'  or 'switzerland'. 
+ontologies are formally specified models of knowledge  which can be used to share semantics among a set of agents. an ontology defines the concepts describing a certain domain and the relationships that hold between them . it can be represented as a hierarchy of concepts. for electronic negotiations in silkroad domains have to be specified for the representation of and reasoning about the transaction  its related items  and the agents involved. 
+figure 1 illustrates an  incomplete  example of a hierarchy of concepts in the domain of computer hardware items. a notebook  for instance  is a sub-concept of a computer and accordingly inherits the properties of computer  which are  in this example  the cpu clock speed  the type of the media drive etc. notebooks are also sub-concepts of monitors  thus inheriting another set of properties  e.g. the display resolution . properties in the ontology have a certain type and can be constrained  thus allowing only certain property values  in the example the cpu clock-speed is constrained to the range between 1 and 1 mhz . relations between concepts complement the ontology. an example of such a relation is that the cpu of notebooks has to have power management functions. it is possible to infer new knowledge on the basis of given facts. an agent could derive  for instance  that if a certain cpu is offered with notebooks  it must have power management functions. 
+concept hierarchy attribute relation 
+figure 1: ontology example. 
+for a complete offer ontology design  this item domain has to be complemented with a domain ontology for the transaction  which defines possible attributes and attribute values for terms and conditions and an agent ontology. domain ontologies can be reused for multiple agreement scenarios. hence  the transaction and agent domain ontology in the example could also be used for scenarios designed for other items such as computer software or it services. 
+in an offer instance  concepts from the item  transaction and agent domain can or must be used as offer properties to describe the proposed deal completely. the representation of concepts in an offer follows the notation domain.property  e.g. transaction.delivery date  notebook.cpu  or seller.location . 
+the effort to design and establish an ontology for an electronic negotiation medium can be significant  as agents have to agree  in a social process  on this common terminology  see  for example   . in other words  before ontologies can be used in the agreement phase  the agents have to negotiate on a meta-level the structure  meaning  and content of these domains - their common language. this meta-level negotiation is manifested in the ontologies developed or chosen for the latter electronic negotiation. 
+1 offer state design 
+in the offer state design  the dynamic structures of the offer-to-buy and offer-to-sell types for a specific agreement scenario are modelled. from a behavioural perspective  any offer instance in silkroad has a certain type and  at least and initially  three different states of formality during the negotiation process: advertised  bid and contracted. in the sdmm  an offer is associated with these three or more states  with one or more actors  and might be related to certain events. to associate a state with an offer  the notation offer.state is used. 
+the basis for the offer state design is a generic offer syntax specification developed for silkroad. this syntax defines the notation for structural offer elements such as property domains  e.g. price   $1  or evaluation criteria  e.g. utility price $1  = 1 . on the basis of the defined notation  offer instances are created and edited. the notation for property value domains  for example  is the syntax used to represent item  transaction  or agent ontology concepts in an offer instance. in general  the defined notation is not specific to one particular domain ontology but applies to all concepts represented in an offer. 
+in the meta-model the following abstractions of common offer notation elements with associated sets of notation options are available to represent an offer state:  
+  agents  one  n  unbounded  
+  signatures  none  single  all  
+  timestamps  none  start  end  both  
+  domains  properties  values  ranges  dynamic  
+  constraints  basic  negotiable  weighted  
+  counters  none  n  unbounded  
+  criteria  none  importance  utility  functions  
+details regarding the semantics of these notation elements can be found in . the notation options are ordered in the sense that a 'higher' option allows a richer notation. to give an example  the value dynamic for the property domains explicitly allows an agent to define the range of values for any property in an offer-tosell  only if the agent knows more about the agent interested to buy. a typical example can be found in the insurance industry  where quotes are usually dependent on age  medical record  driving experience etc. a more restricted notation would disallow the dynamic option and limit offer specifications to a definition of domain ranges. another example is the negotiable value for the constraints element. it allows an agent to express the intention to concede this offer property if he/she is compensated with another property  thus enabling tradeoffs between buyer and seller  see  for further details .  
+the specification of the offer state notation is performed on two levels: required and optional offer notation elements. generic offer templates for the three introduced states are provided by silkroad. the offer.advertised state  for instance  is characterised by the offer state notation in table 1. 
+table 1: state offer.advertised template. 
+notation element level option modifiable agents required one + optional one + signatures required none + optional single - timestamps required start no optional both - domains required attributes + optional dynamic - constraints required basic no optional negotiable - counters required none no optional none no criteria required none + optional functions - these initial offer-state templates are the starting point of the communication design. depending on the analysis of preconditions  further refinements and adaptations of the notation can be applied. some scenarios might  for example  require property domain specifications with explicit values or ranges  whereas other scenarios may disallow dynamic property domains. to ensure compliance with the framework  templates cannot be changed arbitrarily; modifiable offer structure properties are explicitly marked  see table 1 where '+' indicates that a richer notation might be used and '-' indicates that a more restricted notation is possible . 
+additional states might be necessary to model the agreement scenario. these states are added in the organisation and integrated design  see section 1 . for each additional offer state the respective level of formality is also represented by enabling or disabling notation elements for the construction of offer instances. 
+the final step of the communication design is to assign the offer type with its related state design to domains specified in the offer ontology design. an offer type needs to be associated with at least one item domain  one transaction domain  and one agent domain. multiple agent domains  for instance  might make sense if certain typical agent types such as distributors or outsourcers participate in a market and their properties might be referenced in an offer. if a concept  e.g. in the item domain a computer  has sub-concepts  workstation  notebook  etc.   the offer can be issued for any of the sub-concepts as well  this functionality is especially useful for advertisements where often general classes of products or services are offered  see section 1 .  
+this ontology association guarantees that the content of offer instances can be validated not only syntactically  on the basis of the offer state design  but also semantically against the domain specifications in the ontology. hence  only properties related to the concepts and the concept relations defined can be used in the offer description. if an offer were assigned to the notebook concept in figure 1  it is only possible for the construction of an offer instance to use constraints for item properties related to notebook  such as display resolution or cpu clock-speed. 
+1. integrated design 
+in the integrated design of an agreement scenario  the deliverables from the organisation and communication design are integrated  refined  and verified - resulting in one complete and consistent agreement scenario model. on the basis of this agreement scenario model  runtime specifications are generated  which are used to customise the behaviour of an enimem and to validate actual negotiation processes executed through the enimem. 
+1 integration and refinement 
+the basis for the integrated design is the set of offer states defined for an agreement scenario in the precedent design activities. these offer states are the mandatory  and optionally customised  template states  advertised  bid  and contracted  specified in the communication design  complemented by additional states discovered within the organisation design. 
+the task of the organisation design is to model all necessary states of offer types within an agreement scenario and thereby to discover the associated actor roles  events  transitions  guards  and actions. one agreement scenario completed in the organisation design represents all necessary roles and the protocol for the complete agreement phase specification of a transaction in an enimem. roles are defined as the total of all possible events an agent can or must raise. the protocol constitutes all the rules in one scenario  represented by valid states and transitions  which define how agents come to an agreement. 
+figure 1 illustrates an example of an organisation design. the graphical notation follows the uml conventions for state-chart diagrams. states are represented by rounded rectangles. the offer type related to a state is indicated with capital letters preceding the state identifier. transitions are arrows connecting states. events  'e:'   guards  'g:'   actions  'a:'   and properties  'p:'  are specified as textual information complementing the transition arrows. 
+
+figure 1: organisation design example. 
+for the organisation design additional state templates  so-called service-states  are pre-defined  shown in a lighter grey . one of the state templates from the communication design 
+ o1b.advertised  is also represented in figure 1. 
+the task of the integrated design is to add syntactical structure to the additional states stemming from the organisation design  and potentially to identify supplementary states necessary to represent the organisation design. depending on the organisation design of the agreement scenario  agents can or can not  for instance  counter the offer of another agent by deriving a new bid that disputes some of the constraints of the original advertisement or bid. in the integrated design this additional offer state has to be reflected with a corresponding offer state representation where the notation element counters is set to the bound or unbound notation option. 
+the integrated design may result in additional offer states in order to reflect necessary changes to the offer structure. these changes might also require additional agent interaction. in the example in figure 1  the score service can be invoked after an offer instance was matched. this requires the initiating offer to feature evaluation criteria such as utility functions. therefore  an additional state o1b.updated is necessary if an offer in o1b.matched does not necessarily contain evaluation criteria. the event activating a transition from o1b.matched to o1b.updated is buyer.submitted. the guard for this transition specifies a successful validation of the modified offer according to the offer structure properties defined for the state o1b.updated. 
+the result of this design activity is an agreement scenario model with offer state specifications  which is complete from a communication and organisation design perspective  thus comprising the logical space  syntactical and semantical representation of items  transactions and agents  as well as the roles and protocols of the agreement scenario. 
+1 consistency checking 
+merging the organisation and communication design in the integrated design phase enables one to check the resulting agreement scenario model for consistency and accuracy from a structural and behavioural point of view.  
+to be a valid agreement scenario model  the model has to comply with the following types of conditions: 
+  offer template states are modified only within the defined restrictions. 
+  events with actions activate only transitions to service-states. 
+  only service-states and actions available in the application framework are used. 
+  guard conditions evaluate only those offer properties and notation elements that are available at the preceding offer state s . 
+  offer notation options required for subsequent service executions are specified. 
+  negotiation service component interrelationships are reflected  e.g. match is a necessary predecessor of mediate . 
+if the agreement scenario model passes the consistency check  the next step in silkroad is the generation of executable representations for this design1. 
+1. generation of xml schemata 
+this section describes how the communication design is transferred to xml schemata  which are used for the runtime validation of offer instances.  
+on the basis of the completed agreement scenario model  runtime representations for the enimem can be generated. these runtime representations are persisted in communication and organisation design repositories as agreement scenario policies  see figure 1 . one enimem can support multiple agreement scenarios  depending on the policies available in its repositories. 
+ 
+
+figure 1: runtime architecture overview. 
+ 
+electronic negotiation media are instances of the skeleton. the facility in the enimem responsible for controlling the execution of actual agreement scenarios is the policy manager. it checks  depending on the current state of the agreement scenario  offer instances for correctness as well as events and actions of agents for compatibility with the protocol and role specification in the organisation design. depending on the underlying agreement scenario model the policy manager will also invoke services  if  for instance  a transition fires with an associated action for a negotiation service component. the current set of negotiation service components available within the skeleton is outlined as well in figure 1. 
+1 xml schema 
+xml schema is a w1c working draft  which was published in april 1 for review by the public and by the members of the world wide web consortium . in november 1 it was considered to be stable and promoted to a candidate recommendation. 
+schemata are used to specify classes of xml instance documents by describing the document structure in a much richer way than is possible on the basis of document type definitions  dtd  . with the basic vocabulary and predefined structuring mechanisms of xml schema  fine-grained constraints on xml documents can be defined  thus enabling rich automated validation. the primary advantages of using xml schemata compared to dtds are that it is possible to express hierarchies of data types  and that schemata themselves are xml documents. hierarchies of types are critical for the schema generation process in silkroad as model-specific types are derived from a set of generic types. owing to their xml nature  schemata can be created in the same way  with the same tools  as traditional xml documents. accordingly  it is not necessary to build an automated schema generation process from scratch. 
+in silkroad  schemata represent the logical space design of agreement scenarios at runtime. for each offer state definition in the integrated design a customised schema is generated. if different offer ontology assignments are used for the same offer states  additional schemata have to be generated. at runtime  agents use these schemata to construct or modify offers for the various offer states. 
+1 silkroad base schema 
+the foundation for the customisation and generation process is the basic silkroad syntax. a snippet of the syntax representation in xml schema  the base schema  is illustrated in figure 1. 
+the base schema defines fundamental constraints such as 'an offer needs to have one or more specified item domains'. overall  the base-schema defines all possible offer notations supported from a structural point of view by the underlying framework. all types in the base schema are declared to be abstract  using the attribute setting abstract= true  in the type declaration . abstract types cannot be used in conforming xml document instances. hence  all generic types need to be re-defined in the subsequently customised scenario-specific schemata. 
+ 
+. . .  
+ element name= container  type= xsr:container   
+ complextype name= container  abstract= true  mixed= false     sequence  
+    element name= agent  type= xsr:agent      maxoccurs= unbounded /  
+    element name= offer  type= xsr:offer /  
+    element ref= xsr:item domain  maxoccurs= unbounded /      element ref= xsr:transaction domain  minoccurs= 1      maxoccurs= unbounded /  
+    element ref= xsr:agent domain  minoccurs= 1       maxoccurs= unbounded /  
+  /sequence  
+ /complextype  
+ element name= item domain  type= xsr:context /  
+ element name= transaction domain  type= xsr:context /  
+ element name= agent domain  type= xsr:context /  
+ complextype name= context  abstract= true  mixed= false   
+  element name= name  type= string /  
+  sequence  
+    element ref= xsr:offer constraint  maxoccurs= unbounded /      element ref= xsr:counter constraint  minoccurs= 1       maxoccurs= unbounded /  
+  /sequence  
+  attribute name= number  type= integer  use= required /   /complextype  
+ element name= offer constraint  type= xsr:constraint /  
+ element name= counter constraint  type= xsr:constraint /   complextype name= constraint  abstract= true  mixed= false     choice  
+   element ref= xsr:attribute domain /  
+   sequence  
+     element ref= xsr:attribute domain /  
+     element ref= xsr:attribute domain /  
+   /sequence  
+   sequence  
+     element ref= xsr:attribute domain /       element name= constraint operator        type= xsr:operator /  
+     element ref= xsr:attribute domain /  
+   /sequence  
+   /choice  
+   attribute name= negotiable  type= boolean  use= optional  value= false /   /complextype  
+ element name= attribute domain  type= xsr:attribute domain /   complextype name= attribute domain  abstract= true  mixed= false   
+  sequence  
+    element name= property  type= string /  
+    element ref= xsr:operator  minoccurs= 1 /    /sequence  
+ /complextype  . . . figure 1: base schema. 
+to generate a state- and ontology-dependent schema  additional constraints are derived from the design specification  which lead to restrictions of the base schema. to restrict a schema  the following generic xml schema mechanisms are used in the generation process: 
+  redefining types. 
+  deriving types by extension or restriction. 
+  changing attribute use from optional to required. 
+  forbidding the use of attributes with prohibited. 
+  assigning fixed values to attributes or elements. 
+  setting elements to be required  minoccurs = 1 . 
+  limiting the number of elements  maxoccurs = x . 
+  deleting enumeration elements in simple types. 
+in the next sections  the subsequent scenario-specific derivation and customisation mechanism  which underlies the automated schema generation process in silkroad  is outlined.  
+1 state-dependent customisation 
+whereas the base schema defines a generic namespace www.silkroads.ch  a new unique namespace is created for each agreement scenario. hence  the first step in the derivation and customisation mechanism is to define this agreement scenario namespace. 
+for all states defined in the agreement scenario model for an offer type  a corresponding state-dependent schema has to be generated that adds the state-specific offer notation to the agreement scenario namespace. this is done by importing all types defined in the generic silkroad namespace  and redefining state-specific types according to the notation elements assigned to this state in the offer state design. the process can be illustrated using the example of the state offer.advertised as defined in the template  see section 1   which results in the following snippet of an offer.advertised schema for a sample namespace www.silkroads.ch/example: 
+ schema   targetnamespace= http://www.silkroads.ch/example    xmlns=http://www.w1.org/1/xmlschema  xmlns:xsr=http://www.silkroads.ch  xmlns:example= http://www.silkroads.ch/example    elementformdefault= unqualified   
+  import namespace= http://www.silkroads.ch     schemalocation= silkroad.xsd /  
+  complextype name= offer  mixed= false   
+   complexcontent  
+     restriction base= xsr:offer   
+      attribute name= start  type= string  use= required /  
+     /restriction  
+   /complexcontent    /complextype  . . . figure 1: state-dependent schema example. 
+in the example in figure 1  the use of the start attribute of the offer type is required  corresponding to the notation element definition in the offer.advertised template. deriving by extension or restriction in xml schema is comparable to the inheritance mechanism in object-oriented programming languages in the sense that elements and attributes can be added or omitted  and specifications of the super-type can be overwritten. the statedependent schema redefines only those types  where the offer design for this state manifests specific notation elements. for all other types  the definition in the base schema remains valid. 
+as outlined in section 1  modifications to the templates can be performed within certain restrictions. if a specific agreement scenario requires  for example  an agent to define an expiration date for the advertisement  the offer type definition in figure 1 would also set the use of end to required. to restrict  for instance  the domain structure to allow no value ranges  all elements of the operator enumeration for a domain  ' '  ' ' etc.  except the '=' operator are deleted. 
+the result of this first customisation step is the generation of a set of schemata  one for each offer-state  defining an agreement scenario namespace and constraining xml instance documents from a syntactical perspective. in the next step  semantical constraints are added. 
+1 ontology-dependent customisation 
+in this step  the ontology domain assignment for the offer type  performed in the conceptual communication design  is manifested in all generated state-dependent offer schemata. ontologydependent offer schemata are constructed using the syntactical notation from a state-dependent schema and the semantical concept specification from the ontology.  
+for each state-dependent offer schema  this ontology-dependent customisation has to be performed. the state-dependent offer schema is included  using the include schemalocation directive in xml schema  in a new ontology-dependent schema specification  which shares the namespace with the state-dependent schema . the base schema is also imported. a designer has two options for the ontology-dependent customisation: 
+  domain typing 
+this option defines for each property in the chosen ontology domain a new type as extension to the 
+attribute domain type.  
+  context typing 
+this second option adds more semantics through additional extensions of the context and the constraint type and the definition of corresponding element substitution groups. 
+the trade-off between these two options is that domain typing does not guarantee structural integrity - it cannot be validated  for instance  whether an agent used all necessary properties in the specification of an offer for a certain item domain represented as a context. context typing  on the other hand  does provide context structure  but the elements used in the specification are not standardised  thus making parsing much more complicated  because every property is represented with a specific domain and constraint element1. 
+the first example shown in figure 1 demonstrates domain typing for the workstation.cpu property  which is restricted to values between 1 and 1 ghz  see the definition of the computer concept in section 1 .  
+ schema  targetnamespace= http://www.silkroads.ch/example    xmlns:example= http://www.silkroads.ch/example    xmlns:xsr= http://www.silkroads.ch   xmlns=http://www.w1.org/1/xmlschema  elementformdefault= unqualified   
+  import namespace= http://www.silkroads.ch     schemalocation= silkroad.xsd /  
+  include schemalocation= silkroad advertisement example.xsd /  
+  complextype name= workstation.cpu  mixed= false     final= restriction   
+   complexcontent mixed= false   
+    extension base= xsr:attribute domain   
+    sequence  
+     element name= value   
+      simpletype  
+       restriction base= integer   
+       	 mininclusive value= 1 /  
+       	 maxinclusive value= 1 /  
+       /restriction  
+      /simpletype  
+     /element  
+     element name= unit   
+      simpletype  
+       restriction base= string   
+       	 enumeration value= mhz /  
+       /restriction  
+      /simpletype  
+     /element  
+    /sequence  
+   /extension  
+   /complexcontent    /complextype  . . .  figure 1: ontology-dependent schema with domain typing. 
+similarly all other concepts and  inherited or native  attributes from the chosen domain ontology are defined as extensions to attribute domain types in the state-dependent schema. as the attribute domain type is declared to be abstract in state schemata  only these new semantic domain types can be used for the actual offer specification.  
+in addition  the ontology-dependent schema declares new types with final= restriction   which prevents further restrictions of this type in new schemata  whereas extensions are still possible  e.g. if an agent needs to extend the mhz range or add ghz as another unit enumeration .  
+. . .  complextype name= workstation  final= restriction  mixed= false   
+   complexcontent mixed= false   
+    extension base= example:context   
+     sequence  
+      element ref= example:cpu constraint /  
+      element ref= example:hd constraint /  
+     . . .  
+     /sequence  
+    /extension  
+   /complexcontent  
+  /complextype  
+  element  name= cpu constraint    type= example:cpu constraint  
+   substitutiongroup= xsr:offer constraint /  
+  complextype name= cpu constraint  mixed= false   
+   complexcontent mixed= false   
+    restriction base= xsr:constraint   
+     sequence  
+      element ref= example:workstation.cpu /  
+     /sequence  
+     attribute name= negotiable  type= boolean        use= optional  value= false /  
+    /restriction  
+   /complexcontent  
+  /complextype  
+  element name= workstation.cpu     type= example:workstation.cpu    substitutiongroup= xsr:attribute domain /    /complextype  . . .  figure 1: ontology-dependent schema with context typing.  
+the second example shown in figure 1 illustrates context typing  where additionally the context and constraint type are extended and complemented with corresponding element definitions. 
+figure 1 demonstrates a customisation example for context with the type workstation  and for constraint with the type cpu constraint. the semantics of this example is as follows: the workstation type requires that a mandatory constraint be defined for the cpu property of a workstation. this cpu constraint can substitute any valid occurrence of an offer constraint in an offer instance document. furthermore  the workstation.cpu domain has to be used in this constraint. 
+the example also demonstrates how types from the base schema  denoted with the xsr: namespace reference  and types from the state schema  such as example:context  are combined to construct the ontology-dependent schema. 
+1 xml instance document examples 
+with the completion of the final customisation step in the previous section  the set of ontology- and state-dependent schemata for an offer type is complete and can be used to construct and validate xml offers at runtime. to demonstrate the result of the generation process  figure 1 features an xml instance document compliant with the ontology schema in figure 1.  
+in this example  the property types are specified with the xsi:type assignment for the attribute domain element. it can be seen that only standardised elements such as item domain or offer constraint are used  thus simplifying the parsing of instance documents. however  there is no constraint that the workstation.cpu type is required in the offer. 
+ 
+ container  xmlns=http://www.silkroads.ch/example  xmlns:xsi= http://www.w1.org/1/xmlschema-instance    xsi:schemalocation= http://www.silkroads.ch/example    silkroad advertisement ontology.xsd   
+  offer id= of 1  type= o1b  scenario= sc 1   
+  state= advertised  start= 1.1 /  
+  item domain name= workstation  number= 1   
+   offer constraint  
+     attribute domain xsi:type= workstation.cpu   
+      property  workstation.cpu  /property  
+      operator greater than /operator  
+      value 1 /value   unit mhz /unit  
+     /attribute domain     /offer constraint  . . .  figure 1: xml instance document with domain typing. 
+this additional validation can be achieved with context typing and is illustrated in the instance document example in figure 1. 
+ container  xmlns=http://www.silkroads.ch/example  xmlns:xsi= http://www.w1.org/1/xmlschema-instance    xsi:schemalocation= http://www.silkroads.ch/example    silkroad advertisement ontology.xsd   
+  offer id= of 1  type= o1b  scenario= sc 1   
+  state= advertised  start= 1.1 /  
+  item domain number= 1  xsi:type= workstation   
+   cpu constraint  
+     workstation.cpu  
+      operator greater than /operator  
+      value 1 /value   unit mhz /unit  
+     /workstation.cpu  
+   /cpu constraint  
+   offer constraint       workstation.hd  
+. . .  figure 1: xml instance document with context typing. 
+in the example in figure 1 the type specification is used to assign the restricted workstation type for the item domain element  which requires that 
+cpu constraint be used. the disadvantage of this added semantic is that an item specification may contain different constraint types: customised constraints  e.g. cpu constraint  and generic offer constraint elements  which are used  for instance  to define additional binary constraints. 
+1. conclusions 
+this paper demonstrates how the communication design of electronic negotiations is performed within the silkroad framework. the goal of the communication design is to define agreement scenario models for the logical space of an electronic negotiation medium. this logical space comprises the syntax and semantics of offer representations shared by agents  which negotiate item attributes and/or terms and conditions of an electronic transaction. the proposed solution is intended to avoid misunderstandings during the negotiation process  before an agreement is made and the settlement is enacted. 
+in this final section  the proposed solution is evaluated and compared with related research efforts. 
+1 evaluation 
+referring back to the initial claims  an evaluation of the presented communication design approach has to discuss two interrelated questions:  
+  can the ontology problem of electronic negotiations be addressed by the proposed solution  
+  are xml schema mechanisms useful for expressing and validating the communication design at runtime  
+the result of the explicit communication design of electronic negotiation media within the silkroad framework is an ontology for the item  transaction  and agent domain  and state specifications for offer instances associated to these domains. to achieve a common understanding of the issues that are subject to the negotiation  these design deliverables can be specified in a joint process with all agents involved in the later usage of the enimem. the constructs introduced in the sdmm  ontology definitions and state diagrams  support this meta-level agreement process  as they can be used for communication and discussion on a conceptual level. the resulting formal agreement about the semantics of offer representations is a necessary prerequisite for the latter negotiation support implementation.  
+once the communication design has been mutually accepted  it can be transferred to a runtime representation  thus enabling the checking of a negotiation process for semantical and syntactical correctness towards the original design. hence  assuming that both the communication design and the generation of the runtime representation are complete and correct  the ontology problem cannot occur during actual negotiation processes as violations of the agreed-upon logical space are detected. this is at least true for the agents originally involved in the design process. accordingly  the admission of new agents to participate in the enimem requires an acknowledgement of the logical space defined. 
+whether the runtime representation is complete and correct depends largely on the mechanisms provided by xml schema in association with the defined generation process. various suggestions  see  for example    have been made to move from specific ontology formalisms  kl-one  kif  frame logic...  towards more standardised and widely used representation mechanisms such as uml or xml document type definitions  dtd . the latter approach was chosen by erdmann and studer . they point out that transforming ontologies into xml schema appears to be more appropriate than into dtds  mainly because of the ability to define type hierarchies. in   a process for the stepwise translation of an ontology to xml schema is proposed. silkroad uses a similar abstraction-based approach  but in comparison  the communication models do not represent a complete ontology in a schema but only the selected set of concepts.  
+regarding completeness  the status of the current representation is still insufficient. on the basis of domain typing  the relation of properties to concepts is lost if multiple concepts are represented in one ontology-state schema. this might be the case if an agent intends to issue a combinatorial offer for several types of goods  e.g. notebooks and servers . related to this problem is also the fact that multiple inheritance cannot be represented in xml schema. this is one of the shortcomings of the current framework  which has to be tackled in future work. 
+beyond the completeness and correctness necessary to address the ontology problem  the usage of xml schema provides additional advantages. as a forthcoming w1c standard  a number of powerful and widely accepted tools such as the xerces parser  can be used to create or validate xml documents adhering to this standard. hence  agents can easily interface with an enimem by submitting xml documents. these documents can be edited  administered  and validated decentrally according to the internal processes of the agent's organisation. though this creates a distributed and decentralised system of negotiating agents  common integrity constraints are defined centrally using schemata.  
+xml schema by means of the control options for the derivation process also offers the ability to extend the ontology in a decentralised way. let us assume that a seller agent can offer computers with new features not reflected in the current ontology in figure 1  e.g. a dvd writer. the domain schema specification could then be extended by the agent with a derived media drive type  which also includes an enumeration for the dvd write option. using this extension functionality enables the ontology to be maintained in a distributed way. to guarantee the integrity of the overall ontology  the other agents certainly would have to approve such extensions. 
+finally  from a technical perspective  the light-weight xml access interface to the enimem  which allows for decentralised schema validation and extension  can be further extended across all functionalities  raising events to execute services etc.  if  for instance  soap  simple object access protocol  see   is used as a general means of service invocation. this option is currently being investigated. 
+1 related work 
+this approach relates to work in the areas of negotiation support and semi-structured data models. from a negotiation support view  this work is an effort situated in the area of generalised models of negotiations  which is undertaken from an information systems perspective. most approaches to modelling negotiations to date stem from an artificial intelligence  e.g.   or decision science  e.g.   background. in addition  the media concept with its explicit distinction in communication and organisation design aspects adds a different perspective on negotiation support. this distinction provides an additional level of abstraction and reduces the complexity of negotiation design significantly.  
+approaches to the ontology problem of electronic negotiations that aim at a common understanding of the negotiating parties regarding the question 'what is to be negotiated'  can be found in the contractbot project and in the work of kang and lee. 
+for contractbot  reeves et al.  developed a declarative contract language that allows one to specify offers and eventually contracts with terms and conditions  constraints  dependencies  as rules and to represent them as xml documents. the expressive power of this contract language certainly exceeds the capabilities of the notation and xml schema offer representation in silkroad: first  because rules have higher semantics than constraints  and second  because these contracts are executable logic programs. silkroad  however  does not only provide an offer language  but also a design framework with offer templates and means to model and represent the various states of an offer within a negotiation process. furthermore  this design framework allows linking the question of 'what is to be negotiated' with the complementary organisation design question 'how is the negotiation executed' through the integrated design activity. 
+kang and lee developed a negotiation support system that relies on a shared ontology mechanism to structure negotiations. based on the description in  buyers and sellers can edit the ontology - but the documentation does not disclose how this ontology is constructed and validated. 
+regarding syntax formalisms  related work can be found in the area of xml-based trading protocols such as iotp  or obi . the difference to silkroad is that these protocols are  focussed on the settlement phase of electronic transactions  see figure 1  by providing reference expressions for payment conditions etc. whereas the base-schema in silkroad defines generic syntactical structures for the agreement phase  abstracting from the actual message content.  
+1 outlook 
+regarding future work  an interesting opportunity arises once the design approach is actually in use and applied to a multitude of real agreement scenarios. whereas the sdmm specifies 'how' to model electronic negotiation media  a reference model can specify 'what' to model. this reference model could evolve from a set of basic agreement scenarios  which  comparable to proved idioms in object-oriented software engineering   represent reusable best practices for electronic negotiations. a communication pattern might suggest  for example  that offers for the domain of internet services usually comprise certain mandatory attributes such as the definition of a support contract  e.g. 1  or the pricing scheme  fixed rate  traffic dependent etc. .  
+another promising foundation for the definition of communication patterns could be the incoterms and eterms repositories  see for example  . these collections of standard commercial terms aim at avoiding the friction resulting from the diversity of semantic and legal interpretation of terms in international commerce. for usage in silkroad these terms could be represented in generic transaction domain ontologies  defining  for instance  standard concept terms for packaging  delivery points  transits etc. 
+if this abstraction is feasible  silkroad could provide not only a design and implementation framework  but also a reference model for electronic negotiations. 
+1. acknowledgements 
+the author thanks his colleagues at ibm's zurich research laboratory for supporting this work - heiko ludwig and markus stolze for valuable feedback on the ideas presented in this paper  and achille fokoue nkoutche for xml schema troubleshooting. 

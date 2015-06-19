@@ -1,0 +1,51 @@
+microsoft r  terraserver stores aerial  satellite  and topographic images of the earth in a sql database available via the internet. it is the world's largest online atlas  combining eight terabytes of image data from the united states geological survey  usgs  and spin-1. internet browsers provide intuitive spatial and text interfaces to the data. users need no special hardware  software  or knowledge to locate and browse imagery. this paper describes how terabytes of  internet unfriendly  geo-spatial images were scrubbed and edited into hundreds of millions of  internet friendly  image tiles and loaded into a sql data warehouse.  all meta-data and imagery are stored in the sql database.  terraserver demonstrates that general-purpose relational database technology can manage large scale image repositories  and shows that web browsers can be a good geo-spatial image presentation system.   
+keywords 
+geo-spatial  vldb  image databases  internet. 
+1. overview 
+the terraserver is the world's largest public repository of highresolution aerial  satellite  and topographic data. it is designed to be accessed by thousands of simultaneous users using internet protocols via standard web browsers.  terraserver is an image  tile  server that delivers a set of raster images based on a users search criteria.  once an image of interest is located  users can pan  zoom in  zoom out  or display meta-data about the image they are viewing. 
+the terraserver is a multi-media data warehouse.  it differs from a traditional data warehouse in several ways:  1  it is accessed by millions of users   1  the users extract relatively few records  thousands  in a particular session and   1  the records are relatively large  1 kilobytes .  by contrast  classic data warehouses are  1  accessed by a few hundred users via proprietary interfaces   1  queries examine millions of records  to discover trends or anomalies   1  the records themselves are generally less than a kilobyte.  in addition  classic data warehouse queries may run for days before delivering results. initial results typically cause users to modify and re-run queries to further refine results.  
+ 
+ permission to make digital or hard copies of part or all of this   work or personal or classroom use is granted without fee  provided that copies are not made or distributed for profit or  
+ commercial advantage and that copies bear this notice and the  full citation on the first page. to copy otherwise  to republish  to  
+ post on servers  or to redistribute to lists  requires prior specific  
+permission and/or a fee. 
+mod 1  dallas  tx usa  c  acm 1-1-1/1 . . .$1 
+ 
+ 
+ 
+one thing the terraserver has in common with classic data warehouses is that both manage huge databases: several terabytes of data.  terraserver's topographic maps cover all of the united states at 1 meter resolution 1 million square kilometers   the aerial photos cover 1% of the united states today  1 million square kilometers  at one-meter resolution  and 1% of the urban areas outside the united states  1 million square kilometers  at 1 meter resolution. 
+this report describes the design of the terraserver and its operation over the last 1 months.  it also summarizes what we have learned from building and operating the terraserver.   
+our research group explores scaleable servers.  we wanted firsthand experience building and operating a large internet server with a large database and heavy web traffic.  to generate the traffic we needed to build an application that would be interesting to millions of web users.   
+based on our exposure to the eos/dis project   we settled on building a web site that serves aerial  satellite  and topographic imagery.  we picked this application for four reasons:  
+1. the web is inherently a graphical environment  and these images of neighborhoods are recognizable and interesting throughout the world. 
+1. we believed this application would generate the billions of web hits needed to test our scalability ideas. 
+1. the data was available.  the usgs was cooperative  an since the cold war had ended  other agencies were more able to share satellite image data. the thaw relaxed regulations that had previously limited the access to high-resolution imagery on a global basis.  
+1. the solution as we defined it - a wide-area  client/server imagery database application stored in a commercially available sql database system - had not been attempted before.  indeed  many people felt it was impossible without using an object-oriented or object-relational system. 
+ 
+this paper describes the application design  database design  hardware architecture  and operational experience of the terraserver.   the terraserver has been operating for eighteen months now.  we have deployed the third redesign of the database  user interface  and process of adding new images to the database. 
+1. application design 
+terraserver is accessed via the internet through any graphical web browser. users can zoom and pan across a mosaic of tiles within a terraserver scene. the user interface is designed to function adequately over low-speed  1kbps  connections. any modern pc  mac  or unix workstation can access the terraserver using a standard web browser - internet explorer 1 or later  or netscape navigator 1 or later.  if you have never used it  look at the terraserver web site at http://terraserver.microsoft.com/. there are four methods by which a user locates an image:   
+ 1  coverage map: clicking on low resolution map of the world shaded to show where coverage exists   
+ 1  place query: entering a place name  e.g. san francisco   
+ 1  coordinate query: entering the longitude and latitude of interest  or  
+ 1  famous place:  selecting a location from a precompiled list of places.   
+a successful search presents the user with a web page containing an html table of image tiles fetched from a sql database.  gif images surrounding the image tile table provide the user with the following basic controls: 
+  pan and zoom 
+  display image meta data 
+  download an image copy 
+  control the size of the image table.  there are three fixed sizes - small  1 x 1 pixels   medium  1 x 1 pixels   and large  1 x 1 pixels .   
+  choose the image  style  or theme.  terraserver stores three image styles -- imagery stored in terraserver - shaded relief  topographic map  and photograph  aerial or satellite . 
+we expect and support the use of terraserver image tiles on remote web sites.  most data on terraserver is public domain data. therefore  we deliberately chose simple graphics and storage methods so that users could craft their own web pages that display terraserver image tiles. 
+imagery is categorized into  themes  by data source  projection system  and image  style .  currently  there are four data themes: 
+	usgs 	digital 	ortho-
+quadrangles  doq  are grayscale or color infrared  1-meter resolution aerial photos.  cars can be seen  but 1-meter resolution is too coarse to show people.  imagery is orthorectified to 1-meter square pixels.  approximately 1% of the u.s. has been digitized.  the conterminous u.s. is expected to be completed by the end of 1.  some locations have more than one doqq image available varying by image 
+source date or color mode.  terraserver stores the latest grayscale image.  if only a color infrared image is available  they it is converted to grayscale before tiling and storing in the database. usgs digital raster graphics  drg  drgs are the digitized versions of the popular usgs topographic maps. the complete set of usgs topographic maps have been scanned for the conterminous united states and  hawaii. the original images are available in three map scales - 1:1  1 meters/pixel   1:1  1 meters per pixel  and 1 meters per pixel.  the raster images are resampled to nearest power of 1 meters per pixel.   
+aerial images spin-1 tm  are grayscale 1-meter resolution de-classified russian military satellite images. the images are re-sampled 	to 	1-meter resolution. 	terra-server contains 	spin-1 	images 	of western europe  the united states  	and 	the 	far 	east.  unfortunately  there is little coverage 	of 	canada  	south america  africa  and southeast asia.  the spin-1 imagery is rectified  i.e. rotated so north is up  but is not ortho-rectified.  that is  the image is not  rubber sheeted  so that each pixel 
+covers a consistent square number of square meters.  however  given the height of the satellite  the difference in ground area between individual pixels is small. 
+encarta 	shaded 	relief 	is natural color  shaded relief map of the globe.  the full resolution image detail is approximately 1 kilometer per pixel.  the image is a seamless image of the globe between latitude +1o and -1o.  
+the microsoft geography business unit assembled the image from a public domain combination of weather satellite data and elevation data.  the image appears in the encarta virtual globe add-on product to the encarta encyclopedia cd title.  
+1 system architecture 
+terraserver is a  thin-client / fat-server  design.  the terraserver has a 1-tier architecture: 
+tier 1: the client is a graphical web browser or other hardware/software system that supports http 1 protocols and html 1 document structure. terraserver is built and tested with netscape navigator and internet explorer on windows  macos  and unix. 
+tier 1: the application logic is a web server application that responds to http requests submitted by clients by interacting with the tier 1 database system and applying logic to the results returned.  
+tier 1: the database system is a sql server 1 relational dbms containing all image and meta-data required by the application logic tier. 

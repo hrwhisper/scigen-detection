@@ -1,0 +1,221 @@
+this paper introduces a family of link-based ranking algorithms that propagate page importance through links. in these algorithms there is a damping function that decreases with distance  so a direct link implies more endorsement than a link through a long path. pagerank is the most widely known ranking function of this family.
+¡¡the main objective of this paper is to determine whether this family of ranking techniques has some interest per se  and how different choices for the damping function impact on rank quality and on convergence speed. even though our results suggest that pagerank can be approximated with other simpler forms of rankings that may be computed more efficiently  our focus is of more speculative nature  in that it aims at separating the kernel of pagerank  that is  link-based importance propagation  from the way propagation decays over paths.
+¡¡we focus on three damping functions  having linear  exponential  and hyperbolic decay on the lengths of the paths. the exponential decay corresponds to pagerank  and the other functions are new. our presentation includes algorithms  analysis  comparisons and experiments that study their behavior under different parameters in real web graph data.
+¡¡among other results  we show how to calculate a linear approximation that induces a page ordering that is almost identical to pagerank's using a fixed small number of iterations; comparisons were performed using kendall's ¦Ó on large domain datasets.
+categories and subject descriptors: h.1.m  information systems applications : miscellaneous general terms: algorithms.
+keywords: link analysis  link-based ranking  web graphs.
+1. introduction
+¡¡while traditional information retrieval  ir  methods are used by web search engines to some extent  the web is much more massive  dynamic and less coherent than traditional text collections .
+
+ partially supported by miur cofin project  linguaggi formali e automi .
+permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. to copy otherwise  to republish  to post on servers or to redistribute to lists  requires prior specific permission and/or a fee.
+sigir'1  august 1  1  seattle  washington  usa.
+copyright 1 acm 1-1/1 ...$1.
+while for any given topic there might be thousands or even millions of pages available  the problem of ranking those pages to generate a short list is probably one of the key problems of web ir  and this requires some kind of relevance estimation.
+¡¡one of the measures of importance of a scientific paper is the number of citations that the article receives. following this idea  several authors proposed to use links for ranking web pages  1  1  1 ; however  it quickly became clear that just counting the links was not a very reliable measure of authoritativeness  it was not in scientific citations either   because it is very easy to manipulate in the context of the web  where creating a page costs nearly nothing.
+¡¡the pagerank technique  introduced by page et al.   actually tries to mend this problem by looking at the importance of a page in a recursive manner:  a page with high pagerank is a page referenced by many pages with high pagerank . the algorithm not only counts the direct links to a page  but also includes indirect links. the same is valid for scientific and bibliographic citations in general.
+¡¡pagerank is a simple  robust and reliable way to measure the importance of web pages  has a clear interpretation as a markovian process  and can be computed in a very efficient way. for these reasons  most of today's commercial search engines are believed to use it as a part of their ranking function. in this paper we:   describe general ranking functions that depend on incoming paths of varying lengths 
+  show that pagerank belongs to this class of functions 
+  show how to compute these rankings 
+  compare the ranking orders induced by different ranking functions in real data  finding ways of approximating pagerank up to a very high precision.
+¡¡the rest of this paper is organized as follows: section 1 introduces the notion of functional ranking  section 1 describes three damping functions  section 1 compares them analytically  and section 1 experiments with different parameters for each function. finally  the last section presents our conclusions.
+1. functional rankings
+¡¡in this section  we introduce the notion of functional ranking  a general family of ranking functions that includes pagerank. to describe pagerank formally  we consider a web graph of n pages. let an¡Án be the adjacency matrix in this graph  ai j = 1 iff there is a link from page i to page j. this link matrix is seldom used as it is  mainly for two reasons:
+¡¡normalization. in the web  creating an out-link is free  so there is an incentive for web page authors to create pages with many outlinks; this is the reason why a metaphor of  voting  is enforced  in which each page has only one  vote  that has to be split among its linked pages. this is typically done in link-based ranking by normalizing a row-wise: the normalization process means that every web page can only decide how to divide its own score among the pages it leads to  but it cannot assign more score than it has. another way to look at normalization is that the matrix is turned into the transition matrix of a stochastic process.
+¡¡the normalization does not need to give each out-link the same value  as there is evidence that web links have different purposes such as navigating in a multi-page set  expanding the contents of the current page  pointing to another resource  etc. . also  links within the same site can be considered self-links and as such do not confer as much authority as a link between different sites; indeed  there are ranking methods like bhits  that treat them differently. other characteristics of links  such as the exploration level at which they appear in web sites   or if they are at the beginning or the bottom of individual pages  or inside a certain html element  can also be used for non-uniform normalization .
+¡¡to simplify our treatment  we will assume uniform normalization  so if a page has d out-links  each of those links has a weight of 1/d  but the results of this paper can be applied to other forms of normalization.
+¡¡dangling nodes. special attention should be paid to the possible presence of nodes with no outgoing arcs  known as  sinks  in graph theory : in fact  dangling nodes fail to produce a row-stochastic matrix  because the rows of dangling nodes are filled with zeroes. dangling nodes can be dealt with by adding an extra node that is linked to and from all other nodes  or by introducing new arcs from each dangling node to every node in the graph . in our analysis  we shall assume that all dangling nodes have been eliminated already in some way  so that we do not have to worry about their presence. all the algorithms we will present can be modified so that dangling nodes can be dealt with explicitly and with virtually no additional cost.
+¡¡let p be the row-normalized link matrix of the graph with n nodes. pagerank r ¦Á  is defined as the stationary distribution of the markov chain with state transitions given by the matrix
+¦Áp+ 1 ¦Á 1t v
+where ¦Á ¡Ê  1  is a parameter called damping factor  sometimes also called a dampening factor   and v is a fixed preference vector that may represent the interests of a particular user  or another ranking vector that is used for weighting pages. note that the above matrix is ergodic  at least  if every entry of v is strictly positive   so it has exactly one stationary distribution. even though most of our results can be easily restated with a non-uniform preference vector v  for the sake of clarity we shall only consider the uniform preference 1/n in the rest of the paper.
+¡¡as observed in  1  1   the pagerank vector r ¦Á  can be written as:
+	r	t  
+n
+or in matricial form:
+	r	||¦Áp||   1.
+¡¡there is an equivalent  and actually very intriguing way of rewriting this formula  mentioned in  that leads to a conclusion similar to those of : given a path  that is  a sequence of edges in the graph p   such that node xi is connected to node xi+1  we define its branching contribution as follows
+	branching p  =	1
+d1 ¡¤¡¤¡¤dk 1
+where dj is the outdegree  this is  the number of outgoing arcs  of node xj.
+then  the ranking of node i according to pagerank is ri ¦Á  = ¡Æ 1 ¦Á ¦Á|p| branching p 
+ 
+	p¡Êpath   i 	n
+where path   i  is the set of all paths into node i and |p| is the length of path p: this is because  pt ij contains the sum of the branching contributions of all paths of length t from i to j  as one can easily show by induction on t  a path of length 1 and branching 1 is also included in the summation . this way of expressing the pagerank of a node is interesting  because it highlights the fact that the rank of a node is essentially obtained as a weighted sum of contributions coming from every path entering into the node  with weights that decay exponentially in the length of the path.
+¡¡a natural generalization of this idea consists in taking into consideration a ranking r of the general form:
+r damping	pt t=1
+or equivalently
+         ri = ¡Æ damping |p|  1 branching p 	 1  p¡Êpath   i 	n where the damping function is a suitable choice of weights.
+¡¡we call this form of ranking a functional ranking as it is parametrized by a damping function. this generalizes lifantsev's  model in which the damping factor is a matrix of voting trust that is fixed during the computation  while in our case  this depends explicitly on the iterations. our damping function could be even more general by using d t   a damping matrix instead of damping t n1; in this paper we analyze only the latter form. fogaras  proposed using decreasing link weights depending on path lengths in the reverse link graph  and used exponentially decreasing weights as in pagerank for finding good web browsing  starting points  in the web graph. another  yet unexplored  possible direction would be to consider damping functions that depend on other properties of the paths  e.g.  whether the path passes through some node out of a certain set  rather than on their length.
+¡¡as we have seen  generic pagerank is a functional ranking where the damping function damping t  =  1 ¦Á ¦Át
+decays exponentially fast  something similar was first considered in citation analysis back in 1!  . the next section shows several functional rankings by describing their damping functions.
+1. damping functions
+¡¡formula  1  defines a form of ranking that is parametrized by a damping function; the latter describes how rapidly the importance of paths decays as the path length increases. a first  if only formal  problem is establishing which class of damping functions generates well-defined functional rankings.
+¡¡theorem 1. every damping function such that the sum of dampings is 1 yields a well-defined normalized functional ranking.
+proof. as shown in  1  corollary 1   for every pair of nodes i and j  and for every length t
+¡Æ branching p  ¡Ü 1.
+p¡Êpath i j  |p|=t
+in other words  the sum of branching contributions of all paths of a certain length between two specific nodes does never exceed 1. a more general property holds  the proof is an easy induction on the path length : for every node i and every length t
+   ¡Æ branching p  = 1. p¡Êpath i    |p|=t
+as a consequence  to guarantee that the functional ranking is welldefined and normalized  i.e.  that rank values sum to 1  we need:
+	n	1
+     ¡Æ ¡Æ damping |p|  branching p  = 1 i=1 p¡Êpath   i 	n or equivalently
+¡Þ
+¡Æ damping¡Æ branching p  = 1 . t=1	n p¡Êpath      |p|=t
+as ¡Æp¡Êpath      |p|=t branching p  = n the latter equality is equivalent to
+¡Þ
+¡Æ damping t  = 1.
+t=1
+
+¡¡of course  not all choices are equivalent  so we have to find out which functions generate better rankings. since a direct link should be more valuable as a source of evidence than a distant link  we focus on damping functions that are decreasing on t  the length of the paths.
+¡¡computation. for calculating functional rankings  we use the general algorithm shown in figure 1; the next sections provide details on the initialization  stop condition and iteration steps for each calculation.
+require: n: number of nodes  v: preference vector
+1: for i : 1 ... n do {initialization}
+1:	s i  ¡û r i  ¡û start
+1: end for
+1: for k : 1 ... ¡Þ do {iteration step}
+1:	if stop then
+1:	break
+1:	end if
+1:	aux ¡û 1
+ 1:	for i : 1 ... n do {follow links in the graph} 1:	for all j such that there is a link from i to j do
+1:	aux j  ¡û aux j  + r i /outdegree i 
+1:	end for
+1:	end for
+1:	for i : 1 ... n do {add to ranking value}
+1:	r i  ¡û aux i  ¡Á damp k 
+1:	s i  ¡û s i  + r i 
+1:	end for
+1: end for
+1: return s
+figure 1: template algorithm for computing a functional damping. start  stop and damp k  differ for each functional ranking.
+1 exponential damping: pagerank
+¡¡as we already noted  pagerank can be seen as a functional ranking where the damping function decays exponentially:
+damping t  =  1 ¦Á ¦Át.
+¡¡since longer paths have less importance in the calculation of pagerank  it could be approximated by using only a few levels of links. in   it is shown that by using only the nodes at distance 1 from a target node  equivalent to linear damping with l = 1   pagerank values can be approximated with 1% of average error. using nodes at distance 1  the average error drops to 1% and at distance 1  to 1%. after that  there are no significant improvements by adding a few more levels  and the cost  the number of nodes to be explored  is much higher.
+¡¡computation. since pagerank is the principal eigenvector of the modified graph matrix  it can be easily approximated by the iterative power method algorithm  as suggested by page et al. in their original paper ; this iterative algorithm gives good approximations  both in norm and with respect to the induced node order  in few iterations  even though convergence speed and numerical stability decay when ¦Á gets close to 1  1  1 .
+1 linear damping
+¡¡as an  extreme  alternative to pagerank  let us consider a simple damping function such as:
+ l
+damping
+	1	t ¡Ý l
+that is  a damping function that decreases linearly with distance  and reaches zero at distance l. the trivial case l = 1 gives a uniform ranking  and l = 1 is ranking by indegree  as in the latter case all paths of length ¡Ý 1 are not considered. from the definition 
+	= ¡Æ¡Þ damping	t	t  vpt
+r
+	t=1	t=1 l l+1 
+	l	1
+t pt
+ .
+provided that  i p 1 is not singular.
+¡¡an advantage of this type of ranking is that only the first few levels are considered  so the number of iterations is fixed. the rationale for this is that after a certain distance the information given by links can be disregarded.
+¡¡computation. for computing this functional ranking  we can define the following sequence:
+rv
+rrkp .
+¡¡the functional ranking with linear damping is ¡Æ  1 r k . for computing this ranking  the generic algorithm shown in figure 1 can be used  with:
+	start	:	1v i / l+1 
+	stop	:	k = l
+	damp k 	:	 l k / l  k 1  
+1 quadratichyperbolicdamping: totalrank
+¡¡recently  a ranking method called totalrank  has been proposed. the method aims at eliminating the necessity for an arbitrary parameter by integrating pagerank over the entire range of ¦Á. if r ¦Á  is the vector of pagerank  then totalrank is defined as:
+t  .
+t can be written as:
+ptd¦Á
+pt 
+where the first equality is obtained applying theorem 1 of .
+¡¡provided that p is not singular and p = i  we can write totalrank using the definition of the logarithm of a matrix:
+¡Þ pk
+ln i p  =   ¡Æ k=1 k
+t = p 1 i+ i p 1 ln i p  
+¡¡totalrank is a weighted sum of the scores associated with paths of varying lengths  in which the weights are hyperbolically decreasing on the lengths of the paths. in other words  totalrank is a functional ranking with damping function:
+damping  
+which is well defined since ¡Æt¡Þ=1 damping t  = 1.
+¡¡computation. it is known that the cost of calculating totalrank is the same as the cost of calculating pagerank via the power method   even though some more iterations are required to obtain the same precision.
+1 generalhyperbolicdamping: hyperrank
+¡¡totalrank is part of a more general family of weighting schemes for paths of different lengths that can be approximated using:
+s ¦Â  = n¦Æ ¦Â  t=1  t +1 ¦Â pt .
+¡¡again  this way of ranking follows the general scheme  with damping function chosen as
+damping .
+¡¡here  we are using riemann's zeta function   for normalization  and we need ¦Â 1 for it to converge. note that when ¦Â = 1 we get weights similar to those of totalrank  in which the t-th coefficient is 1/ t +1  t +1  whereas here it is 1/¦Æ 1  t +1.
+¡¡a meaningful choice for ¦Â should be done considering the distribution of paths of different lengths in a scale-free graph. a large ¦Á in pagerank  or a small ¦Â in hyperrank  means increasing the effect of longer paths in the score.
+computation. let us define a vector sequence r t  as follows:
+r
+r .
+¡¡it is easy to see that ¡Æt¡Þ=1 r k  = s ¦Â   because r k  = 1/ n ¡¤ ¦Æ ¦Â  k+1 ¦Â  1¡¤pk; this observation allows us to use the generic algorithm of figure 1 with the following parameters:
+	start	:	v i /¦Æ ¦Â 
+	stop	:	convergence
+	damp k 	:	 k/ k+1  ¦Â
+¡¡note that convergence speed is much slower than ordinary pagerank  especially when ¦Â is close to 1  the norm of the k-th summand being bound by 1/ 1/k ¦Â. interestingly enough  though  convergence speed is reasonable if ¦Â is sufficiently large.
+1 an empirical damping
+¡¡an empirical damping function would consider how much the value of an endorsement decreases by following longer paths in the real web graph. this cannot be known exactly  but we can attempt to measure it indirectly. pages that link to each other are more similar than pages chosen at random ; evidence from topical crawlers  shows that when doing breadth-first exploring  the topic  drifts  as the distance increases. on the same line of thought  we propose to use the decrease of text similarity as an approximation to an  empirical  damping function. in  it is shown that text similarity and link distance are anticorrelated up to 1 links.
+¡¡to find out which is the correlation between link-distance and similarity  we performed the following experiment: we considered a web graph corresponding to a partial snapshot of the .uk domain with 1 million pages  and sampled 1 nodes at random. for each sampled node  we followed links backwards to obtain nodes at a minimum distance of 1  1  1  1  or 1 links. then  we sampled 1 pairs at each minimum distance at random  and computed their similarities with the original nodes. similarity was measured using the normalization of tf.idf   without stemming or stopword removal.
+¡¡the resulting averages are shown in figure 1  with standard deviation error bars. text similarity clearly decreases with distance  and in some applications the empirical distribution of text similarity versus distance could be used as an  empirical  damping function. different measures of text similarity can yield different distributions; for instance  uses the number of repeated words and phrases between pages and obtains a faster decrease in similarity. our results show that a linear damping with l = 1 or l = 1 approximates better text similarity than an exponential damping as suggested in ; also  for different communities the link structure
+
+figure 1: link distance vs. average text similarity. a link distance of one means a direct link exists. text similarity appears to decrease linearly in the first few levels of links.
+could be different  e.g. academic vs. commercial web subsets   so we should measure first which is the correlation of link distance to text similarity in the specific collection we want to rank.
+1. comparing damping functions
+¡¡a comparison of the damping functions described in the previous section is shown in figure 1: of course  hyperbolic damping functions decay asymptotically more slowly than exponential damping  but notice that for short paths the latter may dominate the former in many cases.
+
+figure 1: weights given by the different damping functions  for some values of ¦Á and ¦Â.
+¡¡in this section  we aim at analyzing how similar are these functional rankings  and how we could use one of the damping functions to approximate another with a suitable choice of parameters.
+1 approximatinghyperrankwithpagerank
+now we want to approximate the weights of:
+spt
+t=1  t +1 
+using the weights of:
+r  
+	n	t=1
+and we proceed again by considering paths up to a certain length:
+  ¡Æ
+t
+the minimum can be zero  and it is attained at:
+ .
+¡¡the ¦Á that minimizes the difference of weights for different values of ¦Â and of the maximum path lengths  is shown in figure 1. in the case of ¦Â = 1  for instance  for path lengths up to 1 to 1  the best ¦Á is between 1 and 1.
+1 approximatingpagerankwithlinearrank
+¡¡for approximating the damping function of pagerank with the damping function of linearrank  we consider the summation of the differences up to a certain path length. if:
+  ¡Æ
+t
+
+
+figure 1: best ¦Á for minimizing the difference of the sum of weights between pagerank and hyperrank  for various parameter combinations.
+and if:
+t
+tl
+¡¡we will assume that  ¡Ü l  so the evaluation of the difference between the two rankings is done in an area in which both rankings have non-zero values. the l that minimizes the difference for a given combination of is
+l and we have plotted it for different values of	in figure 1.
+1. parameters for the damping functions
+¡¡for our experiments  we used several snapshots from the web  including the .uk  .it and .eu.int domains. for comparison  we also considered a synthetic scale-free network produced according to the evolving model described by kumar et al.   a combination of preferential attachment and random links  with the parameters suggested by pandurangan et al. . as far as the latter is concerned  in the generated graph the exponents for the powerlaw in the center part of the distributions are -1 for in-degree and pagerank  and -1 for out-degree; we generated a 1-nodes graph without disconnected nodes.
+¡¡in this section  we study the behavior of the ranking functions for different values of their parameters.
+
+figure 1: best l for minimizing the difference of the sum of weights between linearrank and pagerank  for various parameter combinations.
+1 characteristic path lengths
+¡¡in scale-free networks  the distances between pairs of nodes follow a gaussian distribution   the average is not given in their paper . analytic estimations for the average distance of a graph of scale-free network of n nodes include: o log n   ; o log n  /log np   in sparse graphs with p links ; 1 + log n/z1 /log z1/z1  where z1 is the average indegree  and z1 is the average number of nodes at distance 1 ; and
+o log n /log log n    .
+¡¡we did the following experiment: starting from a node picked at random  we followed the links backwards and counted the number of nodes at different distances. the average distances found  appear to be growing  sub logarithmically with the size of the graph. figure 1 shows the distribution obtained in each sample  the synthetic graph has less variance due to its small size . for this experiment  we are not counting the pages without in-links.
+¡¡the act of linking a page represents human endorsement and should not be affected by the size of the graph. neither the act of following a link  in terms of a random surfer  should be affected. however  an algorithm for propagating this endorsement through links for computing a ranking function needs to account for the typical distances involved; this need is typical in a situation where local properties have a global impact: for example  the addition of a single arc may reduce drastically the diameter of a graph. in most cases  researchers have used exponential damping with base 1 or 1 in graphs that are much smaller than the full web  concept graphs  social networks  e-mail graphs  etc.   meaning that a potentially much larger fraction of the nodes contributed towards link ranking. we consider that in a smaller graph  the damping function should decay faster.
+¡¡let's suppose that for a graph with n1 nodes it is found  by experimental or analytic means  that a good parameter for pagerank is . now  we would like to have a good parameter  for a graph .it web graph	.uk web graph
+
+	.eu.int web graph	synthetic graph
+
+figure 1: distribution of the average number of nodes at a certain distance from a given node in three web samples and a synthetic scale-free network.
+with the same properties  except that the size of the new graph is n1   n1. one possible approach  consistent with what we have done so far  is to consider that the sum of the weights up to the average path lengths of the graphs  l1  l1  have to be similar for both rankings to behave in a similar way. if we take this approach:
+	1  ¦Á 1 l1	=	1  ¦Á 1 l1
+¡¡¡¡¡¡¡¡¡¡¡¡l1	log n1  ¦Á 1	=	 ¦Á 1 l1 ¡Ö  ¦Á 1  log n1 
+an example that can be used in practice is the following: let's consider a web graph with n1 = 1¡Á1 pages  the size of the full web estimated by    and another graph with only n1 =1¡Á1 pages  the size of the web of a large country ; the second graph is roughly 1 orders of magnitude smaller.
+¡¡if it is shown empirically that 1 is a good value for the pagerank parameter for the whole web  then 1 should have a similar behavior in the 1-million page set  which is natural as the path lengths are shorter. if the subset of web pages were even smaller  for instance  n1 = 1 pages  the size of the web of a large organization   then 1  and for smaller graphs of n1 = 1 nodes  1. we recommend using these values for graphs that are not comparable in size to the full web graph.
+1 experimental comparison
+¡¡in this section  we present experimental results about the similarity between the ranking orders induced by some of the functional rankings discussed in the previous sections. to perform the experiments  we used data from the u.k. web graph. to compare ranking orders  we used kendall's ¦Ó: a correlation measure related to the number of inversions in the rank order of one variable when the data is ordered according to the other variable  ¦Ó = 1 means perfect agreement  ¦Ó =  1 means reverse ordering .
+ a  pagerank vs. hyperrank b  pagerank vs. linearrank 1 1	 1	 1
+exponent ¦Â 1 1 1 1    1 exponent ¦Á 1 1figure 1: comparison  using kendall's ¦Ó  between ranking orders in the u.k. web graph  with various damping parameters. there is a region of the parameter space in which the ranking orders are very close. the predicted combination of parameters that yields the minimum difference with  is very close to the actual optimum in both cases.¡¡we tested the correlation of in-degree with these damping functions. in general the correlation drops as more levels of links are considered  we omit the details here for lack of space  they will appear in the full version of this paper . figure 1  a  shows how pagerank compares with hyperrank for various pairs of ¦Á and ¦Â. in the limit ¦Á ¦Â ¡ú 1 both rankings are equivalent  and they remain similar in a large region of the parameter space. we can see that the rankings obtained with hyperrank and pagerank can be almost equivalent  kendall's ¦Ó ¡Ý 1 . moreover  the analysis shown in section 1 considering only paths of lengths less than 1  provides a very good approximation for the optimal combination of parameters. this means that in fact  the difference in the damping functions in the first few levels is crucial.
+¡¡the exponents ¦Â required for giving a good approximation of pagerank are small when ¦Á¡Ý1  limiting the practical applicability of hyperrank  as it does not converge more quickly than pagerank. as far as linearrank and pagerank with ¦Á = 1...1 are concerned  paths of roughly 1 to 1 links should be considered to obtain rankings that are almost equivalent  as shown in figure 1  b . the predicted optimum given in section 1 with 1  i.e.  considering only the summation of the differences between both damping functions up to paths of length 1  is very close to what was obtained in practice. for ¦Á=1  calculating linearrank with l = 1  which means the same number of iterations  gives ¦Ó ¡Ý 1; for ¦Á = 1  calculating linearrank with l = 1 also gives ¦Ó ¡Ý 1. in both cases  the ranking order of pagerank is approximated by the ranking order of linearrank with very high precision.
+¡¡precision finally  we focused our attention on the linearrank ranking that uses linear damping  to see if linearrank with a small number of iterations can provide a ranking that is competitive with pagerank. with this aim in mind  we used the webtrec gov1 collection  available from the university of glasgow for research purposes  see http://ir.dcs.gla.ac.uk/testcollections/ . this collection consists of about 1 million documents obtained in 1 from the .gov domain. we picked at random 1 tasks and manually created keyword queries for this evaluation  following the policy used in the standard ad hoc trec tasks. we then used the managing gigabytes for java  mg1j  framework to select from the collection 1 pages matching each query according and re-ordered the query results according to the scores resulting from different link-based ranking strategies.
+¡¡on this graph  the pagerank calculation took 1 iterations to converge on the l1-norm of the difference between two iterations to less than 1. we computed the standard precision and recall measures  and averaged them across all queries. precision at result number n is the fraction of correct results in the first n results returned by the system; the  correct  results in our case are taken from the quality assessments included in this reference collection. this is shown in figure 1.
+¡¡of course using link ranking improves the precision over no ranking at all  and pagerank and linearrank behave very similarly. for instance  if we compare the pagerank  that requires 1 iterations  with linearrank at distance 1  that requires 1 iterations only  we observe that the precision of the first element is 1% better for pagerank  of the first five elements is 1% better for pagerank  but for the first ten elements is 1% better for linearrank. from that point over  both rankings are roughly equivalent.
+¡¡this means that linearrank at distance 1 can provide a level of precision for information retrieval tasks that is quite similar to that of pagerank. this is applicable in contexts where link-based
+
+figure 1: evaluation of the precision of linearrank and pagerank in the webtrec gov1 collection.
+ranking cannot be computed in advance  but a computation at query time is necessary. for instance  this occurs if we need to analyze links over a sub-graph that is generated at query time.
+1. conclusions
+¡¡in this paper we have defined a broad class of link-based ranking algorithms based on the contribution of damping factors along all the different paths reaching a page. we found that functional rankings using different damping functions can provide similar orderings  if the parameters are chosen carefully. linearrank can be used for calculating a ranking that is as good as pagerank  but with a fixed  and smaller  number of iterations. also  the parameters for the damping functions depend on the characteristic path lengths in the graph  which are known to grow sub-logarithmically on the size of the graph.
+¡¡more work is needed to find other damping functions that compute rankings similar to pagerank but are easier and faster to compute. we use a global ranking similarity  but another measure could be the ranking similarity in the top 1 results of real queries. in this setting our results can change  so future work will include this variation. our results show that the exponential damping used by pagerank is not that special.
+¡¡because of their high cost  link-based ranking methods that involve iterative calculations at query time are probably not used by large-scale search engines at this moment  but the functional ranking with linear damping we have presented can provide a good approximation with few iterations. moreover  the approach we have presented could be also applied to multivalued ranking functions such as hits  and topic-sensitive pagerank  to obtain  for instance  a method for approximating the hubs and authority scores using less iterations and a linear damping function.
+¡¡our approach also helps to understand how easy or difficult it is to collude many pages to modify the ranking of a given page. clearly there are many different factors: path lengths  damping function  branching degrees  and number of colluded pages. the graph structure of the collusion will affect those factors and we plan to analyze them. in particular  under the assumption that is easier to  spam  closer links  pagerank damping is more affected by collusion than the rest of the damping functions presented here. in  a truncated exponential damping  combined with other linkanalysis techniques  is used for spam detection.
+¡¡acknowledgements: we would like to thank da¡äniel fogaras for a valuable discussion about totalrank that motivated part of this research. the authors also thank the support from icrea and the ca¡ätedra telef¡äonica at universitat pompeu fabra.

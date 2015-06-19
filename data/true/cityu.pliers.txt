@@ -1,0 +1,77 @@
+ 
+1. introduction 
+ 
+we report on our experiments for the trec 1 web track for both the topic distillation and named page tasks. we use a very simple method for both tasks which takes the first hit page in the top 1 for a give web site and discards any further pages from that web site  section 1 describes our research aims and objectives in more detail . we also describe indexing results  section 1   give a description of the runs and settings used  section 1   briefly describe our retrieval efficiency results in section 1  and outline our retrieval efficiency results in sections 1 and 1. a conclusion is given in section 1.  
+ 
+1. research aims and objectives 
+ 
+we take a very simple approach both the topic distillation and named page tasks. we want to test the hypothesis  does the best bm1 ranked document from any given web site yield the best web page for users information needs . we want to compare this rather simple technique with other more complex techniques which use link information in order to find the best given web page or pages.  
+ 
+our retrieval efficiency experiments differ from our previous work  which concentrated on using large scale parallelism to speed up the processing of both indexing and search. in these experiments we want to show that we can successfully process large amounts of text with our system using a single machine  even if it does has multiple processors on it . 
+ 
+1. indexing methodology and results 
+ 
+1 indexing methodology 
+ 
+we used a simple and straightforward methodology for indexing: parsing  remove stop words  stemming in the given language. the pliers html/sgml parser needed to be altered to detect non-ascii characters such as those with umlauts  accents  circumflexes etc. we also incorporated non-english stemmers into the pliers library  these were not used for these experiments . we used a standard stop word list defined by fox . apart from this our indexing methodology is much the same a described in . 
+ 
+1 indexing results 
+ 
+ 
+elapsed time  hrs  dictionary file size mb postings file size gb map file size mb % of text 1 1 1 1 1%  
+table 1 - indexing results for .gov collection 
+ 
+table 1 gives the indexing results for the .gov collection. pliers was able to process the data in a reasonable time  just under 1 hours  and produced an inverted file that was only 1% of the collection size. this compares favourably with our previous web track experiments with wt1g   in which indexes were 
+1% of the collection size.  the final merge took only about 1 minutes  a total of 1% of total indexing time : this represents a significant improvement on previous single processor experiments. this can be explained by our usage of a significantly faster machine. we regard it as a success to be able to index data of this size: we suspect that the system would not be able to handle a slightly larger collection without failing. 
+ 
+1. run descriptions and settings used 
+ 
+all experiments were conducted on a pentium 1 machine with 1 mb of memory and 1 gb of disk space. 
+the operating system used was red hat linux 1. all search runs were done using the robertson/sparck jones probabilistic model. all our runs are in the web track. all queries derived from topics are automatic. 
+ 
+changes to software in order to conduct these particular experiments were minimal. we used the url/trec id list supplied with the .gov collection to identify and eliminate documents from the top 1 results which are from the same web site. only the highest ranked document from a web site is retained. the top 1 results are therefore guaranteed to have unique url's in them i.e. all documents in the top 1 are from different web sites.  we used this technique on both web track tasks. 
+ 
+the weighting function used for these experiments was bm1 . there are a number of tuning constants for this function with which we have done experiments on before  in order to find the best combination for search . there are two constants: k1 and b . the k1 constant alters the influence of term frequency in the 
+bm1 function  while the b constant alters the influence of normalised average document length. values of k1 can range from 1 to infinity  whereas the values of b are with the range 1  document lengths used unaltered  to 1  document length data not used at all .  table 1 shows the details of our official web track runs  note: t = title only queries  td=title and description  d=description only . 
+ 
+run id description query type k1 constant b constant pltr1wt1 distillation run t 1 1 pltr1wt1 non-distillation run t 1 1 pltr1wt1 distillation run t 1 1 pltr1wt1 non-distillation run t 1 1 pltr1wt1 distillation run td 1 1 pltr1wt1 named page run d 1 1 pltr1wt1 named page run d 1 1 pltr1wt1 named page run d 1 1 pltr1wt1 named page run d 1 1  
+ 
+table 1 - trec 1  web track run details 
+ 
+we used 1 for the k1 constants for all our runs as this was the best found in our previous web track experiments for a large collection of web data . for the topic distillation task we varied the b constant between 1 and 1 in order to investigate the effect of document length on this task. we also included some non-distillation runs to allow us to quantify the effectiveness of our distillation runs. most of our distillation task runs used title only queries  realistic   but we did submit one title/description run. we used description only queries for the named page task  this was the only allowed method . we were able to vary the b constant on the named page task a little more as we had less flexibility on those runs: this allowed us to investigate the effect of document length in more detail for this task.  
+ 
+1. trec 1 retrieval efficiency results 
+ 
+1 retrieval efficiency results 
+ 
+table 1 gives a sample of the average elapsed time for each of the official runs. the distillation task runs contained 1 queries  whilst the named page runs contained 1 queries. we are very satisfied with our query response times on the .gov collection. all our runs have  met the one to ten second response time criteria specified by frakes   and they are good for a collection of this size. we believe that these response times could be considerably improved by using various query optimisation techniques  currently we do not use any in our query processing .  
+ 
+ 
+query type distillation runs non-distillation runs named page runs t 1 1 - td 1 - - d - - 1  
+table 1 - trec 1 average elapsed time for official runs  sample  
+ 
+ 
+1. topic distillation task results 
+ 
+the topic distillation results are shown in table 1. 
+ 
+run id description precision   1 average precision query type b pltr1wt1 distillation run 1 1 t 1 pltr1wt1 non-distillation run 1 1 t 1 pltr1wt1 distillation run 1 1 t 1 pltr1wt1 non-distillation run 1 1 t 1 pltr1wt1 distillation run 1 1 td 1  
+table 1 - trec 1 topic distillation results 
+ 
+an interesting result from our experiments was that the non-distillation runs did better than the distillation runs  and that one of our non-distillation runs  pltr1wt1  came second overall in this years web track topic distillation task . two significant observations can be made about these experiments. the first is that just using a simple minded url removal technique to improve topic distillation simply does not work. the second is that for this task  using ordinary bm1 search techniques with no relevant feedback is comparable to those methods which utilize such evidence as document structure  anchor text and link structure. with respect to the bm1 tuning constant parameter it is clear that a lower value of b was better for both our types of runs: runs with b set at 1 did better than those with b set at 1  when comparing like with like e.g. distillation runs .  
+ 
+1. named page task results 
+ 
+the named page results are shown in table 1. 
+ 
+run id mrr % in top 1 % not found b pltr1wt1 1 1% 1% 1 pltr1wt1 1 1% 1% 1 pltr1wt1 1 1% 1% 1 pltr1wt1 1 1% 1% 1  
+table 1 - trec 1 named page task results 
+ 
+overall the results are disappointing: in most runs we are only finding about 1% of the named pages in the top 1  and our experiments do not find up to 1% of the resources at all. therefore our mrr results are not as good as we would have liked - up to something in the region of 1 as found with the top scoring run in this years named page task . we believe that one important factor may be the cause of reduced effectiveness for this task given the evidence found in topic distillation runs: all experiments used the url removal technique - and this has obviously had a significant effect on our mrr scores. it would be useful to do named page experiments without the url removal procedure in order to quantify the effect of using such a method. we could also make a contribution to the ir community  being able to compare a realistic bm1 technique with those which make use of document/link structures and anchor text.  it should be noted that mrr increases with the value of b  but the increase is not significant beyond b=1. the increase from b=1 to b=1 is significant however: the percentage increase is 1%. increases on the other runs with increasing value of b are all below the half percent mark. 
+ 
+1. conclusion 
+ 
+the simple minded technique of removing multiple hits from web pages used for the purposes of the experiments described in this paper  do not appear to have work particularly well. we have found  significantly  that a straight bm1 term weighting run with no relevance feedback compares very well indeed with methods which use document/link structures and anchor text in the topic distillation task. our named page runs are disappointing  and we believe that part of the problem relates to removing multiple hits from web pages.  
+       with respect to our hypothesis  we have demonstrated that for the topic distillation task  bm1 appears to work quite well. however we have not been able to demonstrate this for the named page task and further investigation is required. in particular the issues of removing documents from the top 1 when other document from the same web site have already been retrieved needs to be investigated.  
+       the evidence from the experiments described in this paper show that altering the value of the b constant in the bm1 model does appear to have an effect: in particular a high value of b parameter appears to work well with the .gov collection for both of this years web track tasks. we have been able to show that our system scales to much larger collections of the .gov size  and have shown the indexing/search speeds are acceptable for data sets of this size. 
+ 

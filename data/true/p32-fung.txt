@@ -1,0 +1,199 @@
+we describe an algorithm for converting linear support vector machines and any other arbitrary hyperplane-based linear classifiers into a set of non-overlapping rules that  unlike the original classifier  can be easily interpreted by humans. each iteration of the rule extraction algorithm is formulated as a constrained optimization problem that is computationally inexpensive to solve. we discuss various properties of the algorithm and provide proof of convergence for two different optimization criteria we demonstrate the performance and the speed of the algorithm on linear classifiers learned from real-world datasets  including a medical dataset on detection of lung cancer from medical images. the ability to convert svm's and other  black-box  classifiers into a set of human-understandable rules  is critical not only for physician acceptance  but also to reducing the regulatory barrier for medical-decision support systems based on such classifiers.
+categories and subject descriptors
+i.1.m  pattern recognition : miscellaneous
+general terms
+algorithms
+keywords
+rule extraction  linear classifiers  mathematical programming  medical decision-support.
+1.	introduction
+¡¡support vector machines  svms   1  1  and other linear classifiers are popular methods for building hyperplanebased classifiers from data sets  and have been shown to have excellent generalization performance in a variety of applications. these classifiers  however  are hard to interpret by humans. for instance  when an unlabeled example
+permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. to copy otherwise  to republish  to post on servers or to redistribute to lists  requires prior specific permission and/or a fee.
+kdd'1  august 1  1  chicago  illinois  usa.
+copyright 1 acm 1-1-x/1 ...$1.
+is classified by the linear classifier as positive or negative  the only explanation that can be provided is that some linear weighted sum of the variables of the example are lower  higher  than some threshold; such an explanation is completely non-intuitive to human experts. humans are more comfortable dealing with rules that can be expressed as a hypercube with axis-parallel surfaces in the variable space.
+¡¡previous work  1  1  and more recent work  included rule extraction for neural networks but very few work has been done to extract rules from svms or any other kind of hyperplane-based classifier. recently nunez et al  proposed a method to extract rules from an svm classifier which involves applying a clustering algorithm first to identify groups that later define the rules to be obtained.
+¡¡we propose a methodology for converting any linear classifier into a set of such non-overlapping rules. this rule set is  asymptotically  equivalent to the original linear classifier  covers most of the training examples in the hyperplane halfspace. unlike  our method does not require computationally expensive data preprocessing steps  as clustering  and the rule extraction is done in a very fast manner  typically it takes less than a second to extract rules from svm's trained on thousands of samples. our algorithm does not required anything more complicated that solving simple linear programming problems in 1n variables where n is the number of input features  after feature selection .
+¡¡in the next section we briefly discuss the medical relevance of this research. the ability to provide explanations of decisions reached by  black-box  classifiers is not only important for physician acceptance  but it is also a vital step in potentially reducing the regulatory requirements for introducing a medical decision-support system based on such a classifier into clinical practice. section 1 then describes the commonly used linear support vector machine classifier and gives a linear program for it. section 1 provides our rule extraction algorithm; each iteration of the rule extraction algorithm is formulated as one of two possible optimization problems based on different  optimal  rule criteria. the first formulation  which seeks to maximize the volume covered by each rule  is a constrained nonlinear optimization problem whose solution can be found by obtaining the closed form solution of a relaxed associated unconstrained problem. the second formulation  which maximizes the number of samples covered by each rule  requires us to solve a linear programming problem. in section 1 we discuss finite termination and convergence conditions for our algorithm. section 1 summarizes our results on 1 publicly available datasets  and an additional medical dataset from our previous work  in building a cad system to detect lung cancer from computed tomography volumes. we conclude in section 1 with some thoughts on further extensions and applications.
+¡¡we now describe the notation used in this paper. the notation a ¡Ê rm¡Án will signify a real m ¡Á n matrix. for such a matrix  a¡ä will denote the transpose of a and ai will denote the i-th row of a. all vectors will be column vectors. for x ¡Ê rn  kxkp denotes the p-norm  p = 1 ¡Þ. a vector of ones in a real space of arbitrary dimension will be denoted by e. thus  for e ¡Ê rm and y ¡Ê rm  e¡äy is the sum of the components of y. a vector of zeros in a real space of arbitrary dimension will be denoted by 1. a separating hyperplane  with respect to two given point sets a and b  is a plane that attempts to separate rn into two halfspaces such that each open halfspace contains points mostly of a or b. a bounding plane to the set a is a plane that places a in one of the two closed halfspaces that the plane generates. the symbol ¡Ä will denote the logical  and  and the symbol ¡Å will denote the logical  or . the abbreviation  s.t.  stands for  such that . for a vector x ¡Ê rn  the sign function sign x  is defined as sign x i = 1 if xi   1 else sign x i =  1 if xi ¡Ü 1  for i = 1 ... n.
+1.	medical relevance
+¡¡from the earliest days of computing  physicians and scientists have explored the use of artificial intelligence systems in medicine . a long-standing area of research has been building computer-aided diagnosis  cad  systems for the automated interpretation and analysis of medical images . despite the demonstrated success of many such systems in research labs and clinical settings  these systems were not widely used  or even available  in clinical practice. the primary barrier to entry in the united states is the reluctance of the us government to allow the use of  black box  systems that could influence patient treatment.
+¡¡although the food and drug administration  fda  has recently granted approval for cad systems based on  blackbox  classifiers   the barrier to entry remains very high. these systems may only be used as  second-readers   to offer advice after the initial physician diagnosis. more significantly  these cad systems must receive pre-market approval  pma . a pma is equivalent to a complete clinical trial  similar to the ones used for new drugs   where the cad system must demonstrate statistically significant improvement in diagnostic performance when used by physicians on a large number of completely new cases. this is a obviously a key area of research in cad  but not the focus of this paper. the fda has indicated that the barrier to entry for cad systems that are able to explain their conclusions  could be significantly lowered. note  this will not lower the barrier in terms of generalization performance on unseen cases  but the fda is potentially willing to consider using performance on retrospective or previously seen cases and significantly reduce the number of cases needed for a prospective clinical trial. this is critical  because a full-blown clinical trial can add several years delay to the release of a cad system into general clinical practice.
+¡¡much research in the field of artificial intelligence  and now knowledge discovery and data mining has focused on the endowing systems with the ability to explain their reasoning  both to make the consultation more acceptable to the user  and to help the human expert more easily identify errors in the conclusion reached by the system . on the other hand  when building classifiers from  medical  data sets  the best performance is often achieved by  black-box  systems  such as  support vector machines  svms . the research described in this paper will allow us to use the superior generalization performance of svm's and other linear hyperplane-based classifiers in cad system  and using the explanation features of the rule extraction algorithm to reduce the regulatory requirements for market introduction of such systems into daily clinical practice.
+1.	hyperplane classifiers: 1-norm
+support vector machines
+¡¡we consider the problem of classifying m points in the n-dimensional input space rn  represented by the m ¡Á n matrix a  according to membership of each point ai in the class a+ or a  as specified by a given m¡Ám diagonal matrix d with plus ones or minus ones along its diagonal. for this problem  depicted in figure 1  the linear programming support vector machine  1  1  with a linear kernel  this is a variant of the standard svm  1  1   is given by the following linear program with parameter ¦Í   1:
+	min	¦Íe¡äy + kwk1
+ w ¦Ã y ¡Êrn+1+m
+s.t.d aw   e¦Ã  + y y¡Ý
+¡Ýe
+1  1 ¡¡where k ¡¤ k1 denotes the 1-norm as defined in the introduction. that this problem is indeed a linear program  can be easily seen from the equivalent formulation:
+w ¦Ã y t
+s.t. d aw   e¦Ã  + y t	¡Ý w y¡Ý ¡Ý
+¡Ý e  t
+1. 1 for economy of notation we shall use the first formulation  1  with the understanding that computational implementation is via  1 .
+¡¡if the classes are linearly inseparable  which is often the case in real-world datasets  then two planes bound the two classes with a  soft margin   i.e. bound approximately with some error  determined by the nonnegative error variable y  that is:
+	aiw + yi ¡Ý ¦Ã + 1 	for	dii = 1 
+ 1 
+	aiw   yi ¡Ü ¦Ã   1 	for	dii =  1.
+¡¡the 1-norm of the error variable y is minimized parametrically with weight ¦Í in  1   resulting in an approximate separating plane. this plane classifies data as follows:
+sign x¡äw   ¦Ã   = 1  then x ¡Ê a+ 	 1  =  1  then x ¡Ê a  
+where sign ¡¤  is the sign function defined in the introduction. empirical evidence  indicates that the 1-norm formulation has the advantage of generating very sparse solutions. this results in the normal w to the separating plane x¡äw = ¦Ã having many zero components  which implies that many input space features do not play a role in determining the linear classifier. this makes this approach suitable for feature selection in classification problems. since our rule extraction algorithm depends directly on the features used
+
+figure 1: the lp-svm classifier in the w-space of rn. the plane of equation  1  approximately separating points in a+ from points in a .
+
+figure 1: two-dimensional example where the non-overlapping rules covering the halfspace  {x s.t. w¡äx   ¦Ã}  are represented as cyan rectangles
+.
+by the hyperplane classifier  sparser normal vectors w will lead to rules depending on a fewer number of features.
+1.	rule extraction from hyperplane
+classifiers
+¡¡in the previous section  we described a linear programming svm formulation to generate hyperplane classifiers. we now present an algorithm to extract rules of the form:
+
+to approximate these classifiers. note that every rule form defined above defines an hypercube in the n dimensional space with edges parallel to the axis. rule of this form are very intuitive and can be easily interpreted by humans.
+¡¡our rule extraction approach can be applied to any linear classifier regardless of the algorithm or criteria used to construct the classifier  including linear fisher discriminant  lfd    least squares svm's  ls-svms   or proximal svms  psvm  . denote by p  w ¦Ã i  the problem of constructing rules for the classifier for the region:
+i = {x s.t. w¡äx   ¦Ã  li ¡Ü xi ¡Ü ui  1 ¡Ü i ¡Ü n}
+based on the classification hyperplane w¡äx = ¦Ã obtained by solving problem  1 . note that the problem of rule extraction p+ w ¦Ã i¡ä  where
+i¡ä = {x s.t. w¡äx   ¦Ã  li ¡Ü xi ¡Ü ui  1 ¡Ü i ¡Ü n}
+is the same as p   w  ¦Ã i . we now establish that this is equivalent to solving the problem with positive hyperplane coefficients  ¦Ã = 1 and the feature domain being the unit hypercube. consider a diagonal matrix t constructed in the following way:
+		 1 
+and a vector b with components b = {ui if wi   1  li if wi   1} we now define a transformation of coordinates such that y = t x   b . note that
+wi   1   1 ¡Ü yi = tii xi   li  = xi   li ¡Ü 1 ui   li
+wi   1   1 ¡Ü yi = tii xi   ui  =   xi   ui  =  ui   xi  ¡Ü 1 ui   li	ui   li
+ 1 
+hence  i is transformed to  1 n. furthermore x = t 1y+b  and hence  the hyperplane of interest becomes
+w¡ät 1y = ¦Ã   w¡äb
+which is equivalent to:
+	= 1	 1 
+thus the problem becomes p  w   1 i1  in the new domain  where i1 =  1 n. 1 note that the components of  w are positive as w¡äb   ¦Ã and witii   1.
+¡¡for the rest of this paper we will concentrate in finding rules with the following properties:
+
+1
+ in mapping the original problem to the unit hypercube the measure of volume is merely a scaled version of the original problem  and thus the optimum remains the same.
+  the hypercube defined by the extracted rule
+
+is a subset of the bounded region i = {x s.t. w¡äx   ¦Ã}
+  the resulting hypercube cube defined by the extracted rule contains one vertex that lies in the separating hyperplane w¡äx   ¦Ã = 1. this assumption allows to obtain set of disjoint rules that are easy to generate and simplifies the problem considerable.
+¡¡figure 1 illustrates an example in two dimensions where the halfspace w¡äx   ¦Ã is almost totally covered by rules represented by hypercubes with a vertex in the hyperplane w¡äx   ¦Ã = 1.
+¡¡given a region i we can define the  optimal  rule according to different criteria  next we present two of them.
+1	volume maximization criteria
+¡¡an optimal rule can be defined as the rule that covers the hypercube with axis-parallel faces with the largest possible volume. since the log function is strictly increasing  argmaxf x  = argmaxlog f x    we can find the rule that maximizes the log of the volume of the region that it encloses  instead of the volume . assuming that the linear transformation t was already applied and that one corner of the region lies on the hyperplane  this rule can be found by solving the following problem:
+             n	n x¡Êr y x
+	maxn log 	xi 	s.t.	wixi = ¦Ã 1 ¡Ü x ¡Ü 1	 1 
+	i=1	i=1
+the lagrangian function for this nonlinear constrained optimization problem is:
+	n	n	n
+l x ¦Ë ¦È  = log yxi  ¦Ë w¡äx ¦Ã  x¦Èi x 1 +x¦Äix
+	i=1	i=1	i=1
+                                                    1  the kkt optimality conditions for problem 1 are given by:
+1
+	xi	i	i	i
+w¡äx = ¦Ã
+1 ¡Ü xi ¡Ü 1 ¦Ë ¡Ý 1 ¦Èi ¡Ý 1 ¦Äi ¡Ý 1 ¦Èi xi   1  = 1 ¦Äixi = 1 i ¡Ê {1 ... n}
+ i ¡Ê {1 ... n}  i ¡Ê {1 ... n} 1 	   ¦Ëw   ¦È + ¦Ä = 1	 i ¡Ê {1 ... n}
+¡¡in order to find a solution for problem  1  we will first consider solutions for the relaxed equality constrained problem:
+             n	n x¡Êr y x
+	maxn log 	xi 	s.t.	wixi = ¦Ã 	 1 
+	i=1	i=1
+the kkt optimality conditions for problem  1   which are very similar to the kkt conditions of problem  1   are given by:
+	= 1	 1 
+¡¡from the kkt optimality conditions  1  we obtained the following closed form solutions for the relaxed optimization problem:
+		 1 
+¡¡a solution x  of the original optimization problem  1  can be obtained from the solution  1 . let's define x  as follows:
+	if	x 
+i ¡Ü 1  i ¡Ê {1 ... n}    1 
+	1	otherwise
+where 
+		 1 
+where a = {i |x i   1} and ni is n |a|. with ¦Ë  defined as above we have that:
+wx    ¦Ã=n
+wix i = xwix i + xwix i   ¦Ã
+i=1	i¡Êi	i¡Êa
+wi
+	=	i¡Êi ¦Ë wi + xwi   ¦Ã
+i¡Êa
+=i	pni	xi¡Êa	i
+¦Ã   ¦Ã = 1	=	¦Ën i + xwi   ¦Ã	 1 
+i¡Êa
+	¦Ã  	w
+	=	n	i¡Êa	i +	w   ¦Ã
+¡¡if 1 ¡Ü x i ¡Ü 1  i ¡Ê {1 ... n}   then x  is the optimal solution for problem 1  otherwise define  x = x  and recalculate x  until 1 ¡Ü x i ¡Ü 1  i ¡Ê {1 ... n}. this iterative procedure can be seen as a gradient projection method for which convergence is well established  1  1 .
+1	point coverage maximization criteria
+¡¡another optimal rule can be defined as the rule that covers the hypercube with axis-parallel faces with that contains the largest possible number of training points in the halfspace. given a transformed problem p  w   1 i1   we want to find x  such that w¡äx    ¦Ã = 1 and |c|  cardinality of c  is maximal  where:
+c =  a  ¡É {x| w¡äx   1}  ¡É {x| 1 ¡Ü x ¡Ü x }
+the following linear programming formulation is an approximation to this problem :
+min	e¡äy x y
+	s.t.	w¡äx	= 1
+	a.i   eyi	¡Ü xi	 	 i ¡Ê {1 ... n}	 1 
+1 ¡Ü x ¡Ü 1 y ¡Ý 1.
+¡¡note that the variable y ¡Ý 1 acts as a slack or error variable that is minimized in order in order for the rule to cover the largest possible amount of points.
+we can now use either one of the optimal rule definitions described in subsections 1 and 1 to propose an iterative procedure that extract as many rules as we require to describe adequately the region of interest. we first demonstrate that in a n-dimensional feature space  extracting one such a rule results in n new similar problems to solve. let the first rule extracted for the transformed problem p  w   1 i1  be
+ . the remaining volume on this side of the hyperplane that is not covered  is the union of n nonintersecting regions similar to the original region  namely x ¡Ê rn s.t. 1 ¡Ü xj   x j  1 ¡Ü j   i
+ii =x i ¡Ü xi   1	 1  :	1 ¡Ü xj   1	 j   i
+that is  the rule inequalities for the first i 1 components of x are satisfied  the inequality that relates to the ith component is not satisfied  and the rest are free. consider i j with j   i. for each x ¡Ê ij  we have 1 ¡Ü xi   x i and for each x ¡Ê ii  we have x i ¡Ü xi   1. hence  ii are nonintersecting  and the rules that we arrive at for each ii will be  independent . now we extract the optimal rule for each of these regions that contains a training data point using a depth first search. note that the problem for ii is p  w   1 ii   and we can now use the same transformation as described in equations  1  1  to transform each of the n subproblems p  w   1 ii  to problems equivalent to the original problem p  w   1 i1 .
+¡¡next  we state our algorithm to obtain a set of rules r that cover all the training points belonging to a  such that w¡äx   ¦Ã. let r be the set containing all the extracted rules  and u be the set containing the indices of the points uncovered by the rules in r. r and u are initialized to   and a  respectively  dmax  which bounds the maximum depth of the depth first search  typically less than 1  is assigned  and w ¦Ã are obtained by solving the lp-svm  1  before extractrules is invoked for the first time.
+¡¡algorithm 1. extractrules w ¦Ã i d : algorithm for rule extraction from linear classifiers.
+1. if d = dmax  stop.
+1. transform problem p  w ¦Ã i  into p  w   1 i1  using the linear transformation described in section 1  equations  1 - 1 .
+1. obtain y  by solving problem p  w   1 i1  using either equations  1 - 1  or equation  1 .
+1. calculate x  = t 1y  +b  get new rules r  x    update r ¡û r ¡È r  x  .
+1. let c = {x ¡Ê u st. r  x   is true} = u ¡É r  x    this is  a set containing the indices of the points in u that are covered by the new obtained rule.
+1. update u ¡û u   c. if u =    stop. else d ¡û d + 1.
+1. for k = 1 to n do
+  calculate i k = t 1ik + b. if u ¡É i k 1=   apply recursively extractrules w ¦Ã i k d   where i k is one of the n remaining regions of interest uncovered by rule r  x   as defined in  1 .
+1.	algorithm convergence properties
+¡¡we now derive the rate at which the volume covered by the rules extracted for p w 1 i1  converges to the total volume of the region of interest.
+lemma: the volume of the region {x s.t. w¡äx   ¦Ã xi ¡Ý
+1} is
+n ¦Ã
+y wi
+i=1
+vn w ¦Ã  =
+n!
+proof: we show this by induction. for n = 1  this is the area of a right-angled triangle with sides ¦Ã/w1 and ¦Ã/w1  which is ¦Ã1w1. now  assume that this is true for n = k.
+
+where w i contains all components of w except the i-th.
+¡¡lemma: for any s   {1 ... n}  the volume of a region defined by w¡äx   1 and 1 ¡Ü xi   1 ¡Ü i ¡Ü n is bounded by
+
+proof: we can assume without loss of generality that s is {1 ... k}  if it is not  the coordinates may be permuted so that it is . the volume of interest  say v is given by
+
+where the first two inequalities are because the upper limit in the integral is replaced by an upper bound  and the last equality comes from the previous lemma with ¦Ã = 1.
+lemma: at each  stage   the algorithm covers at least
+ of the volume yet to be covered. hence the volume remaining after k stages is at most  1   ¦Á kv1.
+proof: the volume covered by the rule is given by
+n
+vrule	=	x i =  y  1wi   y 1  ¦Ë
+   i=1 i/¡Êa i¡Êa =  1 ip¡Êa
+	1  	wi
+ wi	n   |a| i/¡Êa
+ 1   |a|/n y wi n   |a| ¡Ý
+i/¡Êa
+1
+   y wi n =
+¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡i/¡Êa where a as before is the set of active constraints  and the inequality above comes from the fact that for  the original solution to the relaxed problem violates the constraints . using the result of the previous lemma  and setting s = {1 ... n} a  we have
+
+the last inequality arises because the bound is monotonically increasing in |a| with it being the smallest when |a| = 1.
+¡¡lemma: at each stage  the algorithm reduces the largest distance from an interior point yet to be covered to the separating hyperplane by a factor of 1   1/n. proof: we establish the lemma for one stage of p w 1 i1   a simple scaling argument would extend it to a general ¦Ã and i  and hence to further stages of the problem as well . the largest distance from the plane in i1
+	d1max =	sup	 1   w¡äx /||w|| = 1/||w||
+x¡Êi1 w¡äx 1
+in region ii  as xi ¡Ý x i and w¡äx is monotonically increasing in each coordinate
+	dimax =	sup	 1   w¡äx /||w|| =  1   wixi  /||w||
+x¡Êii w¡äx 1
+when i ¡Ê a  then ii has no interior points. when i /¡Ê a  x i = wix i = 1/n. hence  dimax =  1   1/n /||w|| =  1   1/n d1max
+¡¡theorem: after extracting t rules  the remaining volume is at most  1 ¦Á logn t 1 of the original volume. moreover  the rule extraction algorithm covers in finite time any dataset that has all points in the interior of i.
+proof: as described before  each rule extraction leads to n further  subproblems . hence  the number of rules to be extracted in stage k is nk 1  and the number of rules extracted upto and including stage. hence  if t rules have been extracted and k stages are complete 
+
+hence  at least logn t   1 stages are complete  and hence  by a previous lemma  at most  1   ¦Á logn t 1 of the volume remains  which converges to 1 as t ¡ú ¡Þ . moreover  by the previous lemma we have that at the end of stage k  dmax =  1   1/n k¦Ã/||w||
+hence  for a data point x  we have that x is covered when
+ ¦Ã   w¡äx /||w||    1   1/n k¦Ã/||w||
+i.e. when k ¡Ý log 1/n   1   w¡äx/¦Ã 
+hence  the entire data set a  is covered when
+
+i.e.  when
+t = n1+log 1/n   1 maxx¡Êa   w¡äx /¦Ã 
+we now use this to establish termination of the algorithm for a given data set in finite time. let us assume the contrary  i.e. that there is a point x# such that w¡äx#   ¦Ã and it is not covered in the rule extraction process. by the previous lemma  we have that y = x# +  ¦Ã   w¡äx# w/1||w|| is not covered  as it is greater than x . moreover  any point in the hypercuboid x#i ¡Ü xi   yi is not covered by the rules. hence the volume of the uncovered region is at least
+   which is a contradiction of the previous part of the theorem. hence  the point x# gets covered after a finite number of iterations.
+1.	numerical testing
+¡¡to show the effectiveness of our rule extraction algorithm  we performed experiments in five real-world datasets. three of the datasets are publicly available datasets from the uci machine learning repository : wisconsin diagnosis breast cancer  wdbc   ionosphere  and cleveland heart. the fourth dataset is a dataset related to the nontraditional authorship attribution problem related to the federalist papers  and the fifth dataset is a dataset used for training in a computer aided detection  cad  lung nodule detection algorithm  we refer to this set as the lung cad dataset. experiments for the five datasets were performed to test the capability of algorithm 1 to cover training points correctly classified by the svm hyperplane. for each experiment  we obtained a separating hyperplane using the 1 norm linear programming svm  lp-svm  formulation as described in equation  1 . the state of the art optimization software cplex was used to solve the corresponding linear programming problems. ten-fold cross validation was used as a tuning procedure to determine the svm parameter ¦Í. in all the experiments  the resulting hyperplane classifier was sparse  this means that the set {wi s.t. wi 1= 1  1 ¡Ü i ¡Ü n} was  small   this was expected because of the effect of the 1 norm regularization term on the coefficients wi. having a sparse hyperplane implies that the dimensionality of the training dataset can be reduced by discarding the features corresponding to wi = 1 since they do not play any role in the classification.
+once the hyperplane was obtained we applied algorithm 1 using one of the two criteria for optimal rules described in subsections 1 and 1. the first criteria is based in finding rules that maximizes the volume of the region covered by the rule  we will refer to this variant of algorithm 1 as volume maximization  vm . the second criteria is to find rules that attempt to cover a many points of the training set as possible. we will call this variant of algorithm 1 point coverage maximization  pcm .
+¡¡results for both vm and pcm are reported in tables 1 and 1 including: total number of optimization problems solved  total execution time  total number of extracted rules and percentage of correctly classify points by the hyperplane that were covered by the extracted rules.
+it is important to note that the results reported included only rules that covered more than one point. we considered that rules that covered only one point did not have any generalization capability and therefore were discarded. in general  the algorithm can be tuned to discard rules that do not cover enough points according to a number predefined by the user.
+¡¡empirical results on the five datasets as reported in tables 1 and 1 show the effectiveness of both the vm and pcm variants of our proposed algorithm. in most cases our algorithms covered more of 1% of the training points using only a few rules. as was expected  the vm variant seems to solve more  easy  optimization problems and generate more rules. on the other hand  the pcm variant solved fewer optimizations problems  linear programming problems  but that were slightly harder to solve  generating fewer rules.

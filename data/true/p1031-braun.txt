@@ -1,0 +1,2 @@
+	1.	conclusions
+¡¡mytag provides intuitive cross-media search and exploration over multiple tagging platforms. personalized rankings of search results are featured by incorporating implicit user feedback gathered during the search activities of a user. as future work  we plan to evaluate and enhance the personalized ranking algorithm and compare it with state-ofthe-art approaches like folkrank . furthermore  we will focus on algorithms for merging search results from different platforms into a single result set.

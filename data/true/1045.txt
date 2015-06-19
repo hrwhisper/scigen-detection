@@ -1,0 +1,15 @@
+p-jigsaw is an extension of w1c's jigsaw web-server implementing a cache management strategy for replacement and pre-fetching based on association rules mining from the access-log. 
+keywords 
+web server  caching  pre-fetching  association rules  jigsaw. 
+1. introduction 
+we present our approach to caching documents at the webserver's side . we propose a solution offering original prefetching and replacement policies leveraging knowledge mined from the access-logs in the form of association rules. 
+1 web caching and pre-fetching 
+traditional file system caches do not perform well when serving web requests . nevertheless existing web-servers rely on the file system's cache or implement similar generic strategies such as least recently used  lru  for their own cache. this observation compels the integration into web servers of dedicated caching and  possibly  pre-fetching mechanisms. several authors have proposed to use access-log information to learn replacement and pre-fetching strategies. in   arlitt showed  for instance that a frequency based strategy outperforms lru for caching. similar results for prefetching were presented in  by tatarinov et al.  
+1 web mining  
+the application of data mining techniques to the web  referred to as web-mining   has recently received an increased attention. of particular interest for us  is a series of approaches attempting to exploit the specificity of access patterns to hyper-documents. for instance  in   bestavros estimates the probability of documents to be requested next from the information recorded in the access-log. the author uses this probability to push documents to the client side. however  so far and to our knowledge  there has been no other proposal but ours to apply web mining to caching and pre-fetching at the server's side. 
+1. rule-assisted cache management  rac 
+the technique we propose  called rule-assisted cache management  rac  is based on the mining of association rules from the access-log . 
+ 
+ 
++this research was done while the author was a phd student at the national university of singapore 
+1 mining the log 

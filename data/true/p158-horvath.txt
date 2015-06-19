@@ -1,0 +1,311 @@
+with applications in biology  the world-wide web  and several other areas  mining of graph-structured objects has received significant interest recently. one of the major research directions in this field is concerned with predictive data mining in graph databases where each instance is represented by a graph. some of the proposed approaches for this task rely on the excellent classification performance of support vector machines. to control the computational cost of these approaches  the underlying kernel functions are based on frequent patterns. in contrast to these approaches  we propose a kernel function based on a natural set of cyclic and tree patterns independent of their frequency  and discuss its computational aspects. to practically demonstrate the effectiveness of our approach  we use the popular nci-hiv molecule dataset. our experimental results show that cyclic pattern kernels can be computed quickly and offer predictive performance superior to recent graph kernels based on frequent patterns.
+categories and subject descriptors
+h.1  database management : database applications - data mining; i.1  artificial intelligence : learning; i.1  pattern recognition : design methodology - classifier design and evaluation
+general terms
+algorithms  experimentation
+keywords
+graph mining  kernel methods  computational chemistry
+
+ this work was supported in part by the dfg project  wr 1-1  hybride methoden und systemarchitekturen fu¡§r heterogene informationsra¡§ume.
+permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. to copy otherwise  to republish  to post on servers or to redistribute to lists  requires prior specific permission and/or a fee.
+kdd'1  august 1  1  seattle  washington  usa.
+copyright 1 acm 1-1/1 ...$1.
+1. introduction
+¡¡in recent years  data mining has moved far beyond the original commercial applications into areas such as bioinformatics or web mining. while in most of the web mining applications instances are vertices of the single massive web graph ; in other application domains each instance can be a graph. this is perhaps most obvious in applications that deal with molecules  since each molecule consists of atoms  the vertices of the graph  that are connected by bonds  the edges of the graph . in such chemical domains there is usually also a label assigned to each vertex and edge  modelling for example atom and bond types.
+¡¡such graph structured instances have no natural representation as a single row of a single fixed-width table. therefore  there has recently been an increased interest in methods that can accept graph-structured instances as input. in predictive graph mining dealing with graph instances  the learning algorithm is not only given a set of disjoint graphs of arbitrary size but also for each graph the value of some property is known. the task of the algorithm is then to produce a model which approximates well the unknown dependence between graphs and the value of this target property. in this paper  we concentrate on predictive graph mining dealing with graph instances. in particular  we focus on a class of supervised learning algorithms  namely support vector machines  and other kernel methods . kernel methods have proven superior to other approaches in a large number of application areas and for several types of data including tabular and text data. for general graphs  however  it has proven challenging to design kernel functions that are both powerful enough to handle arbitrarily structured graphs while being efficient enough to be applied to large graph databases.
+¡¡many researchers have consequently resorted to represent each graph by its frequent subgraphs  see  e.g.   1  1  1   and then to apply a kernel to the pattern sets corresponding to these frequent subgraphs. the first step of such approaches usually involves a levelwise algorithm similar to apriori  for association rules  that is able to find all subgraphs whose frequency in the graph database is beyond a user defined threshold. the efficiency of such an approach depends on the number of frequent patterns and thus on the frequency threshold that is chosen. a too low threshold hinders feasible computation of the frequent subgraphs; a too high threshold always risks losing interesting patterns that would have been necessary for optimal classification performance.
+¡¡in this paper  we show that with a natural set of patterns  cyclic and tree patterns  it is possible to eliminate the restriction to frequent patterns. we map the graphs to these pattern sets  independent of the frequency of the patterns in the graph database. similar to the frequent subgraph based approaches  we then apply a kernel to these pattern sets. the resulting kernel on graphs is called the cyclic pattern kernel. we draw on results from graph theory to arrive at an algorithm that is in practice capable of quickly identifying the set of cyclic and tree patterns even in large sets of example graphs. we present experiments on the popular nci-hiv dataset containing 1 molecules  to show that our kernel  compared to previous approaches  offers significant gains in accuracy  as measured by the area under the roc curve . we give a theoretical complexity analysis of the cyclic pattern kernel  indicating that its efficiency in practice results from a well-behavedness effect similar to the one observed in frequent set discovery for association rule mining.
+¡¡the paper is organized as follows. in section 1  we define all necessary notions of graphs and kernel methods. before proceeding to the development of our own kernel  in section 1 we first briefly review previous results on graph kernels. in section 1  we define cyclic pattern kernels and discuss their computational aspects. section 1 contains the empirical evaluation on the nci-hiv dataset  and section 1 concludes with pointers to future work.
+1. preliminaries
+¡¡in this section we define some necessary notions and notations related to graphs and kernel methods.
+1 graphs
+¡¡we first recall some basic definitions from graph theory  see  e.g.  diestel's textbook  for more details . for a set denotes the family of k-subsets of s  i.e.   s  = {s   s : |s | = k}. a labeled undirected graph is a quadruple g =  v e ¦² ¦Ë   where v is a finite set of vertices  e    v  1 is a set of edges  ¦² is a finite linearly ordered set of labels  and ¦Ë : v ¡Èe ¡ú ¦² is a function assigning a label to each element of v ¡Èe. the cardinalities of v and e are denoted by n and m  respectively. unless otherwise stated  in this paper by graphs we always mean labeled undirected graphs. a graph database is a set of disjoint graphs. for a graph database g  |g| denotes the number of graphs in g. note that graphs can be viewed as relational structures  and hence  graph databases can be considered as relational databases.
+walks  paths  and cycles a walk is a sequence
+w = {v1 v1} {v1 v1} ... {vk 1 vk}
+of edges of a graph. the walk w is a simple path if the vi's are all distinct. if v1 = vk and for every i j  1 ¡Ü i   j ¡Ü k  then w forms a simple cycle. we denote by s g  the set of simple cycles of a graph g. two simple cycles c and  are considered to be the same if and only if c or its reverse is a cyclic permutation of c. we note that the number of simple cycles is exponential in the number n of vertices in worst case1.
+
+1
+ in fact  the number of simple cycles in a graph can grow faster with n than 1n  and remains exponential even for biconnected components let g =  v e ¦² ¦Ë  and
+  be graphs.	g is a subgraph of g  if
+  and  for every	.
+a graph is connected if there is a  simple  path between any pair of its vertices. a connected component of a graph g is a maximal subgraph of g that is connected. a vertex v of a graph g is an articulation  also called cut  vertex  if its removal disconnects g  i.e.  the subgraph obtained from g by removing v and all edges containing v has more connected components than g . a graph is biconnected if it contains no articulation vertex. a biconnected component  or block  of a graph is a maximal subgraph that is biconnected. it holds that biconnected components of a graph g are pairwise edge disjoint and form thus a partition on the set of g's edges. this partition  in turn  corresponds to the following equivalence relation on the set of edges: two edges are equivalent if and only if they belong to a common simple cycle. this property of biconnected components implies that an edge of a graph belongs to a simple cycle if and only if its biconnected component contains more than one edge. edges not belonging to simple cycles are called bridges. the subgraph of a graph g formed by the bridges of g is denoted by b g . clearly  each bridge of a graph is a  singleton  biconnected component  and b g  is a forest.
+¡¡isomorphism we will also use the notion of isomorphism between graphs. let g1 and g1 be the graphs  v1 e1 ¦² ¦Ë1  and  v1 e1 ¦² ¦Ë1   respectively. g1 and g1 are isomorphic if there is a bijection   : v1 ¡ú v1 such that
+  {u v} ¡Ê e1 if and only if {  u    v } ¡Ê e1 
+  ¦Ë1 u  = ¦Ë1   u    and
+  ¦Ë1 {u v}  = ¦Ë1 {  u    v } 
+hold for every u v ¡Ê v1.
+¡¡although by the definition of graphs we consider only simple graphs  i.e.  graphs without loops and parallel edges   we finally note that the approach presented in this paper can be adapted to non-simple graphs as well.
+1 kernel methods
+¡¡kernel methods  are a recent development within the machine learning and data mining communities. being on one hand theoretically well founded in statistical learning theory  they have on the other hand shown good empirical results in many applications. one particular aspect of kernel methods such as the support vector machine is the formation of hypotheses by linear combination of positive definite kernel functions 'centred' at individual training examples. by the restriction to positive definite kernel functions  the underlying optimisation problem becomes convex and every locally optimal solution is globally optimal.
+¡¡kernel functions kernel methods can be applied to different kinds of  structured  data by using any positive definite kernel function defined on the data. here then is the definition of a positive definite kernel   + is the set of positive integers :
+¡¡let x be a set. a symmetric function k : x ¡Áx ¡ú is a positive definite kernel on x if  for all n ¡Ê +  x1 ... xn ¡Ê
+
+many restricted graph classes in worst case. for instance  in   alt  fuchs  and kriegel investigate simple cycles of planar graphs  and show that there are planar graphs with lower bound 1n on the number of simple cycles.
+x  and c1 ... cn ¡Ê	  it holds that
+ci cj k xi xj  ¡Ý 1
+i j¡Ê{1 ... n}
+¡¡mercer's theorem guarantees that for every positive definite kernel function k  there is a map ¦Õ into an inner product space  such that for every  it holds that  where  denotes the inner product in that space. although this inner product space may have infinite dimension  it is often possible to compute k in polynomial time. for a simple example  consider the map ¦Õ¦Ä that maps every positive integer x to a sequence of zeros and ones such that the x-th element of the sequence ¦Õ¦Ä x  is one and all other elements are equal to zero. clearly  the inner product space in which the images reside  l1  does not have a finite base. still  for all can be computed in polynomial time.
+¡¡kernel machines the usual supervised learning model  considers a set x of individuals and a set y of labels  such that the relation between individuals and labels is a fixed but unknown probability measure on the set x ¡Á y. the common theme in many different kernel methods such as support vector machines  gaussian processes  or regularised least squares regression is to find a hypothesis function that minimises not just the empirical risk  training error  but the regularised risk. this gives rise to the optimisation problem
+
+where { x1 y1  ...  xn yn } is a set of individuals with known label  the training set   c trades off between regularisations and empirical loss  h is a set of functions forming a hilbert space  the hypothesis space   and v is a function that takes on small values whenever f xi  is a good guess for yi and large values whenever it is a bad guess  the loss function . the representer theorem shows that under rather general conditions on v   solutions of the above optimisation problem have the form
+n
+	f ¡¤  =	cik xi ¡¤ 	 1 
+i=1
+where k is the reproducing kernel of h. different kernel methods arise from using different loss functions.
+¡¡support vector machines support vector machines  1  1  are a kernel method that can be applied to binary supervised classification problems. they are derived from the above optimisation problem by choosing the so-called hinge loss v  y f x   = max{1   yf x }. the motivation for support vector machines often taken in literature is that the solution can be interpreted as a hyperplane that separates both classes and is maximally distant from the convex hulls of both classes. a different motivation is the computational attractiveness of sparse solutions of the function  1  used for classification.
+¡¡intersection kernels an integral part of many kernels for structured data is the decomposition of an object into a set of its parts and the intersection of two sets of parts. the kernel on two objects is then defined as a measure of the intersection of the two corresponding sets of parts.
+¡¡the general case of interest for set kernels is when the instances xi are elements of a semiring of sets and there is a measure ¦Ì with as its domain of definition. positive definiteness of the intersection kernel
+	k¡É xi xj  = ¦Ì xi ¡É xj 	 1 
+holds under these general conditions.
+¡¡as  however  the discrete case is the most common case and simpler than the general case  here we restrict our attention to this case. let x be the set of possible 'parts' and let the objects be decomposed into sets of parts xi   x. for every xi the characteristic function ¦£i : x ¡ú {1} is defined by ¦£i x  = 1   x ¡Ê xi and ¦£i x  = 1 otherwise. for any measure ¦Ì on x and sets xi with ¦Ì xi    ¡Þ  the intersection kernel is a positive definite kernel on 1x as
+
+¡¡the above kernel function can easily be extended to the case of multisets  where the characteristic function ¦£i : x ¡ú returns the number of times an element occurs in the multiset. this extension is of interest in the case that objects are not just decomposed into a set of its parts but into a multiset.
+¡¡note that in the discrete case considered here  with the set cardinality as the measure  the intersection kernel coincides with the inner product of the bitvector representations of the sets  or multiplicity vector representations of multisets . in the case that the sets xi are finite or countable sets of vectors it is often beneficial to use set kernels other than the intersection kernel. for example the crossproduct kernel
+	k¡Á xi xj  =	k xi xj 
+xi¡Êxi xj¡Êxj
+in the case that the right hand side kernel is the matching kernel  defined as k¦Ä xi xj  = 1   xi = xj and 1 otherwise   the crossproduct kernel coincides with the intersection kernel.
+1. related graph kernels
+¡¡the above described idea of decomposition and intersection kernels is reflected in most work on kernels for structured data  from the early and influential technical reports  1  1  through other work on string kernels  1  1  and tree kernels   to more recent work on graph kernels  1 
+1 .
+¡¡we now briefly review previous results on graph kernels. while in this paper we are concerned with undirected graphs  prior work mostly considered directed graphs. however  we can regard an undirected graph as a directed graph with edges in either direction. conceptually  the graph kernels presented in  1  1  1  are based on a measure of the walks in two graphs that have some or all labels in common. in  walks with equal initial and terminal label are counted  in  the probability of random walks with equal label sequences is computed  and in  walks with equal label sequences  possibly containing gaps  are counted. note that even very simple graphs contain an infinite number of walks and thus even with a small number of different labels  the feature space corresponding to the kernel has infinite dimension. in  computation of these kernels is made possible in polynomial time by using the direct product graph and computing the limit of matrix power series involving its adjacency matrix. the work on rational graph kernels  generalises these graph kernels by using a general transducer between weighted automata instead of the direct graph product. however  only walks up to a given length are considered in the kernel computation.
+¡¡describing each vertex in a graph by the set of walks starting at this vertex can be seen as a colouring of the corresponding vertex. such colourings are also used in isomorphism tests. there one would like two vertices to be coloured differently iff they do not lie on the same orbit of the automorphism group . as no efficient algorithm for the ideal case is known  one often resorts to colourings such that two differently coloured vertices cannot lie on the same orbit. using the walks as colours for each vertex satisfies the latter condition.
+¡¡indeed  it has been shown  that a graph kernel for which the kernels centred at two graphs are equivalent if and only if the two graphs are isomorphic  is at least as hard as deciding graph isomorphism  these kernels are called complete graph kernels . so far  the above mentioned graph kernels are the only known efficient alternatives to these complete graph kernels.
+¡¡now  consider the following kernel on graphs: let g be the set of all graphs and ¦µ : g ¡ú 1g be a function mapping each graph g to the set of connected subgraphs of g. using the intersection kernel  given in equation  1   on the images of each graph under ¦µ with the set cardinality as measure  the subgraph kernel1 is defined as ksg gi gj  = k¡É ¦µ gi  ¦µ gj   = |¦µ gi  ¡É ¦µ gj |
+it has been shown in  that this kernel cannot be computed in polynomial time. in the next section we will consider the complexity of computing a related kernel function.
+¡¡in literature  different approaches have been tried to overcome this problem.  restricts the decomposition to paths up to a given size  and  only considers the set of connected graphs that occur frequently as subgraphs in the graph database. the approach taken there to compute the decomposition of each graph is an iterative one . the algorithm starts with a frequent set of subgraphs with one or two edges only. then  in each step  from the set of frequent subgraphs of size l  a set of candidate graphs of size l +1 is generated by joining those graphs of size l that have a subgraph of size l 1 in common. of the candidate graphs only those satisfying a frequency threshold are retained for the next step. the iteration stops when the set of frequent subgraphs of size l is empty.
+1. cyclic pattern kernels
+¡¡in this section  we first define cyclic pattern kernels  cpk  for graphs and then discuss their computational aspects. our definition is based on the intersection kernel described in section 1. to apply intersection kernels to graphs  we assign to each graph g the set of cyclic and tree patterns of g. these patterns  in turn  are induced by the sets of simple cycles and bridges of the graph  respectively.
+
+1
+ the intersection now means intersection with respect to isomorphism.
+1 kernel definition
+¡¡we start by defining the set of cyclic patterns induced by the set of simple cycles of a graph. let g =  v e ¦² ¦Ë  be a graph and
+c = {v1 v1} {v1 v1} ... {vk 1 v1}
+be a sequence of edges that forms a simple cycle in g. the canonical representation of c is the lexicographically smallest string ¦Ð c  ¡Ê ¦²  among the strings obtained by concatenating the labels along the vertices and edges of the cyclic permutations of c and its reverse. more precisely  denoting by ¦Ñ s  the set of cyclic permutations of a sequence s and its reverse  we define ¦Ð c  by ¦Ð c  = min{¦Ò w  : w ¡Ê ¦Ñ v1 ...vk 1 }  where for w = w1 ...wk 1  ¦Ò w  = ¦Ë w1 ¦Ë {w1 w1} ¦Ë w1 ...¦Ë wk 1 ¦Ë {wk 1 w1} .
+clearly  ¦Ð is unique up to isomorphism  and hence  it indeed provides a canonical string representation of simple cycles. the set of cyclic patterns of a graph g  denoted by c g   is then defined by
+c g  = {¦Ð c  : c ¡Ê s g } .
+ we recall that s g  denotes the set of simple cycles of g.  to assign a set of cyclic patterns to a graph g  above we have used its set of simple cycles. to add more information to the kernel  we also consider the graph obtained by removing the edges of all simple cycles  or equivalently  by deleting every edge that belongs to some of g's biconnected components containing at least two edges. as discussed in section 1  the resulting graph is a forest consisting of the set of bridges of the graph. to assign a set of tree patterns to g  we use this forest formed by the set b g  of bridges of g. similarly to simple cycles  we associate each tree t with a pattern ¦Ð t  ¡Ê ¦²  that is unique up to isomorphism1  and define the set of tree patterns t  g  assigned to g by
+t  g  = {¦Ð t  : t is a connected component of b g } .
+¡¡we are now ready to define cyclic pattern kernels for graphs. in the definition below  we assume without loss of generality that c g  and t  g  are disjoint for every g in the database. our kernel is an intersection kernel  1  on the sets defined by
+	¦µcp g  = c g  ¡È t  g 	 1 
+for every g. more precisely  we define cyclic pattern kernels by
+kcp gi gj  = k¡É ¦µcp gi  ¦µcp gj  
+	= |c gi  ¡É c gj | + |t  gi  ¡É t  gj |	 1 
+for every gi gj in a graph database g  where the measure ¦Ì used in the intersection kernel is the cardinality.
+
+1
+ we first transform the unordered free tree t into a rooted ordered tree t unique up to isomorphism  and define then ¦Ð t  by the string representing t. we omit the technical description and refer to e.g.  1  1  for further details on canonical string representations of trees.
+algorithm 1 basic algorithm
+
+require: graph g with n vertices and m edges
+ensure: ¦µcp g 
+1: let s = b =  
+1: compute the biconnected components of g
+1: for all biconnected componentdo
+1:	if g contains more then one edge then
+1:	
+1:	else
+1:	add the edge of g to b
+1: s = s ¡È {¦Ð t  : t is a connected component of b}
+1: return s
+
+1 computing the pattern set: general case
+¡¡as discussed in section 1  even infinite dimension of the feature space associated with a kernel still does not imply its computational intractability. another issue is  whether in general  the intractability of computing the value of a single feature implies the hardness of computing the kernel. we do not know the answer to this general problem which includes also the case of cyclic pattern kernels  as ¦µcp may contain patterns corresponding to hamiltonian cycles as well. using a similar argument as   in proposition 1 below we show that computing cyclic pattern kernels is intractable.
+¡¡proposition 1. the problem of computing cyclic pattern kernels is np-hard.
+¡¡proof. we shall use a reduction from the np-complete hamiltonian cycle problem. let g and cn be a graph and a simple cycle  respectively  such that both g and cn consist of n vertices and are defined over the same singleton label set. applying  1  to g and cn  it holds that kcp g cn  = 1 if and only if g has a hamiltonian cycle. 
+¡¡although the cardinality of the set ¦µcp g  of cyclic and tree patterns of a graph g can be exponential in the number of vertices of g  we still turn to this problem restricting the approach to those well-behaved cases where ¦µcp g  can be computed in practically reasonable time. in section 1 we will present a large real-world molecular graph database satisfying this property. before focusing in later sections on well-behaved domains  below we first discuss some issues of computing ¦µcp g  in the general case.
+¡¡the basic algorithm computing c g  and t  g  for a graph g is sketched in algorithm 1. from the arguments of section 1 it follows that the algorithm computes the set of bridges in b  and returns finally ¦µcp g  in s. regarding the complexity of algorithm 1  we first note that step 1 can be solved in linear time; in   tarjan gives a depth-first search algorithm computing all biconnected components of a graph in time o  n + m . since the number of bridges of g is at most m  and the number of trees is bounded by the cardinality of the set of bridges of g  in step 1 we compute the set t  g  of tree patterns in time polynomial in n. in step 1  we compute the set of cyclic patterns of a biconnected component of g. from the point of view of efficiency  this step of the algorithm is critical  as even the number of cyclic patterns of a biconnected graph can be exponential in the number of vertices. in example 1 below  we give a graph and show that 1o |v|  is a lower bound on the number of its cyclic patterns  where v is the set of vertices of the graph.
+
+figure 1: the graph used in example 1
+example 1. let g =  v e ¦² ¦Ë  be a graph such that
+v = {s t v1 ... v1n} 
+e = {{s v1} {s v1} {v1n 1 t} {v1n t} {s t}} ¡È
+{{v1i k v1i+l} : i = 1 ... n   1  k = 1  l = 1} 
+¡¡¦² = {1 1}  and
+¦Ë x  =	k mod 1	if x = vk ¡Ê v
+	1	otherwise
+for every x ¡Ê v ¡È e. note that by the above definition  ¦Ë assigns 1 to every edge in e  as well as to the vertices s and t. omitting the labels of s  t  and the edges  the figure of g is given in fig. 1. let
+l = {min{w w 1} : w ¡Ê {1}  and |w| = n}  
+where w 1 and |w| denote the reverse and the length of w  respectively.  the strings in ¦²  are compared by the lexicographic order induced by the linear order on ¦².  it holds that for every w ¡Ê l  there is a simple cycle c in g such that we can obtain w by deleting all 1's from the canonical representation ¦Ð c  of c. hence  for the cardinality of the set c g  of cyclic patterns we have
+|c g | ¡Ý |l|   1n 1 = 1o |v|  .
+¡¡since the cardinality of the set c g  of cyclic patterns can also be exponential in the number n of g's vertices  we next consider the problem of computing c g  in polynomial output complexity. that is  we ask whether there exists an algorithm that enumerates c g  in time polynomial in n and |c g |. proposition 1 below states that even this problem is np-hard.
+¡¡proposition 1. let g be a graph with n vertices  and n ¡Ü |c g | be an arbitrary non-negative integer. then the problem of enumerating n elements from c g  with parameters n and n is np-hard.
+¡¡proof. we show that the np-complete hamiltonian cycle problem is polynomial-time reducible to the above enumeration problem. let g be an ordinary undirected graph  i.e.  a graph without labels  with n vertices. we assign a  labeled undirected  graph such that g has the same sets of vertices and edges as g  and each vertex and edge of g is labeled by the same symbol  say 1. since simple cycles of the same length in g are mapped to the same pattern  i.e.  simple cycles of length & are associated with
+the pattern 1. applying the enumeration algorithm with n = n   1  we obtain a set s containing at most n 1 elements of . clearly  1n is in s if and only if g has a hamiltonian cycle. 
+in order to overcome the negative complexity result implied by proposition 1 above  we consider a restriction that yields an effective practical problem class.
+1 graphs with bounded cyclicity
+¡¡in contrast to the case of cyclic patterns  the set s g  of simple cycles of a graph g can be listed in polynomial output complexity. a depth-first search algorithm computing n ¡Ü |s g | simple cycles of a graph g in time o   n + 1 n + m  is given by read and tarjan in . from their result it also follows that  for a given graph g and k ¡Ý 1  one can decide efficiently  whether or not the number of simple cycles in g is bounded by k. using these positive results  in this section we consider the case when the number of simple cycles is bounded by a constant for  almost  every graph in the database. in certain real-world graph databases  e.g.  drug molecules   the assumption of such a bound seems reasonable. as an example  in the nci dataset1 there is a very natural and clear such bound; this molecular graph database consists of 1 graphs containing altogether 1 simple cycles1. note that effectively  we are assuming a certain kind of well-behavedness of our graph-structured input data which results in only a very small number of objects with extremely large numbers of simple cycles. we note that a similar assumption is made for example in association rule mining where one assumes that transaction data are well-behaved so as to not induce many frequent sets of overly large sizes.
+¡¡algorithm 1  a variant of algorithm 1  computes the set ¦µcp of patterns  1  only for those graphs that have at most k simple cycles. in step 1 of the algorithm  we call read and tarjan's algorithm   subroutine rt  with parameters being the current biconnected component g and k   k + 1  where k is a variable counting the simple cycles that have been found so far. if g contains more than k k simple cycles  the algorithm halts and returns the empty set  step 1   as in this case g has more than k simple cycles. the efficiency of the algorithm follows from that of the subroutine rt.
+¡¡finding an appropriate bound we now turn to the problem of deciding whether there exists an upper bound on the number of simple cycles such that all but a small subset of the graphs in the database can be processed within a user defined time limit. depending on the value of a threshold given by the user  a small subset of the database requiring potentially too much computation time can be disregarded. for instance  in the nci-hiv graph database used in our experiments it makes sense to consider only those graphs that have less than 1 simple cycles  as even in this case  1% of the whole dataset is still covered  see also table 1 in section 1 .
+more precisely  given an upper bound t on the time needed
+to compute the cyclic and tree patterns for the database g and a threshold ¦Ó ¡Ê  1   our goal is to find the smallest k
+1
+http://cactus.nci.nih.gov/
+1
+ the nci-hiv dataset used in our experiments is an annotated subset of the nci domain.
+algorithm 1 bounded cyclicity
+
+require: graph g with n vertices and m edges  and k ¡Ê
+ensure: ¦µcp g  if |s g | ¡Ü k and   otherwise
+1: let k = 1
+1: let s = b =  
+1: compute the biconnected components of g
+1: for all biconnected component do
+1:	if g contains more then one edge then
+1:	let
+1:	else|	|	 	 1:
+1:
+1:elsesk==sk¡È {+p|x c|  : c ¡Ê x}1:	if x = k	k + 1 then return
+1:	add the edge of
+1: s = s ¡È {¦Ð t  : t is a connected component of b}
+1: return s
+
+such that  with high probability 
+ i  there is a subset with cardinality at least ¦Ó|g| such that each graph in g has at most k cycles  and
+ ii  applying algorithm 1 with parameter k to the graphs in g  the total running time is bounded by t 
+if such a k exists  and to print 'no' otherwise. we first note that applying algorithm 1 with parameter k to the graphs in g  the running time is bounded by
+o |g| ¡¤   k + 1 nmax + 1mmax    
+where nmax  resp. mmax  is the maximum number of vertices  resp. edges  of any graph in g. thus  for a given time limit t  one can compute the maximum value of the upper bound k on the number of simple cycles for which the algorithm still runs in time t.
+¡¡given k  we would like to find the smallest such that at least ¦Ó|g| graphs in g have at most k simple cycles. we note that this problem cannot be solved efficiently by counting the number of simple cycles in a graph. this follows from the negative result of valiant  which states that counting the number of simple paths between two vertices in a graph is #p-complete. we therefore propose a technique based on sampling1 and enumerating at most k + 1 simple cycles of a graph. using some sampling method  we first select a random sample s of the underlying graph database g. then  applying read and tarjan's algorithm  we assign the number ¦Ê g  defined by
+	 g 	if	 g 	k
+	¦Ê g  =	|s	|	|s	| ¡Ü
+	k + 1	otherwise
+to every g ¡Ê s. we then define k by
++ 1 and |s k | ¡Ý ¦Ó|s|}  
+where s k  = {g ¡Ê s : ¦Ê g  ¡Ü k}  and print  and 'no' otherwise  i.e.  if
+
+1
+ note that our problem is to estimate the unknown parameter of a bernoulli distribution.
+1. empirical evaluation
+¡¡to evaluate empirically the predictive performance of cyclic pattern kernels  in this section we use the hiv dataset of chemical compounds. this database is maintained by the national cancer institute  nci 1 and describes information of the compounds' capability to inhibit the hiv virus. it has been used frequently in the empirical evaluation of graph mining approaches  see  e.g.   1  1  1  1  . so far  the only approaches to predictive graph mining on this dataset are described in  1  1 .
+1 data
+¡¡in the nci-hiv database  each compound is described by its chemical structure1 and classified into three categories: confirmed inactive  ci   moderately active  cm   or active  ca . a compound is inactive if a test showed less than 1% protection of human cem cells. all other compounds were retested. compounds showing less than 1% protection  in the second test  are also classified inactive. the other compounds are classified active  if they provided 1% protection in both tests  and moderately active  otherwise.
+¡¡the nci-hiv dataset we used contains 1 molecules  1 of which are active  1 are moderately active  and 1 are inactive. the total number of vertices and edges in this dataset is 1 and 1  respectively. table 1 shows how the number of simple cycles is distributed over molecules. clearly  the well-behavedness assumption made above holds for this dataset. figure 1 illustrates these frequencies on a log-log scale.. on a pc with a pentium iii/1 mhz processor  the set of cyclic and tree patterns for every graph in the database has been computed in less than 1 minutes.
+table 1: distribution of simple cycles over compounds simple cycles compounds fraction
+
+	1	1%
+1	1% 1	1%
+	1	1%
+	1	1%
+	1	1%
+1 1% 1 1%
+	1	1%
+1 comparative analysis using roc
+¡¡frequently  the predictive performance of algorithms is compared by means of a statistical test on the accuracies achieved by the learned model on given test sets. however  measuring accuracy is only meaningful if the class distribution and misclassification costs in the target environment are known and do not change over time . clearly  the cost of not finding an active compound should be higher than the
+
+1
+http://cactus.nci.nih.gov/
+1
+ this database also describes other  propositional  features that we do not make use of  as we want to compare our results with those reported in . making use of the geometrical information will be considered in future work.
+
+figure 1: log-log plot of the number of molecules  y  versus the number of simple cycles  x 
+cost of a false alarm. however  we do not know the cost of false alarms in this domain.
+¡¡recently  an alternative way of comparing the predictive performance on binary classification problems is becoming more and more popular in the machine learning and data mining communities. receiver operator characteristic  roc  is a two-dimensional tool  rather than onedimensional error rates  that is able to overcome the above mentioned shortcomings of merely accuracy based comparisons. in the two-dimensional roc space each classifier is represented by its true-positive rate  the fraction of positive examples correctly classified  and its false-positive rate  the fraction of negative examples incorrectly classified . the ideal classifier  roc heaven  has true-positive rate 1 and false-positive rate 1. all classifiers with equal true-positive and false-positive rate  the diagonal in roc space  correspond to randomly choosing a class for each query instance. any classifier with a continuous output  such as the support vector machine  compare equation  1    gives rise to a set of classifiers  each corresponding to a different threshold on the output. if the output for a query instance is above this threshold  it is considered positive  with respect to this threshold  and negative  with respect to this threshold  otherwise. the resulting roc curve illustrates the possible tradeoffs between correctly classified positive examples and incorrectly classified negative examples.
+¡¡whenever a single number is preferred to compare different classifiers  roc analysis offers the possibility of using the area under the roc curve. to overcome the dependency of roc analysis on a single test-set  it is desirable to combine roc analysis with crossvalidation techniques. how to best average roc curves  however  is still a matter of scientific dispute. in this paper we report the mean and variance of the area under the curve over different folds.
+1 empirical results
+table 1: area under the roc curve for different tasks and costs. boldface numbers denote a significant win at a 1% level
+	ca vs cm	ca+cm vs ci	ca vs ci
+costcpkfsgcostcpkfsgcostcpkfsg1 1
+1 1
+1
+11 ¡À1  1 ¡À1 
+1 ¡À1  1 ¡À1  1 ¡À1 
+1  1 1 1
+1 1 1
+11
+1
+1 1
+1
+11 ¡À1 
+1 ¡À1 
+1 ¡À1  1 ¡À1 
+1 ¡À1 
+1  1 1
+1 1 1
+1
+11
+1
+1 1
+1
+11 ¡À1 
+1 ¡À1  1 ¡À1  1 ¡À1 
+1 ¡À1 
+1  1 1
+1 1 1
+1
+1	¡À	¡À	¡À
+table 1: area under the roc curve for different tasks and costs  gaussian ¦Ã = 1 . boldface numbers denote a significant win at a 1% level
+	ca vs cm	ca+cm vs ci	ca vs ci
+cost¦Ãcpkfsgcost¦Ãcpkfsgcost¦Ãcpkfsg1 1
+1 1
+1
+11 ¡À1  1 ¡À1 
+1 ¡À1  1 ¡À1  1 ¡À1 
+1  1 1 1
+1 1 1
+11
+1
+1 1
+1
+11 ¡À1 
+1 ¡À1  1 ¡À1  1 ¡À1 
+1 ¡À1 
+1  1 1
+1 1 1
+1
+11
+1
+1 1
+1
+11 ¡À1 
+1 ¡À1  1 ¡À1  1 ¡À1 
+1 ¡À1 
+1  1 1
+1 1 1
+1
+1	¡À	¡À	¡À¡¡to empirically evaluate the benefits of using all patterns rather than frequent patterns only  we compared our approach to the results presented in  and . the classification problems considered there were:  1  distinguish between ca from cm   1  distinguish ca and cm from ci  and  1  distinguish ca from ci. for each problem  the area under the roc curve  averaged over a 1-fold crossvalidation  is given for different misclassification cost settings.
+¡¡note that  while the walk-based graph kernels considered for example in   see section 1  can be computed in polynomial time  the exponent of the polynomial appears
+to be too large for this application. for this reason  we have not included experiments with the walk-based graph kernel. we note  however  that successful applications using such graph kernels have been reported in  and  on smaller datasets. computing the direct product graph takes time quadratic in the number of vertices of the graphs in g. inverting the adjacency matrix of the product graph or computing the eigen-decomposition of this matrix are both roughly of cubic time complexity in the number vertices of the product graph. for example  for a molecule of 1 atoms  we obtain a product graph with 1 vertices  if we do not take the vertex labels into account we would have 1 = 1 vertices . techniques for speeding up walk based graph kernels will be considered in future work.1
+¡¡in our experiments we used a modified version of the svm-light  support vector machine with the same set of misclassification cost parameters as used by . the regularisation parameter was chosen by svm-light. we used two different kernel functions. the first is the cyclic pattern kernel  cpk  given in equation  1   the other is a gaussian version of that kernel  ¦Ãcpk   that is:
+
+1
+ for example  one could make use of the nice properties of eigen-decompositions under tensor product which is strongly related to the direct product graph. alternatively  one could employ vertex colouring algorithms to increase the number of vertices with different colour in the original graphs - this would at the same time decrease the number of vertices in the product graph.
+¡¡tables 1 and 1 show our experimental results with cyclic pattern kernels  cpk  and those achieved in   fsg  with a frequent subgraph based approach. as we did not know the variance of the area under the roc curve for fsg  we assumed the same variance as for cpk1. thus  to test the hypothesis that cpk significantly outperforms fsg  we used a pooled sample variance equal to the variance exhibited by cpk. as fsg and cpk were applied in a 1-fold crossvalidation  the estimated standard error of the average difference
+
+is the pooled sample variance times. the test statistic is then the average difference divided by its estimated standard error. this statistic follows a t distribution. the null hypothesis - cpk performs no better than fsg - can be rejected at the significance level ¦Á if the test statistic is greater than t1 ¦Á   the corresponding percentile of the t distribution.
+¡¡table 1 reports the results achieved using the cyclic pattern kernel directly. in all experiments the mean result achieved by cpk is better than the result achieved by fsg. on a 1% significance level  cpk outperforms fsg in 1 out of 1 experimental settings performed in .
+¡¡table 1 reports the results achieved using the gaussian version of the cyclic pattern kernel. for the parameter ¦Ã different values  ¦Ã ¡Ê {1 1 1}  were tried on the problem of distinguishing ca from cm with misclassification costs set to 1. these experiments showed that using the parameter 1 we are able to obtain slightly better areas under the roc curve than with the other two parameters. for that  we kept the parameter ¦Ã = 1 throughout all experiments. in all experiments the mean result achieved by cpk is better than the results reported for fsg. indeed  on a 1% significance level  ¦Ãcpk outperforms fsg in all classification problems and cost settings that were reported in .
+in  the authors of  describe improved results  fsg  .
+
+1
+ we could alternatively assume that the mean area of cpk is the 'true mean' we are comparing with. this would simply result in higher significance levels.
+table 1: area under the roc curve for different tasks and costs. boldface numbers denote a significant win at a 1% level
+	ca vs cm	ca+cm vs ci	ca vs ci
+costcpkfsg costcpkfsg costcpkfsg 1
+11 ¡À1 
+1  1 1
+11
+11 ¡À1  1  1 1
+11
+11 ¡À1  1  1 1
+1	¡À	¡À	¡À
+table 1: area under the roc curve for different tasks and costs  gaussian ¦Ã = 1 . boldface numbers denote a significant win at a 1% level
+	ca vs cm	ca+cm vs ci	ca vs ci
+cost¦Ãcpkfsg cost¦Ãcpkfsg cost¦Ãcpkfsg 1
+11 ¡À1 
+1  1 1
+11
+11 ¡À1  1  1 1
+11
+11 ¡À1  1  1 1
+1	¡À	¡À	¡Àthere the authors report results obtained by an optimised threshold on the frequency of patterns and by including additional  geometric features. tables 1 and 1 compare our results to those reported in  for the optimised threshold. we do not compare our results to those obtained using the geometric features. we are considering to also include geometric features in our future work and expect similar improvements. both cpk and ¦Ãcpk perform better than fsg  in all learning problems and all misclassification cost settings reported in . however  the improvement there is less significant. on a significance level1 of 1% cpk performs significantly better than fsg  in 1 out of 1 cases; ¦Ãcpk performs significantly better than fsg  in 1 out of 1 cases.
+1. conclusion and future work
+¡¡as an alternative to graph kernels based on frequent patterns  in this paper we have proposed a graph kernel based on cyclic and tree patterns independent of their frequency. to compute cyclic pattern kernels  we first extract all cyclic and tree patterns from each graph and then apply an intersection kernel to these pattern sets. empirical results on the nci-hiv domain indicate that this graph kernel is superior to frequent pattern based graph kernels.
+¡¡since computing cyclic pattern kernels is intractable in general  the approach presented in this paper is limited to well-behaved graph databases. that is  graph databases in which there exists a natural small upper bound on the number of simple cycles for almost every graph. as such a bound cannot be found by counting the number of simple cycles of each graph  we have proposed an algorithm based on sampling  that estimates whether the database meets this requirement. a small bound clearly exists for instance in the large nci database including the nci-hiv dataset that has frequently been used to evaluate graph mining approaches.
+¡¡despite the encouraging empirical results  there is still room for further work on graph kernels. it seems attractive to try to combine the ideas presented here with kernels based on walks in graphs  1  1 . to compute these graph kernels the direct product graph has to be computed and an eigen-decomposition or inversion of its adjacency matrix has to be performed. due to the large number of vertices of the product graphs in this domain  these approaches cannot
+
+1
+ a 1% significance level is the usual level. tables 1 and 1 showed stronger results than that  however  a significant win on a 1% significance level is usually considered sufficient. directly be applied. techniques for speeding up walk based graph kernels will be considered in future work.
+¡¡besides walk kernels  we are going to investigate graph kernels induced by shortest paths between vertices. in particular  we consider path  resp. walk  kernels based on the set of k shortest simple  resp. non-simple  paths between each pair of vertices.
+¡¡in contrast to simple cycles  the number of relevant cycles of a graph can be computed in polynomial time without listing them . in future work  we are going to investigate the predictive power of graph kernels based on relevant cycles. to overcome the other complexity limitation  that cyclic patterns cannot be enumerated with polynomial output complexity  we plan to investigate graph classes for which this problem can be solved polynomially.
+¡¡in addition to the graph structure of molecules  most compound databases also contain information about the 1d coordinates of each atom in one of the molecule's low energy conformations. these coordinates can either be measured in experiments or computed with one of several software tools. the advantage of using software tools is that not only the coordinates of each atom in the molecule's lowest energy conformation can be computed  but the coordinates can be obtained for a set of low energy conformations. from a chemical point of view  these coordinates are important when deciding whether a molecule binds well to a target. thus  from a machine learning perspective this information is likely to improve the predictive power of our classifier. we are working on advanced kernel functions for molecules that also take the 1d information into account.

@@ -1,0 +1,36 @@
+freebase is a practical  scalable tuple database used to structure general human knowledge. the data in freebase is collaboratively created  structured  and maintained. freebase currently contains more than 1 1 tuples  more than 1 types  and more than 1 properties. public read/write access to freebase is allowed through an httpbased graph-query api using the metaweb query language  mql  as a data query and manipulation language. mql provides an easy-to-use object-oriented interface to the tuple data in freebase and is designed to facilitate the creation of collaborative  web-based data-oriented applications.
+categories and subject descriptors
+h.1 systems and software  information networks; e.1 data structures  graphs and networks.
+general terms design  human factors  languages
+1. introduction
+　freebase is a database system designed to be a public repository of the world's knowledge. its design is inspired by broadly used information communities such as the semantic web and wikipedia. as such  it must support highly diverse and heterogeneous data simultaneously with high scalability.
+　traditionally structured databases have been centrally controlled  with schemas created and modified only by a set of trusted administrators. support for structural diversity is often difficult in such architectures. at the other end of the spectrum  popular wikis  e.g. wikipedia  are semistructured document repositories of great semantic heterogeneity  but with few tools providing structured query capabilities.
+　freebase tries to merge the scalability of structured databases with the diversity of collaborative wikis into a practical  scalable  database of structured general human knowledge. the
+copyright is held by the author/owner s . sigmod'1  june1  1  vancouver  bc  canada. acm 1-1-1/1.
+design emphasizes practicality  and a substantial effort has been made to make freebase immediately useful  especially to laymen beyond the research and technical communities. the key components of freebase are:
+  a scalable tuple storeand support for total  undo  through an integratedthat has built-in attribution versioning mechanism. together  these features facilitate large-scale collaborative data creation and maintenance.
+  an http/json-based apiqueries and their results are formulated using the metawebwhere read and write
+query language   mql . mql is an easy to use  object-oriented query language with a tree based result structure of objects. it includes dynamic schema support without the need for a ddl  path based node naming and idempotent transaction-less write support. important mql features include mixing structural data matching with approximate string matching of literals  cursors  and flat semantics of all data  which makes mixing of data and metadata easy.
+  a lightweight  collaborative typing systempervasive in the ui  api  and data itself is the free-. base typing system. it is a loose collection of structuring mechanisms and conventions  rather than a rigid systems of ontologies and representations. the type system has no intrinsic canonical view of data. conflicting and contradictory types and properties may exist simultaneously in order to reflect users' differing opinions and understanding.
+  a large  diverse data setmore than 1 million asserts about topics spread over. freebase already has
+1 types  including people  media  locations  and many others. this data is a available through a creative commons license for almost any use.
+  a philosophy of complete normalization like in some databases  entities in freebase are in-. untended to be explicitly canonicalized. that is  there should be only one guid in freebase representing each real world entity  topic  or concept.
+1. demonstration of freebase
+　we will demonstrate how freebase and mql enable the accumulation of structured information in a manner that increases quality as well as quantity of data. the mql
+
+
+figure 1: this is the main topic display page in freebase. the user is editing the  richard feynman topic. autosuggestion helps the user add the sibling property by linking to an existing object  rather than create an unnecessary duplicate.
+
+figure 1: this is the schema editor used for schema creation and evolution. the user is editing the medicinal plant  schema to add a  derived drug  property that expects an instance of  drug  to be at the other end of the link when instances of this property are created.
+
+figure 1: the mass typer application lets the user submit a list of topic names that are semi-automatically reconciled during interaction with the user. the figure here shows this application as applied to an imported
+
+list of film actors.
+language will be described through examples and demonstration on the live database. several existing  practical walkthroughs and web-based freebase applications will be shown with the mql they use  including:
+  data entry  shown by topic display  figure #1 
+  schema creation and evolution  shown by schema editor:  figure #1 .
+  rapid data traversal
+  data evaluation and reconciliation  shown by mass typer:  figure #1 
+  collaborative data analysis and repair
+  mql query creation and refinement
+　freebase is intended to be a perpetually available public service on the web. readers interested in better understanding freebase and mql are encouraged to explore on their own at www.freebase.com.

@@ -1,0 +1,237 @@
+support vector machines  svms  have been very successful in text classification. however  the intrinsic geometric structure of text data has been ignored by standard kernels commonly used in svms. it is natural to assume that the documents are on the multinomial manifold  which is the simplex of multinomial models furnished with the riemannian structure induced by the fisher information metric. we prove that the negative geodesic distance  ngd  on the multinomial manifold is conditionally positive definite  cpd   thus can be used as a kernel in svms. experiments show the ngd kernel on the multinomial manifold to be effective for text classification  significantly outperforming standard kernels on the ambient euclidean space. 
+categories and subject descriptors 
+h.1.  content analysis and indexing ; h.1  information search and retrieval ; i.1  artificial intelligence : learning; i.1  pattern recognition : design methodology - classifier design and evaluation. 
+general terms 
+algorithms  experimentation  theory. 
+keywords 
+text classification  machine learning  support vector machine  kernels  manifolds  differential geometry. 
+1. introduction 
+recent research works have established the support vector machine  svm  as one of the most powerful and promising machine learning methods for text classification  1  1  1  1 .  the crucial ingredient of svms and other kernel methods is the so-called kernel trick  which permits the computation of dot products in high-dimensional feature spaces  using simple functions defined on pairs of input patterns. this trick allows the formulation of nonlinear variants of any algorithm that can be cast in terms of dot products  svms being but the most prominent example.   
+however  standard kernels commonly used in svms have neglected a-priori knowledge about the intrinsic geometric structure of text data. we think it makes more sense to view document feature vectors as points in a riemannian manifold  rather than in the much larger euclidean space. this paper studies kernels on the multinomial manifold that enable svms to effectively exploit the intrinsic geometric structure of text data to improve text classification accuracy. 
+in the rest of this paper  we first examine the multinomial manifold  ¡ì1   then propose the new kernel based on the geodesic distance  ¡ì1  and present experimental results to demonstrate its effectiveness  ¡ì1   later review related works  ¡ì1   finally make concluding remarks  ¡ì1 . 
+1. the multinomial manifold 
+this section introduces the concept of the multinomial manifold and the trick to compute geodesic distances on it  followed by how documents can be naturally embedded in it. 
+1 concept 
+let s ={p  | ¦È }¦È¡Ê¦¨ be an n-dimensional regular statistical model family on a set x . for each x¡Êx assume the mapping 
+
+ 
+permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. to copy otherwise  or republish  to post on servers or to redistribute to lists  requires prior specific 
+¦È p x | ¦È  is c¡Þ at each point in the interior of ¦¨ . let  i denote  and ¦È   x denote log  p x | ¦È   . the fisher 
+permission and/or a fee. 
+sigir'1  august 1  1  salvador  brazil. 
+copyright 1 acm 1-1/1...$1. 
+ information metric  1  1  1  at ¦È¡Ê¦¨ is defined in terms of the matrix given by  
+gij    ¦È = e¦È    i ¦È  j ¦È  
+ 	 	 1  
+¡¡¡¡¡¡        = ¡Òx p x |¦È  i log  p x|¦È    j log  p x |¦È  dx or equivalently as 
+ 	gij  ¦È  = 1¡Òx i	p x |¦È   j	p x|¦È dx . 	 1  
+note that gij    ¦È can be thought of as the variance of the score  i ¦È . in coordinates ¦Èi   gij    ¦È defines a riemannian metric on 
+¦¨   giving s the structure of an n-dimensional riemannian manifold.  
+intuitively the fisher information may be seen as the amount of information a single data point supplies with respect to the problem of estimating the parameter ¦È. the choice of the fisher information metric is motivated by its attractive properties in theory and good performances in practice  1  1  1 . 
+consider multinomial distributions that model mutually independent events x1 ...  xn+1 with pr xi   =¦Èi . obviously 
+n+1
+¦È =  ¦È ¦È1 ...  n+1  should be on the n-simplex defined by ¡Æ¦Èi =1. 
+i=1
+the probability that x1 occurs x1 times  ...  x n+1 occurs xn+1 times is given by  
+¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡Ç ! ¡Çn+1¦Èixi 	 1   	p x ! i=1	i	i=1
+¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡n+1 where n = ¡Æxi .  
+i=1
+the multinomial manifold is the parameter space of the multinomial distribution  
+	 	n+1	 
+ 	pn =  ¦È¡Ê	n+1 :¡Æ¦È ¦Èi =1; i  i ¡Ý 1  	 1  
+	 	i=1	 
+= n+1 uivi
+ 	g¦È u v    ¡Æ 
+i=1 ¦Èi 1  equipped with the fisher information metric  which can be shown to be  
+where ¦È¡Êpn   and u v  ¡Êt¦Èpn are vectors tangent to pn at ¦È represented in the standard basis of n+1 .  
+1 geodesic 
+it is a well-known fact that the multinomial manifold pn is isometric to the positive portion of the n-sphere of radius 1  
+ 	sn+ ={¦×¡Ê	n+1 : ¦× = 1; i ¦×i ¡Ý 1} 	 1  
+through the diffeomorphism f : pn ¡ú sn+    
+ 	f ¦È  =  1 ¦È ¦È1  ... 1	n+1   . 	 1  
+therefore the geodesic distance between ¦È¦È  ¡ä¡Êpn can be computed as the geodesic distance between f     f      i.e.  the length of the shortest curve on sn+ connecting f   ¦È and f ¦È¡ä  that is actually a segment of a great circle. specifically  the geodesic distance between ¦È¦È  ¡ä¡Êpn is given by  
+  n+1 
+ 	dg  ¦È ¦È  ¡ä 	1arccos	f   ¦È  f   ¦È¡ä	1arccos ¡Æ¦È¦Èi	i¡ä  .  1  
+	  i=1	 
+1 embedding 
+in text retrieval  clustering and classification  a document is usually considered as a  bag of words  . it is natural to assume that the  bag of words  of a document is generated by independent draws from a multinomial distribution ¦È over vocabulary v ={w1 ... wn+1} . in other words  every document is modeled by a multinomial distribution  which may change from document to document. given the feature representation of a document  d =  d1 ... dn+1     it can be embedded in the multinomial manifold pn by applying l1 normalization   
+	 	 
+ ¦È    d =   ¡Ædin=+i1  ...  dnn++1    .  1    di ¡Æi=1 di  
+the simple tf representation of a document d sets di = tf w d  i    which means the term frequency  tf  of word wi in document d   i.e.  how many times wi appears in d . the embedding that corresponds to the tf representation is theoretically justified as the maximum likelihood estimator for the multinomial distribution  1  1  1 .  
+the popular tf¡Áidf representation  of a document d sets di = tf w d  i      idf w  i    where the tf component tf w d  i    is weighted by idf w  i     the inverse document frequency  idf  of word wi in the corpus. if there are m documents in the corpus and word wi appears in df w  i   documents  then idfi = log m df w  i    . the embedding that corresponds to the 
+tf¡Áidf representation can be interpreted as a pullback metric of the fisher information through the transformation  
+ 	g¦Ë   ¦È =    ¦È¦Ën1 1	 ...  ¦È¦Ënn++1 n+1     	 1  
+	 ¡Æi=1¦È¦Ëi	i	¡Æi=1¦È¦Ëi	i  
+ 
+with ¦Ëi = nidf+1 i .  ¡Æ j=1idf j
+how to find the optimal embedding is an interesting research problem to explore. it is possible to learn a riemannian metric even better than using the tf¡Áidf weighting .  
+under the above embeddings  the kernel  that will be discussed later  between two documents  d and d¡ä means k ¦È    d  ¦È  d¡ä   .  
+1. distance based kernels 
+good kernels should be consistent with one's intuition of pairwise similarity/dissimilarity in the domain. the motivation of this paper is to exploit the intrinsic geometric structure of text data to design a kernel that can better capture document similarity/dissimilarity. standard text retrieval  clustering and classification usually rely on the similarity measure defined by the dot product  inner product  of two document vectors in a euclidean space . the geometric interpretation of the dot product is that it computes the cosine of the angle between two vectors provided they are normalized to unit length. when turning to the riemannian geometry  this similarity measure is no longer available on general manifolds  because the concept of dot product is only defined locally on the tangent space but not globally on the manifold itself. however  there exists a natural dissimilarity measure on general manifolds: geodesic distance. 
+this section first describes the concept of kernels  ¡ì1   then discusses the negative euclidean distance kernel  ¡ì1  and the negative geodesic distance kernel  ¡ì1  in detail.  
+1 pd and cpd kernels 
+definition 1  kernels  . let x be a nonempty set. a realvalued symmetric function k :x x¡Á ¡ú is called a positive definite  pd  kernel if for all m¡Ê and all x1 ... xm ¡Êx the induced m¡Ám gram  kernel  matrix k with elements kij = k x xi  j   satisfies c kc 1t ¡Ý given any vector c¡Ê m . the function k is called a conditionally positive definite  cpd  kernel if k satisfies the above inequality for any vector c¡Ê m with c 1t = . 
+as a direct consequence of definition 1  we have  
+lemma 1   .  
+ i  any pd kernel is also a cpd kernel. 
+ ii  any constant c ¡Ý 1 is a pd kernel; any constant c¡Ê is a cpd kernel. 
+ iii  if k1 and k1 are pd  resp. cpd  kernels  ¦Á¦Á1  1 ¡Ý 1   then ¦Á ¦Á1 + 1 is a pd  resp. cpd  kernel. 
+ iv  if k1 and k1 are pd kernels  then k k1 defined by k k1 x x  ¡ä  = k1 x x  ¡ä k1 x x  ¡ä  is a pd kernel. 
+lemma 1  connection of pd and cpd kernels  1  1  1  . 
+let k be real-valued symmetric function defined on x x¡Á . then we have  
+ i  k x x  ¡ä  :=  k x x  ¡ä    k x x  1    k x x1  ¡ä  + k x x1  1    is pd if and only if k is cpd; 
+ ii  exp tk  is pd for all t   1 if and only if k is cpd. 
+theorem 1  hilbert space representation of pd kernels  . let k be a real-valued pd kernel  on x . then there exists a hilbert space of real-valued functions on x and a mapping 
+¦µ :x ¡ú h such that  
+ ¦µ x  ¦µ x¡ä  = k xx  ¡ä  . 	 1  
+theorem 1  hilbert space representation of cpd kernels  . let k be a real-valued cpd kernel  on x . then there exists a hilbert space of real-valued functions on x and a mapping ¦µ :x ¡ú h such that  
+ 	¦µ   x  ¦µ x¡ä  1 =  k x x  ¡ä  +  k x x 	  + k x x¡ä  ¡ä   . 	 1  
+the former theorem implies that pd kernels are justified to be used in all kernel methods. the latter theorem implies that cpd kernels are justified to be used in the kernel methods which are translation invariant  i.e.  distance based  in the feature space. since svms are translation invariant in the feature space  they are able to employ not only pd kernels but also cpd kernels  1  1 . 
+standard  commonly used  kernels  include:  
+linear klin  x x  ¡ä  = x x  ¡ä   	 	 1  
+polynomial kpol x x  ¡ä  =   x x  ¡ä + c d with d ¡Ê	 c ¡Ý 1   	 1  
+gaussian krbf  x x  ¡ä  = exp     x x1 ¦Ò1¡ä 1      with ¦Ò  1   and  	 1   
+sigmoid ksig  x x  ¡ä  = tanh ¦Êx x  ¡ä +   with ¦Ê    1 	  1 .   1  
+the former three are pd but the last one is not. 
+1 the negative euclidean distance kernel 
+lemma 1   1  1  . the negative squared euclidean distance function  de1  x x  ¡ä  =   x x  ¡ä 1 is a cpd kernel. 
+lemma 1  fractional powers and logs of cpd kernels  1  
+1  . if k :x x¡Á ¡ú  ¡Þ   1  is cpd  then so are      k ¦Â   1  ¦Â 1 and  ln 1  k  . 
+proposition 1. the negative euclidean distance  ned  function  
+ 	kned  x x  ¡ä  =  de  x x  ¡ä  	 1  
+is a cpd kernel. 
+proof. it follows directly from lemma 1 and 1 with ¦Â=1 . 
+1 the negative geodesic distance kernel 
+theorem 1  dot product kernels in finite dimensions  1  1  . a function k x x  ¡ä  = f   x x  ¡ä   defined on the unit sphere in a finite n dimensional hilbert space is a pd kernel if and only if its legendre polynomial expansion has only nonnegative coefficients  i.e.   
+¡Þ
+ 	f t    = ¡Æbrprn t  with br ¡Ý 1 . 	 1  
+r=1
+theorem 1  dot product kernels in infinite dimensions  1  1  . a function k xx  ¡ä  = f   x x  ¡ä   defined on the unit sphere in an infinite dimensional hilbert space is a pd kernel if and only if its taylor series expansion has only nonnegative coefficients  i.e.   
+¡Þ
+ 	f t    = ¡Æartr with ar ¡Ý 1 . 	 1  
+r=1
+since  1  is more stringent than  1   in order to prove positive definiteness for arbitrary dimensional dot product kernels it suffices to show that condition  1  holds . 
+proposition 1.  the negative geodesic distance  ngd  function on the multinomial manifold  
+ 	kngd  ¦È¦È  ¡ä  =  dg  ¦È¦È  ¡ä  	 1  
+for ¦È¦È  ¡ä¡Êpn is a cpd kernel. moreover  the shifted ngd kernel 
+kngd  ¦È¦È  ¡ä  +¦Ð  is a pd kernel. 
+proof. plugging the formula  1  into  1   we have  
+	  n+1	 
+ 	kngd  ¦È ¦È  ¡ä  =  1arccos ¡Æ¦È¦Èi	i¡ä  . 	 1    i=1	 
+denote   ¦È ¦È1  ...  n+1   and    ¦È ¦È1¡ä ...  n¡ä+1   by ¦È and ¦È¡ä respectively. it is obvious that ¦È and ¦È¡ä are both on the unit sphere. let  
+ 	f t    =¦Ð  1arccos   t . 	 1  
+then we can rewrite kngd  ¦È¦È  ¡ä  as  
+ 	kngd  ¦È ¦È  ¡ä  = f   ¦È ¦È 	¡ä    ¦Ð. 	 1  
+the maclaurin series  the taylor series expansion of a function about 1  for the inverse cosine function with  1¡Ü t ¡Ü1 is   
+¦£ 
+	¦Ð ¡Þ	 r + 1   1r+1
+ t	  	 1  
+where ¦£   x is the gamma function. hence   
+and  ¡¡¡¡¡¡¡¡¡¡¡Þ f t    = ¡Æc tr 1r+   
+r=1
+¦£  + 1   1  	1  r	 
+ 	cr =	 	1   . 	 1  
+¦Ð 1r +1 r!
+since ¦£   x   1 for all x   1   we have cr   1 for all r = 1 1 ... . 
+by theorem 1 and 1  the dot product kernel f   ¦È ¦È  ¡ä   is pd. thus the ngd kernel kngd  ¦È¦È  ¡ä  is cpd according to lemma 1. the shifted ngd kernel kngd  ¦È¦È  ¡ä  +¦Ð equals to f   ¦È ¦È  ¡ä   
+which has been proved to be pd. 
+definition 1  support vector machine  dual form   
+given a set of m labeled examples  x1  y1  ...  xm  ym   and a kernel k   the decision function of the support vector machine  svm  is  
+	  m	*  
+ 	f    	sgn 	yk   	 	b     	 1  
+	  i=1	 
+where  ¦Á ¦Á1* ...  m*   = ¦Á* solves the following quadratic optimization problem: 
+	m	m
+1
+ 	maximize m	w   ¦Á = ¡Æ ¡Æ¦Ái   ¦Á¦Ái	j y y ki	j  x xi 	j   	 1  
+	¦Á¡Ê	i=1 i j  =1
+              subject to 1 ¡Ü¦Ái ¡Ü c for all i =1 ... m 	 1  
+m
+                       and ¡Æ¦Ái yi = 1  	 1  
+i=1
+for 	some 	c   1	  	and 	b*	 is 	obtained 	by 	averaging 
+m
+y j   ¡Æ¦Ái*y ki	 x xj  	i  over all training examples with 1  ¦Á*j   c . 
+i=1
+proposition 1.  let k be a valid kernel  and k = k +¦Â where ¦Â¡Ê is a constant. then k and k  lead to the identical svm  
+given the same training data.  
+	m	m
+1
+w ¦Á  = ¡Æ ¡Æ¦Ái   ¦Á¦Ái j y y ki j  x xi  j   i=1 i j  =1 1           = ¡Æ ¡Æ¦Ái   1 ¦Á¦Ái	j y yi	j  k x xi 	j   +¦Â  m	m
+	i=1 i j  =1 1  1
+	m	m	  ¦Â m ¦Á¦Á
+         = ¡Æ ¡Æ¦Ái   ¦Á¦Ái	j yi y kj  x xi   j   ¡Æ i	j y yi	j 
+	i=1 i j  =1 i j  =1 1  	m	m	¦Â  m ¦Ái yi   1 . 
+         = ¡Æ¦Ái   1 ¡Æ¦Á¦Ái	j yi y kj  x xi   j      ¡Æ
+	i=1 i j  =1   i=1	  1  proof. denote the svms with kernel k and k learned from the training data  x1  y1  ...  xm  ym   by svm k    and svm k    respectively. the objective function  1  of the quadratic optimization problem for training svm k    is  
+in addition  for all training examples with c    
+y j   ¡Æ¦Ái*yki	 x xj 	i   = y j   ¡Æm ¦Ái*y ki    x xj  	i  +¦Â  m 1  	i=1	i=1
+	= y j   ¡Æm ¦Ái* yki  x xj   i  	  m	*  
+                                 	 ¦Â ¦Á ¡Æ i yi   .  1  i=1	  i=1	 
+furthermore  the decision function of  svm k    is  
+	  m	*  
+f    	sgn 	yk   	 	b   	 1    i=1	 
+	  m	  m	*   + b*    . 	 1  
+        = sgn 	k   	  +	y
+	  i=1	  i=1	 	 
+making use of the equality constraint  1   all terms containing ¦Â vanish in  1    1  and  1 . therefore svm k    and 
+svm k    arrive at equivalent ¦Á* and b*   and their decision functions for classification are identical.  
+proposition 1 and proposition 1 reveal that although the ngd kernel kngd  ¦È¦È  ¡ä  is cpd  not pd   it leads to the identical svm as a pd kernel kngd  ¦È¦È  ¡ä  +¦Ð. this deepens our understanding of the ngd kernel.  
+using the ngd kernel as the starting point  a family of cpd and pd kernels can be constructed based on the geodesic distance on the multinomial manifold using lemma 1  lemma 1  lemma 1  etc . in particular  we have the following pd kernel which will be discussed later in the section of related works. proposition 1.  the kernel  
+ 	kngd e   ¦È ¦È  ¡ä  =  1¦Ðt  n exp   1arccos  ¡Æn+1 ¦È¦Èi	i¡ä     	 1  
+	  t	  i=1	  
+with t   1 for ¦È¦È  ¡ä¡Êpn is pd. 
+proof. it is not hard to see that kngd e   ¦È¦È  ¡ä  equals to 
+	 n	  1	 
+ 1¦Ðt  1 exp  kngd ¦È¦È  ¡ä     whose positive definiteness is a 
+¡¡¡¡¡¡¡¡¡¡  1t	  trivial consequence of proposition 1  lemma 1 and lemma 1. 
+1. experiments 
+we have conducted experiments on two real-world datasets  webkb 1 and 1ng 1   to evaluate the effectiveness of the proposed ngd kernel for text classification using svms.  
+the webkb dataset contains manually classified web pages that were collected from the computer science departments of four universities  cornell  texas  washington and wisconsin  and some other universities  misc. . only pages in the top 1 largest classes were used  namely student  faculty  course and project. all pages were pre-processed using the rainbow toolkit  with the options  --skip-header --skip-html --lex-pipe-command=tagdigits --no-stoplist --prune-vocab-by-occur-count=1 . the task is sort of a four-fold cross validation in a leave-one-university-out way: training on three of the universities plus the misc. collection  and testing on the pages from a fourth  held-out university. this way of train/test split is recommended because each university's pages have their idiosyncrasies. the performance measure is the multi-class classification accuracy averaged over these four splits. 
+the 1ng  1newsgroups  dataset is a collection of approximately 1 documents that were collected from 1 different newsgroups . each newsgroup corresponds to a different topic and is considered as a class. all documents were pre-processed using the rainbow toolkit  with the option  -prune-vocab-by-doc-count=1 . the  bydate  version of this dataset along with its train/test split is used in our experiments due to the following considerations: duplicates and newsgroupidentifying headers have been removed; there is no randomness in training and testing set selection so cross-experiment comparison is easier; separating the training and testing sets in time is more realistic. the performance measure is the multiclass classification accuracy. 
+libsvm  was employed as the implementation of svm  with all the parameters set to their default values1. libsvm uses the  one-vs-one  ensemble method for multi-class classification because of its effectiveness and efficiency . 
+we have tried standard kernels  the ned kernel and the ngd kernel. the linear  lin  kernel worked better than or as well as other standard kernels  such as the gaussian rbf kernel  in our experiments  which is consistent with previous observations that the linear kernel usually can achieve the best performance for text classification  1  1  1 .  therefore the experimental results of standard kernels other than the linear kernel are not reported here. 
+the text data represented as tf or tf¡Áidf vectors can be embedded in the multinomial manifold by applying l1 normalization  1   as described in ¡ì1. since kernels that assume euclidean geometry  including the lin and ned kernel  often perform better with l1 normalization  we report such experimental results as well. the ngd kernel essentially relies on the multinomial manifold so we stick to l1 normalization when using it. 
+the experimental results1 obtained using svms with the lin  ned and ngd kernels are shown in table 1 and 1. 
+table 1  experimental results on the webkb dataset. 
+representation normalization kernel accuracy tf l1 lin 1% ned 1% ngd 1% l1 lin 1% ned 1% tf¡Áidf l1 lin 1% ned 1% ngd 1% l1 lin 1% ned 1%  	 
+table 1  experimental results on the 1ng dataset. 
+representation normalization kernel accuracy tf l1 lin 1% ned 1% ngd 1% l1 lin 1% ned 1% tf¡Áidf l1 lin 1% ned 1% ngd 1% l1 lin 1% ned 1%  	 
+the ned kernel worked comparably to the lin kernel under l1 normalization  and superiorly under l1 normalization. this observation has not been reported before.  
+the ngd kernel consistently outperformed its euclidean counterpart --  the ned kernel  and the representative of standard kernels -- the lin kernel  throughout the experiments. all improvements made by the ngd kernel over the lin or ned kernel are statistically significant according to  micro  sign test  at the 1 level  p-value   1 1  as shown in table 1. 
+table 1  statistical significance tests about the differences between the ngd kernel  under l1 normalization  and the lin/neg kernel  under l1 normalization . 
+comparison dataset representation z ngd vs. lin  webkb-top1 tf 1 tf¡Áidf 1 1ng-bydate tf 1 tf¡Áidf 1 ngd vs. ned webkb-top1 tf 1 tf¡Áidf 1 1ng-bydate tf 1 tf¡Áidf 1  
+we think the success of the ngd kernel for text classification is attributed to its ability to exploit the intrinsic geometric structure of text data. 
+1. related works 
+it is very attractive to design kernels that can combine the merits of generative modeling and discriminative learning. this paper lies along the line of research towards this direction.  
+an influential work on this topic is the fisher kernel proposed by jaakkola and haussler . for any suitably  regular probability model p x | ¦È  with parameters ¦È  the fisher kernel is based on the fisher score ux =  ¦È log p x | ¦È  at a single point in the parameter space:  
+ 	kf  xx  ¡ä  =u i uxt	 1 x¡ä 	 1  
+where i = e u ux  x xt   . in contrast  the ngd kernel is based on the full geometry of statistical models. 
+another typical kernel of this type is the probability product kernel proposed by jebara et al. . let p   | ¦È  be probability distributions on a space x . given a positive constant ¦Ñ  1   the probability product kernel is defined as  
+ 	kpp  ¦È ¦È  ¡ä 	p 	|	  p 	| ¡ä  d	p  |	    p  | ¡ä 	 1  
+assuming that p   | ¦È ¦Ñ  p   | ¦È¡ä ¦Ñ¡Êl1 x    i.e.  ¡Òx p x |¦È 1¦Ñdx and ¡Òx p x |¦È¡ä 1¦Ñdx are well-defined  not infinity . for any ¦¨ such that p   | ¦È ¦Ñ¡Êl1 x  for all ¦È¡Ê¦¨   the probability product kernel defined by  1  is pd. in a special case ¦Ñ=1   the probability product kernel is called the bhattacharyya kernel because in the statistics literature it is known as the bhattacharyya's affinity between probability distributions. when applied to the multinomial manifold  the bhattacharyya kernel of 
+¦È¦È  ¡ä¡Êpn turns out to be  
+n+1
+ 	kb  ¦È ¦È  ¡ä  = ¡Æ¦È¦Èi	i¡ä 	 1  
+i=1
+which is closely related to the ngd kernel given by  1  through 
+                           1	   	kb = cos  	kngd     	 1    1	 
+though they are proposed from different angles. 
+the idea of assuming text data as points on the multinomial manifold for constructing new classification methods has been investigated by lebanon and lafferty  1  1 . in particular  they have proposed the information diffusion kernel  based on the heat equation on the riemannian manifold defined by the fisher information metric . on the multinomial manifold  the information diffusion kernel can be approximated by 
+ 	kid  ¦È ¦È  ¡ä  ¡Ö  1¦Ðt   1n exp   1arccos1   ¡Æn+1 ¦È¦Èi	i¡ä     . 	 1  
+	  t	  i=1	  
+it is identical to the pd kernel kngd e   ¦È¦È  ¡ä  that is constructed based on the ngd kernel  1   except that the inverse cosine 
+	1   n+1 	1
+component is squared. since  arccos  ¡Æ¦È¦Èi	i¡ä  =  dg  ¦È ¦È¡ä  
+	  i=1	 
+looks not cpd  the kernel kid  ¦È¦È  ¡ä  is probably not pd  according to lemma 1. whether it is cpd still remains unclear. while the information diffusion kernel generalizes the gaussian kernel of euclidean space  the ngd kernel generalizes the ned kernel and provides more insights on this issue. 
+let's look at the ngd kernel  the bhattacharyya kernel and the information diffusion kernel on the multinomial manifold  in the context of text classification using tf or tf¡Áidf feature representation. it is not hard to see that the above three kernels all invoke the square-root squashing function on the term frequencies  thus provides an explanation for the long-standing mysterious wisdom that preprocessing term frequencies by taking squared roots often improves performance of text clustering or classification . 
+although the ngd kernel is not restricted to the multinomial manifold  it may be hard to have a closed-form formula to compute geodesic distances on manifolds with complex structure. one possibility to overcome this obstacle is to use manifold learning techniques  1  1  1 . for example  given a set of data points that reside on a manifold  the isomap algorithm of tenenbaum et al.  estimates the geodesic distance between a pair of points by the length of the shortest path connecting them with respect to some graph  e.g.  the k-nearest-neighbor graph  constructed on the data points. in case of the fisher information metric  the distance between nearby points  distributions  of x can be approximated in terms of the kullback-leibler divergence via the following relation. when ¦È ¦È¡ä = +¦Ä¦È with ¦Ä¦È a perturbation  the kullback-leibler divergence is proportional to the density's fisher information  1  1  
+¦Ä¦È¡ú1
+ 	d p   x | ¦È¡ä  || p x | ¦È   =f   ¦È  ¦Ä¦È  . 	 1  
+another relevant line of research is to incorporate problemspecific distance measures into svms. one may simply represent each example as a vector of its problem-specific distances to all examples  or embed the problem-specific distances in a  regularized  vector space  and then employ standard svm algorithm  1  1 . this approach has a disadvantage of losing sparsity  consequently they are not suitable for large-scale dataset. another kind of approach directly uses kernels constructed based on the problem-specific distance  such as the gaussian rbf kernel with the problem-specific distance measure plugged in  1  1  1  1  1 . our proposed ngd kernel on the multinomial manifold encodes a-priori knowledge about the intrinsic geometric structure of text data. it has been shown to be theoretically justified  cpd  and practically effective. 
+1. conclusions 
+the main contribution of this paper is to prove that the negative geodesic distance  ngd  on the multinomial manifold is a conditionally positive definite  cpd  kernel  and it leads to accuracy improvements over kernels assuming euclidean geometry for text classification.  
+future works are to extend the ngd kernel to other manifolds  particularly for multimedia tasks   and apply it in other kernel methods for pattern analysis  kernel pca  kernel spectral clustering  etc.  . 
+1. acknowledgments 
+we thank the anonymous reviewers for their helpful comments. 

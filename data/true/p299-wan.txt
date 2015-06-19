@@ -1,0 +1,212 @@
+the markov random walk model has been recently exploited for multi-document summarization by making use of the link relationships between sentences in the document set  under the assumption that all the sentences are indistinguishable from each other. however  a given document set usually covers a few topic themes with each theme represented by a cluster of sentences. the topic themes are usually not equally important and the sentences in an important theme cluster are deemed more salient than the sentences in a trivial theme cluster. this paper proposes the cluster-based conditional markov random walk model  clustercmrw  and the cluster-based hits model  clusterhits  to fully leverage the cluster-level information. experimental results on the duc1 and duc1 datasets demonstrate the good effectiveness of our proposed summarization models. the results also demonstrate that the clustercmrw model is more robust than the clusterhits model  with respect to different cluster numbers.  
+categories and subject descriptors: 
+h.1  information storage and retrieval : content analysis and indexing - abstracting methods; i.1  artificial intelligence : natural language processing - text analysis 
+general terms: algorithms  experimentation  performance keywords: multi-document summarization  cluster-based 
+link analysis  conditional markov random walk model  hits 
+1. introduction 
+multi-document summarization aims to produce a summary delivering the majority of information content from a set of documents about an explicit or implicit main topic. multi-document summary can be used to concisely describe the information contained in a cluster of documents and facilitate the users to understand the document cluster. for example  a number of news services  e.g. google news  have been developed to group news articles into news topics  and then produce a short summary for each news topic. the users can easily understand the topic they have interest in by taking a look at the short summary. 
+automated multi-document summarization has drawn much attention in recent years. in the communities of natural language processing and information retrieval  a series of workshops and conferences on automatic text summarization  e.g. ntcir  duc   
+ 
+permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. to copy otherwise  or republish  to post on servers or to redistribute to lists  requires prior specific permission and/or a fee. 
+sigir'1  july 1  1  singapore. 
+copyright 1 acm 1-1-1/1...$1. 
+special topic sessions in acl  coling  and sigir have advanced the summarization techniques and produced a couple of experimental online systems. 
+a particular challenge for multi-document summarization is that a document set might contain diverse information  which is either related or unrelated to the main topic  and hence we need effective summarization methods to analyze the information stored in different documents and extract the globally important information to reflect the main topic. another challenge for multi-document summarization is that the information stored in different documents inevitably overlaps with each other  and hence we need effective summarization methods to merge information stored in different documents  and if possible  contrast their differences. in recent years  both unsupervised and supervised methods have been proposed to analyze the information contained in a document set and extract highly salient sentences into the summary  based on syntactic or statistical features. 
+most recently  the markov random walk model  abbr. mrw  has been successfully used for multi-document summarization by making use of the  voting  or  recommendations  between sentences in the documents  1  1  1 . the model first constructs a directed or undirected graph to reflect the relationships between the sentences and then applies the graph-based ranking algorithm to compute the rank scores for the sentences. the sentences with large rank scores are chosen into the summary.  however  the model makes uniform use of the sentences in the document set  i.e. all the sentences are ranked without considering the higher-level information beyond the sentence-level information. actually  given a document set  there usually exist a number of themes or subtopics  and each theme or subtopic is represented by a cluster of highly related sentences  1  1 .  the theme clusters are usually of different size and have different importance for users to understand the document set. for example  the theme clusters close to the main topic of the document set are usually more important than the theme clusters far away from the main topic of the document set. the cluster-level information is deemed to have great influence on the sentence ranking process. moreover  the sentences in the same theme cluster cannot be treated uniformly. some sentences in the cluster are more important than other sentences because of their different distances to the cluster's centroid. in brief  neither the cluster-level information nor the sentence-to-cluster relationship can be taken into account in the markov random walk model. 
+in order to address the above limitations of the markov random walk model  we propose two models to incorporate the cluster-level information into the process of sentence ranking. the first model is the cluster-based conditional markov random walk model  abbr. clustercmrw   which incorporates the cluster-level information into the link graph. the second model is the cluster-based hits model  abbr. clusterhits   which considers the clusters and sentences as hubs and authorities in the hits algorithm. experiments have been performed on the duc1 and duc1 datasets  and the results demonstrate the good effectiveness of the two models. the experimental results also demonstrate that the clustercmrw model is more robust than the clusterhits model  with respect to different cluster numbers. 
+the rest of this paper is organized as follows: section 1 introduces the related work. the basic markov random walk model is introduced in section 1. and the two proposed models are presented in sections 1.  in section 1  we describe the experiments and results. lastly we conclude this paper in section 1. 
+1. related work 
+1 multi-document summarization 
+a variety of multi-document summarization methods have been developed recently. generally speaking  those methods can be either extractive summarization or abstractive summarization. extractive summarization involves assigning saliency scores to some units  e.g. sentences  paragraphs  of the documents and extracting those with highest scores  while abstractive summarization  e.g. newsblaster  usually needs information fusion   sentence compression  and reformulation . in this study  we focus on extractive summarization.  
+the centroid-based method  is one of the most popular extractive summarization methods. mead1 is an implementation of the centroid-based method that scores sentences based on sentence-level and inter-sentence features  including cluster centroids  position  tfidf  etc. neats  uses sentence position  term frequency  topic signature and term clustering to select important content  and use mmr  to remove redundancy. to further explore user interface issues  ineats  is developed based on neats. xdox  is a cross document summarizer designed specifically to summarize large document sets by identifying the most salient themes within the set by passage clustering and then composes an extraction summary  which reflects these main themes. the passages are clustered based on n-gram matching. much other work also explores to find topic themes in the documents for summarization  e.g. harabagiu and lacatusu  investigate five different topic representations and introduce a novel representation of topics based on topic themes. in addition  marcu  selects important sentences based on the discourse structure of the text. tno's system  scores sentences by combining a unigram language model approach with a bayesian classifier based on surface features. 
+most recently  the graph-based ranking methods have been proposed to rank sentences or passages based on the  votes  or  recommendations  between each other. websumm  uses a graph-connectivity model and operates under the assumption that nodes which are connected to many other nodes are likely to carry salient information. lexpagerank  is an approach for computing sentence importance based on the concept of eigenvector centrality. it constructs a sentence connectivity matrix and computes sentence importance based on an algorithm similar to pagerank. mihalcea and tarau  also propose a similar algorithm based on pagerank  to compute sentence importance for single document summarization  and for multi-document summarization  they use a meta-summarization process to summarize the meta-document produced by assembling all the single summary of each document. wan and yang  improve the graph-ranking algorithm by differentiating intra-document links and inter-document links between sentences. all these methods make use of the relationships between sentences and select sentences according to the  votes  or 
+ recommendations  from their neighboring sentences. 
+other related work includes topic-focused document summarization   which aims to produce summary biased to a given topic or query. 
+1 link analysis 
+pagerank  and hits  are two popular algorithms for link analysis between web pages and they have been successfully used to improve web retrieval. more advanced web link analysis methods have been proposed to leverage the multi-layer relationships between web pages. the conditional markov random walk model has been successfully applied in the tasks of web page retrieval based on two-layer web graph . hierarchical structure of the web graph is also exploited for link analysis in . in recent years  a few researches have focused on using link analysis methods to re-rank search results in order to improve the retrieval performance  1  1  1 . the links between documents are induced by computing the similarity between documents using the cosine measure or language model measure. in addition  link analysis methods have also been applied in social network analysis  and other tasks. 
+1. the basic model 
+the markov random walk model  mrw  is essentially a way of deciding the importance of a vertex within a graph based on global information recursively drawn from the entire graph. the basic idea is that of  voting  or  recommendation  between the vertices. a link between two vertices is considered as a vote cast from one vertex to the other vertex. the score associated with a vertex is determined by the votes that are cast for it  and the score of the vertices casting these votes.  
+e 
+	sentences 	 
+figure 1: one-layer link graph 
+formally  given a document set d  let g= v  e  be a graph to reflect the relationships between sentences in the document set  as shown in figure 1. v is the set of vertices and each vertex vi in v is a sentence in the document set. e is the set of edges  which is a subset of v¡Áv. each edge eij in e is associated with an affinity weight f i¡új  between sentences vi and vj  i¡Ùj . the weight is computed using the standard cosine measure  between the two sentences.  
+    vi  v j	 	 
+	f  i ¡ú j  = simcos ine  vi  v j   =  	 
+¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡vi ¡Á v j	 1   	  where vi and v j are the corresponding term vectors of vi and vj. 
+two vertices are connected if their affinity weight is larger than 1 and we let f i¡úi =1 to avoid self transition. 
+the transition probability from vi to vj is then defined by normalizing the corresponding affinity weight as follows. 
+  f  i ¡ú j 	   |v |	    if ¡Æ f ¡Ù 1	 1  
+          	 p i ¡ú j  = ¡Æ f  i ¡ú k 	 
+  k=1
+  1       otherwise
+note that p i¡új  is usually not equal to p j¡úi . we use the 
+	~	~
+row-normalized matrix m = mi  j  |v|¡Á|v|  to describe g with each entry corresponding to the transition probability. 
+	~	 	 1  
+m i j = p i ¡ú j 
+~
+in order to make m be a stochastic matrix  the rows with all zero elements are replaced by a smoothing vector with all elements set to 1/|v|. 
+~
+based on the matrix m   the saliency score senscore vi  for sentence vi can be deduced from those of all other sentences linked with it and it can be formulated in a recursive form as in the pagerank algorithm. 
+	¡Æ	~	 1 ¦Ì  	 
+	senscore vi   = ¦Ì 	senscore v j   m j i +
+	all j¡Ùi	|v |	 1  
+and the matrix form is 
+	¦Ë  =¦Ìm~ t ¦Ë +  1 ¦Ì  e  	 
+	|v |	 1  
+ 
+where ¦Ë = senscore  vi   |v|¡Á1 is the vector of saliency scores for 
+ 
+the sentences. e is a column vector with all elements equaling to 1. ¦Ì is the damping factor usually set to 1  as in the pagerank algorithm. 
+the above process can be considered as a markov chain by taking the sentences as the states and the final transition matrix is given by a =¦Ìm~ t +  1  ¦Ì  e e  t   which is irreducible. the 
+|v|
+stationary probability distribution of each state is obtained by the principal eigenvector of the transition matrix.  
+for implementation  the initial scores of all sentences are set to 1 and the iteration algorithm in equation  1  is adopted to compute the new scores of the sentences. usually the convergence of the iteration algorithm is achieved when the difference between the scores computed at two successive iterations for any sentences falls below a given threshold  1 in this study .  
+note that after the saliency scores of sentences have been obtained  a variant of the mmr algorithm used in  is applied to penalize the sentences highly overlap with informative sentences and finally choose both informative and novel sentences into the summary. 
+1. the proposed models 
+1 overview 
+in the basic mrw model  all the sentences are indistinguishable from each other  i.e. the sentences are treated uniformly. however  as we mentioned in previous section  there may be many factors that can have influence on the importance analysis of the sentences. as shown in  1  1   a document set usually contains a few topic themes and each theme can be represented by a cluster of topic-related sentences. the theme clusters are not equally important. our assumption is that the sentences in an important theme cluster should be ranked higher than the sentences in other theme clusters  and an important sentence in a theme cluster should be ranked higher than other sentences in the cluster.  
+in order to leverage the cluster-level information  we propose two models to make use of the relationships between sentences and clusters. the first model is the cluster-based conditional markov random walk model  clustercmrw   which is an improvement of the mrw model or the pagerank algorithm  by incorporating the cluster-level information into the link graph. the second model is the cluster-based hits model  clusterhits   which formalizes the sentence-cluster relationships as the authority-hub relationships in the hits algorithm . both models are based on link analysis techniques.  
+note that the above models are used to compute the saliency scores of the sentences in a document set  and other steps are needed to produce the final summary. the overall summarization framework consists of the following three steps: 
+1. theme cluster detection: this step aims to detect theme clusters in the document set. in this study  we simply use the clustering algorithm to group sentences into a few theme 
+clusters.  
+1. sentence score computation: this step aims to compute the saliency scores of the sentences in the document set by using either the clustercmrw model or the clusterhits model to incorporate the cluster-level information.  
+1. summary extraction: the same algorithm  as in the basic model is applied to remove redundancy and choose summary sentences.  
+the first two steps are key steps and the details will be described in next sections respectively. the last step is quite straightforward and we omit its details in this paper.  
+1 theme cluster detection 
+in the experiments  three popular clustering algorithms are 
+explored to produce theme clusters. in this study  given a document set  it is hard to predict the actual cluster number  and thus we typically set the number k of expected clusters as follows. k = v 	 1   
+where |v| is the number of all sentences in the document set.  
+the clustering algorithms are described as follows : 
+kmeans clustering: it is a partition based clustering algorithm. the algorithm randomly selects k sentences as the initial centroids of the k clusters and then iteratively assigns all sentences to the closest cluster  and recomputes the centroid of each cluster  until the centroids do not change. the similarity between a sentence and a cluster centroid is computed using the standard cosine measure.   
+agglomerative clustering: it is a bottom-up hierarchical clustering algorithm and starts with the sentences as individual clusters and  at each step  merge the most similar or closest pair of clusters  until the number of the clusters reduces to the desired number k. the similarity between two clusters is computed using the averagelink method  which computes the average of the cosine similarity values between any pair of sentences belonging to the two clusters respectively. 
+divisive clustering: it is a top-down hierarchical clustering algorithm and starts with one  all-inclusive cluster and  at each step  splits the largest cluster  i.e. the cluster with most sentences  into two small clusters using the kmeans algorithm until the number of clusters increases to the desired number k.  
+1 cluster-based conditional markov random walk model 
+in order to incorporate the cluster-level information and the sentence-to-cluster relationship  the conditional markov random walk model is based on the two-layer link graph including both the sentences and the clusters. the novel representation is shown in figure 1. as can be seen  the lower layer is just the traditional link graph between sentences in the basic mrw model. and the upper layer represents the theme clusters. the dashed lines between these two layers indicate the conditional influence between the sentences and the clusters.  
+theme clusters 
+
+figure 1: two-layer link graph 
+formally  the new representation for the two-layer graph is 
+denoted as g*= vs  vc  ess  esc   where vs=v={vi} is the set of sentences and vc=c={cj} is the set of hidden nodes representing the detected theme clusters; ess=e={eij|vi vj¡Êvs} corresponds to all links between sentences and esc={eij|vi¡Êvs  cj¡Êvc and cj=clus vi } corresponds to the correlation between a sentence and its cluster.  here  clus vi  denotes the theme cluster containing sentence vi. for further discussions   we let ¦Ð clus vi   ¡Ê 1  denote the importance of cluster clus vi  in the whole document set d  and let ¦Ø vi  clus vi   ¡Ê 1  denote the strength of the correlation between sentence vi and its cluster clus vi .   
+we incorporate the two factors into the transition probability from vi to vj and the new transition probability is defined as follows:  
+	  f  i ¡ú j |clus vi   clus vj   	 
+	  |v|	   if ¡Æ f ¡Ù 1  1  
+ 
+p i ¡ú j |clus vi   clus vj   = ¡Æ f  i ¡úk |clus vi   clus vk   	 
+ k=1
+  1       otherwise
+ 
+f i¡új|clus vi   clus vj   is the new affinity weight between two sentences vi and vj  conditioned on the two clusters containing the two sentences. we propose to computes the conditional affinity weight by linearly combining the affinity weight conditioned on the source cluster  i.e. f i¡új|clus vi    and the affinity weight conditioned on the destination cluster  i.e. f i¡új|clus vj    as follows:  
+	f  i ¡ú j |clus vi   clus v j   	 
+      =¦Ë  f  i ¡ú j |clus vi    +  1 ¦Ë   f  i ¡ú j |clus v j   
+ 
+	       =¦Ë  f  i ¡ú j  ¦Ð clus vi    ¦Ø vi  clus vi   	 
+	         +  1 ¦Ë   f  i ¡ú j  ¦Ð clus v j    ¦Ø v j  clus v j    	 1  
+      = f  i ¡ú j   ¦Ë ¦Ð clus vi    ¦Ø vi  clus vi   
+         +  1 ¦Ë  ¦Ð clus v j    ¦Ø v j  clus v j    
+where ¦Ë¡Ê 1  is the combination weight controlling the relative contributions from the source cluster and the destination cluster. various methods can be used to compute the cluster importance and the sentence-to-cluster correlation strength  including the cosine measure  the language model measure  etc. in this study  we adopt the widely used cosine measure to measure the two factors.  
+¦Ð clus vi   aims to evaluate the importance of the cluster clus vi  in the document set d  and it is set to the cosine similarity value between the cluster and the whole document set1: 
+	¦Ð clus vi    = simcos ine  clus vi    d  	 1  
+¦Ø vi  clus vi   aims to evaluate the correlation between the sentence vi and its cluster clus vi   and it is set to the cosine similarity value between the sentence and the cluster: 
+	¦Ø vi  clus vi    = simcosine  vi  clus vi    	 1  
+~ *
+then the new row-normalized matrix m is defined as follows: 
+	~ *	 	 1  
+m i j = p i ¡ú j|clus vi  clus vj    
+the saliency scores for the sentences are then computed based on ~ *
+m by using the iterative form in equation  1 .  the final transition matrix in the markov chain is then denoted by 
+a* =¦Ìm~ *t +  1 ¦Ì  e e t and the sentence scores is obtained 
+|v|
+by the principle eigenvector of the new transition matrix a*. 
+1 cluster-based hits model 
+different from the mrw model and the clustercmrw model  the hits model distinguishes the hubs and authorities in the objects. a hub object has links to many good authorities  and an authority object has high-quality content and there are many hubs linking to it. the hub scores and authority scores are computed in a reinforcement way. in this study  we consider the theme clusters as hubs and the sentences as authorities. figure 1 gives the bipartite graph representation  where the upper layer is the hubs and the lower layer is the authorities. the hits model makes only use of the sentence-to-cluster relationships.  
+theme clusters 
+
+figure 1: bipartite link graph 
+formally  the representation for the bipartite graph is denoted as g#= vs  vc  esc   where vs=v={vi} is the set of sentences  i.e. authorities  and vc=c={cj} is the set of theme clusters  i.e. hubs ; esc={eij|vi¡Êvs  cj¡Êvc} corresponds to the correlations between any sentence and any cluster. each edge eij is associated with a weight wij denoting the strength of the relationship between the sentence vi and the cluster cj. similarly  the weight wij is computed by using the cosine measure. we let l =  li  j   vs ¡Á vc denote the adjacency matrix and l is defined as follows. 
+	li  j = wij = simcosine  vi  c j   	 1  
+then the authority score authscore t+1  vi  of sentence vi and the hub score hubscore t+1  cj  of cluster cj at the  t+1 th iteration are computed based on the hub scores and authority scores at the tth iteration as follows. 
+	authscore t+1   vi   = ¡Æwij  hubscore t   c j   	 1  
+cj¡Êvc
+	hubscore  t+1   c j   = ¡Æwij   authscore  t   vi   	 1  
+vi¡Êvs
+and the matrix form is 
+  t+1    t 	 1  a = lh 
+	h  t+1  = lt a  t  	 1  
+	   t 	 t 
+where a = authscore  vi   |vs|¡Á1 is the vector of authority scores 	for 	the 	sentences 	at 	the 	tth 	iteration 	and   h  t  = hubscore c j   t   |vc|¡Á1 is the vector of hub scores for the clusters at the tth iteration. in order to guarantee the convergence  	 
+of the iterative form  a and h are normalized after each iteration as follows. 
+  t+1    t+1    t+1   1  a =a / a      
+h  t+1  = h  t+1  / h  t+1  	 1   
+it can be proved that authority vector a converges to the dominant eigenvector of the authority matrix llt  and hub vector  
+h converges to the dominant eigenvector of the hub matrix ltl. for numerical computation of the scores  the initial scores of all sentences and clusters are set to 1 and the above iterative steps are used to compute the new scores until convergence. usually the convergence of the iteration algorithm is achieved when the difference between the scores computed at two successive iterations for any sentences and clusters falls below a given threshold  1 in this study . 
+finally  we use the authority scores as the saliency scores for the sentences. the sentences are then ranked and chosen into summary.  
+1. experiments 
+1 data set 
+generic multi-document summarization has been one of the fundamental tasks in duc 1 and duc 1  i.e. task 1 in duc1 and task 1 in duc1   and we used the two tasks for evaluation. duc1 provided 1 document sets and duc1 provided 1 document sets  d1 is excluded from the original 1 document sets by nist  and generic abstracts of each document set with lengths of approximately 1 words or less were required to be created. the documents were news articles collected from trec-1. the sentences in each article have been separated and the sentence information has been stored into files. the summary of the two datasets are shown in table 1. 
+table 1: summary of data sets  
+ duc 1 duc 1 task task 1 task 1 number of documents 1 1 number of clusters 1 1 data source trec-1 trec-1 summary length 1 words 1 words    
+1 evaluation metric 
+we used the rouge  toolkit1 for evaluation  which has been widely adopted by duc for automatic summarization evaluation. it measures summary quality by counting overlapping units such as the n-gram  word sequences and word pairs between the candidate summary and the reference summary. rouge-n is an n-gram recall measure computed as follows: 
+	¡Æ ¡Æcountmatch n gram 	 
+	rouge n = s¡Ê{ re f sum}n-gram s¡Ê	 	 1   
+¡Æ ¡Æcount n gram 
+¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡s¡Ê{ re f sum}n-gram s¡Ê where 	n 	stands 	for 	the 	length 	of 	the 	n-gram  	and countmatch n-gram  	is 	the 	maximum 	number 	of 	n-grams co-occurring in a candidate summary and a set of reference summaries. count n-gram  is the number of n-grams in the reference summaries. 
+rouge toolkit reports separate scores for 1  1  1 and 1-gram  and also for longest common subsequence co-occurrences. among these different scores  unigram-based rouge score  rouge-1  has been shown to agree with human judgment most . we show three of the rouge metrics in the experimental results: rouge-1  unigram-based   rouge-1  bigram-based   and rouge-w  based on weighted longest common subsequence  weight=1 .  
+in order to truncate summaries longer than the length limit  we use the  -l  option in rouge toolkit and we also use the  -m  option for word stemming. 
+1 experimental results 
+the proposed clustercmrw and clusterhits models with different clustering algorithms are compared with the baseline mrw model  the top three performing systems and two baseline systems on duc1 and duc1 respectively. the top three systems are the systems with highest rouge scores  chosen from the performing systems on each task respectively. the lead baseline and coverage baseline are two baselines employed in the generic multi-document summarization tasks of duc1 and duc1. the lead baseline takes the first sentences one by one in the last document in the collection  where documents are assumed to be ordered chronologically. and the coverage baseline takes the first sentence one by one from the first document to the last document. tables 1 and 1 show the comparison results on duc1 and duc1 respectively. in table 1  systemn  systemp and systemt are the top three performing systems for duc1. in table 1  system1  system1  system1 are the top three performing systems for duc1. clustercmrw and clusterhits rely on the underlying clustering algorithm.  for example  clustercmrw kmeans  refers to the clustercmrw model using the kmeans algorithm to detect theme clusters. for the clustercmrw models  the combination weight ¦Ë is typically set to 1 without tuning  i.e. the two clusters for two sentences contribute equally to the conditional transition probability. 
+table 1: comparison results on duc1 
+system rouge-1 rouge-1 rouge-w clustercmrw 
+ kmeans  1 1* 1 clustercmrw 
+ agglomerative  1 1* 1 clustercmrw 
+ divisive  1 1 1 clusterhits 
+ kmeans  1 1 1 clusterhits  agglomerative  1* 1* 1* clusterhits 
+ divisive  1* 1* 1* mrw 1 1 1 systemn 1 1 1 systemp 1 1 1 systemt 1 1 1 coverage 1 1 1 lead 1 1 1  
+table 1: comparison results on duc1 
+system rouge-1 rouge-1 rouge-w clustercmrw 
+ kmeans  1* 1 1 clustercmrw 
+ agglomerative  1* 1* 1* clustercmrw 
+ divisive  1 1 1* clusterhits 
+ kmeans  1 1 1 clusterhits  agglomerative  1 1 1 clusterhits 
+ divisive  1 1 1 mrw 1 1 1 system1 1 1 1 system1 1 1 1 system1 1 1 1 coverage 1 1 1 lead 1 1 1  * indicates that the improvement over the baseline mrw model is statistically significant.  
+ 
+seen from the tables  both the clustercmrw model and the clusterhits model with different clustering algorithms can outperform the basic mrw model and other baselines over almost all three metrics on both duc1 and duc1 datasets. the results demonstrate the good effectiveness of the proposed models.  moreover  the three clustering algorithms are validated to be as effective as each other. it is a little disappointing that one proposed model cannot always outperform the other proposed model on both datasets.  
+in order to investigate how the combination weight influences the summarization performance of the clustercmrw model  we vary the combination weight ¦Ë from 1 to 1 and figures 1 show the rouge-1 and rouge-1 curves on the duc1 and duc1 datasets respectively. the similar rouge-w curves are omitted due to the page limit. we can see from the figures that the proposed clustercmrw model with different clustering algorithms can almost always outperform the baseline mrw model  under different values of ¦Ë. the results show the robustness of the proposed clustercmrw model  with respect to different combination weights.  
+clustercmrw kmeans clustercmrw agglomerative 
+clustercmrw divisive mrw 
+figure 1: rouge-1 vs. ¦Ë for clustercmrw on duc1 
+clustercmrw kmeans clustercmrw agglomerative 
+clustercmrw divisive mrw
+¦Ë 
+figure 1: rouge-1 vs. ¦Ë for clustercmrw on duc1 
+ 
+clustercmrw kmeans clustercmrw agglomerative 
+clustercmrw divisive mrw
+¦Ë 
+figure 1: rouge-1 vs. ¦Ë for clustercmrw on duc1 
+
+figure 1: rouge-1 vs. ¦Ë for clustercmrw on duc1 
+note that in the above experiments  the cluster number k is typically set to the square root of the sentence number. we further vary k to investigate how the cluster number influences the summarization performance. given a document set  we let v denote the sentence collection for the document set  and k is set in the following way: 
+	k = r¡Á | v | 	 1  
+where r  1  is a ratio controlling the expected cluster number for the document set. the larger r is  the more clusters will be produced and used in the algorithm. r ranges from 1 to 1 in the experiments and figures 1 show the rouge-1 and rouge-1 results of clustercmrw and clusterhits on the duc1 and duc1 datasets  respectively. 
+seen from the figures  the clustercmrw models can almost always outperform the baseline mrw model  no matter how many clusters are used. however  the clusterhits models are much influenced by the cluster number and very many clusters will deteriorate the performances of the clusterhits models. we can see from figures 1  1 and 1 that the performances of the clusterhits models are even worse than the baseline mrw model  when r is set to a large value.  the results demonstrate that the clustercmrw model is more robust than the clusterhits model  with respect to different cluster numbers. the results can be explained that the clustercmrw model involves both the sentence-to-sentence relationships and the sentence-to-cluster relationships  while the clusterhits model makes only use of the sentence-to-cluster relationships  so the performance of the clusterhits model will be highly affected by the detected theme clusters.  
+ 
+clustercmrw kmeans clustercmrw agglomerative 
+clustercmrw divisive clusterhits kmeans 
+clusterhits agglomerative clusterhits divisive 
+mrw 
+figure 1: rouge-1 vs. r on duc1 
+clustercmrw kmeans clustercmrw agglomerative 
+clustercmrw divisive clusterhits kmeans 
+clusterhits agglomerative clusterhits divisive 
+mrw
+r 
+figure 1: rouge-1 vs. r on duc1 
+
+figure 1: rouge-1 vs. r on duc1 
+1. conclusion and future work 
+in this paper we propose two novel summarization models to make use of the theme clusters in the document set. the first model incorporates the cluster information in the conditional markov random walk model and the second model uses the hits algorithm by considering the cluster as hubs and the sentences as authorities. experimental results on the duc1 and duc1 datasets demonstrate the good effectiveness of the models  and the cluster-based conditional markov random walk model is validated to be more robust than the cluster-based hits model.  
+in this study  the themes in the document set are discovered by simply clustering the sentences  and the quality of the clusters might not be guaranteed. in future work we will use other theme detection methods to find meaningful theme clusters. moreover  we will exploit other link analysis methods to incorporating the cluster-level information.  
+1. acknowledgments 
+this work was supported by the national science foundation of china  no.1  and the research fund for the doctoral program of higher education of china  no.1 . we thank the anonymous reviewers for their useful comments. 

@@ -1,0 +1,247 @@
+cost-sensitive learning addresses the issue of classification in the presence of varying costs associated with different types of misclassification. in this paper  we present a method for solving multi-class cost-sensitive learning problems using any binary classification algorithm. this algorithm is derived using three key ideas: 1  iterative weighting; 1  expanding data space; and 1  gradient boosting with stochastic ensembles. we establish some theoretical guarantees concerning the performance of this method. in particular  we show that a certain variant possesses the boosting property  given a form of weak learning assumption on the component binary classifier. we also empirically evaluate the performance of the proposed method using benchmark data sets and verify that our method generally achieves better results than representative methods for cost-sensitive learning  in terms of predictive performance  cost minimization  and  in many cases  computational efficiency.
+categories and subject descriptors
+i.1  artificial intelligence : learning
+general terms
+algorithms
+keywords
+cost-sensitive learning  multi-class classification  boosting
+1. introduction
+¡¡classification in the presence of varying costs associated with different types of misclassification is important for practical applications  including many data mining applications  such as targeted marketing  fraud and intrusion detection among others. a body of work on this subject has become known as cost-sensitive learning  in the areas of machine learning and data mining.
+permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. to copy otherwise  to republish  to post on servers or to redistribute to lists  requires prior specific permission and/or a fee.
+kdd'1  august 1  1  seattle  washington  usa.
+copyright 1 acm 1-1/1 ...$1.
+jl tti-c.org
+¡¡research in cost-sensitive learning falls into three main categories. the first category is concerned with making particular classifier learners cost-sensitive  including methods specific for decision trees  1  1   neural networks  and support vector machines . the second category uses bayes risk theory to assign each example to its lowest expected cost class  1  1 . this requires classifiers to output class membership probabilities and sometimes requires estimating costs   when the costs are unknown at classification time . the third category concerns methods that modify the distribution of training examples before applying the classifier learning method  so that the classifier learned from the modified distribution is cost-sensitive. we call this approach cost-sensitive learning by example weighting. work in this area includes stratification methods  1  1  and the costing algorithm . this approach is very general since it reuses arbitrary classifier learners and does not require accurate class probability estimates from the classifier. empirically this approach attains similar or better cost-minimization performance.
+¡¡unfortunately  current methods in this category suffer from a major limitation: they are well-understood only for two-class problems. in the two-class case  it is easy to show that each example should be weighted proportionally to the difference in cost between predicting correctly or incorrectly . however  in the multi-class case there is more than one way in which a classifier can make a mistake  breaking the application of this simple formula. heuristics  such as weighting examples by the average misclassification cost  have been proposed  1  1   but they are not well-motivated theoretically and do not seem to work very well in practice when compared to methods that use bayes risk minimization .
+¡¡in this paper  we propose a method for multi-class costsensitive learning based on an iterative scheme for example weighting. there are a number of key techniques we employ in this method: 1  an iterative process which empirically adjusts the example weighting according to the performance of the learning algorithm; 1  data space expansion for multi-class labels; 1  gradient boosting  with stochastic ensembles. the first two ideas are combined in a unifying framework given by the third.
+¡¡we establish theoretical performance guarantee for a variant of our algorithm. in particular  we show that this variant possesses the so-called boosting property  given that the component classification algorithm satisfies a certain weak learning assumption. we test our method on several multi-class data sets and discover excellent predictive performance  i.e. cost minimization  as compared to existing cost-sensitive algorithms. moreover  our results show that when the distribution of costs is skewed  as is common in many data mining applications  our method has the added advantage that it uses drastically smaller sample sizes and hence requires much less computational resources.
+1. preliminaries
+¡¡we begin by introducing some general concepts and notation we use in the rest of the paper.
+1 cost-sensitive learning and related problems
+¡¡a popular formulation of the cost-sensitive learning problem is via the use of a cost matrix. a cost matrix  c y1 y1   specifies how much cost is incurred when an example is predicted to belong to class y1 when its correct label is y1  and the goal of a cost-sensitive learning method is to minimize the expected cost. zadrozny and elkan  noted that this formulation is not applicable in situations in which misclassification costs depend on particular instances  and proposed a more general form of cost function  c x y1 y1   that allows dependence on the instance x. here we adopt a formulation based on this  although slightly more general .
+¡¡once we allow the costs to depend on each example  it is natural to assume that the costs are generated according to some distribution  along with the examples  which leads to the following formulation. in  multiclass  cost sensitive classification  examples of the form  x    are drawn from a distribution d over a domain x ¡Á r+ .  throughout the paper  we will let k denote |y |.  here  for each label y ¡Ê y   cy equals the cost of misclassifying instance x as y  i.e. cy = c x y y   where y  is the minimum cost label for
+x.
+¡¡given a set of examples   the goal is to find a classifier h : x ¡ú {1 ... k} which minimizes the expected cost of the classifier:
+	argmin	 	 1 
+¡«
+we can assume without loss of generality that the costs are normalized so that
+ x ¡Ê x mincy = 1. y¡Êy
+note that with this normalization  the above formulation is equivalent to the common formulation in terms of misclas-
+sification cost  i.e. 
+argmin	= argmincy   y
+where we used i ¡¤  to denote the indicator function which takes on the value 1 whenever the statement is true  and the value 1 otherwise.
+¡¡normally a learning method attempts to do this by minimizing the empirical cost in the given training data  given some hypothesis class h:
+	arg min	 1 
+here the empirical expectation notation  e  refers to the  averaged empirical cost.
+¡¡as a building block of our method  we make use of methods for solving importance weighted classification problems  which we define below. in importance weighted classification  examples of the form  x y c  are drawn from a distribution d over a domain x¡Áy ¡Ár+. given a set of examples s =  x y c m  the goal is to find a classifier h : x ¡ú y having minimum importance-weighted misclassification error: argmin
+again  usually  a learning method attempts to meet this goal by minimizing the empirical weighted error in some hypothesis class h:
+	argmin	  	 1 
+¡¡we emphasize that the importance weighted formulation critically differs from the per example formulation of multiclass cost-sensitive learning in that there is a single weight associated with each instance x  whereas in multi-class costsensitive learning there is a weight  misclassification cost  associated with each label y. we note that importance weighted classification can be solved very well with a classifier learning method  by use of weighted rejection sampling techniques .
+1 hypothesis representations and other notation
+¡¡in the above  we assumed that the hypotheses output by a cost-sensitive learner is a functional hypothesis h  i.e. h : x ¡ú y. it is also possible to allow hypotheses that are stochastic  namely
+h : x ¡Á y ¡ú  1 
+subject to the stochastic condition:
+.
+with stochastic hypotheses  stochastic cost-sensitive learning is defined as the process of finding a hypothesis minimizing the following expected cost:
+argmin
+in general  we sometimes use the following short-hand notation for the expected cost of a stochastic hypothesis h on an instance x.
+
+¡¡note that in the special case that h is deterministic  the above formulation is equivalent to the definition given in eq. 1. also  this is a convexification of the standard objective function that we usually expect a stochastic costsensitive learner to minimize  i.e.
+argmaxy h y|x  
+we also consider a variant of cost-sensitive learning in which relational hypotheses are allowed. here relational hypotheses h are relations over x ¡Á y   i.e. h : x ¡Á y ¡ú {1}. in general h is neither functional nor stochastic  and in particular it may violate the stochasticity: y¡Êy h x y  = 1.
+  an input sample	.
+  a component learner a that takes an importanceweighted sampleand outputs a functional hypothesis h  possibly by weighted sampling.
+  an integer t specifying the number of iterations to be performed.
+1. let
+{ x argmin
+1. for t := 1 to t do
+ a  let
+ b  choose ¦Át ¡Ê  1   for example ¦Át := 1/t.
+ c  for each example  	with an error
+update the importance weight by c := ¦Átch x  +  1   ¦Át c
+1. return ht.figure 1: method iw  iterative weighting 
+1. the methodology
+¡¡our methodology can be interpreted as a reduction  which translates a multi-class cost-sensitive learning problem to a classifier learning problem.
+¡¡this methodology is derived using three key ideas: 1  iterative weighting; 1  expanding data space; and 1  gradient boosting with stochastic ensembles. the first two ideas are combined in a unifying framework given by the third.
+¡¡below we will explain the first two key ideas by exhibiting a prototypical method based on each  and then derive our main learning method that makes use of them in a gradient boosting framework.
+1 iterative cost weighting
+¡¡we note that the weighting scheme proposed in   called costing  exploits the following observation: for the binary class case  the above formulation in terms of per example cost for each class can be further reduced to a formulation in terms of a single importance number per example. this is possible by associating a number indicating the importance of an example  x y   given by |c1   c1|. this conversion allows us to reduce the cost-sensitive learning problem to a weighted classifier learning problem  but it is not immediately obvious how that would be done for the multi-class scenario. it is therefore natural to consider iterative weighting schemes  in which example weights are iteratively modified in search for the optimal weighting. the technique  which we call iw  iterative weighting   presented in figure 1  is an example of such a scheme. we can show that the final weights of iw are the optimal weights in some sense  provided the algorithm converges.
+¡¡theorem 1. assume iw converges and the final hypothesis is h. then  the following holds:
+.
+
+figure 1: method dse  data space expansion 
+¡¡this theorem says that  if the iterative algorithm converges  then the loss of the component learner with respect to the final weights  left hand side  is equal to the expected cost for the problem that we wish to solve  right hand side . proof
+¡¡at convergence  for every example  x y c  that the h errs on  we must have: c = ¦Átch x  +  1   ¦Át c and thus
+c = ch x 
+noting that when h does not err on x  we have y  = 1  thus  it follows that
+
+q.e.d
+1 data space expansion
+¡¡one drawback to iterative weighting is an inability to directly take into account the different costs associated with multiple ways of misclassifying examples. this translates to non-convergence of the method in practice. we address this issue by the technique of expanding data space  as we describe below.
+¡¡given a labeled sample s consisting of  x c  of size m  we define an expanded sample s of size mk for weighted classification  where k is the size of the label set  i.e. k = |y |  as follows.
+
+note here that the newly defined weights are more like benefits than costs  since larger costs are mapped to smaller weights.
+it turns out that minimizing the importance weighted loss 
+
+on this new data set also minimizes the cost on our original sample. the algorithm dse  data space expansion   shown in figure 1  is based on this observation  which is summarized as theorem below.
+¡¡theorem 1. with the definitions given in figure 1  a hypothesis h minimizing the weighted classification error on the expanded weighted sample s 
+
+also minimizes the cost on the original sample s 
+
+proof
+	argmin	e 	
+	=	argmin
+	=	argmax
+	=	argmax
+	=	argmin
+q.e.d.
+1 gradient boostingwith stochastic ensembles
+¡¡having described two key ideas  namely iterative weighting and data space expansion  we now apply them together to arrive at our main method. we do so by casting the stochastic multiclass cost-sensitive learning in the framework of gradient boosting   with the objective function defined as the expected cost of the stochastic ensemble  obtained as a mixture of individual hypotheses  on the expanded data set. as we stated in section 1  a functional hypothesis of the form h : x ¡ú y can be viewed as a special case of a stochastic hypothesis. we then define a stochastic ensemble hypothesis h  given multiple functional hypotheses  ht t = 1 ... t  as the conditional distribution defined as the mixture of the component hypotheses  namely 
+
+¡¡let ht denote the mixture hypothesis of the learning procedure at round t. the procedure is to update its current combined hypothesis by the mixture of the previous combined hypothesis and a new hypothesis  i.e. by setting ht y|x  =  1   ¦Â ht 1 y|x  + ¦Âi h x  = y 
+thus  the expected cost of ht on x is
+
+if we now take a derivative of this function with respect to ¦Â  we get:
+
+¡¡note that this is the difference between the average cost of the current ensemble hypothesis and the new weak hypothesis assigning probability one to the specified label.
+¡¡we then take the expectation of this derivative with respect to all data points  x y  in the expanded data set s  and thus the gradient is mk-dimensional. the weak learner is to find a hypothesis h whose inner-product with the negative gradient is large. that is  the output h of the weak learner seeks to maximize the following sum.
+	 	 1 
+this leads to the following example weighting on the expanded sample:
+wx y = cht 1 x    cy
+where we recall that cht 1 x  denotes e.
+¡¡note that these weight updates are similar to those used in iw and dse. in fact  the iw weight update rule is essentially equivalent to the gbse rule  except iw has  for each instance x  the weight for only the best  least cost  label  and hence cy = 1 holds. this is because the iw update rule mixes the weights from earlier iterations  which is equivalent to taking the average over the stochastic ensemble as is done in gbse. the dse update rule differs from the gbse rule in that maxis used in place of cht 1 x   which ensures that the weight is always non-negative  even though dse has weights for all labels. thus  the gbse weights can be viewed as iw weights  applied on the expanded data set  as in dse. as a consequence  the gbse weights wx y := cht 1 x  cy can be negative  since y is not necessarily the best label. this means that the weak learner now receives both positive and negative weights. while the minimization of weighted misclassification with positive and negative weights makes perfect sense as an optimization problem  its interpretation as a classification problem is not immediately clear. in particular  it prohibits the use of weighted sampling as a means of realizing the weighted classification problem.
+¡¡we deal with this problem by converting a relational version of the weighted multi-class classification problem  i.e. of finding h to maximize eq. 1  in each iteration to a weighted binary classification problem. specifically we convert each example pair  x y  to   x y  l   and set l = 1 if the weight on  x y  is positive  and l = 1 if the weight is negative. the output hypothesis of the binary classifier is in general relational  so it is converted to a stochastic hypothesis by the procedure stochastic shown in figure 1.  the particular way this procedure is defined is motivated by the theoretical guarantee  which will be shown in the next subsection.  the overall process  consisting of multiple iterations of such a reduction  constitutes a reduction of the stochastic multi-class cost-sensitive classification to binary weighted classification. with the foregoing definitions  we can now state our main method  gbse  gradient boosting with stochastic ensembles   which is shown in figure 1.
+1 theoretical performance guarantee on a variant
+¡¡it turns out that a strong theoretical performance guarantee can be proved on a variant of this method. the variant is obtained by simply replacing the weight updating rule of gbse by the following:
+
+the resulting variant  which we call gbse-t  gradient boosting with stochastic ensembles - theoretical version   is summarized in figure 1.
+¡¡we can show that gbse-t has a boosting property given a version of weak learning condition on the component classifier. this weak learning condition  which we make precise below  is one that is sensitive to class imbalance.
+¡¡definition 1. we say that an algorithm a for the binary importance weighted classification problem  as defined
+  an input sample	.
+  a component learner a for  importance weighted  binary classification that takes a sample of the form   x y  l w    and outputs a relational hypothesis h.
+  a subprocedure stochastic  as specified in figure 1.
+  an integer t specifying the number of iterations to be performed.
+1. set	.
+1. initialize h1 by  x ¡Ê x y ¡Ê y h1 y|x  = 1/k.
+1. for t := 1 to t do
+ for all  x y  in
+.
+ c  let ht := a st 
+ d  ft := stochastic ht ht 1 .
+ e  choose ¦Át ¡Ê  1   for example ¦Át = 1t .
+ f  set ht :=  1   ¦Át ht 1 + ¦Átft.
+1. end for
+1. return ht.figure 1: method gbse  gradient boosting with
+stochastic ensembles 
+stochastic h: a relational hypothesis  h: a stochastic hypothesis 
+1. define f by setting for each x ¡Ê x:
+   define for alldefault  if |{yy¡Ê¡Êy  yf|h y |x yx  =  = 1h y}|x| .= 1 then
+  else	.
+1. output f.figure 1: sub-procedure stochastic
+in section 1  satisfies the weak learning condition for a given classification sample s =  x y m  if for all weighted samples  for it  its output h satisfies the following  for some fixed ¦Ã   1:
+
+		e 	ci y = 1   1 
+intuitively  this weak learning condition requires that the weak learner achieve better weighted accuracy than that attainable trivially by assigning all examples to the negative class.
+¡¡theorem 1. suppose that the component learner a satisfies the weak learning condition for sample s as defined by gbse-t. if we set ¦Át = ¦Á for all t  the output of gbse-t identical to method gbse of figure 1  except for the following change:
+1. a  set	  for all  	.
+figure 1: method gbse-t  gradient boosting with stochastic ensembles - theoretical variant 
+satisfies:
+
+¡¡this theorem shows that the empirical cost of the output hypothesis of gbse-t converges exponentially fast  given the weak learning assumption. proof
+we first establish the following simple correspondence between the weak learning conditions on the relational multiclass classification problem that we wish to solve in each iteration  and the weighted binary classification problem that is given to the component algorithm to solve it.
+¡¡definition 1. let s be a weighted sample of the form s =  x y c m  where weights c can be both positive and negative.	then define a transformed sample s for weighted classification as.
+1. the relational weighted multi-class classification problem for s is to find a relational hypothesis h : x¡Áy ¡ú {1} that maximizes the following sum:
+
+1. the weighted binary classification problem for the transformed sample s is to find a hypothesis h : x ¡Á y ¡ú {1} that maximizes the following weighted classification accuracy:
+
+note that  in a relational weighted classification problem as defined in definition 1  the goal of a learner is to try to assign 1 to pairs with positive weights and assign 1 to those with negative weights as much as possible.
+lemma 1. for all h:
+
+
+proof of lemma 1
+
+  = 1 and c ¡Ý 1 
+  = 1 and c   1 
+	=	e 	c ¡¤ h x y i c ¡Ý 1  + c h x y    1 i c   1 
+ x y c ¡«s
+	=	e 	c ¡¤ h x y  +	e 	|c|i c   1 
+	 x y c ¡«s	 x y c ¡«s
+hence the lemma follows. q.e.d.
+¡¡this lemma establishes that getting positive weighted accuracy on the original relational weighted multi-class classification problem is equivalent to the weak learning condition on the transformed weighted binary classification problem.
+proof of theorem 1
+first  note that applying stochastic to ht can increase the expected cost only for x's such that |{y|ht x y  = 1}| = 1  and for such x's the cost of the output function f equals that of ht 1 by the definition of stochastic. hence  the average empirical cost of f on the original sample s  satisfies the following:
+	  = 1  	 1 
+now recall that the expected empirical cost of ht equals the following  where we drop the subscript t from ¦Át.
+
+hence  by combining eq. 1 and eq. 1  we can show the following bound on the decrease in empirical cost in each iteration. here  we also drop the subscript t on h.
+
+here lemma 1 was applied to get the last equality. next apply the weak learning assumption on the induced measure
+over  	  defined by:   and to get:
+
+the last inequality follows because for all y cy ¡Ý 1  there exists y such that cy = 1  and the sum is bounded below by its largest term.
+¡¡since the expected cost is convex  in fact linear   this implies convergence to the global optimum. noting that in each iteration  the empirical cost is reduced at least by a factor of 1   ¦Ã¦Ák   the theorem follows. q.e.d.
+¡¡note that at earlier iterations  the binary classifier used as the component learner is likely to be given a weighted sample with balanced positive and negative examples. as the number of iterations increases and progress is made  however  it will receive samples that are increasingly more negative.  this is because the positive examples correspond to labels that can further improve the current performance.  it therefore becomes easier to attain high weighted accuracy by simply classifying all examples to be negative. the weak learning condition of eq. 1 appropriately deals with this issue  as it requires that the weak learner achieve better weighted accuracy than that attainable by assigning all examples to the negative class  as we mentioned earlier.
+1. experimental evaluation
+¡¡we use the c1 decision tree learner  as the base classifier learning method  because it is a standard for empirical comparisons and it was used as the base learner by domingos for the metacost method .
+¡¡we compare our methods against three representative methods: bagging   averaging cost  1  1  and metacost. the averaging cost method was also used for comparison in . note that bagging is a cost-insensitive learning method. here we give a brief description of these methods  and refer the reader to  1  1  for the details.
+  bagging obtains multiple sub-samples from the original training set by sampling with replacement  feeds them to the base learner  c1   and takes the average over the ensemble of output hypotheses
+  averaging cost  avgcost  obtains a sub-sample by weighted sampling with weights defined as the average cost for each x  and then feeds it to the base learner
+ c1 .
+  metacost uses bagging to obtain an ensemble of hypotheses  then uses the ensemble to estimate class probabilities  relabels the examples with the labels that minimize the expected risk according to the probability estimates and finally runs the base learner  c1  to obtain a single classifier that predicts the new labels.
+¡¡there are some deviations from these methods in our implementation  which we clarify below. the main deviation is that we use rejection sampling for all methods  including bagging   while other sampling schemes such as resampling with replacement are used in the original methods.1
+
+1
+in weighted rejection sampling  the original data are we do this for two reasons:  1  inadequacy of resampling with replacement  or over-sampling   especially for c1  has been noted by various authors  1  1 ;  1  since our proposed methods use rejection sampling  we do the same for the other methods for fairness of comparison. we stress that this deviation should only improve their performance. another deviation is that we use a variant of metacost that skips the last step of learning a classifier on the relabeled training data set  but directly minimizes the expected risk on the test data. it has been observed that this variant performs at least as well as metacost  in terms of cost minimization.  this variant has been called bagcost by margineantu .  also  in our implementation of avgcost  we perform weighted sampling multiple times to obtain an ensemble of hypotheses  then output their average as the final hypothesis.  in the original implementation  only a single iteration of weighted sampling was performed.  we note that  due to our normalization assumption that the minimum cost for each instance x is always zero  our version of avgcost is identical to a more sophisticated variant in which the difference between the average cost and the minimum cost is used for sampling weights. our experience shows that this variant of avgcost performs better than the original method.
+¡¡the methods were applied to five benchmark data sets available from the uci machine learning repository  and one data set from the uci kdd archive . these data sets were selected by the criterion of having approximately 1 examples or more  besides being multi-class problems. a summary of these data sets is given in table 1. here class ratio is defined as the class frequency of the least frequent class divided by that of the most frequent one. we note that the kdd-1 data set is actually a larger data set. we used the so-called 1% training data set  which consists roughly of 1 thousand instances  and further sampled down by random sampling 1% of them  to get the data set of size 1 which we used for our experimentation. emphatically  we only used data from the original training set  and not data from the test set. we do this because of the idiosyncratic property of this data set that the test data are generated from a considerably different data distribution. while this property is both realistic and interesting for empirical evaluation of a method for intrusion detection  we judged it not to be desirable for the current purpose of evaluating general purpose cost-sensitive classification algorithms.
+¡¡except for the kdd-1 data set  these data sets do not have standard misclassification costs associated with them. for this reason  we follow domingos and generate cost matrices according to a model that gives higher costs for misclassifying a rare class as a frequent one  and the lower costs for the reverse.  note therefore that our experiments do not exploit the full generality of the instance-dependent cost formulation presented in section 1.  this reflects a situation that is found in many practical data mining applications  including direct marketing and fraud detection  where the rare classes are the most valuable to identify correctly.
+¡¡our cost model is as follows: let p  y1  and p  y1  be the empirical probabilities of occurrence of classes y1 and y1 in the training data. we choose the non-diagonal entries of the cost matrix with uniform probability from the interval  1p  y1 /p  y1  . in   the diagonal
+
+scanned once  without replacement   and each example is accepted with probability equal to  or proportional to  its weight.
+data set# of examples# of classesclass ratioannealing11kdd-11.1letter11satellite11solar flare11splice11table 1: data set characteristics: data size  number of classes  and the ratio between the frequency of the most common class to the least common.
+entries were then chosen from the interval  1   which often leads to cost matrices in which the correct label is not the least costly one. besides being unreasonable  see elkan    these cost matrices can give an unfair advantage to cost-sensitive methods over cost-insensitive ones. we therefore set the diagonal entries to be identically zero  which is consistent with our normalization assumption.
+¡¡in all experiments  we randomly select two thirds of the examples in the data set for training and use the remaining one third for testing. also  for each training/test split we generate a different cost matrix according to the rules above. thus  the standard deviations that we report reflect both variations in the data and in the misclassification costs.
+¡¡we remark on certain implementation details of the proposed learning methods in our experimentation. first  we note that in all of the methods used for comparison  except iw  c1 was used as the component algorithm with weighted rejection sampling  and the final hypothesis is expressed essentially as an ensemble of output decision tress of c1. iw  as a meta-method  does not use ensembles; instead we used an ensemble method of costing  on c1  as the component algorithm. its output hypothesis is therefore also an ensemble of decision trees. dse  as stated in its definition in figure 1  is not an ensemble method  but analogously to avgcost  we performed multiple iterations of weighted sampling according to the weighting scheme of dse and averaged the resulting hypotheses to define the final hypothesis. finally  the choice of the mixture weight ¦Át was set at 1/t for all methods.
+¡¡the results of these experiments are summarized in table 1 and table 1. table 1 lists the average costs attained by each of these methods on the 1 data sets  and their standard errors. these results were obtained by averaging over 1 runs  each run consisting of 1 iterations of the respective learning method. these results appear quite convincing: gbse outperforms all comparison methods on all data sets  except on splice  for which it ranks second after metacost. also  gbse is the best performing among the proposed methods in the paper  confirming our claim that the combination of various techniques involved is indeed necessary to attain this level of performance.
+data setbaggingavgcostmetacostiwdsegbseannealing
+solar
+kdd-1 letter
+splice
+satellite1 ¡À 1
+1 ¡À 1
+1 ¡À 1 1 ¡À 1
+1 ¡À 1
+1	11 ¡À 1 1 ¡À 1
+1 ¡À 1
+1 ¡À 1
+1 ¡À 1
+1	11 ¡À 1 1 ¡À 1
+1 ¡À 1 1 ¡À 1
+1	1
+1	11 ¡À 1 1 ¡À 1 1 ¡À 1
+1 ¡À 1 1 ¡À 1 1 11 ¡À 1
+1 ¡À 1
+1 ¡À 1
+1 ¡À 1 1 ¡À 1
+1	11	1
+1	1
+1	1
+1	1
+1 ¡À 1
+1	1	¡À	¡À	¡À	¡À	¡À
+table 1: experimental results: the average cost and standard error.
+data setbaggingavgcostmetacostiwdsegbseannealing
+solar
+kdd-1 letter
+splice
+satellite1¡À¡À¡À¡À¡À1....1.1 ¡À 1
+1 ¡À 1
+1 ¡À 1
+1 ¡À 1
+1 ¡À 1
+11¡À¡À¡À¡À¡À1.11..1¡À¡À¡À¡À¡À1.1.¡À1¡À¡À¡À¡À1..1	¡À	¡À	¡À	 	¡À	¡À
+table 1: experimental results: the average data size used by each method in 1 iterations  and standard¡¡table 1 lists the average total data size used by each of the methods in 1 iterations. the data size for iw is not listed  since it consists of 1 iterations of 1 rounds of costing and the direct comparison of total data size does not seem to make as much sense for this method. examining these results in conjunction with the data characteristics in table 1 reveals a definite trend. first  note that the data sets are divided into two groups: those having very large skews  or very low class ratios  annealing  kdd-1 and solar flare   and error.
+those having moderate skews  satellite  splice and letter . it is evident that the methods based on example weighting  avgcost  gbse  dse  use magnitudes smaller data sizes for the 1 data sets in the first group  i.e. with large skews   as compared to the other methods  bagging and metacost . the performance of gbse is especially impressive on this group  achieving much lower cost while requiring very small data sizes. it is worth mentioning that it is these data sets in the first group with large skews  that require cost-sensitive learning the most.
+1. discussion
+¡¡it is not the first time that the issue of incorporating costsensitivity to boosting has been addressed. for example  adacost  suggested a way of modifying adaboost's exponential loss using a function  called cost adjustment function  of the cost and confidence. the rational choice of this cost adjustment function  however  appears not to be wellunderstood. the stochastic ensemble that we employ in the present paper provides a straightforward but reasonable way of incorporating cost and confidence  i.e. in terms of expected cost. an interesting future direction is to investigate the relationship between these alternative approaches to cost-sensitive boosting. also note that adacost  being a modification of adaboost  is restricted to two-class problems. comparing and studying possible relationships between gbse and other  both cost-sensitive and insensitive  multi-class extensions of boosting  such as adaboost.m1   is another interesting topic. finally  gbse can also be viewed as a reduction from multi-class classification to binary classification. comparison with existing methods for such reductions  e.g.   is another important research issue.
+1. acknowledgments
+¡¡we thank saharon rosset of ibm research for fruitful discussions on related topics.

@@ -1,0 +1,207 @@
+in many real world applications  labeled data are in short supply. it often happens that obtaining labeled data in a new domain is expensive and time consuming  while there may be plenty of labeled data from a related but different domain. traditional machine learning is not able to cope well with learning across different domains. in this paper  we address this problem for a text-mining task  where the labeled data are under one distribution in one domain known as in-domain data  while the unlabeled data are under a related but different domain known as out-of-domain data. our general goal is to learn from the in-domain and apply the learned knowledge to out-of-domain. we propose a coclustering based classification  cocc  algorithm to tackle this problem. co-clustering is used as a bridge to propagate the class structure and knowledge from the in-domain to the out-of-domain. we present theoretical and empirical analysis to show that our algorithm is able to produce high quality classification results  even when the distributions between the two data are different. the experimental results show that our algorithm greatly improves the classification performance over the traditional learning algorithms.
+categories and subject descriptors
+i.1  learning : induction
+general terms
+algorithms  experimentation
+keywords
+classification  co-clustering  out-of-domain  kullback-leibler divergence
+1. introduction
+　document classification plays an important role in many text processing tasks  ranging from search engines to online
+permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. to copy otherwise  to republish  to post on servers or to redistribute to lists  requires prior specific permission and/or a fee.
+kdd'1  august 1  1  san jose  california  usa.
+copyright 1 acm 1-1-1/1 ...$1.
+advertisements. traditional document classification algorithms rely on the availability of a large amount of labeled data. in practice  labeled data are often scarce  especially for learning tasks in new domains. when a task from a new domain comes  it may be the case that we have no labeled data at all. labeling data for classification can be expensive and time consuming in general  but there may be plenty of labeled data from a related but different domain. this may be the case when the labeled data are out of date  but the new data are obtained from fast evolving information sources. unfortunately  traditional machine learning fails to deal with this situation  since it requires that the labeled and unlabeled data be drawn from the same distribution. this raises a critical problem on how to learn from the labeled data from one domain  and then classify the documents from another domain accurately.
+　in this paper  we focus on the problem of classifying documents across different domains. we have a labeled data set di from one domain which is called in-domain  and another data set do from a related but different domain which is called out-of-domain. the latter is unlabeled and to be classified. di and do are drawn from different distributions  since they are from different domains. this may be the case when we consider two related web directories  for example  when one directory contains documents about cars  and another about trucks. we assume that  the class labels in di and the labels to be predicted in do are drawn from the same class-label set c. furthermore  we assume that even though the two domains are different in distributions  they are similar in the sense that similar words describe similar categories. in other words  the true probability of a class label given a word is very close in the two domains. this assumption is often true  as we will also demonstrate in our experiments  since di and do are related text domains  although some words in one domain may be missing in the other domain  which makes the estimated probability in the two domains to be quite different. under such circumstances  our objective is to accurately classify the outof-domain documents in do  by making use of the in-domain data di and their labels.
+　we propose a novel co-clustering based classification algorithm to solve this problem  as briefly shown in figure 1. first  the in-domain data di provide the class structure  which defines the classification task  by propagating label information. then  co-clustering  is extended for outof-domain data do to obtain out-of-domain document and word clusters  as the step 1 in figure 1. our key extension
+
+figure 1: the model of our co-clustering based classification algorithm
+to co-clustering is that class labels in di can constrain the word clusters  which is shared among the two domains  as the step 1 in figure 1. this allows each out-of-domain cluster to be mapped to a corresponding class label based on their correlation with the document categories in di  completing our classification task. a key intuition of our work is that even though the two domains may be under different distributions  we are able to identify a common part between them. in our work  this common part is the common words. class information and knowledge passes through common words from the in-domain to the out-of-domain. moreover  the word clustering part of co-clustering can even enrich the common words by drawing together seemingly unrelated words.
+　in this paper  we define a unified information theoretic formulation for the above learning task. the objective function for building the co-clustering based categorization is designed to minimize a loss function in mutual information between out-of-domain documents and words  and between words and class labels in the in-domain data set  simultaneously. as a result  the class category knowledge provided by in-domain data di is used as a constraint to enhance the classification of out-of-domain documents based on coclustering.
+　to show that our co-clustering based classification algorithm works well  we carry out theoretical analysis to show that our algorithm increasingly optimizes the objective function as our algorithm iterates to completion  by converging quickly to a locally optimal co-clustering result. we supplement the theoretical study with extensive experiments  where we demonstrate that our algorithm is effective in making the predictions for out-of-domain documents.
+　the rest of the paper is organized as follows. in section 1  we discuss the related works. in section 1  some preliminary concepts from information theory is introduced. the problem formulation is presented in section 1. section 1 proposes our co-clustering based classification algorithm. the empirical analysis is presented in section 1. section 1 concludes the whole paper and give some future works. some detailed proofs of the theoretical conclusions are given in the appendix.
+1. related work
+　in this section  we review several prior works mostly related to our work  including traditional classification  multitask and multi-domain learning  and semi-supervised clustering.
+1 classification learning
+　the traditional classification formulation assumes that the class labels are given for training data under the same distribution as the test data. two schemes are generally considered  where one is supervised classification and the other is semi-supervised classification. supervised classification focuses on the case where the labeled data are sufficient  and where the learning objective is to estimate a function that maps examples to class labels using the labeled training instances. naive bayes classifiers  and support vector machines  are known as two of the most effective methods for document classification.
+　semi-supervised classification  addresses the problem that the labeled data are too few to build a good classifier. it makes use of a large amount of unlabeled data  together with a small amount of the labeled data to enhance the classifiers. many semi-supervised learning techniques have been proposed  e.g.  co-training   em-based methods   cluster-based methods   transductive learning  etc.
+　both supervised and semi-supervised classification assume that the distributions of the labeled and unlabeled data should be identical. however  in our problem  the labeled data are from in-domain  while the unlabeled data are from out-of-domain. the distributions of the labeled and unlabeled data are different from each other. this violates the basic assumption of traditional supervised and semisupervised classification algorithms.
+1 multi-task and multi-domain learning
+　another related learning research area is multi-task learning  where the domain-specific information in related tasks  training and test data sets  are jointly trained in a way that can benefit each other . a shared representation is exploited while the extra tasks can be used as an inductive bias during learning. by defining the common knowledge carefully  it is possible to allow the knowledge learned from each task to help the learning of other tasks.
+　in contrast to multi-task learning  our problem should be considered as single-task learning  since the class labels for in-domain and out-of-domain are from the same class label set. however  our classification problem crosses different domains. this problem can be referred to as multi-domain learning  or cross-domain learning.  studied on crossdomain learning in neural network  while we focus on the cross-domain text classification.  studied a similar problem where they investigated how to learn a general model from the in-domain and out-of-domain labeled data to train a statistical classifier for a natural language mention type classification and tagging problem. in contrast  in our work  we assume that the out-of-domain data are completely unlabeled.
+1 semi-supervised clustering
+　semi-supervised clustering  builds clusters under some additional constraints provided by a few labeled data  in the form of must-links  two examples must in the same cluster  and cannot-links  two examples cannot in the same cluster . it finds a balance between satisfying these constraints and optimizing the original clustering objective function. several semi-supervised clustering algorithms have been proposed  including  1  1  1  1 .
+　semi-supervised clustering provides a good method to make use of a few labeled data in clustering. however  the mustlink and cannot-link constraints must be available for clustering to work. when the labeled data are few  the samedistribution requirement can be relaxed. this fact makes it feasible to extend semi-supervised clustering for different distribution data sets.
+　in this paper  we consider a co-clustering based classification algorithm which extends the information theoretic co-clustering approach of   where constraints given by indomain data is added to the word clusters  to provide a class structure and partial categorization knowledge. our algorithm is essentially a classification algorithm using the co-clustering technique. it will be shown theoretically and empirically that our algorithm works well for classifying outof-domain documents.
+　in addition to building clusters  we are interested in using the class-label knowledge gained from in-domain data to help classify out-of-domain problems  which is not solvable by traditional semi-supervised clustering algorithms alone. as we will present later  our algorithm adds constraints on the word clusters to help assign labels to co-clustering results. the class structures on word clusters are passed on from the in-domain data to the out-of-domain data  which makes classification possible.
+1. preliminaries
+　in this section  we introduce some preliminary concepts from information theory that will be used frequently in this paper. for more details  please refer to 
+　let x and y be random variable sets with a joint distribution p x y   and marginal distributions p x  and p y  . the mutual information i x;y   is defined as
+	.	 1 
+the mutual information is a measure of the dependency between random variables. it is always non-negative  and it is zero if and only if the variables are statistically independent. higher mutual information values indicate more certainty that one random variable depends on another.
+　the use of mutual information can also be motivated using the kullback-leibler  kl  divergence or relative entropy measures  defined for two probability mass functions p x  and q x  
+	.	 1 
+kl-divergence can be considered as a kind of a distance between the two probability distributions  although it is not a real distance measure because it is not symmetric. besides  kl-divergence is always non-negative .
+1. problem formulation
+　let di be the set of in-domain data with labels  do be the set of out-of-domain data without labels. di and do can also be considered as random variable sets that take the in-domain and out-of-domain instances as random variables  respectively. from the in-domain data di  we are able to get a set of class labels c which is the class structure information. the labels  which are unknown and to be predicted  of out-of-domain data do are also drawn from the same label set c. from di and do  the word set w can be obtained from the word occurrences in di and do.
+　in our approach  we take co-clustering as a bridge to propagate the knowledge from the in-domain to out-of-domain. co-clustering on out-of-domain data aims to simultaneously cluster the out-of-domain documents do and words w into |c| document clusters and k word clusters  respectively. let d o denote the out-of-domain document clustering  and w  denote the word clustering  where |w|  = k. the document cluster-partition function cdo and the word clusterpartition function cw can be defined as
+	cdo d  = d   where d （ d … d （ d o	 1 
+	cw w  = w   where w （ w  … w  （ w 	 1 
+where d  represents the document cluster that d belongs to and  w represents the word cluster that w belongs to. then  the co-clustering can be represented by  cdo cw  or
+ d o w   .
+　in order to measure the quality of a co-clustering  we define the loss for co-clustering in mutual information as
+	i do;w    i d o;w   .	 1 
+this form of loss function is the same as that used in . from equation  1   we know that co-clustering aims to minimize the loss in mutual information between documents and words before and after clustering.
+　since our problem is to classify out-of-domain documents do  a key point is to add the knowledge about classes to the co-clustering process  which is extracted from in-domain data di. in this paper  we use the relationship between word clusters and class labels to apply class label information to the co-clustering. we define the loss in mutual information for a word clustering as
+	i c;w    i c;w   .	 1 
+this form of loss function is the same as that used in . equation  1  indicates that a word clustering should minimize the loss in mutual information between class labels c and words w before and after clustering  for in-domain data.
+　integrating equations  1  and  1   the loss function for co-clustering based classification can be obtained:
+	i do;w    i d o;w    + λ ，  i c;w    i c;w    	 1 
+where λ is a trade-off parameter that balances the effect to word clusters from co-clustering  see equation  1   and word clustering  see equation  1  . the objective is to find a co-clustering that minimizes the function value of equation
+ 1 .
+　with equation  1   we can now describe our process of classifying out-of-domain documents through co-clustering. since i do;w  and i c;w  are fixed  minimizing equation  1  equivalents maximizing i d o;w    and i c;w    simultaneously - maximizing i d o;w   +λ，i c;w   . based on the definition of mutual information in section 1  in order to maximize i d o;w    and i c;w     d o should depend on w    and w  should depend on c. under our problem assumption  d o would depend on c  which indicates that the clusters in d o should be rely on the classes in c. we can let the number of document clusters be the same as the number of class labels to enable a 1 mapping between them. that is  we let |d o| = |c|  and build a mapping between d o and c based on the dependence between each d  （ d o and each c （ c. then  using the co-clustering based classification approach that optimizes equation  1   the documents in do will be assigned to their corresponding classes according to cluster membership  which enables our co-clustering based classification approach.
+　in the rest of this section  we will rewrite the objective function in equation  1  into another form that is represented by kl-divergence. before rewriting the objective function  let us first define some probability mass functions.
+　definition 1. let f do w  denote the joint probability distribution of do and w. that is
+	f d w  = p d w .	 1 
+f  do w  denotes the joint probability distribution of do and w under co-clustering  d o w    that
+
+where d （ d and w （ w   where d is a document cluster  and w  is a word cluster  respectively.
+　similarly  g c w  denotes the joint probability distribution of c and w that
+	g c w  = p c w .	 1 
+g  c w  denotes the joint probability distribution of c and w under the word clustering w  that
+	 	 1 
+where w （ w .
+　the marginal and conditional probability distributions for f  f   g and  g can be defined naturally. for example 
+	   and.	 1 
+　lemma 1. for a fixed co-clustering  d o w     we can write the loss in mutual information as i do;w    i d o;w    + λ ，  i c;w    i c;w    
+= d f do w ||f  do w   + λ ， d g c w ||g  c w  .
+ 1 
+where d ，||，  is defined in equation  1 .
+proof.
+		 1 
+		 1 
+
+
+　equation  1  shows that the loss in mutual information in the objective function equals to the sum of kl-divergence between f and f  and kl-divergence between g and  g. to minimize the objective function in equation  1   we need only to minimize the kl-divergence between f and f   and the kl-divergence between g and  g.
+1. co-clustering based classification
+　we now describe the co-clustering based classification algorithm for classifying the out-of-domain data  which minimizes the objective function in equation  1 . the objective function given in equation  1  is a multi-part function which is hard to be optimized. therefore  we should find a way to make the optimization easier. lemmas 1 and 1 show an alternative approach  which allows us to iteratively reduce the divergence values.
+lemma 1.
+d f do w ||f  do w  = xo xf d d f w|d ||f  w|d    
+d （d  d（d 
+d f do w ||f  do w   1 = x x f w d f do|w ||f  do|w   .
+               w （w  w（w  proof. 1  1 
+ 1 
+ 1 
+	  	 1 
+note that equation  1  is based on
+	 	 1 
+the last equality follows by p d  = f d  and p w |d  p w|w   = f  w|d  .
+using the same argument  we can prove that
+d f do w ||f  do w  
+	= x x f w d f do|w ||f  do|w   	 1 
+w （w  w（w 
+
+　lemma 1 tells us that minimizing d f w|d ||f  w|d    corresponding to a single document d can reduce the global objective function value given in equation  1 . the same conclusion can be derived for minimizing d f do|w ||f  do|w    corresponding to a single word w.
+lemma 1.
+d g c w ||g  c w   = x x g w d g c|w ||g  c|w   .
+w （w  w（w 
+ 1 
+the proof of lemma 1 is omitted  and it can be derived using the similar argument to lemma 1. from lemma 1  we can obtain the similar conclusion with that in lemma 1. according to lemmas 1 and 1  our co-clustering based classification algorithm  called cocc  is derived. this algorithms iteratively searches a co-clustering for the out-ofdomain data  and then assigns class labels to the document clusters to complete the classification task.
+algorithm 1 the co-clustering based classification  cocc  algorithm
+input: a labeled in-domain data set di; an unlabeled outof-domain data set do; a set c of all the class labels; a set
+w of all the word features; initial co-clustering   ; the number of iterations t.
+initialize the joint probability distribution f  f   g and  g based on equations  1    1    1  and  1   respectively. for t ○ 1 1 ... 1t + 1
+1: compute the document cluster:
+	  = argmind f w|d ||f  t 1  w|d   	 1 
+d 
+1: update the probability distribution f  t  based on 
+  and equation  1 .  and  g t  =
+.
+1: compute the word cluster:
+  = argmin f w d f do|w ||f  t  do|w   
+w 
++ λ ， g w d g c|w ||g  t  c|w     1 
+1: update the probability distribution  g t+1  based on
+c t+1   and equation  1 . f  t+1  = f  t  and
+w t 
+	c	.
+do
+end for output: the partition functionsand c t .
+w
+　as shown in algorithm 1  in each iteration  the algorithm chooses the best document cluster d for each d to minimize the function d f w|d ||f  w|d     see equation  1  . as we discussed above  this can reduce the global objective function value in equation  1 . then  in each iteration  the algorithm chooses the best word cluster  w to minimize the function d f do|w ||f  do|w    and d g c|w ||g  c|w    simultaneously  see equation  1  . this can reduce the global objective function value too. we will prove the monotonically decreasing property of the objective function in the following theorem:
+　theorem 1. the algorithm cocc in algorithm 1 monotonically decreases the objective function in lemma 1.
+d f do w ||f  t  do w   + λ ， d g c w ||g  t  c w   −
+d f do w ||f  t+1  do w   + λ ， d g c w ||g  t+1  c w  .
+ 1 
+the detailed proof of theorem 1 is given in the appendix. note that  although the algorithm is able to minimize the objective function value in equation  1   it is only able to find a locally minimal one. finding the global optimal co-clustering is np-hard.
+　corollary 1. algorithm 1 converges in a finite number of iterations.
+　proof. since the total number of co-clusterings is finite  the corollary can be derived straightforward from theorem
+1.	
+　regarding the computational complexity  suppose the total number of document-word co-occurrences in do is n. for each iteration  updating cdo takes o |c| ， n   while updating cw takes o  |c|+|w|   ，n . the number of iterations is t. therefore  the time complexity of our co-clustering based classification algorithm is o  |c|+|w|   ，t ，n . in the experiments  it is shown that t = 1 is enough for convergence. considering space complexity  our algorithm need to store all the document-word co-occurrences and their corresponding probabilities. thus  the space complexity is o n .
+1. experiments
+　in order to evaluate the properties of our algorithm  we perform the experiments in this section. in the experiments  we focus on the binary classification. moreover  the data sets are all balanced between the class labels. note that the binary classifiers can be easily extended for multiple class.
+1 data sets
+　we conducted experiments on three data sets  1 newsgroups   sraa  and reuters-1 . in order to make the data set satisfy our problem setting  we split the original data in a way to make the labeled and unlabeled data drawn from related but different domains  as follows.
+1.1 newsgroups
+　the 1 newsgroups  is a text collection of approximately 1 newsgroup documents  partitioned across 1 different newsgroups nearly evenly. we generated six different data sets for evaluating cross-domain classification algorithms. for each data set  two top categories1 are chosen 
+data setdidocomp vs scicomp.graphicscomp.sys.ibm.pc.hardwarecomp.os.ms-windows.misccomp.sys.mac.hardwaresci.cryptcomp.windows.xsci.electronics sci.med sci.spacerec vs talkrec.autosrec.sport.baseballrec.motorcyclesrec.sport.hockeytalk.politics.gunstalk.politics.mideasttalk.politics.misctalk.religion.miscrec vs scirec.autosrec.motorcyclesrec.sport.baseballrec.sport.hockeysci.medsci.cryptsci.spacesci.electronicssci vs talksci.electronicssci.cryptsci.medsci.spacetalk.politics.misctalk.politics.gunstalk.religion.misctalk.politics.mideastcomp vs reccomp.graphicscomp.os.ms-windows.misccomp.sys.ibm.pc.hardwarecomp.windows.xcomp.sys.mac.hardwarerec.autos rec.motorcycles rec.sport.hockeyrec.sport.baseballcomp vs talkcomp.graphicscomp.os.ms-windows.misccomp.sys.mac.hardwarecomp.sys.ibm.pc.hardwarecomp.windows.xtalk.politics.gunstalk.politics.mideast
+talk.religion.misctalk.politics.misctable 1: the description of 1 newsgroups data sets for cross-domain classification.
+data setdidoauto vs aviationsim-auto & sim-aviationreal-auto & real-aviationreal vs simulatedreal-aviation & sim-aviationreal-auto & sim-autotable 1: the description of sraa data sets for cross-domain classification.
+one as positive and the other as negative. then  we split the data based on sub-categories. different sub-categories can be considered as different domains  while the task is defined as top category classification. the splitting strategy ensures the domains of labeled and unlabeled data related  since they are under the same top categories. besides  the domains are also ensured to be different  since they are drawn from different sub-categories. table 1 shows how we generated the data sets in our experiments.
+1.1 sraa
+　sraa  is a simulated/real/aviation/auto usenet data set for document classification. 1 usenet articles are collected from four discussion groups about simulated autos  sim-auto   simulated aviation  sim-aviation   real autos  real-auto  and real aviation  real-aviation .
+　consider the task that aims to predict labels of instances between real and simulated. we use the documents in real-auto and sim-auto as in-domain data  while real-aviation and sim-aviation as out-of-domain data. then  the data set real vs simulated is generated as shown in table 1. as a result  all the data in the in-domain data set are about autos  while all the data in the out-of-domain set are about aviation. the auto vs aviation data set is generated in the similar way as shown in table 1.
+1.1 reuters-1
+　reuters-1  is one of the most famous test collections for evaluation of automatic text categorization techniques. it contains 1 top categories. among these categories  orgs  people and places are three big ones. for the category places  we removed all the documents about the usa to make the three categories nearly even  because more than a half of the documents in the corpus are in the usa sub-categories. reuters-1 corpus also has hier-
+data setk-ldocumentssvm|di||do||w|di-dodo-cvreal vs simulated111111auto vs aviation111111rec vs talk111111rec vs sci111111comp vs talk111111comp vs sci111111comp vs rec111111sci vs talk111111orgs vs places111111people vs places111111orgs vs people111111table 1: description of the data sets for crossdomain text classification  including errors given by svm.  di-do  means training on di and testing on do;  do-cv  means 1-fold cross-validation on do. the performances are in test error rate.
+archical structure. we generated three data sets orgs vs people  orgs vs places and people vs places for crossdomain classification in a similar way as what we have done on the 1 newsgroups and sraa corpora. since there are too many sub-categories  we can not list the detailed description here.
+1.1 properties of the data sets
+　table 1 shows the description of all the data sets. the first three columns of the table show the statistical properties of the data sets. the first two data sets are from sraa corpus. the next six are generated using 1 newsgroups data set. the last three are from reuters-1 test collection. kldivergence values calculated by d di||do  on all the data set are presented in the second column in the table  sorted in decreasing order from top down. it can be seen that the kl-divergence values for all the data sets are much larger than the identical-distribution case which has a kl value of nearly zero. the next column titled  documents  shows the size of the data sets and the vocabulary set used. under the column titled  svm   we show two groups of classification results in two sub-columns. first   di-do  denotes the test error rate obtained when a classifier is trained based on the in-domain data set di and applied to the out-of-domain data set do. the column titled  do-cv  denotes the best-case obtained by the corresponding classifier  where the best case is to conduct a 1-fold cross-validation on the out-of-domain data set do using that classifier. note in obtaining the best case for each classifier  the training part is labeled data from do and the test part is also from do  according to different folds  which gives the best possibly result for that classifier. it can be found that the test error rates  given by svm  in the case of  di-do  is much worse than those in the case of  do-cv . this indicates that our data sets are not suitable for traditional supervised classification algorithms.
+　figure 1 shows the document-word co-occurrence distribution on the auto vs aviation data set. in this figure  documents 1 to 1 are from di  while documents 1 to 1 are from do. the documents are ordered first by their domains  di or do   and second by their categories  positive or negative . the words are sorted by n+ w /n  w   where n+ w  and n  w  represent the number of word positions w appears in positive and negative documents  respectively. from figure 1  it can be found that the distributions of in-domain and out-of-domain data are somewhat different  however the figure also shows large commonness exists between the two domains. in our algorithm  the class infor-
+
+figure 1: document-word co-occurrence distribution on the auto vs aviation data set
+mation and knowledge passes through these common information from the in-domain to the out-of-domain. moreover  the word clustering part in the co-clustering can even enrich the common part to further propagate knowledge between different domains.
+1 comparison methods
+　since our co-clustering based classification algorithm  cocc  is a classification algorithm essentially  we should compare cocc with the existing classification methods to show the advantages of our algorithm. we take the supervised classification algorithms to be the baseline methods. naive bayes classifier  nbc   and support vector machines
+ svm   are introduced in the experiments. transductive support vector machines  tsvm   and spectral graph transducer  sgt  are also introduced as comparison semisupervised learning methods.
+1 implementation details
+　data preprocessing has been applied to the raw data. first  we converted all the letters in the text to lower case  and stemmed the words using the porter stemmer . besides  stop words were removed. we used a simple feature selection method  document frequency  df  thresholding   to cut down the number of features  and speed up the classification. based on   df thresholding  which has comparable performance with information gain  ig  or chi  is suggested since it is simplest with lowest cost in computation. in our experiments  we set the df threshold to 1.
+　tf-idf is used for feature weighting when training support vector machines  svm   1  1  and spectral graph transducer  sgt  . tf is used for feature weighting when training naive bayes classifier  nbc   and our co-clustering based classification  cocc  algorithm.
+　svm and tsvm are implemented by svmlight  with default parameters  linear kernel . for more details about svm and tsvm  please refer to  and . sgt is implemented by sgtlight  with default parameters  k = 1  d = 1 and c = 1 . for more details about sgt  please refer to .
+　the initialization of cocc is important  since different initialization will lead to different local optimal co-clustering. in the experiments  we assign the initial document clustering by nbc. nbc is trained using di  and then predicts the labels of do. then  the documents in do are assigned to the clusters based on their prediction labels. the initial word clustering is derived by cluto  with default parameters.
+　another important issue to be mentioned is that  in order to avoid infinity values for d f w|d ||f  w|d    in equation  1   and d f do|w ||f  do|w    and d g c|w ||g  c|w    in
+equation  1   laplacian smoothing  is applied to estimate the probabilities.
+　finally  after co-clustering  we assign each document d to the class c by
+c = argmind g  w|c ||f  w|d   .	 1  c（c
+equation  1  indicates that we always assign the document d to the class c which is most relevant to d . note that  our objective function in equation  1  ensures that c and
+d o are highly dependent  and hence the assignment makes sense.
+1 evaluation metrics
+　the performance of the proposed methods was evaluated by test error rate. let c be the function which maps from document d to its true class label c = c d   and f be the function which maps from document d to its prediction label c = f d  given by the classifiers. test error rate is defined as
+	.	 1 
+1 experimental results
+1.1 performance
+　table 1 presents the performance on each data set given by nbc  svm  tsvm  sgt and our algorithm cocc in test error rate. the implementation details of the algorithms have already been presented in the last subsection  and the parameter setting for cocc will be given later.
+　from the table  we can see that cocc always give the best performances. besides  it seems that nbc is better for classifying out-of-domain documents than svm  although svm is known as a stronger classifier than nbc. in our opinion  svm is a relatively strong classifier for traditional classification problem  compared with nbc  but nbc is more general for out-of-domain data. tsvm and sgt give better performance than nbc and svm on most data sets  since they utilize the information given by the unlabeled data in do  although their basic assumption is violated. however  they still fail sometimes  e.g. tsvm on the orgs vs places data set  and sgt on the orgs vs people data set.
+　figure 1 presents the test error rates on different sizes of the labeled in-domain data . the labeled data are randomly chosen from di in the auto vs aviation data set by different proportion. it can be seen that cocc gives comparable performance even when there is only 1% of the in-domain data  while nbc gets quickly worse when the proportion of in-domain data is less than 1%.
+data setnbcsvmtsvmsgtcoccreal vs simulated11111auto vs aviation11111rec vs talk11111rec vs sci11111comp vs talk11111comp vs sci11111comp vs rec11111sci vs talk11111orgs vs places11111people vs places11111orgs vs people11111table 1: test error rate for each classifier on each data set
+
+figure 1: test error rate curve on different size of auto vs aviation data set
+1.1 convergence
+　since our algorithm cocc is an iterative algorithm  an important issue for cocc is the convergence property. theorem 1 has already proven the convergence of cocc theoretically. now  let us empirically show the convergence property of cocc. figure 1 shows the test error rate curves as functions for each iteration on three data sets  real vs simulated  rec vs sci and orgs vs places. from the figure  it can be seen that cocc always achieves almost convergence points within 1 iterations. this indicates that cocc converges very fast. we believe that 1 iterations is enough for cocc.
+1.1 parameters tuning
+　there are two parameters in our algorithm. one is the trade-off parameter λ in equation  1 ; the other is the num-
+
+figure 1: test error rate curves after each iteration
+
+λ
+figure 1: test error rate curve on different λ
+
+figure 1: test error rate curve on different number of word clusters
+ber of word clusters. we perform the parameter tuning on the auto vs aviation data set. when tuning the parameter λ  we tried three different numbers of word clusters - 1  1 and 1. the error rate for each λ from 1 to 1 is given in figure 1. according to the figure  we set λ to 1 in our experiments. when tuning the number of word clusters  we tried different λs which are 1  1 and 1. the error rate for each number of word clusters from 1 to 1 is given in figure 1. according to the figure  we set the number of word clusters to 1 in our experiments.
+1.1 kl-divergence and improvement
+　we test how the difference in the distribution between di and do influence the performance of cocc. the kldivergence and relative improvements by test error rate reduction between cocc and nbc  and between cocc and svm are calculated for each data set in figure 1. the data sets have been sorted by kl-divergence in decreasing order from left to right. in this figure  when the kl-divergence is small  the relative improvement is not much significant. the improvement becomes great when kl-divergence values become large  in general. but  there are still some exceptional points.
+1. conclusions and future works
+　in this paper  we presented a novel co-clustering-based classification algorithm  cocc  to classify out-of-domain documents. the class structure passes through word clusters from the in-domain data to the out-of-domain data. additional class-label information given by the in-domain data is extracted and used for labeling the word clusters for
+
+figure 1: test error rate reductions against nbc and svm on all data sets sorted by kl divergence in descending order from left to right
+out-of-domain documents. we formulate the problem under an information-theoretic scheme  and designed an objective function to minimize the loss in mutual information before and after co-clustering based categorization. our theory shows that cocc can monotonically reduce the objective function value. the empirically results also support our theoretical analysis. in our experiment  it is shown that cocc greatly outperforms traditional supervised and semisupervised classification algorithms when classifying out-ofdomain documents.
+　in cocc  the number of word clusters are quite large  1 clusters in the experiments  to obtain good performance. since the time complexity of cocc depends on the number of word clusters  it can inefficient. in the future  we will try to speed up the algorithm to make it more scalable for large data set. moreover  the parameters in cocc are tuned manually. in the future  we will investigate automatic approaches to tune the parameters.

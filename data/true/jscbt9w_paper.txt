@@ -1,0 +1,173 @@
+ trec-1 evaluation experiments at the justsystem site are described with a focus  on  aboutness  based approach in text retrieval.
+experiments on the effects of supplemental noun phrase indexing  pseudo-relevance feedback and reference database feedback in view of the effect of various length of queries are reported.
+the results show that pesudo-relevance feedback is always effective while reference database feedback is effective only with very short queries.
+we reconfirmed that supplemental phrasal indexing is more effective with longer queries.
+keywords
+aboutness  supplemental phrasal indexing  phrasal terms  pseudo-relevance feedback  reference database  vector space model.
+1. introduction
+automatic indexing of modern information retrieval systems typically adopts bag-of-word representation  in which each word is considered as a dimension of the vector representing an information item  as internal representation of   aboutness . it is well known that such simple representation usually performs  as well as  if not better than  some more sophisticated ones according to empirical evaluations.
+grammatical relations or functional words are normally considered as neutral in view of thematic discrimination of text documents. on the other hand  content words or lexemes  if we need to be more attentive for linguistic terminology  are semiologically meaningful units in language systems which refer to conceptual/substantial entities or relations in the subject domain described by the documents. it is plausible that the author of documents and the user submitting search requests share the same terminology when describing the subject concept in question either in their documents or in queries. the notion of  aboutness  is considered as a set of terms evoking a subject concept  which is hopefully shared by many people including authors  indexers and users of the system.
+1.  aboutness 
+the concept of  aboutness  plays an essential role in modern information retrieval technologies where  author's aboutness   ingwersen 1  is extracted automatically from text documents by automatic indexing procedures.
+1  aboutness  as representation of information objects
+the basic hypothesis behind our trec-1 strategies is that the  aboutness  of a subject topic consists of  foreground  part and  background  part and terms belong to either one of them. this distinction is inspired by the metaphor of  aboutness  of visual information items. people are clearly distinguishing foreground images from background ones when talking about  aboutness  of for example picture images. a foreground image might be a person or some objects located in the center of the picture and constitute the motif of the picture. background images can help to identify the scene where the motif image is located and sometimes clue images are hidden in background when some implicit information is given in the picture.
+in text retrieval  we can consider concepts that directly related to the motif as foreground and concepts that simply constitute the scene of the motif as background.
+the term weighting should accordingly take this into consideration so that the terms that belong to  foreground aboutness  should be more weighted than  background aboutness .
+foreground terms are mainly extracted from  title  or  description  fields of topic description.
+a stratified automatic feedback strategy is adopted in order to extract mainly terms of  background aboutness  both from the target document database wt1g  and a reference database trec cd1 .
+1 single words as a minimum unit of  aboutness 
+single words are indexed as basic units of  aboutness  but also noun phrases are extracted as supplemental indexing units.
+for example  from the trec topic 1 the following terms are extracted:
+ph incandescent light bulb  ph incandescent light  ph light bulb  incandescent  light  bulb
+longer phrases have normally more specific reference consequently they seem to focus more on foreground part of subject description while a set of constituent single word terms are referring to the subject as if it is on background.
+changing relative weighting of phrases against single word terms   aboutness  of the query  especially its focusing strength can be calibrated without introducing any semantic hierarchy from thesauri.
+we observed the correlation between query length and effectiveness gained by supplemental phrasal indexing  fujita 1a  fujita 1b . it is still in open question that such a difference of phrasal term effectiveness in different length of queries can be explained from the difference of  aboutness .
+1 reference database as a substitute for a thesaurus
+since web queries are typically short and do not contain enough terms to discriminate documents  query expansion is desirable for the better results in trec style evaluations.
+for an automatic query expansion purpose  typically synonymous words from a thesaurus are utilized.
+in japanese text retrieval experiments  we once tried such a strategy and observed consistent but small improvement with a newspaper article database  fujita 1b .
+such an approach is problematic since preparing and maintaining thesauri is not an easy task either for an open domain or a closed domain.
+another problem of utilizing pre-coded thesauri for query expansion is that synonymous relations described in thesauri are not necessarily mean equivalence as a query term. semantic equivalence relations in lexicon level do not necessarily mean equivalence in subject concepts of retrieved documents.
+instead of such a semantic approach  documents themselves  which represent author's  aboutness  can be utilized as the source of query expansions. the technique is similar to pseudo-relevance feedback procedures  that is frequently used in trec experiments but the database in pilot search is not identical to the retrieval target database itself. since many web documents are terminologically so poor that it is natural to refer to other text sources for term extraction.
+a reference database can be either general domain databases like newspaper or a specific domain database depending on the retrieval task in question.
+in the case of web retrieval  a newspaper database seems to be appropriate  since it is open domain retrieval and the reference databases preferably cover the any subjects that might be in test topics. only newspapers and encyclopaedia seem to possess such a broad coverage of content documents.
+  
+1 another source of  aboutness : anchor text of hyperlinks
+when we ask what a page is talking about  sometimes anchor texts   or link texts  the texts on which a hyperlink is set   indicate exact and very short answer.
+the anchor text is typically an explanation or denotation of the page that is linked to. some commercial based search engines are utilizing such information for advanced searches  altavista . we treat anchor texts literally as the part of the linked document.
+in total  1 1 anchor texts are added to 1 1 linked pages out of 1 1 pages in the wt1g data set. so 1% document pages in the data set are attributed anchor text information on top of original page information.
+1. system description
+for the trec-1 web track experiments  we utilized the engine of justsystem conceptbase search tm  version 1 as the base system.
+a dual pentium iii tm  server  1mhz  running windows nt tm  server 1 with 1mb memory and 1gb hard disk is used for experiments.
+the document collections are indexed wholly automatically  and converted to inverted index files of terms.
+1 term extraction
+queries and documents in target databases are analyzed by the same module that decomposes an input text stream into a word stream and parses it using simple linguistic rules   in order to compose possible noun phrases.
+extracted units are single word nouns as well as simple linguistic noun phrases that consist of a sequence of nouns or nouns preceded by adjectives.
+1 vector space retrieval
+each document is represented as a vector of weighted terms by tf*idf in inverted index files and the query is converted in similar ways.
+similarity between vectors representing a query and documents are computed using the dot-product measure  and documents are ranked according to decreasing order of rsv.
+okapi bm1 function is utilized as tf part of weighting function  robertson 1  robertson 1  so that the retrieval process can be considered as probabilistic ranking.
+1 passage retrieval
+since some pages are extremely long in the wt1g data set  we became aware of using passages rather than whole pages as the indexing unit is appropriate for the sake of retrieval effectiveness.
+passage delimiting is done by the manner that each passage becomes similar length rather than finding paragraph boundary.
+1 phrasal indexing and weighting
+our approach consists of utilizing noun phrases extracted by linguistic processing as supplementary indexing terms in addition to single word terms contained in phrases. phrases and constituent single terms are treated in the same way  both as independent terms  where the frequency of each term  is counted independently based on its occurrences .
+as we indicated in  fujita 1a  fujita 1a   phrasal terms are over-weighted with normal scoring function. we evaluated the following three methods:
+1  empirical down-weighting method  fujita 1a 
+1  fagan's method  fagan 1 
+1  approximation to robertson's method  robertson 1 
+as it performed always better than other methods in the pre-submission experiments  we adopted down-weighting approach although it requires empirical parameter tuning.
+another advantage of down-weighting approach is that the query specificity can be calibrated changing downweighting parameters when enough phrasal terms are provided in the query.
+1 pseudo-relevance feedback and reference database feedback
+automatic feedback strategy using pseudo-relevant documents is adopted for automatic query expansion.
+the system submits the first query generated automatically from topic descriptions against the target or reference database  and considers the top n documents from relevant ranking list as relevant.
+the term selection module extracts salient terms from these pseudo-relevant documents and adds them to the query vector.
+then the expanded query vector is submitted against the target database again and the final relevance ranking is obtained.
+the whole retrieval procedure is as follows:
+1  automatic initial query construction from the topic description
+1  1st pilot search submitted against a reference database
+1  term extraction from pseudo-relevant documents and feedback
+1  1nd pilot search submitted against the target database
+1  term extraction from pseudo-relevant documents and feedback
+1  final search to obtain the final results
+   
+1 term selection
+each term in example documents are scored by some term frequency and document frequency based heuristics measures described in  evans 1 .
+the terms thus scored are sorted in decreasing order of each score and cut off at a threshold determined empirically.
+in effect  the following parameters in feedback procedures should be decided:
+1  how many documents to be used for feedback 
+1  where to cut off ranked terms 
+1  how to weight these additional terms 
+these parameters are carefully adjusted using trec-1 queries  topic 1   wt1g data set and their relevance
+run tagquerylinkrefavg. precr-precjscbt1wcs1vsnoyes11jscbt1wls1vsyesyes11jscbt1wls1vsyesno11jscbt1wcl1longnoyes11jscbt1wll1longyesyes11jscbt1wll1longyesno11table 1: performance of official runs
+judgement provided by nist and 1 parameter sets for official runs are decided.
+1 spell variation
+because of some spelling errors in  title  field texts of topic description  the system sometimes returned no document or few in very short query runs. in such a case  the initial queries are expanded automatically by generated spell variations.
+the procedure consists of looking for similar words in the word lists extracted from the database. spelling similarity is measured by a combination of uni-gram  bi-gram and tri-gram matching scores.
+  
+1. experiments
+we submitted six automatic runs as follows:
+jscbt1wcs1: content only  very short query run with parameter set s1
+jscbt1wls1: link  very short query run with parameter set s1
+jscbt1wls1: link  long query run with parameter set s1 jscbt1wcl1: content only  long query run with parameter set l1
+jscbt1wll1: link  long query run with parameter set l1 jscbt1wll1: link  long query run with parameter set l1 as for the link run evaluation  we adopted  anchor text  of hyperlink information as some web search sites do.
+the experiments are designed to measure effects of phrasal term indexing  pseudo-relevance feedback and reference database feedback with regards to different query types.
+from our experience in ntcir-1 experiments for japanese text retrieval  we are paying attention to the relation between the effectiveness of elementary techniques and the query length.
+we observed that performance gain by the pseudorelevance feedback tend to be large when the query is shorter in ntcir-1 experiments. it is easily understood that longer queries contain already so good terms that the feedback could no more find better terms in addition.
+it seems more difficult to explain why supplemental phrasal indexing is more effective with longer queries.
+1 very short query experiments
+very short query run using only  title  fields of topic description is recommended for all the sites.
+the following settings are examined:
+1. content only  single words + phrases
+1. link  single words + phrases
+1. content only  single words
+1. link  single words
+for each setting  combination of with/without reference database feedback and with/without pseudo-relevance feedback are examined with the same parameter set: s1  for the convenience of comparison. results of 1 runs in total are compared in table 1.
+since initial queries are very short   in average  1 single word terms and 1 phrasal terms  maximum 1 single word terms and 1 phrasal terms   minimum 1 single word terms and 1 phrasal terms   and they do not contain enough terms  the automatic feedback procedure contributes to 1% to 1 % of  consistent improvements in average precision in all cases.
+the final queries contain 1 single word terms and 1 phrasal terms in average   maximum 1 single word terms and 1 phrasal terms  minimum 1 single word terms and 1 phrasal terms .
+the improvement gained by the combination of a pseudorelevance feedback and reference database feedback is 1% for content only run and 1% for link run.
+run descriptionrefpfbavgprecr-preccontent only / very short /
+sw + phrasesyesyes11content only / very short /
+sw + phrasesyesno11content only / very short /
+sw + phrasesnoyes11content only / very short /
+sw + phrasesnono11link / very short /
+sw + phrasesyesyes11link / very short /
+sw + phrasesyesno11link / very short /
+sw + phrasesnoyes11link / very short /
+sw + phrasesnono11content only / very short /
+single words onlyyesyes11content only / very short /
+single words onlyyesno11content only / very short /
+single words onlynoyes11content only / very short /
+single words onlynono11link / very short /
+single words onlyyesyes11link / very short /
+single words onlyyesno11link / very short /
+single words onlynoyes11link / very short /
+single words onlynono11table 1: performance comparison   very short query  s1 parameter set  
+supplemental phrasal indexing runs perform better in average precision both with/without pseudo-relevance feedback and with/without reference database feedback.
+but without any feedback  single word runs are better in r-precision.
+again we confirmed the situation observed in japanese text retrieval workshop ntcir-1  fujita 1a   i.e. effectiveness of phrasal indexing is not clear when the queries are short.
+effectiveness of link run is not clear as well.
+1 long query experiments
+long query experiments examined queries automatically constructed from all fields in topic description.
+since trec topic descriptions have a stratified explanation of topics in the sense that the subject explanations are iterated in different styles. shorter fields contain only terms of  foreground aboutenss  and longer fields contain terms of  background aboutness  as well as terms of  foreground aboutness . it is important to adjust weighting for each term according to its  foregroundness  in the  request aboutness .
+we adjusted term weights according to the fields in which the term appeared since this might be a good measure for term  foregroundness .
+the same runs as very short query are examined:
+1. content only   single words + phrases
+1. link  single words + phrases
+1. content only  single words
+1. link   single words
+the initial queries contain 1 single word terms and 1 phrasal terms in average   maximum 1 single word terms and 1 phrasal terms  minimum 1 single word terms and 1 phrasal terms   and the final queries contain 1 single word terms and 1 phrasal terms in average   maximum 1 single word terms and 1 phrasal terms  minimum 1 single word terms and 1 phrasal terms  .
+table 1 shows the results. supplemental phrasal runs are consistently better than single word term runs both in average precision and r-precision.
+since initial queries are longer and they contain  terms of  background aboutness   performance improvements given by automatic feedback are comparatively  smaller   o.1%-1%   than in very short query experiments  1%-1% .
+no search effectiveness improvement by introducing feedback from a reference database is observed.
+we reconfirmed our observation from japanese text retrieval experiments that the phrasal term indexing is effective only with enough long initial topic description containing a certain number of phrases as well as single words  otherwise its effect is rather incidental.
+run descriptionrefpfbavgprecr-preccontent only / long /
+sw + phrasesyesyes11content only / long /
+sw + phrasesyesno11content only / long /
+sw + phrasesnoyes11content only / long /
+sw + phrasesnono11link / long /
+sw + phrasesyesyes11link / long /
+sw + phrasesyesno11link / long /
+sw + phrasesnoyes11link / long /
+sw + phrasesnono11content only / long /
+single words onlyyesyes11content only / long /
+single words onlyyesno11content only / long /
+single words onlynoyes11content only / long /
+single words onlynono11link / long /
+single words onlyyesyes11link / long /
+single words onlyyesno11link / long /
+single words onlynoyes11link / long /
+single words onlynono11table 1: performance comparison   long query  l1 parameter set  
+as in the very short query runs  it is not clear at all if link runs are better or not than content only runs. in the presubmission experiments with the wt1g database and trec-1 topics  small but consistent improvement was observed  but it is not the case with the trec-1 main web test set. we did not yet find enough reason for this.
+1. conclusions
+trec-1 experiments at justsystem group are described.
+the following conclusions are drawn from these experiments:
+1  phrasal indexing seems to be more effective when thequery is longer.
+1  pseudo-relevance feedback always contributes to theperformance especially when initial queries are very short.
+1  feedback from a reference database was effective withvery short queries but not with long queries.
+1  no reliable performance improvement utilizing anchortexts was observed in wt1g experiments. sometimes it was effective but not always.
+on the other hand  we need more experiments as well as careful observation on the effect of phrasal indexing with short queries.
+it is also interesting to compare the effects of reference database feedback with query expansion by wordnet style pre-coded thesauri.
+for the future work  it is desirable to introduce the distinction of foreground/background of  aboutness  in question answering task where identification of focus of the topic description is crucial.
+1. acknowledgments
+our thanks to mr. toshiya ueda and mr. tatsuo kato for their assistance.

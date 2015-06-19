@@ -1,0 +1,118 @@
+we seek insight into latent semantic indexing by establishing a method to identify the optimal number of factors in the reduced matrix for representing a keyword. this method is demonstrated empirically by duplicating all documents containing a term t  and inserting new documents in the database that replace t with t. by examining the number of times term t is identified for a search on term t  precision  using differing ranges of dimensions  we find that lower ranked dimensions identify related terms and higher-ranked dimensions discriminate between the synonyms.
+categories and subject descriptors: h.1 information
+search and retrieval: retrieval models
+general terms: algorithms
+keywords: correlation method  latent semantic analysis  information retrieval  text mining  singular value decomposition.
+introduction
+the task of retrieving the documents relevant to a user query in a large text database is complicated by the fact that different authors use different words to express the same ideas or concepts. methods related to latent semantic analysis interpret the variability associated with the expression of a concept as a noise  and use linear algebra techniques to isolate the perennial concept from the variable noise.
+¡¡following the words of his authors   in latent semantic analysis   the approach is to take advantage of implicit higher-order structure in the association of terms with documents   semantic structure   in order to improve the detection of relevant documents on the basis of terms found in queries. the particular technique used is singular value decomposition  in which a large term by document matrix is decomposed into a set of ca. 1 orthogonal factors from which the original matrix can be approximated by linear combination. documents are represented by ca. 1 item vectors of factor weights. queries are represented as pseudodocuments vectors formed from weighted combinations of
+permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. to copy otherwise  to republish  to post on servers or to redistribute to lists  requires prior specific permission and/or a fee.
+sigir'1  july 1-august 1  1  toronto  canada.
+copyright 1 acm 1-1/1 ...$1.
+terms  and documents with supra-threshold cosine values are returned. 
+¡¡a large number of factor weights provide an approximation close to the original term by document matrix but retains too much noise. on the other hand  if too many factors are discarded  the information loss is too large. the objective in this work is the identification of the optimal number of orthogonal factors.
+¡¡in section 1 we define the bag-of-word representation of documents and present the simplest associated document retrieval method. in section 1  the original latent semantic method is presented. a method inspired on latent semantic analysis and developed at ibm tokyo research laboratory  is presented in section 1 and extended in section 1 to enable the determination of the adequate number of orthogonal factors. numerical experiments in section 1 validate the method.
+1. bag-of-words representation
+¡¡the methods discussed in this paper rely on the bag-ofwords representation in which each document is replaced by a vector of its attributes . these attributes are usually the keywords present in the document  but other information like a time span or the keyword stem can be used.
+¡¡in boolean models  1  1  1  1   a coordinate of a vector is naught when the corresponding attribute is absent from the document or unity when it is present. term weighting  is a refinement that takes into account the frequency of appearance of words within and among documents  and their location of appearance  e.g.  in the title  abstract or section header. 
+¡¡popular weighting schemes are variation of the tfidf model  where the coordinates of a vector representation of a document given by:
+	di = tf wi d .idf wi 	 1 
+where tf wi d  is the ith term frequency  which is the number of times term wi occurred in document d  and idf wi  is the inverse document frequency  which is the inverse of the number of documents word wi occurred in.
+¡¡this representation can be used to retrieve documents relevant to a user query: a vector representation is derived from the query in the same way as regular documents and then compared with the bag-of-words representation of the database using a suitable measure of distance or similarity. the euclidean distance or the angle between vectors is commonly used  but other measures are possible  1  1  1 
+1 .
+¡¡formally  we call a the matrix of d documents by n attributes formed by the bag-of-word representations of the documents in the database. q is the vector representation of the query  and d vi vj  is the dissimilarity measure between vectors vi and vj. by computing d vi q  for all i  we can order the documents with respect to their  dis-  similarity to the query.
+¡¡the bag-of-word representation usually leads to a matrix including several thousands of attributes. this causes serious problems in terms of computational complexity and conceptual terms if the goal is to design an efficient algorithm for further processing. there are several filtering approaches that lead to a reduction in size of the vector representation. pruning consists in removing infrequent and very frequent words  as they usually carry little information . lemmatization replaces inflected words  e.g. noun-plurals  verb-tenses  by their root in order to regroup forms with the same semantic content.
+1. latent semantic analysis
+¡¡a problem with the former retrieval method has been mentioned in the introduction: the similarity between a query and a given document can be under-estimated because the database user and the document author use different vocabularies to express the same concepts. their inventors claim that latent semantic indexing  lsi   is one of the few methods which successfully overcome this problem because it takes into account synonymy and polysemy. synonymy refers to the existence in most languages of equivalent or similar terms to express the same idea  and polysemy refers to the fact that some words have multiple  unrelated meanings. not accounting for synonymy leads to over-estimate the dissimilarity between related documents  while not accounting for polysemy leads to erroneously finding similarities between documents.
+¡¡the idea behind lsi is to reduce the dimension of the information retrieval problem by projecting the d documents by n attributes matrix a into an adequate subspace of lower dimension. this is achieved based on the singular value decomposition of a:
+	a = u¦²vt	 1 
+where u and v are orthogonal matrices  and ¦² is a diagonal matrix. the dimension of a being d ¡Á n  the non-null elements of ¦² are denoted ¦Ò1 ... ¦Òp where p = min d n  and we have ¦Ò1 ¡Ý ¦Ò1 ¡Ý ... ¡Ý ¦Òp 1 ¡Ý ¦Òp.
+¡¡the closest matrix a k  of dimension k   rank a  in terms of the frobenius norm is obtained by setting ¦Òi = 1 for i   k. this is equivalent to reducing u and v to their k first columns and ¦² to its k first columns and rows. we denote
+these reduced matrices by u k   v k  and ¦² k  respectively. in order to reduce the dimensionality of the problem  only the k largest singular values are maintained: instead of comparing the n dimensional vectors representing the documents in the original space defined by a  we compare them in a k dimensional subspace based on a k . the projection of the original document representation gives
+	atu k ¦² k  1 = v k 	 1 
+that is to be compared with the result of the same operation on the query vector q projected in the k-dimensional subspace
+	q k  = qtu k ¦² k  1.	 1 
+¡¡the closest document to query q is identified in reference to a dissimilarity function  between the k-dimensional vectors:
+	min dk q k  v¦Át k  	 1 
+1 ¦Á¡Üm
+where v¦Át is the ¦Áth row of vt. the second  third and later closest documents are retrieved in the same way.
+¡¡when the numbers of documents and attributes are large  lsi involves the manipulation of very large but sparse matrices. it is possible to improve performance and memory requirements significantly by using algorithms and data representation models specially designed to handle such matrices .
+¡¡presenting formal similarity with latent semantic analysis  probabilistic latent semantic analysis  is another method that takes synonymy and polysemy into account. its starting point is the so called aspect model    where two categories of variables are considered: the latent and manifest variables. latent variables cannot be observed directly but the manifest variables are conditioned on them  and by modeling this dependency it is possible to retrieve the underlying concepts. in reference to the problem of a same concept being expressed with different vocabularies  an analogy is made between the latent variable and the concept on one hand  and the vocabulary used to express it and the manifest variables on the other hand.
+1. covariance method
+¡¡instead of decomposing the document by keyword matrix  the covariance method  applies the singular value decomposition to the keywords covariance matrix. as the covariance matrix dimension depends on the number of keywords and not on the number of documents  the covariance method is able to handle databases of several hundred of thousands of documents. moreover  the covariance matrix doesn't need to be updated each time a batch of new documents enter the data base. this aspect is particularly important in the context of electronic networks  where new data become continuously available  see  or  for other methods to handle this problem . see  and  for a further discussion on the advantages of the covariance method. when the number of documents is larger than the number of attributes  the lsi method involves the manipulation of very large but sparse matrices.
+if d is the number of documents  ad the vector repre-
+
+senting the dth document and a the mean of these vectors    the covariance matrix is written:
+d
+	c = x ad   a t ad   a 	 1 
+d=1
+¡¡this matrix being symmetric  the singular value decomposition can be written:
+	c = v¦²vt	 1 
+where v is orthogonal and ¦² is the diagonal matrix of the ordered singular values.
+¡¡reducing ¦² to the k more significant  i.e. larger  singular values  we can project the keyword space into a k dimensional subspace:
+	 a|q  ¡ú  a|q v k ¦² =  a k |q k  	 1 
+and compare the documents in this last subspace as we did in section 1. the motivation behind the multiplication of the document by keyword matrix by the covariance matrix or its approximation lies in the fact that if a keyword is present in a document  correlated keywords should be taken into account as well - even if they aren't explicitly present so that the concepts present in the document aren't obscured by the choice of a specific vocabulary.
+1. embedded concepts
+¡¡sending the covariance matrix onto a subspace of fewer dimension implies a loss of information. we will see that it can be interpreted as the merging of keywords meaning into a more general concept that encompasses them. as an example   cat  and  mouse  might be merged into the concept of  mammal   which itself can be merged into the concept of  animal.  the results from the latent semantic indexing and the covariance method are of course not expected to be as clean  but this example illustrates what we understand by  underlying concept. 
+¡¡we present here a criteria to determine the number of singular values necessary for a keyword to be correctly distinguished from all others in the dictionary  along with a definition of what we understand by  correctly distinguished. 
+1 correlation method
+¡¡the method we use is based on the correlation matrix  but is otherwise identical to the covariance method presented in the former section. the correlation matrix s of a is defined based on the covariance matrix c:
+ci j
+	si j =	 1 
+this matrix being symmetric  the singular value decomposition can be written as in eq.  1 . the result of this decomposition is then used to send the documents into a k dimensional subspace as in eq.  1 . using the correlation rather than the covariance matrix results in a different weighting of correlated keywords  the justification of the model remaining otherwise identical.
+1 keyword validity
+¡¡consider the following property of the singular value decomposition :
+	s 	 1 
+using the same notation as before  it is easy to see that the rank k approximation s k  of s can be written
+k
+	s k  = xvi¦Òivit	 1 
+i=1
+with k ¡Ü n. we also have by definition that s n  = s.
+¡¡s k  being an approximation of the correlation matrix  we can argue in favor of the following argument: the k-order approximation of the correlation matrix correctly represents a given keyword only if this keyword is more correlated to itself than to any other attribute.
+¡¡in terms of the s k  elements  this means that even though the diagonal elements aren't equal to unity  they should be greater than the non-diagonal elements of the same row  or the same column  as the matrix is symmetric . for a given keyword ¦Á this condition is written
+	s k ¦Á ¦Á   s k ¦Á ¦Â   ¦Â = 1 ...n and	 1 
+¡¡to simplify later discussion we introduce the next definitions: a keyword is said to be  valid  at rank k if it satisfies eq.  1  and is said to be of rank k if k   1 is the largest value for which eq.  1  is not verified. in this case  k is the validity rank of the keyword.
+1. numerical experiments
+¡¡numerical experiments are based on the reuters and the trec databases. the reuters data base is a collection of 1 articles extracted from the reuters newswire in 1. for complete information  please refer to . the trec database  is a collection of 1 articles of the los angeles times from the years 1 and 1. for the purpose of this study  we used the paragraphs as documents. it resulted in a collection of 1 1  documents. 
+¡¡as a form of pre-processing  we extract the stem of the words using the porter algorithm   and we removed the keywords appearing in either more or less than two user specified thresholds. we present here the results based on different vocabularies. we then map documents to vectors using the tfidf representation as described by eq.  1 .
+¡¡to facilitate reading  we refer to keywords by one of their base forms even though the stemmed forms is used in the experiment.
+first experiment
+we claim that a given keyword is correctly represented by a rank k approximation of the correlation matrix if k is at least equal to the validity rank of the keyword. in order to verify this  we conduct the experiment described here:
+1. we select a keyword  for example africa  and we extract from the text data base all the documents containing it.
+1. we produce a new copy of these documents  in whichwe replace the selected keyword by an arbitrary new one. in this example  we replace africa by afrique which is a translation in french of the word.
+1. we add these new documents to the original data base and the keyword afrique to the vocabulary.
+1. we compute the correlation matrix and the singularvalue decomposition of this extended  new data base. this defines a new subspace on which to send the documents for retrieval. note that as far as the correlation matrix is concerned  afrique and africa are perfect synonyms.
+1. we send the original data base  i.e. the data base without the afrique attribute  to the new subspace and we issue a query for afrique. we hope to find documents containing africa first.
+we conduct this experiment for different approximation s k  of the correlation matrix  and compare the precision. we define the precision as the ratio between the number of correctly retrieved documents  i.e. documents containing the keyword africa in our example  and the total number of retrieved documents .
+
+	1	1	1
+nbr of document  validity rank = 1 
+figure 1: keyword africa is replaced by afrique: curves corresponding to ranks 1 and 1 start with a null precision and remain under the curves of lower validity ranks.
+¡¡we choose various keywords  database and vocabulary combinations and we discuss here only representative result. we choose both highly and poorly correlated keywords: keyword trade is frequent in the reuters database  while africa appears in less than half of a percent of the documents. keyword network has been studied in the significantly larger trec database. statistics relevant to these keywords can be found in table 1.
+keywordtradeafricanetworkduplicatecomercioafriquereseaudatabasereutersreuterstrecstemyesyesyesvocabulary11count11% doc 1%1%1%rank11table 1: keywords characteristics. the  vocabulary  entry refers to the number of keywords in the vocabulary.  count  is the number of time the  stemmed  keyword appears.  % doc  is the percentage of documents containing the keyword and  rank  is its validity rank.
+¡¡with a 1 keywords vocabulary extracted from the reuters database  the rank from which the keywords africa and afrique are valid is 1. in fig. 1  we plotted the proportion of documents containing the keyword africa against the number of retrieved documents  precision  computed for different numbers of orthogonal factors  referred as rank in the figure's legend . all precisions for ranks inferior or equal to 1 start at 1% precicion and remain higher than what is achieved for ranks superior to 1. precision increases with rank until the validity rank is reached and then drops  sometimes quite dramatically.
+¡¡for further illustration  we provide the results of two more experiments: in figs. 1  keyword trade is replicated by comercio in a vocabulary of 1 keywords  we used the spanish translation because  commerce  exists both in french and english . the drop in precision after we reach the validity rank - 1 - is low  but still present. as usual  the validity rank is precisely defined: the drop in precision is observed as soon as the rank reaches 1. in fig. 1  we used a 1 keywords vocabulary in which we duplicated network by reseau. the validity rank is 1. precision is 1% for ranks above this value  and well below 1% for higher ranks.
+
+	1	1	1
+nbr of document  validity rank = 1 
+figure 1: keyword trade is replaced by comercio: precision improves from rank 1 to 1. ranks 1 and 1 have identical precision for this range of documents. performance deteriorates for values beyond the validity rank.
+¡¡we might wonder if this property of the validity rank is verified for all correlation matrices or is specific to text. the experiments we conducted show that the second assumption is correct: for both correlation matrices based on random vectors and text databases containing too few documents for the correlations to be meaningful  we fail to observe a correspondence between retrieval quality and validity ranks. we interpret these results as follows: in the first range below the validity rank  the added orthogonal factors improve information about the keywords  which explains the precision gain. in the second range  from validity rank to full rank  the subspace contains enough information to distinguish between the synonym pairs like africa and afrique or trade and comercio. consequently  searching for afrique doesn't return the documents containing africa with the same precision  as searching for comercio returns fewer document containing trade.
+¡¡this experiment shows the relation between the  concept  associated with afrique  or any other concept  and the actual keyword. for low rank approximations s k   augmenting the number of orthogonal factors helps identifying the  concept  common to both afrique and africa  while orthogonal factors beyond the validity rank help distinguish between the keyword and its synonym.
+
+	1	1	1
+nbr of document  validity rank = 1 
+figure 1: keyword network is replaced by reseau: precision is 1% until the validity rank and deteriorates drastically beyond it.
+second experiment
+returning to the africa versus afrique experiment  if the former interpretation is correct  the number of returned document containing africa must be approximately equal to the number of documents containing afrique as long as the number of orthogonal factors is lower than the validity rank  but as it exceeds it  more documents containing the exact query should be retrieved. in fig. 1 we show the result of an experiment conducted to verify this hypothesis. for an increasing number of orthogonal factors represented in abscissa  we identify the group of g = 1 most similar documents to the query afrique. we plot in ordinate the ratio r of documents containing afrique divided by the total number t of documents containing either afrique or africa. we also plot the number t divided by g = 1 to be certain that the number of retrieved documents is large enough for r to make sense. we see that as forecast r is approximately equal to 1% until the rank is valid. beyond this rank  the documents containing afrique largely dominate the group.
+third experiment
+given that a keyword is correctly represented at its validity rank  an histogram of validity ranks for the whole vocabulary can be used to determine the number of orthogonal factors beyond which there is no much information to be gained when computing the subspace  see eq.  1  . figs. 1 and 1 present such histograms. in the first figure  around 1 orthogonal factors seem to be sufficient for a vocabulary of 1 keywords applied to the reuters database  while approximately 1 are required for the larger 1 keywords vocabulary used with the trec database.
+conclusion
+we examined the dependence of the latent semantic structure on the number of orthogonal factors in the context of the correlation method. we analyzed explicitly the claim following which the latent semantic analysis provides a method to take account of synonymy.
+
+rank
+figure 1: ratios r and hit = n/g for keyword afrique.
+vocabulary of 1 keywords. validity rank is 1
+¡¡we propose a method to determine the number of orthogonal factors for which a given keyword best represents an associated latent semantic concept and showed that the concept corresponding to a given keyword is captured by the first orthogonal factors up to a validity rank that we define. remaining orthogonal factors help distinguish between this keyword and its synonyms.
+¡¡we also showed that the optimal number of orthogonal factors depends on the query as well as on the document collection and we give an upper bound on the number of orthogonal factors needed to represent the database correctly. further directions might include the extension to multiple keywords queries.
+1. acknowledgments
+¡¡the author would like to thank the reviewers for their usuful comments. he also want to thank rafi ahmad for correcting his english.

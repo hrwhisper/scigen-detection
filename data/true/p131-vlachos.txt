@@ -1,0 +1,367 @@
+we present several methods for mining knowledge from the query logs of the msn search engine. using the query logs  we build a time series for each query word or phrase  e.g.  'thanksgiving' or 'christmas gifts'  where the elements of the time series are the number of times that a query is issued on a day. all of the methods we describe use sequences of this form and can be applied to time series data generally. our primary goal is the discovery of semantically similar queries and we do so by identifying queries with similar demand patterns. utilizing the best fourier coefficients and the energy of the omitted components  we improve upon the state-of-the-art in time-series similarity matching. the extracted sequence features are then organized in an efficient metric tree index structure. we also demonstrate how to efficiently and accurately discover the important periods in a time-series. finally we propose a simple but effective method for identification of bursts  long or short-term . using the burst information extracted from a sequence  we are able to efficiently perform 'query-by-burst' on the database of timeseries. we conclude the presentation with the description of a tool that uses the described methods  and serves as an interactive exploratory data discovery tool for the msn query database.
+1.	introduction
+﹛online search engines have become a cardinal link in the chain of everyday internet experience. by managing a structured index of web pages  modern search engines have made information acquisition significantly more efficient. indicative measures of their popularity are the number of hits that they receive every day. for example  large search services such as google  yahoo  and msn each serve results for tens of millions of queries per day. it is evident that search services  aside from their information retrieval role  can also
+
+  part of this work conducted while author was visiting microsoft research.
+permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage  and that copies bear this notice and the full citation on the first page. to copy otherwise  to republish  to post on servers or to redistribute to lists  requires prior specific permission and/or a fee.
+sigmod 1 june 1  1  paris  france.
+copyright 1 acm 1-1/1 . . . $1.
+act as a data source for identifying trends  periodicities and important events by careful analysis of the queries.
+﹛retaining aggregate query information  such as the number of times each specific query was requested every day  is storage efficient  can accurately capture descriptive trends and finally it is privacy preserving. this information could be used by the search service to further optimize their indexing criteria  or for mining interesting news patterns  that manifest as periodicities or peaks in the query log files.
+
+figure 1: query demand for the word  cinema  for every day of 1
+﹛as an illustrative example  let's consider the query  cinema . in fig. 1 we observe the request pattern for every day of 1. we can distinguish 1 peaks that correspond to each weekend of the year. in fact  similar trends can be noticed for specific cinemas as well  indicating a clear preference of going to the movies during friday and saturday. by distilling such a knowledge  the engineers of a search service can optimize the search of a certain class of queries  during the days that a higher query load is expected. such a discussion is out of the scope of this paper  however possible ways of achieving this could be  for example  enforcing higher redundancy in their file servers for a specific class of queries.
+﹛while a significant number of queries exhibit strong weekly periodicities  some of them also depict seasonal bursts. in fig. 1 we observe the trend for the word  easter   where a clear accumulation of the queries during the relevant months  followed by an immediate drop after easter. on a similar note  the query  elvis  experiences a peak on 1th aug. every year  fig. 1   which happens to be the death anniversary of elvis presley.
+﹛the above examples are strong indicators about the amount of information that can be extracted by close examination of the query patterns. to summarize  we believe that past query logs can serve 1 major purposes:
+1. recommendations  the system can propose alternative
+query: easter
+
+figure 1: search pattern for the word  easter  during 1
+
+figure 1: the demand for query  elvis  for every day of 1
+or related keywords  that depict similar request patterns 
+1. discovery of important news  burst of a specific query 
+1. optimization of the search engine  place similar queriesin same server  since they are bound to be retrieved together 
+﹛in the following sections we will explain how one can extract useful information from query logs  in general  and the msn query logs  in particular.
+1	contributions
+﹛this paper makes three main contributions. first we develop new compressed representations for time-series and an indexing scheme for these representations. because the data we are dealing with tend to be highly periodic  we describe each time-series using the k best fourier coefficients  instead of the frequently used first ones . in this manner we are able to provide the tightest yet lower and upper bounds on euclidean distance between time-series. we demonstrate how this representation can be indexed using a variation of a metric tree. the index is very compact in size and exhibits strong pruning power due to the bounds that we provide. the new algorithms described in the paper  are presented in terms of fourier coefficients but can be generalized to any orthogonal decomposition with minimal or no effort. our second contribution is an 'automatic' method for discovering the number of significant periods. our final contribution is a simple yet effective way to identify bursts in time-series data. we extract burst features that can later be stored in a relational database and subsequently be used to perform 'query-by-burst' searches  that is  used to find all sequences that have a similar pattern of burst behavior.
+﹛the paper roadmap is as follows: in section 1  we describe various tools for analyzing time-series including the discrete fourier transform  dft  and the power spectral density. in sections 1 and 1  we describe our approach to efficiently representing  storing and indexing a large collection of timeseries data. in section 1  we develop a method for identifying significant periodicities in time-series. in section 1  we describe a simple but effective approach to burst detection in time-series and its application to 'query-by-burst' searching of a collection of time-series. finally  in sections 1 and 1  we experimentally demonstrate the effectiveness of the proposed methods and discuss directions for future work.
+1.	spectral analysis
+﹛we provide a brief introduction to the fourier decomposition  which we will later use for providing a compressed representation of time-series sequences.
+1	discrete fourier transform
+﹛the normalized discrete fourier transform  dft  of a sequence x n  n = 1...n  1 is a vector of complex numbers x f :
+
+we are dealing with real signals  therefore the coefficients are symmetric around the middle one. what the fourier transform attempts to achieve is  to represent the original signal as a linear combination of the complex sinusoids
+. therefore  the fourier coefficients represent the amplitude of each of these sinudoids  after signal x is projected on them.
+
+
+figure 1: decomposition of a signal into the first 1 dft components
+1	power spectral density
+﹛in order to accurately capture the general shape of a timeseries using a spartan representation  one could reconstruct the signal using just its dominant frequencies. by dominant we mean the ones that carry most of the signal energy. a popular way to to identify the power content of each frequency is by calculating the power spectral density psd  or power spectrum  of a sequence which indicates the signal power at each frequency in the spectrum. a well known estimator of the psd is the periodogram. the periodogram
+p is a vector comprised of the squared magnitude of the
+fourier coefficients:
+
+notice that we can detect frequencies that are at most half of the maximum signal frequency  due to the nyquist fundamental theorem. the k dominant frequencies appear as peaks in the periodogram  and correspond to the coefficients with the highest magnitude . from here on  when we refer to the best or largest coefficients  we would mean the ones that have the highest energy and correspond to the tallest peaks of the periodogram.
+1. compressedrepresentationsfor periodic data
+﹛in this section  we describe several compressed representations for periodic data. our primary goal is to support fast similarity searches for periodic data. to that end  we want our compressed representation to support approximate euclidean distance computations  and  more specifically  good upper and lower bounds on the actual euclidean distance between a compressed representation and a query point. for each of the representations  we provide algorithms to compute upper and lower bounds. throughout the presentation we refer to fourier coefficients because we concentrate on periodic data  however  our algorithms can be adapted to any class of orthogonal decompositions  such as wavelets  pca  etc.  with minimal or no adjustments.
+1	first or best coefficients 
+﹛the majority of the approaches that attempt to speed-up similarity search are based on the work of agrawal et al.   where the authors lower bound the euclidean distance using the first k fourier coefficients. the authors use the name gemini to describe their generic framework for lower bounding the distance and utilizing a multidimensional index for candidate retrieval. rafiei et al.  improve on this method by exploiting the symmetry of the fourier coefficients and  thus  provide an even tighter lower bound  using the same number of coefficients . we will refer to this lower bound using the symmetric property as lb-gemini.
+﹛a later enhancement to this paradigm appears in  by wang & wang. the authors  in addition to the first coefficients  also record the error of the approximation to the original sequence. using this extra information  the authors provide a tighter lower bound  lb-wang  and an upper bound  ub-wang .
+	athens 1	bank
+
+figure 1: a comparison of using the first coefficients vs best coefficients in reconstructing the time-series for four queries. using the best coefficients can significantly reduce the reconstruction error.
+﹛all of the above methods inherently suffer from the assumption  that the first coefficients describe adequately the decomposed signal. while this may be true for some timeseries such as random walks  it is not true for many timeseries that exhibit strong periodicities. in such sequences most of the power is not concentrated in the low frequency components  but is dispersed at various frequencies of the spectrum. figure 1 depicts the reconstruction error e to the original sequence when using the 1 first fourier coefficients against the 1 best  the explanation of space requirement for each method will be deferred until later . it is evident that using the coefficients with the most power yields superior reconstruction even when using fewer components.
+﹛the observation that it is best to represent a signal using the largest coefficients of a dft  or other orthogonal decomposition  is not novel. for instance  wu et al.  note that choosing the best coefficients can be a fast and powerful alternative to svd for searching images. it is also useful to note that in addition to providing a tighter distance approximation  the use of the best coefficients  has the advantage of offering an immediate overview of the periodic components of the data.
+1	notation
+﹛we will present our algorithms for lower bounding the euclidean distance  using the best coefficients to approximate a sequence. we begin with some notation first.
+﹛we denote a time-series by t = {t1 t1 ... tn} and the fourier transformation of t by the capital letter t. the vector describing the positions of the k largest coefficients of t is denoted as p+  while the positions of the remaining ones as p   that is p+ p     1 ... n  . for any sequence t  we will store in the database the vector t p+  or equivalently t+. now if q is a query in the transformed domain  then q p+   or q+  describes a sequence holding the equivalent coefficients as the vector t p+ . similarly  q p   √ q  is the vector holding the analogous elements of t p   √ t .
+example: suppose t = { 1i   1i   1+i   1+i } and q = { 1i   1+i   1+i   1i }. the magnitude vector of t is: abs t  = {1 1 1 1}. then  p+ = {1}  t p+  = { 1 + 1i   1 + i } and q p+  = { 1 + i   1 + 1i }. 1 algorithm bestmin
+﹛in order to speedup similarity search  we compute a lower bound of the euclidean distance between the compressed representation t p+  and the full query data q = {q p+  q p  }. the squared euclidean distance is defined as:
+
+the computation of the first part of the distance is trivial since we have all the required data. for the second part we are missing the term t p    the discarded coefficients. because we select the best coefficients  we know that the magnitude of each of the coefficients in t p   is less than the smallest magnitude in t p+ . we use to denote the magnitude of the smallest coefficient in t p+ .
+﹛fact 1.  minproperty  the magnitude of all coefficients in t p   is less than the minimum magnitude of any coefficient in t p+   by construction . that is: .
+we can use this fact to lower bound d q  t  1.
+		 1 
+﹛every element of the sum will be replaced by something of smaller  or equal  value.
+		 triangle inequality 
+	 minproperty 
+﹛the distance lbbestmin  named for its use of the best  largest  coefficients and the minproperty  is a lower bound of the euclidean distance and defined as follows:
+lbbestmin q t 1 =
+ and
+	  1	if i ﹋ p  and
+﹛similarly  we can define an upper bound to the euclidean distance as follows:
+
+
+figure 1: bestmin explanation. all points ti  lie within the circle of radius . left: the minimum possible distance between any point q i and ti  happens when the 1 vectors are aligned and then their distance simply is . right: the maximum distance is .
+1	algorithm besterror
+﹛in this section  we describe the besterror algorithm. this algorithm typically provides a looser lower bound than the bestmin algorithm and is presented to facilitate the understanding of the bestminerror algorithm described in the next section. in this algorithm we utilise an additional quantity the sum of squares of the omitted coefficients. this quantity represents the error in the compressed representation  or  equivalently  the amount of energy in the coefficients not represented. for this algorithm we only use knowledge of t.err and ignore any additional constraints such as the minproperty  thus the algorithm could be applied when coefficients other than the best coefficients are chosen.
+1  lb  ub  = bestmin q t 
+1 {
+1 lb = 1; // lower bound
+1 ub = 1; // upper bound
+1 distsq = 1; // distance of best coefficients
+1 minpower = min abs t  ; //smallest best coeff
+1
+1 for i = 1 to length q 
+1 {
+1 if t i  exists
+1 // i is a coefficient used
+1 // in the compressed representation
+1 distsq += abs q i  - t i   1;
+1 else
+1 {
+1 // lower bound
+1 if  abs q i     minpower 
+1 lb +=  abs q i   - minpower  1;
+1
+1 //upper bound
+1 ub +=  abs q i   + minpower  1;
+1 }
+1 }
+1 lb = sqrt distsq + lb ;
+1 ub = sqrt distsq + ub ;
+1 }
+figure 1: algorithm bestmin
+﹛to obtain the lower bound for the quantitiy of interest we use the inequality  and for the upper bound we use the inequality .
+these inequlities yield the following upper and lower bounds when using the best coefficients and the approximation error.
+
+ note that these measures are analogous to what had been proposed in  but for the case of best coefficients.
+1  lb  ub  = besterror q t 
+1 {
+1 // in this approach we store the sum of squares
+1 // of the coefficients not in the compressed
+1 // representation for t in t.err
+1 q.err = 1 // used to store unused energy of q
+1 distsq = 1; // distance of best coefficients
+1 for i = 1 to length q 
+1 {
+1 if t i  exists
+1 {
+1 // i is a coefficient used
+1 // in the compressed representation
+1 distsq += abs q i  - t i   1;
+1 }
+1 else
+1 {
+1 q.err += abs q i   1;
+1 }
+1 }
+1
+1 lb = sqrt distsq + sqrt q.err -sqrt t.err   1;
+1 ub = sqrt distsq + sqrt q.err +sqrt t.err   1;
+1 }
+figure 1: algorithm besterror
+1	algorithm bestminerror
+﹛our last algorithm is the bestminerror algorithm that uses the best coefficients and both the minproperty and
+t.err to obtain a tighter lower bound. the algorithm is described in figure 1. the algorithm is somewhat more complicated than the previous algorithms and we provide some intuitions to aid the reader. the basic idea is to compute a lower and an upper bound of this quantity iteratively. for each coefficient not in the compressed representation we consider two cases:
+case 1: when q i    minpower we use the minproperty. we are certain that we can increment the distance by  abs q i     minpower 1 for this coefficient  line 1 . for the lower bound  the most optimistic case is when this is precisely this distance and  use  precisely minpower energy  line 1 . note that using this metaphor we would also say that we have used all of the energy in q i . for the upper bound  the worst case is that we have use none of the energy from t.err.
+case 1: when q i  ≒ minpower the minproperty does not apply. in this case we increment the count of unused energy from q by the size of q i   line 1 .
+﹛roughly  we compute the lower and upper bound by using the upper and lower bound from the besterror case with the unused energies. more specifically  for the lower bound  we add the distance computed for the known coefficients  the distance computed in case 1 and the best-case distance using the overestimate of the unused energy from the missing coefficients of t. similarly for the upper bound  we combine these quantities but use an underestimate of the amount of energy used namely t.err.
+1  lb  ub  = bestminerror q t 
+1 {
+1 // in this approach we store the sum of squares
+1 // of the coefficients not in the compressed
+1 // representation for t in t.err
+1 lb = 1;	// lower bound
+1 distsq = 1;	// distance of best coefficients
+1 q.nused = 1;	// energy of unused coeffs for q
+1 t.nused = t.err; // energy left for lower bound
+1
+1	minpower = min abs t  ; //smallest best coeff 1
+1 for i = 1 to length q 
+1 {
+1 if t i  exists
+1 // i is a coefficient used
+1 // in the compressed representation
+1 distsq += abs q i  - t i   1;
+1 else
+1 {
+1 // lower bound
+1 if  abs q i     minpower 
+1 {
+1 lb +=  abs q i   - minpower  1;
+1 // at most minpower used
+1 t.nused -= minpower 1;
+1 }
+1 else
+1 // this energy wasn't used
+1 q.nused += abs q i   1;
+1 }
+1 }
+1
+1 // have we used more energy than we had 
+1 if  t.nused   1  t.nused = 1;
+1
+1 ub=sqrt distsq+lb+ sqrt q.nused +sqrt t.err   1 ;
+1 lb=sqrt distsq+lb+ sqrt q.nused -sqrt t.nused   1 ; 1 }figure 1: algorithm bestminerror
+1.	index structure
+﹛all of the algorithms proposed in section 1  use a different set of coefficients to approximate each object  thus making difficult the use of traditional multidimensional indices such as the r*-tree . moreover  in our algorithms we use all the query coefficients in the new projected orthogonal space  making the adaptation of traditional space partition indices almost impossible.
+﹛we overcome these challenges by utilizing a metric tree as the basis of our index structure. metric trees do not cluster objects based on the values of the selected features but on relative object distances. the choice of reference objects  from which all object distances will be calculated  can vary in different approaches. examples of metric trees include the vp-tree   m-tree  and gnat . all variations of such trees  exploit the distances to the reference points in conjunction with the triangle inequality to prune parts of the tree  where no closer matches  to the ones already discovered  can be found.
+﹛in this work we will use a customized version of the vptree  vantage point tree . the superiority of the vp-tree against the r*-tree and the m-tree  in terms of pruning power and disk accesses  was clearly demonstrated in . here  for simplicity  we describe the modifications in the search algorithms for the structure of the traditional static binary vp-tree. however all possible extensions to the vptree  such as the usage of multiple vantage points  or accommodation of insertion and deletion procedures  can be implemented on top of the proposed search mechanisms. we provide a brief introduction to the vp-tree structure  and we direct the interested reader to   for a more thorough description.
+1	vantage point tree
+﹛in this section  we adapt the notation of . at every node in a vp-tree there is a vantage point  reference point . the vantage point is used to divide all of the points associated with that node of the tree into two equal-sized sets. more specifically  the distances of points associated with the vantage point are sorted and the points with distance less than the median distance 米 are placed in the left subtree  subset s≒   and the remaining ones in the right subtree  subset s  .
+﹛to construct a vp-tree for a dataset one simply needs to choose a method for selecting a vantage point from a set of points and to use this method recursively to construct a tree. we use a heuristic method to pick vantage point in constructing vp-trees. in particular  we choose the point that has the highest deviation of distances to the remaining objects. this can be viewed as an analogue of the largest eigenvector in svd decomposition.
+﹛suppose that one is searching for the 1-nearest-neighbor  1nn  to the query q and its distance to a vantage point is dq v p. if the best-so-far match is 考 we only need to to examine both subtrees if 米   考   dq vp   米 + 考. in any other case we only have to examine one of the subtrees.
+﹛typically vp-trees are built using the original data  that is  the vantage points are not compressed representations. in our approach  we adapt the vp-tree to work with a compressed representation. by doing so we significantly reduce the amount of space needed for the index. of course  the downside of using a compressed representation as the vantage points is that the distance computation is no longer
+
+figure 1:  a  separation into two subsets according to median distance   b  pruning in vp-tree using exact distances   c  pruning in vp-tree using upper and lower bounds
+exact and we must resort to using bounds. our approach is to construct the vp-tree using an uncompressed representation and  then  after it is constructed  convert the vantage points to the appropriate compressed representation and id of the original object  time series . by doing so  we obtain exact distances during the construction process. one can optimize this process slightly by compressing a point immediately after it is selected to be a vantage point.
+﹛we will modify the knn search algorithm to utilize the lower and upper bounds of the uncompressed query q to a compressed object  whether this is vantage point or leaf object . so  suppose for the best-so-far match we have a lower bound 考lb and a upper bound 考ub. we will only visit the left subtree if the upper bound distance between q and the current vantage point v p is: ubq v p   米   考ub. this happens since for any r ﹋ s  the distance between r and q is:
+d q r  ≡ |d r v p    d q v p |	 triangle inequality 
+ by construction 
+ 
+	  |米    米   考ub |	 assumption 
+= 考ub
+and since our best match is less than 考ub this part of the tree can be safely discarded. in a similar way we will only traverse the right subtree  s   if the lower bound between q and v p is: lbq vp   米+考ub. for any other case both
+subtrees will have to be visited  fig. 1  c  
+﹛the index scan is performed using a depth-first traversal  and 考lb  考ub are updated both by compressed objects in the leaves as well as by the vantage points. additionally  as an optimization  the search is heuristically 'guided' towards the most promising nodes. our heuristic works as follows: consider the annulus  disc with a smaller disc removed  defined by the upper and lower bounds for a query centered around the current vantage point. we can divide this area into two areas  one of them possibly empty ; one region in which the points that are further away than the median 米 from the current vantage point and one in which the points are closer than the median. each child of the current vantage point is naturally associated with one of these regions and we choose the child node associated with the region of larger size. suppose  for example  that the lower and upper bounds of the query with respect to the current vantage point are in the range  lb-ub   as shown by the gray line in fig. 1 c . because the distance range overlaps more with the subset s≒  we should follow this subset first. it seems likely that this approach will find a good match sooner and leading to quicker pruning of other parts of the tree.
+﹛even though we prune parts of the tree using the upper bound 考ub of the best-so-far match  and not the exact distance  the pruning power of the index is kept very high  because the use of algorithm bestminerror can provide a significantly tight upper bound. this will be explicitly demonstrated in the experimental section.
+﹛after the tree traversal we have a set of compressed objects with their lower and upper bounds. the smallest upper bound  sub  is computed and all objects with lower bound higher than sub are excluded from examination. the full representation of the remaining objects is retrieved from the disk  in the order suggested by their lower bounds. a simple version of the 1nn search  without the traversal to the most promising node  is provided in fig. 1.
+1.	detecting important periods
+﹛using the periodogram we can visually identify the peaks as the k most dominant periods  period =1/frequency . however  we would like to have an automatic method that will return the important periods for a set of sequences  e.g.  for the knn results . what we need is to set an appropriate threshold in the power spectrum  that will accurately distinguish the dominant periods. we will additionally require that this method not only identifies the strong periods  but also reduces the number of false alarms  i.e.  it doesn't classify unimportant periods as important .
+1	number of significant periods
+﹛next we devise a test to separate the important periods from the unimportant ones. to do so one needs to specify exactly what is meant by a non-periodic time series. our canonical model of a non-periodic time-series is a sequence of points that are drawn independently and identically from a gaussian distribution. clearly this type of sequence can have no meaningful periodicities. in addition  under this assumption  the magnitudes of the coefficients of the dft are distributed according to an exponential distribution. even when the assumption of i.i.d. gaussian samples does not hold  it is often the case that the histogram of the coefficient magnitudes has an exponential shape. fig. 1 illustrates this for several non-periodic time series. our approach is to identify significant periods by identifying outliers according to an exponential distribution.
+﹛starting from the probability distribution function of the exponential distribution  we derive the cumulative distribution function:
+
+where 竹 is the inverse of the average value. the important periods will have powers that deviate from the power content of the majority of the periods  therefore we will seek for infrequent powers. consequently  we will set this probability p to a very low value and calculate the derived power threshold. for example  if we want to be confident with probability 1% that the returned periods will be significant we have:  1   1 % = 1% = 1  and
+nnsearch q 
+{
+input: uncompressed query q
+output: nearest neighbor
+s  - search root-of-index  q 
+// s = set of compressed objects returned from
+// tree traversal with associated
+// lower  s.lb  and upper bounds  s.ub 
+sub = min s i .ub ; // smallest upper bound
+delete {s i  | s i .lb  sub} ; // prune objects
+sort s i .lb ; // sort by lower bounds bestsofar.dist = inf;
+for i=1 to s.length
+{ if s i .lb   bestsofar.dist return bestsofar
+retrieve uncompressed time-series t of s i  from database dist = d t q ; // full euclidean
+if dist   bestsofar
+{ bestsofar.dist = dist; bestsofar.id = t;
+}
+}
+}
+search node q 
+{
+input: node of vp-tree  uncompressed query q output: set of unpruned compressed objects with associated lower and upper bounds
+if node is leaf
+{ for each compressed time-series ct in node
+{
+﹛﹛ lb ub   - bestminerror ct q ; queue.push ct lb ub ; // sorted by ub }
+}
+else // vantage point
+{
+ lb ub   - bestminerror vp q ;
+queue.push vp lb ub ;
+sigmaub = queue.top; // get best upper bound
+if ub   node.median - sigmaub
+search node.left q ;
+if lb   node.median + sigmaub
+search node.right q ;
+}
+}figure 1: 1nn search for vp-tree with compressed objects
+the power probability is set to 1. solving for the power threshold tp we get:
+
+and 米 is the average signal power. for example for confidence 1%  p = 1 and if the average signal power 1.   then the power density threshold value is tp = 1.
+examples: we demonstrate the accuracy and usefulness
+	sequence 1	psd histogram 1
+
+figure 1: typical histogram of power spectrum for various non-periodic sequences follow an exponential distribution
+of the proposed method with several examples. in fig. 1 we juxtapose the demand of various queries during 1 with the periods identified as important. we can distinguish a strong weekly component for queries 'cinema' & 'nordstrom'  while for 'full moon' the monthly periodicity is accurately captured. for the last example we used a sequence without any clear periodicity and again our method is robust enough to set the threshold high enough  therefore avoiding false alarms. the large peak in the data happens during the day the famous british actor died  and of course its identification is important for the discovery of important  rare  events. we will expound how to discover such  or more subtle  bursts in the following section.
+
+1
+1.1.1.1.1.1	1	1	1	1	1 frequency	frequency
+figure 1: discovered periods for four queries using the power density threshold
+1.	burst discovery
+﹛our final method for knowledge extraction  involves the detection of bursts. in the setting of this work  interactive burst discovery will involve three tasks; first we have to detect the bursts  then we need to compact them  in order to facilitate an efficient storage scheme in a dbms system and finally based on compacted features we can pose queries in the system  'query-by-burst' . the query-by-burst feature can be thought of as a fast alternative of weighted euclidean matching  where the focus is given on the bursty portion of a sequence. compared to the work of zhu & shasha
+  our approach is more flexible since it does not require a custom index structure  but can easily be integrated in any relational database. moreover  our framework requires significantly less storage space and in addition we can support similarity search based on the discovered bursts. our method is also simpler and less computationally intensive than the work of   where the focus is on the modeling of text streams.
+1	burst detection
+﹛for discovering regions of burst in a sequence  our approach is based on the computation of the moving average  ma   with a subsequent annotation of bursts as the points with value higher than x standard deviations above the mean value of the ma. more concretely:
+1. calculate moving average maw of length w for sequence t =  t1 ...tn .
+1. set cutoff = mean maw  + x*std maw 
+1. bursts = {ti| maw i    cutoff }
+for our database we used sliding windows of two lengths w; one used a moving average of 1 days  long-term bursts  and one a 1 day moving average  short-term bursts   which we found to cover sufficiently well the bursts ranges in the database sequences. typical values for the cutoff point are 1-1 times the standard deviation of the ma. in fig. 1  we can see a run of the above algorithm on the query 'halloween' during the year 1. we observe that the burst discovered is indeed during the october and november months. in fig. 1 another execution of the algorithm is demonstrated  this time for the word  easter   during a span of three years.
+
+figure 1: user demand for the query 'halloween' during 1 and the bursts discovered
+1	burst compaction
+﹛we would like to identify in an large database  sets of sequences that exhibit similar burst patterns. in order to
+
+figure 1: history of the query 'easter' during the years 1 and the bursts discovered
+speedup this process  we choose not to store all points of the bursty portion of a sequence  but we will perform some kind of feature compaction.
+﹛for this purpose  we represent each consecutive sequence of values identified as a burst  by their average value. suppose  for example  that b x  =  xp ... xp+k xq ... xq+m  signify the points identified as bursts on a sequence x =  x1 x1 ... xn . in this case  sequence b contains two burst regions and the compact form of the burst is:
+
+in other words  each burst is characterized by a triplet  startdate  enddate  average value   indicating the start and ending point of the burst  and the average burst value during that period  respectively. the length of a burst b will be indicated by |b| = enddate   startdate + 1.
+﹛the burst triplets of each sequence can now be stored as records in a dbms table with the following fields:
+ sequenceid  startdate  enddate  average burst value 
+﹛in fig. 1 we elucidate the compact burst representation  as well as the high interpretability of the results. for the query 'flowers'  we discover two long-term bursts during the months february and may. this is consistent with our expectation that flower demand tends to peak during valentine's day and mother's day. for the query 'full moon'  using short term burst detection  we can effectively distuinguish the monthly bursts  that is once for every completion of the moon circle .
+1	burst similarity measures
+﹛now we will define the similarity bsim between the burst triplets. let time-series x and y and their respective set of
+burst features  and
+ . we have :
+
+
+figure 1: compact burst representation by using the average value of the bursts  and high interpretability of the discovered bursts.
+where similarity captures how close the average burst values are:
+similarity bi x  bj y    =	1 x 	 y 
+	1+ dist bi	 bj  
+1
+= 
+1+ avgv alue bi x     avgv alue bj y   
+and intersect returns the degree of overlap between the bursts:
+
+﹛the function overlap simply calculates the time intersection between two bursts. fig. 1 briefly demonstrates for bursts a b the calculation of overlap a b .
+
+figure 1: burst overlaps between time-series
+﹛before the burst features are extracted  the data are standardized  subtract mean  divide by std  in order to compensate for the variation of counts for different queries.
+execution in a dbms system: since all identified burst features are stored in a database system  it is very efficient to discover burst features that overlap with the query's bursts. in fig. 1 we illustrate the search for overlapping bursts. essentially we need to discover features with startdate earlier than the ending date of the query burst and with enddate later than the burst starting date. this procedure is extremely efficient  if we create an index  basically a b-tree  on the startdate and enddate attributes. for the qualifying burst features  the similarity measures are accordingly calculated for their respective sequences as described.
+
+figure 1:	identifying overlapping bursts in a
+dbms
+﹛in fig. 1 we show some results of burst similarity measure. it is prevalent that 'query-by-burst' can be a powerful asset for our knowledge discovery toolbox. this type of representation and approach to search is especially useful for finding matches for time series with non-periodic bursts.
+1.	experimental evaluation
+﹛now we will demonstrate with extensive experiments the effectiveness of the new similarity measures and compare their performance with other widely used euclidean approximations. we also exhibit that our bounds lead to good pruning performance and that our approach to indexing has good performance on nearest neighbor queries.
+﹛for our experiments all sequences had length of 1 points  capturing almost 1 years of query logs  1 . the dataset sizes range up to 1 time-series  effectively containing more than 1 million daily measurements in our database. all sequences were standardized and the queries were sequences not found in the database. the experiments have been conducted on a 1ghz intel pentium 1  with 1gb of ram and 1gb of secondary storage.
+1	space requirements
+﹛for fair comparison of all competing methods  it is imperative to judge their performance when the same amount of memory is alloted for the coefficients of each approach.
+﹛the storage of the first k fourier coefficients requires just 1k doubles  or 1k*1 bytes . however  when utilizing the k best coefficients for each sequence  we also need to store their positions in the original dft vector. that is  the compressed representation with the k largest coefficients is stored as pairs of  position-coefficient .
+﹛for the purposes of our experiments 1 points are more than adequate  since they capture more than 1 years of log data for each query. taking under account the symmetric property we just need to store 1 positions  so 1 bits would be sufficient. however  since on disk we can write only as multiples of bytes  each position requires 1 bytes. in other words  each coefficient in our functions requires 1 bytes  and if gemini uses k coefficients  then our method will use coefficients.
+
+figure 1: three examples of 'query-by-burst'. we depict a variety of interesting results discovered when﹛for some distance measures we also use one additional double to record the error  sum of squares of the remaining coefficients . therefore  for the measures that don't use the error we need to allocate one additional number and we choose this to be the middle coefficient of the full dft vector  which is a real number   since we have real data with lengths power of two . if in some cases the middle coefficient happens to be one of the k best ones  then these sequences just use 1 less double than all other approaches. the followusing the burst similarity measures.
+ing table summarizes how the same amount of memory is allocated for each compressed sequence of every approach.
+geminic first coeffs + middle coeffwangc first coeffs + errorbestmin best coeffs + middle coeffbesterror best coeffs + errorbestminerror best coeffs + errortable 1: requirements for usage of same storage for each approach
+﹛therefore  when in the following figures we mention memory usage of  1* 1 +1  doubles  the number in parenthesis essentially denotes the coefficients used for the gemini and wang approach  + 1 for the middle coefficient or the error  respectively . for the same example  our approach uses the
+1 best coefficients but has the same memory requirements.
+1	tightness of bounds
+﹛this first experiment measures the tightness of the lower and upper bounds of our algorithms. we compare with the approaches that utilize the first coefficients  gemini  and with the bounds proposed by wang using the first coefficients in conjunction with the error.
+﹛in figures 1 and 1 we show the lower and upper bounds for all approaches in conjunction with the actual euclidean distance. the distance shown is the cumulative euclidean distance over 1 random pairwise distance computations from the msn query database. first  observe that the bestminerror provides the best improvement. second  the wang approach provides the best approximation when the first coefficients are used. using bestminerror there is a noticeable 1% improvement in the lower bound and a 1% improvement in the upper bounds  compared to the next best method  lb wang . however  as we will see in the following section  this improvement in distance leads
+	memory = 1* 1 +1 doubles	memory = 1* 1 +1 doubles numcoeffs = 1* 1 +1 doubles
+	improvement = 1%	improvement = 1%	improvement = 1%
+ 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1lb bestminerror
+lb bestmin
+lb besterror
+   lb wang lb gemini
+full euclidean
+	1	1	1	1
+	cumulative distance	cumulative distance	cumulative distance
+figure 1: lower bounds: the methods taking advantage of the best coefficients  and especially bestminerror  outperform the approaches using the first coefficients.
+memory = 1* 1 +1 doubles	memory = 1* 1 +1 doubles	memory = 1* 1 +1 doubles  improvement = 1%	 improvement = 1%	 improvement = 1%
+ 1 1 1 1 1
+1 1 1 1 1 1
+n/a 1
+n/a1 1
+n/a1 1 1 1ub bestminerror
+ub bestmin
+ub besterror
+﹛﹛ub wang ub gemini
+full euclidean
+	1	1	1	1
+	cumulative distance	cumulative distance	cumulative distance
+figure 1: in the calculation of upper bounds  bestminerror provides the tightest euclidean approximation
+to a significant improvement in pruning power. for the remainder of the paper we do not report results for the bestmin and besterror methods due to the superiority of the bestminerror method.
+1	pruning power
+﹛we evaluate the effectiveness the euclidean distance bounds in a way that is not effected by implementation details or the use of an index structure. the basic idea is to measure the average fraction f of the database objects examined in order to find the 1nn for a set of queries. in order to compute f for a given query q  we first compute the lower and upper bound distances to q for each object using its compressed representation. note that we do not compute an upper bound for gemini. we find the smallest upper bound  sub  and objects that have lowerbound   sub are pruned. for the remaining sequences the full representations are retrieved from disk and compared with the query  in increasing order as suggested by the lower bounds. we stop examining objects  when the current lower bound is higher than the best-so-far match. similar methods for evaluation have also appeared in  1  1 .
+﹛the results we present are for a set of 1 randomly selected queries not already in the database. fig. 1 shows the dramatic reduction in the number of objects that need to be examined  a reduction that ranges from 1% compared to the next best method. these positive effects can be attributed to four reasons:
+  our methods make use of all coefficients of a query  thus giving tigher distance estimates.   the best coefficients provide a high quality reconstruction of the indexed sequences.   the knowledge of the remaining energy significantly tightens the distance estimation.   finally  the calculation of upper bounds  reduces the number of candidate sequences that need to be examined.
+
+figure 1: fraction of database objects examined for three compression factors. bestminerror inspects the least number of objects  even though fewer coefficients are used.
+1	index performance
+﹛in our final experiment  we measure the cpu time required by the linear scan and our index structure to return the 1-nearest-neighbor to 1 queries  not already found in the database .
+﹛for our test datasets  due to the high compression  the index size and the compressed features could easily fit in memory  therefore we provide two running times for our index; the first one is with all the compressed features in memory and the second one is with the compressed sequences in secondary storage.
+﹛in fig. 1 we report the running time for the linear scan which uses the uncompressed sequences  in comparison with the index running time for various compression factors and database sizes. both approaches were optimized to perform an early termination of the euclidean distance  when the running sum exceeded the best-so-far match. we can observe that when the compressed features are retrieved from the disk the index is approximately 1 times faster than the sequential scan. in the case where the compressed sequences fit in memory the speedup exceeds the 1 times. notice that this running time  includes the random i/o to read the uncompressed sequences from the disk. the best performance for the memory resident index in observed when more coefficients are utilized. however  for the external memory index the highest compression factors achieve the best performance. this is attributed to the reduced i/o costs for this case  and it is also a significant indicator that a few number of the best coefficients can capture accurately the sequence shape. the result is very promising since it demonstrates that we can achieve exceptional performance with compact external memory indices.
+index on disklinear scan
+figure 1: fraction of running time required by our index structure to return the 1nn  compared to linear scan. the observed speedup is at least 1 times  for disk based index   exceeding 1 orders of magnitude when the compressed features reside in memory.
+1	the s1 similarity tool
+﹛we conclude this section with a brief description of a tool that we developed which incorporates many of the features discussed in this paper.
+﹛our tool is called s1 which stands for similarity tool. the program is implemented in c# and it interacts with a remote sql database server to retrieve the actual sequences  while the compressed features are stored locally for faster access. realtime response rates are observed for the subset of the top 1+ sequences  whose compressed representation the program utilizes. the user can pose a search keyword and similar sequences from the msn query database are retrieved. a snapshot of the main window form is presented in fig. 1. the program offers three major functionalities:
+  identification of important periods
+  similarity search
+  burst detection & query-by-burst
+﹛the user can examine at any time the quality of the timeseries approximation  based on the best-k coefficients. additionally  a presentation of the discovered bursts for the sequence is also possible. it is at the user's discretion to use all or some of the best-k periods for similarity search  therefore effectively concentrating on just the periods of interest. similar functionality is provided for burst search.
+
+figure 1: snapshot of the s1 tool and demonstration of 'query-by-burst'
+1.	conclusions and future work
+﹛in this work we proposed methods for improving the tightness of lower and upper bounds on euclidean distance  by carefully selecting the information retained in the compressed representation of sequences. in addition  the selected information allows us to utilize a full query rather than a compressed representation of the query which further improves the bounds and significantly improves the index pruning performance. moreover  we have presented simple and effective ways for identifying periodicities and bursts. we applied these methods on real datasets from the msn query logs and demonstrated with extensive examples the applicability of our contributions.
+﹛in the approach described here  we choose a fixed number of coefficients for each object. a natural extension of this approach is to allow for a variable number of coefficients. for instance  one possibility in the case of fourier coefficients is to add the best coefficients until the compressed representation contains k% of the energy in the signal  or  equivalently  the error is below some threshold . this type of compressed representation is easily indexed using our customized vp-tree index.
+﹛in addition  we feel that this approach can be fruitfully applied for other types of similarity queries. in particular  we believe that a similar approach could prove useful in the computation of linear-cost lower and upper bounds for expensive distance measures like dynamic time warping .

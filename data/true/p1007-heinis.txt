@@ -1,0 +1,240 @@
+data lineage and data provenance are key to the management of scientific data. not knowing the exact provenance and processing pipeline used to produce a derived data set often renders the data set useless from a scientific point of view. on the positive side  capturing provenance information is facilitated by the widespread use of workflow tools for processing scientific data. the workflow process describes all the steps involved in producing a given data set and  hence  captures its lineage. on the negative side  efficiently storing and querying workflow based data lineage is not trivial. all existing solutions use recursive queries and even recursive tables to represent the workflows. such solutions do not scale and are rather inefficient. in this paper we propose an alternative approach to storing lineage information captured as a workflow process. we use a space and query efficient interval representation for dependency graphs and show how to transform arbitrary workflow processes into graphs that can be stored using such representation. we also characterize the problem in terms of its overall complexity and provide a comprehensive performance evaluation of the approach.
+categories and subject descriptors
+h.1  information systems applications : miscellaneous
+general terms
+algorithms
+keywords
+data lineage tracking  data provenance  scientific data management  scientific workflows
+1.	introduction
+　data lineage and data provenance have been identified as a major problem in the management of scientific data. the problem has become more acute as scientists increasingly
+permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. to copy otherwise  to republish  to post on servers or to redistribute to lists  requires prior specific permission and/or a fee.
+sigmod'1  june 1  1  vancouver  bc  canada.
+copyright 1 acm 1-1-1/1 ...$1.
+use computational means to produce derived data sets  1  1  1  1  1  1  1 .
+　without lineage information  a data set is often useless from a scientific point of view. the question is then how to capture the lineage information of a data set  how to store it efficiently  and how to allow queries over it. the first part of the problem  capturing the lineage information  has been made substantially easier by the widespread use of workflow tools to describe scientific computations  1  1  1  1 . the workflow process describes what steps were used to produce a particular data set and  hence  can be used to trace the lineage of a data set. unfortunately  there are no efficient ways to store and query workflow based lineage information. existing proposals  e.g.  trio  and griddb  use recursive queries to retrieve the lineage of a data set. such an approach does neither scale for large workflow processes nor for large collections of data sets.
+　from our experience working with scientists in biology  and astrophysics  1  1   it is clear that obtaining the basic lineage is not enough. scientists are interested in answering queries such as  what algorithms were used to derive this data set     which data sets have been produced with this algorithm     what data sets have been derived from this data set    and so on. while these queries are related to the basic lineage information  being able to answer all of them efficiently requires to have an efficient way to store and query the provenance of every data set.
+　in this paper we show that existing approaches to storing lineage information do not scale. we also show that workflows with a tree structure produce lineage dependencies that can be very efficiently stored and queried using interval encoding . we then analyze the problem of encoding general workflow graphs. we first characterize the problem and show that the number of dimensions for the encoding depends on the structure of the graph. this makes it impossible to use a single encoding for arbitrary graphs. however  we need to use a single encoding to be able to store the information in a relational database. thus  we then proceed to explore the problem of transforming arbitrary workflow graphs into tree-like graphs amenable to interval encoding.
+　in the paper we provide the transformation algorithms  discuss how to optimize the transformation procedure  and present an extensive collection of experiments that evaluate our approach using random graphs and a set of representative scientific workflows. the experiments show that our approach is more efficient than existing techniques.
+　the remainder of this paper is organized as follows. first  we study the problem of storing the transitive closure of directed acyclic graphs in relational dbmss  section 1 . we then show that current solutions do not scale well for large graphs and propose to use interval encoding instead. we then show the limited applicability of this approach for arbitrary dags  section 1  and discuss how to transform arbitrary graphs into interval encodable graphs  section 1 . we evaluate the approach  sections 1  1  1   present related work  section 1  and conclude with a discussion of the results presented  section 1 .
+1.	workflow based data lineage
+1	workflow model
+　workflows are widely used in scientific applications  1  1  1  1  1  1  1 . workflows orchestrate the execution of tasks by means of a graph that defines the control and data flow between those tasks. a workflow takes a collection of data sets as input and produces a collection of data sets as output. the tasks also take data sets as input and produce data sets as output. the dependencies between tasks and data sets are determined by the control and data flow described as part of the workflow process. therefore  the lineage of a data set can be determined by tracing back how it was produced using the corresponding workflow.
+　for the purposes of this paper we treat workflows as directed acyclic graphs  dags . although some workflow tools allow cycles  any execution of a workflow process can be represented as a dag by unrolling the loops. in this paper we assume that this is always the case. the nodes of the dag represent tasks and data sets. the edges represent dependencies between them. a directed edge will point from a task to a data set if it the data set is an output of the task  and from a data set to a task if the data set is used as input to the task. this completely captures all dependencies between tasks and data sets  and between data sets and data sets.
+　the lineage information induced by the dag is the transitive closure of all dependencies. hence  from here on we treat the problem of storing and querying the lineage information as the problem of storing and querying the transitive closure of the dependency graph.
+　for the experimental setup used in the remainder of this section please refer to section 1. deviations from this setup are explained in the text.
+1	lineage using recursive queries
+　systems like trio and griddb use recursive queries to retrieve lineage information. the dependencies between data sets are stored using a relation with two attributes of the form dependency parent id  child id . to find the lineage of a data set  the query recursively asks for the parents of the data set  the parents of the parents  and so on.
+　we have assessed the performance of this approach by measuring the time it takes to retrieve the lineage of a leaf node of a randomly generated dag  between 1 and 1 nodes and random edges . the experiments were carried out using a postgres dbms and  because of the lack for support for recursive queries  stored procedures querying the relations recursively were used. the results are shown in figure 1  a   where the time to obtain the lineage information is plotted against the the number of nodes in the dependency graph.
+the time it takes to execute recursive queries is linear with the number of paths in the graph. for small graphs  with less than 1 nodes  the response time grows slowly. beyond 1 nodes  however  the query time becomes unpredictable  growing exponentially high - in some cases up to 1 seconds per query. this behavior  combined with the linear growth in query time with the number of paths in the graph  makes recursive queries unsuitable for exploring the lineage of large scientific workflows.
+1	lineage using all paths
+　recursive queries minimize the amount of information to store at the cost of longer query running times. the other extreme would be to trade space for speed and store all paths in the dag so that the query only needs to retrieve the corresponding paths. finding all paths in a directed acyclic graph amounts to topologically sorting the graph. this can be done in linear time or  more precisely  for a graph g =  v e   in o |v | + |e| . a topological sort of the graph will yield all total orders  which is equivalent to all paths p through the graph. this can be done offline and needs to be done only once for every workflow  so the cost is amortized over time. an efficient way of storing all paths is based on the observation that since the path pi is a total order  each element/data set e （ pi for pi （ p can be assigned an integer denoting the position o on pi. the triples e  i and o are stored in a relation paths path id  node id  order no . the query to retrieve the lineage of a data set given the data set id nid is as follows:
+select pt1.node id
+from paths pt1  paths pt1
+where pt1.node id = nid and pt1.path id = pt1.path id and pt1.order no   pt1.order no
+　the query selects all the paths that contain a given node n  retrieves all the nodes found on those paths and filters over the order  such that only elements occurring before n on those paths are returned.
+　we evaluate the performance of this approach using a collection of random dags. the results are shown in figure 1  b  where the time to obtain the lineage information is plotted against the number of nodes in the dependency graph. as the figure shows  the path approach scales better than recursive queries. however  in figure 1  c  we show the number of tuples required to store all paths against the number of nodes in the graph. storing all paths may lead to a large storage overhead. if several thousand workflow executions need to be stored  these large numbers can become problematic by degrading performance.
+1	lineage over interval tree encoding
+
+	a 	b 	c 
+figure 1: response time for  a  recursive queries and  b  queries over all paths for random graphs. storage　the results of these initial experiments indicate that the two techniques examined represent two extremes. recursive queries require little space but can be very slow. storing all paths leads to faster queries but the storage requirements grow too large. clearly  an alternative is needed. encoding the transitive closure of a tree to store it in a database and retrieve it efficiently has already been used in several applications  1  1  1  with the basic idea stemming from . the approach uses one-dimensional intervals over the natural numbers to represent nodes in the tree. if a node n1 is a predecessor of another node n1  the interval representing n1 space required for the all paths approach  c .
+must enclose the interval representing n1. more formally  a node ni is represented as an interval  li  ri . then:
+  n1 is a predecessor of n1   l1   l1 and r1   r1;
+  n1 is a predecessor of n1   l1   l1 and r1   r1;
+  n1 and n1 are unrelated    l1   l1 … r1   r1  or  l1   l1 … r1   r1 .
+　all successors of a node can be determined by finding all the intervals that include the interval of the node. similarly  all predecessors  e.g.  the lineage  can be determined by finding all the intervals that enclose the interval of this node. we store this information in a relation of the form tc nodeid  left  right . the query for determining the lineage of a node with node id nid then is:
+select tc1.node id
+from tc as tc1  tc as tc1
+where tc1.node id = nid and tc1.left   tc1.left and tc1.right   tc1.right
+　unfortunately  tree encoding cannot be used on arbitrary dags. hence we cannot compare it directly with the other two techniques. we have nevertheless performed an experiment on randomly generated trees with between 1 and 1 nodes. the results of finding the lineage of a leaf in the tree are shown in figure 1. the result  compared with the previous results  is that the running time is very stable independently of the size of the tree and the overhead is actually very low compared to the times for recursive queries or queries over all paths. such is the behavior that we aim to achieve when encoding arbitrary dags.
+1.	encoding dags with intervals
+1	overview
+　arbitrary dags cannot always be encoded using onedimensional intervals. this can be easily illustrated with the example dag depicted in figure 1. the intervals representing nodes a  b  and c must have overlapping regions because they have common successors. no matter how the intervals are arranged  one of the intervals for d  e  or f
+
+figure 1: response time for queries for a tree stored with the directed tree encoding.
+will end up having a predecessor that does not exist in the real graph.
+　this can be formally proven  however  here we just outline the proof. for the intervals a  b  and c to overlap  but not enclose each other  there is one intersection between two of these intervals that will always be completely enclosed by the third interval. hence  intervals in that intersection will be successors of the first two intervals but also of the third. there is no possibility to have successors of the two intervals that are not also successors of the third.
+　the graph of figure 1 can be encoded by using twodimensional intervals  rectangles in the plane  instead of one-dimensional intervals. however  if we use rectangles in the plane  there are instances where the same situation arises in two dimensions. given any number of dimensions  one can always come up with a graph that needs more dimensions to be encoded. in what follows  we explore the problem more formally.
+1	graph encoding
+　the problem of encoding dependency graphs has been extensively studied in the literature.
+　the set of directed acyclic graphs that can be encoded with intervals is called the class of interval containment graphs . more generally  the family of graphs that can be encoded with d-dimensional objects in euclidean space is called containment graphs.
+graph. the set of forbidden subgraphs is limited to a small number of graphs. one strategy for transforming an arbitrary graph into a graph with a poset of dimension 1 is to detect any forbidden subgraphs it might contain and transform the forbidden subgraphs into subgraphs of poset dimension 1 while maintaining the transitive closure. unfortunately figure 1: the graph  left  can not be encoded with intervals: with the only two interval assignments in which ia&ib and ib&ic can have common successors  ia&ic can not have common successors  middle  and all common successors of ia&ic must also be successor of ib  right .
+　the number of dimensions needed to encode a graph can be determined from the structure of the graph. a directed acyclic graph g =  v e  represents a partially ordered set  poset  p of the nodes v of g: p =  v   . in the poset p  i j （ v are comparable  i   j  if  i j  （ e or  j i  （ e. in other words  two nodes i and j are comparable if g contains a directed path from i to j or from j to i. otherwise  if neither  i j  （/ e nor  j i  （/ e  i.e.  no path linking them exists in g  then i and j are incomparable. the dimension of a poset is defined as the minimum size k of the realizer of p  where the realizer is a collection of linear orders l1 =  v  1  ... lk =  v  k  such that x   y if x  i y  i  or detecting forbidden subgraphs is related to the problem of subgraph isomorphism which is np-complete .
+1.	transformation algorithm
+　our goal is to come up with a transformation algorithm that takes an arbitrary dag as input and outputs an equivalent dag  with the same transitive closure  that can be encoded with one-dimensional intervals. a brute force approach is to take the dag and transform it into a tree by duplicating nodes. the result is an optimized version of the  all paths  approach  the optimization arises from not having to replicate common subpaths . yet the behavior is similar to storing all the paths. we can also not just replace the forbidden subgraphs with tree structures because finding them is np-complete.
+	. the number of dimensions necessary to	nomial time  see above . if they are  they can be encoded　what we can do  however  is to determine whether a subgraph has a poset of dimension 1 or higher. thus  we can take the original dag  find its incomparability graph  determine the independent subgraphs of the incomparability graph  and check for each one of those subgraphs whether they are transitively orientable  which can be done in poly-
+
+encode the graph is a function of the dimension of the poset of the graph  as follows:
+  if the dimension of the poset is at most 1  then the dimension d of the objects required to represent g is 1  meaning that g can be represented by intervals on the line  i.e.  one-dimensional intervals  .
+  if the dimension of the poset represented by g is at most 1d  then the objects required to represent g are boxes in d-dimensional euclidean space .
+　from here it follows that there is no encoding with a fixed number of dimensions that can perfectly encode arbitrary dags. for trees  the poset has dimension 1 . this is why a tree can be encoded with intervals in one-dimensional space.
+1	related complexity results
+with intervals. if they are not  their corresponding subgraph in the dag needs to be transformed. note that this is not the same as finding induced forbidden subgraphs  which is np-complete as indicated above .
+　each of the identified problematic subgraphs of the dag is transformed into a tree through node duplication. optimizations are applied to minimize the space overhead generated by node duplication. the trees are then glued back into the original graph. once the transformation is complete  we proceed with the interval encoding.
+　the process is summarized in algorithm 1. in what follows we describe in detail how the algorithm works by explaining each one of its functions: computing the incomparability graph  finding independent subgraphs  testing for transitive orientability  transformation to a tree and optimizations. we also describe how the encoding works.
+
+　testing if the dimension of a poset is no bigger than 1 can be solved in polynomial time . the problem of deter-
+
+algorithm 1 high-level view of the algorithm used to reduce the dimension of an arbitrary dag.
+
+mining the dimension of a poset bigger than 1  however  is np-complete .
+　testing whether the dimension of the poset is 1 can be done by testing whether the incomparability graph ig = algorithm: transformation algorithm
+input: graph: input dag
+1 graph icgraph = computeincomparabilitygraph graph 
+1 foreach subgraph in independentsubgraphs icgraph  do
+
+be done in polynomial time  or even in linear time .
+determining if a given graph is an interval containmentgraph  and can therefore be encoded with intervals on the line  can also be determined by finding forbidden subgraphs. if a graph contains any induced subgraph of a known set  defined in  1  1   then it is not an interval containment	1	computeincomparabilitygraph graph 
+　the incomparability graph ig has the same set of nodes as g  vig = v   but has a different set of edges eig: if two nodes v1 v1 （ v have no transitive relation  then the v eig  of g =  v e  is transitively orientable . the 1 if dimension subgraph    1 then incomparability graph ig can be derived from g by adding 1optimize subgraph  to eig an undirected edge if x y （ v are not comparable  1transformtotree subgraph  i.e.  if x y do not have any predecessor/successor relation- 1 end ship. testing whether a graph is transitively orientable can 1 end
+1 choose arbitrary edge （ esig  remove edge from esig
+1 direct edge arbitrarily:  u v   add
+1 repeat
+1 test if any edge incident to edge in e
+figure 1: the incomparability graph  middle  for asig with  v w  
+assign to i
+graph  left  and a possible transitive orientation of	v
+1 test if any edge incident to edge in e
+the incomparability graph  right .sig with  t u  
+assign to iu
+1then
+	1	choose arbitrary edge （ esig
+undirected edge  v1 v1  （ eig. this means in particular 1 remove edge from esig that if v1 and v1 do not share a path  i.e.  they are not part 1
+of the same total order over e  and hence not comparable 1 foreach incident （ iv do in the partial order defined by g   then they are connected 1 if  u w  （/ esig then through an undirected edge in eig. figure 1  left  depicts 1 direct incident  w v   add to
+a graph g and its corresponding incomparability graph ig 1	remove incident from esig
+ middle .	1	end
+to compute ig efficiently  the algorithm uses a |v |/1 〜 1
+|v |/1 matrix c of booleans. c i j  is true if there is a path 1 foreach incident （ iu do between vi and vj  i   j. the matrix can be computed by 1 if  t v  （/ esig then traversing the graph in o |v | + |e| . computing ig from 1 direct incident  u t   add to the matrix c only requires one pass over c and adding an 1 remove incident from esig undirected edge  vi vj  to eig if c i j  is false. this is done 1 end in o |v |1 .
+1
+the graph ig may contain several subgraphs not con-nected to each other. such an example is shown in figure 1  middle . these situations arise very often in real workflows. for instance when there are tasks that are in all possible paths  e.g.  a start task like task a in figure 1 . the same situation arises at synchronization points for parallel threads  e.g.  task g in figure 1 .
+how these independent subgraphs arise can be illustrated	1	dimension cluster 
+　each independent subgraph of the incomparability graph ig is tested separately. if the dimension of the partially ordered set represented by g is no higher than 1  then the incomparability graph ig is transitively orientable. ig is transitively orientable if for each edge in eig  a direction can be assigned such that all directions of the edges satisfy1	independentsubgraphs icgraph 	1 until esig =   ;
+using the example in figure 1.
+	assume there is a node s contained on all execution paths	transitivity  i.e.  if the directed edges  u v  and  
+
+　finding such subgraphs in ig is important as they can be treated independently in determining their dimension and also in the reduction of their dimension as will be shown later. the independent subgraphs of ig are identified by traversing ig starting at each source  node with in-degree 1  and visiting all nodes which are connected to the source. this is done by traversing the graph in o |v | + |e| .
+
+algorithm 1 transitively orient an undirected graph.
+
+algorithm: orient transitively
+input: undirected subgraph of gsig =  vsig esig 
+: set of directed edges
+1 ig
+
+such that each other node v （ v on each execution path  and total order is either s   v or v   s. consider two sets a and b. b contains all nodes v （ v which satisfy s   v in all total orders over g. a contains all nodes v （ v which satisfy v   s in all total orders over g. note that a”b =    as all nodes v （ v are either before or after s on all execution paths. all nodes v （ a are on a path through s. thus in ig there will not be any edge between any of the nodes in a and s as they are comparable in g. the same applies to b and s. because every node in a reaches s and s reaches all the nodes in b  there will be no edges between nodes in a and nodes in b. hence a  b and s result in independent subgraphs of the incomparability graph. this is the situation induced by node g in figure 1.
+then there must also be a directed edge  u w  in eig.
+　clearly  if ig contains several independent subgraphs  the dimension of each of these subgraphs can be tested separately: as no undirected edge connects any two nodes of two independent subgraphs  each of the subgraphs must be transitively orientable for the entire graph to be transitively orientable. if one subgraph is not transitively orientable  only the dimension of this subgraph needs to be reduced. then the subgraph becomes transitively orientable and  if this is the case for all subgraphs  the whole graph becomes transitively orientable as well.
+　we use a polynomial time algorithm to test if a subgraph is transitively orientable . given an undirected subgraph
+gsig =  vsig esig  of ig  the algorithm randomly picks
+an undirected edge e （ esig  removes e from esig  directs it arbitrarily and adds e to a set of directed edges called
+. it then tries to direct as many edges as possible by taking an edge e out of and directing all undirected edges e （ esig incident to the source or destination of e. the incident edges are directed such that giving each incident edge a direction will not violate the transitivity property. this means for a directed edge    that if an edge f incident to v is directed such that then there must also exist an edge g which can be directed   in order to maintain the transitivity property.
+otherwise  f must be directed such that
+more formally  the edges incident to a directed edge
+ u v  are directed according to the following rule: an undirected edge   incident to the source  is directed such that d =  u t  and added to  if  t v  （/ esig. this leaves the two directed edges  and
+if the edges were directed d =  t u  and   or
+  and   then esig would be required to contain an edge f =  t v   which would be required to be directed accordingly in order to maintain transitivity . the edges incident to the destination of e are directed using the same rule. the newly directed edges are removed from esig and added to.
+　the algorithm directs edges according to this rule as long as there are undirected edges in esig and as long as there are directed edges inwith undirected edges incident to either their source or destination. once no such edges are left in  a random edge is chosen from esig and is directed arbitrarily. the algorithm then again continues to direct the edges using the same rule.
+　the procedure is sketched in algorithm 1. the algorithm finishes once all edges are directed. what follows is a test of the transitivity of the graph defined by  v  . for this  all edges are tested iteratively. particularly  given e  if there exists a    then must also contain a directed edge  u w . if this is not the case for all  then  v   is not transitively orientable.
+1	optimize cluster 
+　it is possible that within an independent subgraph of the incomparability graph that is not transitively orientable  there are parts that can be encoded. consider  as an example  the shaded subgraph of the graph in figure 1  left . such a subgraph is a common pattern in workflows that execute sets of parallel tasks . the graph as a whole cannot be encoded  but the shaded subgraph can as it is of dimension 1. there are many workflow patterns that share this property of being of dimension 1 and which therefore do not need to be transformed into a tree  e.g.  a sequential chain of tasks . however they might be embedded into larger graphs that cannot be encoded. an obvious optimization is to detect these patterns before proceeding with the transformation of the whole graph into a tree.
+　instead of trying to detect patterns  the algorithm identifies subgraphs and tests for their dimension. if the dimension is no higher than 1  then the subgraph does not need to be transformed. then  in practice  the subgraphs which do not need to be transformed are removed from the graph and replaced with a placeholder node. the graph is then converted and  after the transformation  the removed subgraphs are put back in the graph.
+　the subgraphs to be identified by the algorithm have one common property: they all contain two designated nodes of which a first node i is the only node in the subgraph which is the destination of edges outside the subgraph and the second node o is the only node in the subgraph which is the source of edges leading outside the subgraph. the subgraph between i and o  sg is then tested for its dimension. if it is of dimension higher than 1  then the subgraphs in sg are again tested.
+　finding the subgraphs with the property described above is done by testing all possible pairs of nodes and checking to see if they are on the same set of paths in o |v |1 . this check can be done using the matrix c introduced in section
+1.
+
+figure 1: illustration of the transformation optimization. the initial graph  left   the corresponding transformed tree  middle  and the optimized transformed tree  right .
+1	transformtotree cluster 
+　if an incomparability subgraph is not transitively orientable  then the corresponding dependency subgraph needs to be transformed into a tree while maintaining the transitive closure of the dependency subgraph. algorithm 1 traverses the subgraph and in case a node with an in-degree in greater than 1 is visited  then this node will be copied in 1 times. for each of the copied nodes  also the outgoing edges of the node are also copied. the in incoming edges of v will be reconnected to the in   1 copies and to the node. reconnecting the incoming edges to the copies ensures that each of the resulting nodes has an in-degree of at most 1  thus ensuring that the resulting graph is indeed a tree. also  connecting each incoming edge of the node to a copy ensures that the transitive closure is preserved. figure 1 illustrates how the algorithm works. the algorithm is equivalent to a graph traversal  hence its complexity is o |v | + |e| .
+　the tree is inserted into the original graph by first removing all the nodes and edges of the problematic subgraph and then gluing the tree in its place.
+1	interval assignment
+　subsequent to the graph transformation  each node in the graph needs to be assigned an interval on the line. the graph  which is going to be encoded  is the result of the transformation algorithm discussed before and hence we can assume that it is encodable with intervals  i.e. it represents a poset of dimension 1.
+algorithm 1 algorithm used to transform an arbitrary dag into a tree while maintaining the transitive closure.
+
+algorithm: tree transformation
+input: graph: directed subgraph of gs =  vsg esg 
+1 foreach node （ vsg do
+1 if in-degree of node   1 then
+1 foreach edge of all incoming edges - 1 of node do
+1 copy node
+1 set copy as destination of edge
+1 foreach edge of all outgoing edges of node do
+1copy edge
+1set copy as source of edge
+1	end
+1
+1
+1 end
+
+　the interval assignment of such a graph can be determined by using two linear extensions realizing the poset defined by g. in order to compute two linear extensions  the transitive orientation of the incomparability graph ig of graph g is required. since g has been modified  the transitive orientation has to be computed again by using the procedures described in sections 1  1 and 1.
+　two linear extensions can then be computed by traversing the graph from sources to sinks  visiting each node only once its predecessors have been visited. if several nodes are ready to be visited  they are by definition incomparable and are visited in the order of the transitive orientation to obtain the first linear extension. for the second extension  the incomparable nodes are visited in the reverse order of the transitive orientation. the intuition behind this is that in one linear order the two incomparable nodes x  y must occur x   y while in the other order they must occur y   x. the case in which several nodes are ready to be visited occurs if they have no predecessor/successor relationship. hence they are incomparable and therefore their order is defined in the transitive orientation of the incomparability graph.
+　assume two linear orders  l1  l1 realizing the partial order p on the set of vertices v of graph g  the dimension of the poset therefore is 1 . l1 defines an order over v whereas
+
+l1 defines an order over a copy of v called v in which the elements are renamed  e.g.  x becomes x. the two linear orders are then appended such that l = l1 + l1  where l 1 is simply the inverse of l1 such that if x y （ v with x   y （ l1  then y   x （ l 1. l then has the following properties:
+  if two vertices x y （ v are comparable and if x   y  in l1  then y   x  in l 1  and vice versa. hence in this case in l: x   y   y   x.
+  if two vertices x y （ v are not comparable  then x   y in l1 and x   y in l 1  because it is y   x in l1  and in this case in l: x   y   x   y.
+　l will then allow us to easily label all the nodes in the graph. if two nodes x y have a predecessor/successor relationship  they are comparable and in case they have no such relationship they are not comparable. assume each element in l is labeled increasing from left to right  each node x will be assigned the interval ix =  x x . then if two elements x y are comparable  they have a predecessor/successor relationship and then  as discussed previously  l: x   y   y   x.
+from the assignment of intervals follows that ix will enclose iy. if x y are not comparable  they have no predecessor/successor relationship and  l: x   y   x   y. ix and iy will therefore overlap. the semantic of ix enclosing iy depends on the relation   used in the poset. if x   y implies x is a predecessor of y  then ix will enclose iy and vice versa.
+
+figure 1: illustration of the transformation of a graph into a tree.
+　the complexity of computing the transitively oriented incomparability graph has been derived in sections 1  1 and 1. after transitively orienting g  all that is left to be done in order to assign an interval for each node  is to traverse the graph. the complexity of this step is o |v |+|e| .
+1.	evaluation setup
+　to demonstrate the feasibility and competitive advantage of our approach  we have carried out experiments for two classes of graphs  the first being random dags and the second being a set of representative and interesting use cases of scientific workflows.
+　for the evaluation of our approach we have performed experiments to measure the overhead of the graph transformation and interval assignment. additionally  we have also measured the response time for a lineage query  the lineage of a randomly selected leaf node  as well as the number of tuples to be stored for a graph. we compare the numbers
+obtained with the two other approaches  querying over all paths and recursive queries.
+　the setup used was the same throughout all experiments: two nodes in a cluster of linux machines  dual opteron 1 ghz machines with 1 gb memory  connected with a 1gb/s local area network were used. one node hosted a postgres 1.1 database where the graph information was stored while the other node hosted the client. the client performed the calculations  the transformation of the graph as well as the interval assignment  and issued all queries.
+　random dags are not very realistic representations of scientific workflows. many optimizations we have proposed do not apply  even though they are very common in real workflows. yet random graphs can be seen as a worst case scenario for comparison purposes.
+1.	evaluation on random dags
+　in a first set of experiments we generated random dags and  if necessary  applied the transformation to them. the resulting graph was assigned intervals for each node and was stored in the database. each random dag was assigned a random number of nodes between 1 and 1 and each node was assigned between 1 and 1 outgoing edges to other randomly chosen nodes. the edges were assigned such that the addition of an outgoing edge did not lead to a cycle in the graph.
+1	preprocessing
+　in a first experiment we measured the overhead of transforming the graph. for the all paths approach  this involves computing all paths in the graph  whereas  in the case of the interval encoding  this includes the graph transformation and the interval assignment. the recursive queries approach does not require any preprocessing: the relationships or edges are directly stored in the database. thus  we exclude it from this comparison.
+　the time required to preprocess the graph in both approaches does not directly depend on the number of nodes in the graph but rather on the structure of the graph. it can  however  generally be assumed that the more nodes a graph has  the more complex its structure is going to be  this is particularly true for random dags . figure 1 shows that the time required for the preprocessing is generally higher the more nodes a graph has. in general  the storing all paths approach performs better than the interval encoding approach. this is not surprising  given that the interval encoding approach also needs to compute all paths in the graph. note  however  that the preprocessing is done offline and only once  hence the overhead is acceptable.
+
+figure 1: time required to preprocess a random dag.
+1	querying
+　figure 1 shows a comparison of the three approaches regarding response time. for each dag  a query asking for all predecessors of a leaf  e.g.  the lineage of the node  was issued.
+　figure 1  a  clearly indicates that the recursive approach does not scale very well with graphs having an increasing number of nodes. while in some cases the response time is in line with the other two approaches  there are many cases where the running time is much higher. figure 1  b  &  c  illustrate the difference between our approach and storing all paths. in the majority of cases  the interval encoding approach clearly outperforms the storing all paths approach.
+1	storage size
+　it is also important to measure the storage space required by each approach. in this experiment we have therefore compared how many tuples are required to store the transitive closure information of the dags.
+　the number of tuples required to store the transitive closure in case of the recursive approach is equal to the number of edges in the graph. clearly  no other approach will require less tuples. in figure 1 we compare the amount of storage required by all paths and that required by interval encoding.
+
+number of paths in graph
+figure 1: storage space requirements.
+　as was to be expected  storing all paths in the graph requires the largest number of tuples. the number of tuples required roughly scales linear with the number of paths in the graph. our approach with the optimized transformation into an encodable graph requires significantly less tuples to store the transitive closure.
+1.	evaluation on scientific workflows
+　in the next series of experiments we compare the different approaches using a set of real scientific workflows: fmri  montage and eman  figure 1 . these three workflows have interesting structures that make them particularly suitable for our experiments. the fmri workflow serves as an example of a small static acyclic workflow which makes use of parallelism to speed up the computation. the eman workflow iterates over a loop to improve the overall quality of the result. by doing so  it leads to dependency graphs of very large depth. the montage workflow on the other hand does not have the depth of the eman workflow  but it is massively parallel.
+
+	a 	b 	c 
+figure 1: response time over random dags the three approaches   a  recursive   b  all paths and  c  intervalassignment.
+
+figure 1: dependency graphs for three scientific workflows: fmri  montage and eman  left to right .
+1	functional magnetic resonance imaging
+ fmri 
+　the functional magnetic resonance imaging workflow  fmri   is used to process raw data of brain scans. it takes in a first step the raw data  aligns it to a reference brain image by reslicing it  averages over several scans executed with different wavelengths  and finally slices along the x  y and z dimensions. the structure is reasonably simple  with two phases of parallel program executions  the first phase ending at the averaging over all scans  where all execution paths meet  and the second starting thereafter.
+　although being the smallest workflow we use in the experiments  it is not a simple workflow in terms of structure as it has to be transformed  the first phase of the parallel program executions . thus  from the original size of 1 nodes  it is transformed into a graph of 1 nodes. the increase  however  is still modest in comparison  as the approach storing all paths would require 1 tuples.
+　figure 1 compares the response time  left  for a lineage query over the fmri workflow encoded using the three approaches. the interval encoding approach clearly outperforms the others  especially the recursive approach. as it is shown in figure 1  right   the storing all paths approach performs reasonably well regarding response time  but requires twice the number of tuples. the preprocessing takes 1ms for interval encoding  1ms for the storing all paths approach and no time for the recursive approach.
+
+interval encoding
+recursive
+storing all pathsfigure 1: comparison of the response time for queries and time for the calculation for fmri.
+1	astronomical image mosaic  montage 
+　the montage workflow  was developed as part of the national virtual observatory  nvo   aiming at processing raw instrument data or images from telescopes and assembling them into a mosaic out of many  possibly hundreds  pieces of data. the workflow runs through several stages  starting by transferring the input files in parallel  reprojecting and fitting them into a common plane. the execution paths of the workflow then converge in the background modeling node  subsequently go through the background correction and finally through the assembly of the image stages in parallel. the degree of parallelism of the phases before and after the background modeling depends on the number of input files to be processed. smaller instances of the workflow typically assemble more than 1 input files  resulting in 1 parallel execution threads leading to a dependency graph of more than 1 nodes.
+　figure 1  top  shows the space required by the different approaches to store the transitive closure of the montage workflow depending on the number of input files. since this workflow does not need transformation  both the recursive approach and the interval encoding do not require much space. the all paths approach requires considerably more space and the space needed grows significantly with the number of input files  making it unsuitable for this type of workflow.
+
+number of input files
+figure 1: space requirements for the montage workflow  top  and response time  bottom .
+　figure 1  bottom  shows the response time as a function of the number of input files processed. while the recursive approach grows almost exponentially  the other two approaches grow linearly  interval encoding being clearly better.
+1	electron micrograph analysis  eman 
+　the eman workflow  1  1  processes thousands of micrographs from electron microscopes  iteratively trying to determine a macromolecular structure. the goal of the computation is to fit individual micrographs of particles  like viruses or proteins  ion channels  to a hypothetical 1d structure. more precisely  images of nanoscale molecules embedded in ice are collected and are analyzed with an electron microscope. a 1d model is then built using the eman workflow. the workflow runs through several potentially parallel stages and  depending on the resolution of the required 1d model  iterates through several refinement loops. the structure of the workflow does not require any transformation. thus  in case of one iteration  the space required to store the transitive closure is fairly small. figure 1  top  compares the space required to store the transitive closure of the three approaches depending on the number of iterations of the refinement loop. as before  recursive queries and interval encoding require constant space  while the space required by the storing all paths approach grows exponentially.
+
+number of iterations
+figure 1: space requirements for the eman workflow  top  and response time  bottom .
+　figure 1  bottom  shows the response time for queries using the different approaches with respect to the number of iterations over the refinement loops.
+　figure 1 clearly demonstrate the benefits of our approach. the recursive approach does not require much space but its performance is not acceptable as the complexity of the workflow increases. storing all paths has acceptable performance  but requires exponential growth in space as the complexity of the workflow grows. interval encoding requires very little space for storage and has the best performance  independently of the number of iterations and  hence  independently of the size and complexity of the graph.
+1.	related work
+　although data lineage is an important problem  there is surprisingly very little work done on efficiently storing and querying lineage information.
+　the trio  system is an extension of relational databases to support uncertainty and lineage. it bases lineage storage on methods described in  by storing the lineage information in additional tables. retrieving the lineage information is then done as described in  using recursive queries.
+　the griddb  system aims at providing a data-centric overlay for scientific grid data analysis. data is registered and processed in griddb  similar to it being processed by workflows. lineage information is stored during the execution in the same tables as are the files registered in the system. for the purpose of retrieval of the lineage information  griddb also uses the recursive mechanisms described in .
+　the interval encoding we use in this paper is described in  and has already been used for storing the tree hierarchy of xml documents  1  1  1 .
+1.	conclusions
+　the ability of tracking lineage is of paramount importance for scientific applications. without being able to track back the origin of a given data set  no conclusive statement can be made about it  rendering it virtually useless. several different systems have been implemented to track the lineage of individual data sets  however  none of them focuses on the efficient storage and retrieval of lineage information. they instead use recursive queries  which do not scale for very large workflows as we have shown in section 1.
+　in this paper  we have presented an alternative approach for storing the transitive closure of dependency graphs of data sets and tasks. the new approach transforms  if necessary  an arbitrary graph into an interval encodable graph while maintaining the transitive closure  encodes it and stores it in the database. as the evaluation in sections 1  1  1 demonstrates  this encoding allows for very fast lineage queries over the transitive closure for a wide range of workflow types without imposing an undue penalty in terms of storage.
+1.	acknowledgments
+　the work presented in this paper was in part supported by the european ist-fp1 project aeolus  algorithmic principles for building efficient overlay computers  and by a grant from the hasler foundation  mancom project no. 1 .

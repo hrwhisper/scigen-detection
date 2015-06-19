@@ -1,0 +1,230 @@
+this paper investigates in a stringent mathematical formalism the parallel derivation of three grand probabilistic retrieval models: binary independent retrieval  bir   poisson model  pm   and language modelling  lm .
+　the investigation has been motivated by a number of questions. firstly  though sharing the same origin  namely the probability of relevance  the models differ with respect to event spaces. how can this be captured in a consistent notation  and can we relate the event spaces  secondly  bir and pm are closely related  but how does lm fit in  thirdly  how are tf-idf and probabilistic models related 
+　the parallel investigation of the models leads to a number of formalised results: 1. bir and pm assume the collection to be a set of non-relevant documents  whereas lm assumes the collection to be a set of terms from relevant documents. 1. pm can be viewed as a bridge connecting bir and lm.
+1. a bir-lm equivalence explains bir as a special lm case. 1. pm explains tf-idf  and both  bir and lm probabilities express tf-idf in a dual way.
+categories and subject descriptors
+h.1  information search and retrieval : retrieval models
+general terms
+theory
+keywords
+binary retrieval model  poisson  language modelling
+1. introduction and background
+　the search for the best retrieval model drives information retrieval  ir  research.  brought the bir model  this forming a sound theoretical foundation for ir. tuning of tf-idf led to probably the best tf-idf-based retrieval function known as bm1   at trec 1 . in late 1s 
+permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. to copy otherwise  to republish  to post on servers or to redistribute to lists  requires prior specific permission and/or a fee.
+sigir'1  august 1  1  seattle  washington  usa.
+copyright 1 acm 1-1/1 ...$1.
+language models emerged as an alternative retrieval model   . early 1s brought the divergence from randomness  dfr  branch of models     .
+　a physician might ask: what is the common ground of your models  for centuries  physicians have been investigating phenomena like gravity  light  and energy. for each phenomena  there is a model with significant maths around. physicians look for the ground model that explains the other models: we hear  for example  of quarks and quantum theory. are there ir quarks that explain the existing ir models 
+　this paper is not about ir quarks  nor does it propose a ground model for ir. this paper is best described as a parallel investigation of gravity  light  and energy  where the parallel investigation helps highlighting aspects and relationships of the single phenomena  models .
+　the contribution of this paper is the formal presentation of the parallel derivation of existing ir models. the derivation leads to theorems and formulae that relate and explain existing ir models.
+　this paper looks at the three grand probabilistic retrieval models: binary independent retrieval  bir   poisson model  pm   and language modelling  lm . results include  for example  the formalisation of event spaces. for bir  judgements in documents form the event space  whereas for pm  frequencies of terms form the event space  and for lm  terms at locations form the event space  see section 1 . our research also addressed dfr  but this paper focusses on the three basic models only.
+　a paper on retrieval models is bound to have a low-recall reference list  and we selected relevant papers that deal with the relationships and explanations of models.
+　highly relevant is the introduction  in the book  on lm  where the authors make explicit that the probability of relevance is the origin of both  bir and lm.  in the same book takes a detailed look at the relevance event  and  is a milestone in pointing at the different event spaces of probabilistic models  and raising attention for what happens when relating bir and lm.
+　further  the papers  and  are highly relevant.  provides a probabilistic explanation of tf-idf  the explanation being based on lm. the elegant formulation of the lm retrieval status value has been an important step for the efficient processing of lm; however  the tf-idf explanation mixes event spaces  usage of document frequencies for estimating the probability of a term in a collection  and usage of term frequencies for estimating the probability of a term in a document   and we pay in our paper particular attention to make the underlying event spaces explicit.
+　 on theoretical arguments for idf draws on the relationship between bir and idf  pointing out how idf follows from bir for missing relevance.  picked up the latter  and discusses a fully idf -based explanation of bir.
+　the next class of relevant papers deals with the poisson model:  divides the collection into two sets: elite and non-elite set of documents  elite set contains the documents that are  about  a query concepts/terms  and in this set of documents the term usually occurs to a greater extend than in the rest of the documents . dividing the collection into two sets should show an improvement since the 1-poisson model with two parameters better fits the divided collection  this also being reported in the poisson investigation . the results stress to consider two document sets  and this is exactly what we observe when relating bir and lm probabilities  where the average document length of documents in the elite set of a term and the average document length in the collection form pillars of the bridge that connects bir and lm probabilities.  investigates idf based against ilf -based retrieval  the paper refers to tokenbased retrieval  but we apply the notion ilf  inverse location frequency . the work of church/gale has shown that the burstiness of terms  a bursty term is a term that  if it occurs  occurs several times  is a crucial feature of a good term.
+　the book  is probably to date the most adventurous approach for a ground model of ir  claiming that ir can be explained by linear algebra  vector  hilbert  spaces and extensions. different from work on ground models  our paper does not claim any unifying ground model. we derive the existing models in a unifying formalism and notation  without making any claim about a new model.
+the remainder of this paper is structured as follows:
+　section 1: brief review of the probability of relevance being the origin of probabilistic models.
+section 1: parallel derivation of bir  pm  and lm.
+　section 1: relevance assumption: bir and pm assume the collection to be a set of non-relevant documents  whereas lm assumes the collection to be a set of terms from relevant documents.
+　section 1: poisson bridge: the poisson parameter λ can be viewed as a bridge connecting bir and lm probabilities. section 1: bir-lm equivalence: shows a case for which bir and lm are equivalent.
+　section 1: tf-idf: pm explains tf-idf-like retrieval  and this can be represented using either bir or lm probabilities.
+1. the probability of relevance
+　the probability of relevance can be viewed as the origin of bir  pm  and lm. the conditional probability p r|d q  of relevance is equal to the fraction of the probability p r d q  and the evidence probability p d q   where r is the relevance event  d is a document  and q is a query.
+
+a ranking based on p r|d q  is optimal  if the costs for reading a relevant document are assumed to be less than the costs for reading a non-relevant document  probabilistic ranking principle . therefore  p r|d q  is the optimal basis for defining a retrieval status value  rsv .
+　the odds of an event  the fraction of the probability that the event is true and false  respectively  is a convenient ranking function:
+
+in the formulation with odds  p d q  drops out.
+　for computing p d q r   p d q r．   respectively   we need the probability p d q|r   p d q|r．  respectively . either let d depend on q  or let q depend on d  and we obtain:
+	p d q r 	=	p d|q r  ， p q|r  ， p r 	 1 
+	=	p q|d r  ， p d|r  ， p r 	 1 
+equation 1 is the basis of binary independent retrieval  bir  and the poisson model  pm   and equation 1 is the basis of language modelling  lm   see  .
+　the events d and q are sequences  conjunctions  of events: for bir  the events correspond to binary judgements on whether or not a term occurs in d; for pm  the events correspond to the frequencies with which the terms occur in d; for lm  the events correspond to terms.
+　we formalise and discuss the event spaces and other aspects of the probabilistic ir models in the next section.
+1. parallel derivation
+　this section shows the parallel derivation of bir  pm  and lm. for presenting such a complex mathematical topic in an understandable way  and for giving the reader an anchor for looking up the issues and notations  we developed figures 1 and 1. they are relatively busy figures with lots of mathematical notation  and we will proceed step by step. the notation is partially based on .
+　figure 1 points at the event spaces  background models  frequencies  probabilities  and term probability interpretations of each model. figure 1 focuses on the document and query interpretations  retrieval status values  rsv's   and parameter estimations.
+1 event spaces  background models  frequencies  probabilities: figure 1
+1.1 event spaces
+　bir is based on a space of binary judgements over documents  whereas pm is based on a space of frequencies of terms  and lm is based on a space of terms at locations.1
+　the next section highlights that bir involves 1 ， nt c  judgement sequences  two sequences for each term  nt c  is the number of terms  as background model  whereas pm involves two frequency sequences as background model  and lm involves one term sequence as background model.
+1.1 background models
+　a background model is based on the knowledge we have about the collection  and from this point of view  each of bir  pm  and lm has a background model. note that the notion  background model  is common for lm  and the parallel derivation here applies this notion to all models.
+
+1
+ note in figure 1 the carefully chosen notation for referring to the elements of the event spaces  and for underlining the parallels of the models: jd is a judgement  {1}  for document d. ft is a frequency  {1 1 ...}  of term t. tl is a term  {τ1 τ1 ...}  at location l.
+birpmlm1.1 event spacesd: set of documentst: set of termsl: set of locationsj: set of judgementsf: set of frequenciest: set of termsjd: judgement for document d jd （ {1}ft: frequency of term t ft （ {1 1 ...}tl: term at location l tl （ {τ1 τ1 ...}1.1 background models1 ， nt c  sequences ct x = j1 j1 ... of judgements where jd is the judgement for document d  and ct x denotes the judgement sequence for the term t and the set x of documents.
+x is either the set r of relevant or the set ．two sequences cx = f1 f1 ... of frequencies where ft is the location frequency of term t  and cx denotes the location frequency sequence for the set x of documents.
+r of non-relevant documentsone sequence c = t1 t1 ... of terms where tl is the term at location l  and c is the collection.1.1 frequenciesnd x : number of documents innl y : number of locations inset x;  t : nd x  = nd ct x  nd j ct x : number of documents in judgement sequence ct x for which judgement j occursλ t x : average  expected  within-document term frequency in set x; λ t x  = λ t cx sequence y
+nl t y : number of locations in term sequence y at which term t occursx is either the set r of relevant or the set ．r of non-relevant documentsy is either a document or the collection1.1 probabilitiesthe probability of judgement j  given judgement sequence ct x:
+the probability of frequency ft  given frequency sequence cx:
+the probability of term t  given term sequence y:
+1.1 term probability interpretationsin pbir t|x   interpret t as the event that j = 1 for t. nd t x  := n 1 ct x .in ppm t|x   interpret t as the event that t occurs ft times.in plm t|y   t corres event.ponds to a term	pbir t|x 	:=
+=p j = 1|ct x  nd t x 
+
+nd x 	plm t|y 	:=
+=p t = t|y  nl t y 
+
+nl y figure 1: event spaces  background models  frequencies  probabilities  and term probability interpretations　the background model could include global  collectionindependent  knowledge such as individual user profiles or statistics over previous queries. for the scope of this paper  we consider the collection being the only evidence source. still  the discussion here makes explicit how global knowledge is to be included: depending on the model chosen  the global knowledge leads either to an adaptation  mixture  of judgements  frequencies  or terms. next  consider the background model for each of the probabilistic retrieval models. bir: the background model comprises several sequences of judgements. bir is based on a set of relevant documents  and a set of non-relevant documents  hence  for each term t in the collection  there are two judgement sequences ct r and ct r．  where ct r is for the relevant and ct r． is for the non-relevant documents  respectively. thus  the bir background model consists of 1 ， nt  c  judgement sequences  where 1 is the number of document sets  relevant and nonrelevant documents   and nt c  is the number of terms.
+　pm: the background model consists of two sequences: the sequence cr represents the location frequencies in relevant documents  and the sequence cr． represents the location frequencies in non-relevant documents.
+lm: the background model is simply the sequence of terms in the collection  i.e. the concatenation of all documents.
+　from the background models' simplicity  number of sequences  point of view  we could argue that lm is the simplest model  followed by pm  followed by bir.
+1.1 frequencies
+　bir is based on document frequencies. nd x  denotes the total number of documents in set x  x := r for relevant documents  x := ．r for non-relevant   and nd j x  denotes the number of documents for which a judgement j holds. since the number of relevant or non-relevant documents is the same for each term   t : nd ct x  = nd x    we apply
+nd x  as an abbreviation of nd ct x .
+　pm is based on the average  expected  within-document term frequency. here  nl t x  is the number of locations in the set x of documents at which term t occurs. then  in average  we expect nl t x /nd x  locations with t per document in the set x.
+　lm is based on location frequencies. nl y  denotes the total number of locations in sequence y  where y is a document or the collection  and nl t y  denotes the number of locations at which term t occurs in term sequence y.
+1.1 probabilities
+　bir: the probability of a judgement is estimated as the fraction of the number of documents for which the judgement holds  divided by the total number of documents. for example  let term t occur in two of five relevant documents  i.e. nd 1 ct r  = 1  nd r  = 1. then  p j = 1|ct r  = nd 1 ct r /nd r  = 1 is the probability that term t occurs in a relevant document.
+　pm: we need to chose a probability distribution for estimating the probability of a frequency. the probabilistic's first choice is poisson  though terms are not randomly distributed  and the set of relevant documents is usually relatively small  and therefore  pure poisson is known to be not the end of the game  see    . for the discussion in this paper  we stick to poisson  and we will see in section 1  poisson bridge   that the poisson distribution parameter λ t c   the average number of locations of term t per document  connects bir and lm.
+　for reviewing how the poisson distribution works  consider a term t that occurs in average λ t x  times in document set x. for example  assume that we observe the following location frequencies for six terms in the set x of documents: 1 1 1  nl t1 x  = 1  nl t1 x  = 1  etc . the average frequency is λ t x  = nl t x /nd x . for example  for five documents  nd x =1   λ t1 x  = 1 = 1  λ t1 x  = 1 = 1.
+　then  for a document d  p t|d  = λ t x /nl d  is the single event probability that t occurs  and for large documents 
+　　　　　　　　　　　　　　　　　　　　f the poisson probabilityapproximates the probability that t occurs ft times in a document  assuming that t is randomly distributed in x. the characteristic feature of the poisson probability is to peak for λ t x   i.e. p f = λ t x |x  is the maximal probability. thus  p d  is maximal for a document in which the term  location  frequencies reflect the frequencies in the set x from which the averages were computed.
+　lm: the probability of a term is estimated as the fraction of the number of locations at which the term occurs  divided by the total number of locations. for example  let term t occur at 1 of 1 locations in collection c  then p t = t|c  = 1.
+1.1 term probability interpretations
+　the parallel consideration of the probabilities and event spaces leads to a well-defined interpretation of the term probabilities p t|r   p t．|r  and p t|c . the interpretation and the theoretically sound estimation depends on the model  as the next paragraphs underline.
+　bir: the notation pbir t|r  needs to be interpreted as an abbreviation. pbir t|r  is an abbreviation for p j = 1|ct r   i.e. the random variable j takes the judgement  and ct r is the judgement sequence for the term t and the set r of relevant documents.
+　pm: the notation ppm t|r  is  similar to bir  just an abbreviation. the notation ppm t|r  is an abbreviation for p f = ft|cr   i.e. the random variable f takes the frequency ft of term t  and cr corresponds to the sequence of average frequencies derived from the set r of relevant documents.
+　lm: the notation plm t|c  is consistent with the underlying event space of terms.
+　again  like for the background models  lm ranks top with respect to simplicity.
+1 document	and	query	interpretations  rsv's  parameter estimations: figure 1
+1.1 document and query interpretations
+　bir interprets a document as a conjunction of independent binary judgements  whereas pm interprets a document as a conjunction of independent frequencies  and lm interprets a query as a conjunction of independent terms.
+1.1 rsv's
+　the definitions of the rsv's of bir  pm  and lm are presented in a condensed way in figure 1. we are aware that this condensed derivation and rsv definitions are not easy to access  but the consistent and parallel framework in the figure provides the overall picture of the derivation.
+　bir applies odds. the assumption that non-query terms do not affect the rsv reduces the multiplication over t （ d to t （ d ” q  andbecomes t （ q   d. the multiplication with a constant factor leads to rsvbir. p t|x  is an abbreviation of p t|q x   this corresponds to q…x=x .
+　pm applies odds and assumptions similar to bir. the multiplication with a constant factor leads to rsvpm.
+　lm applies a mixture of collection-based and documentbased probabilities. the multiplication with a constant factor leads to rsvlm. the lm mixture parameter is δ  since λ  the letter used in many lm publications  denotes the parameter of the poisson distribution  and for a clear parallel derivation  we let δ denote the lm mixture parameter.
+1.1 ranking rationales
+　bir: terms that occur more often in relevant than in non-relevant documents have a positive effect on the rsv  whereas terms that occur more often in non-relevant than in relevant documents have a negative effect on the rsv. mathematically  we summarise this as follows: pbir t|r   
+pbir t|r． : good term  positive effect on rsv. pbir t|r    pbir t|r． : bad term  negative effect on rsv. pbir t|r  = pbir t r． : neutral term  no effect on rsv.
+　pm: terms for which the average frequency in relevant documents is greater than the average frequency in nonrelevant documents  have a positive effect on the rsv  whereas terms for which the average occurrence in relevant documents is less than the average occurrence in nonrelevant documents  have a negative effect on the rsv. mathematically  we summarise this as follows: λ t r    λ t r． : good term  positive effect on rsv. λ t r    λ t r． : bad term  negative effect on rsv. λ t r  = λ t r． : neutral term  no effect on rsv. the occurrence count  frequency  nl t d  increases the effect of a term.
+　lm: large  small  p t|d  implies strong  little  effect on the rsv. small  large  p t|c  implies strong  little  effect on the rsv. a document that misses a rare term  p t|d  small or even zero  and p t|c  small since t is rare  misses a significant contribution to the rsv.
+1.1 parameter estimations
+　bir applies statistics over judgements for documents  whereas pm applies statistics over frequencies of terms  and lm applies statistics over terms at locations.
+　for estimating the r-based parameters pbir t|r  and λ t r   bir and pm use the relevance information available  or  in case of missing relevance information  assume pbir t|r =pbir t．|r =1  and λ t r  = 1  respectively.
+birpmlm1.1 document and query interpretationsdocument is a conjunction of independent judgements:document is a conjunction of independent frequencies:query is a conjunction of independent terms:p q|d c  = yp t|d c 
+t（q1.1 retrieval status values  rsv's odds and assumption:
+odds and assumption as for bir.
+assume o r|d q  to be ranking equivalent to p q|d r   p q|d c   respectively. this assumption discards the document prior p d|r /p d|r． . see section 1 for discussion.
+linear mixture for estimating term probability:
+p t|d c :=δ，p t|c + 1 δ ，p t|d multiplymultiply
+
+rsvpm d q  :=
+:= logmultiplyrsvbir d q  :=
+:= logrsvlm d q  :=
+:= log1.1 ranking rationales  see text 
+1.1 parameter estimationsnd t r 
+pbir t|r  = 
+nd r 
+	nd t r． 	nd t c 
+	pbir t|r．  =	「
+	nd ．r 	nd c nl t r 
+λ t r  = 
+nd r 
+nl t r． 
+λ t r．  = 
+nd ．r nl t c 
+
+「 nd c nl t c 
+plm t|c  = 
+nl c 
+nl t d 
+plm t|d  = 
+nl d figure 1: document and query interpretations  rsv's  parameter estimations　for estimating the ．r-based parameters  bir and pm apply two approaches: either consider a set of explicitly nonrelevant documents  for example  the set of retrieved documents minus the set of visited documents   or  assume ．r 「 c  i.e. assume that the majority of the documents in the collection are implicitly non-relevant. whereas the parameter estimation reflects already the relevance assumption of bir and pm  the relevance event  and thus the probability of relevance  is not yet related to lm  and we investigate this in the next section.
+1. relevance assumption
+　in section 1  we reviewed the probability p r|d q  being the origin of bir  pm  and lm. now  we show formally that the parameter estimation  see figure 1  implies that bir and pm assume the collection to be a set of non-relevant documents  whereas the interpretation of lm as an estimate of p r d q  implies that lm assumes the collection to be a set of terms from relevant documents. we formalise this in the following theorem.
+	theorem 1	 relevance assumption . bir	and
+pm assume the collection to contain non-relevant documents  whereas lm assumes the collection to be a set of terms from relevant documents.
+　proof. the parameter estimation for bir and pm  see figure 1  is as follows:
+nd t c 
+bir | nd c  nl t c 	p	 t r． 	=	
+	λ t r． 	=	
+nd c 
+for bir and pm  the estimates show that the non-relevant set of documents is approximated by the statistics available for the whole collection.
+　for lm  the product of the term probabilities plm t|d c  leads to the query probability plm q|d c . with c = r  the lm query probability is an estimate of the probability p q|d r  in equation 1  section 1 . this makes explicit that lm assumes the collection c to be a sequence of terms from relevant documents. 
+　this relevance assumption implies the interpretation of the document prior p d|r  in equation 1  remember that for bir and pm  the query prior p q|r  can be dropped since it is constant for all documents . the document prior p d|r  is to be interpreted as p d|c   since lm assumes the collection c to represent the relevance event. as an example for the importance of p d|r   consider   a web retrieval investigation on entry page search.
+1. the poisson bridge connecting bir and lm
+　this section shows that the poisson parameter λ t c  can be viewed as a bridge connecting bir and lm. we capture the mathematical relationship between document-based  bir-based  and location-based  lm-based  probabilities as follows:
+	 	 1 
+for the verification  reconsider the definitions λ t c  := nl t c /nd c   pbir t|c  := nd t c /nd c   and plm t|c  := nl t c /nl c  in figure 1  parameter estimations.
+　the two fractions in equation 1 have the following meaning: avgdl c  := nl c /nd c  is the average document length  and avgtf t c  := nl t c /nd t c  is the average term frequency of term t in t-documents  the documents in which term t occurs are the t-documents . given these definitions  we obtain the following equation:
+pbir t|c  ， avgtf t c  = λ t c  = avgdl c  ， plm t|c 	 1 
+we refer to this equation as poisson or bir-lm bridge  since the left and right of the equation yield the poisson parameter λ t c .
+　for example  let  sailing  occur in 1 locations and 1 documents  nl sailing c  = 1  nd sailing c  = 1   and let the collection have 1 locations and 1 documents  nl c  = 1  nd c  = 1 . then  the average within-document frequency of sailing is λ sailing c  = 1.
+　in average  we expect avgtf sailing c  = 1 locations containing sailing per sailing-document  and we expect avgdl c  = 1 locations per document. for the probabilities  we obtain pbir sailing|c  = 1  and plm sailing|c  = 1. here  avgtf sailing c    avgdl c  and pbir sailing|c    plm sailing|c   and we could view this to be typical for real-world terms and collections  i.e. we expect for all terms avgtf t c  avgdl c  to hold.
+a term t with high avgtf t c  is referred to as bursty term 
+and a term t with high pbir t|c  is referred to as frequent term. in the next section  we take a closer look at burstiness and frequency of terms  when discussing an interesting equivalence of bir and lm.
+1. bir-lm equivalence
+　deriving the models in parallel poses the question for equivalences. we discuss in this section a condition which makes bir and lm equivalent.
+　we define the equivalence of two models  rankings  as follows:
+	definition 1	 equivalence . models a and b are
+equivalent iff
+rsva d q  = k + rsvb d q 
+the rsv's of equivalent models differ by a constant k  this being additive  since the rsv's are logarithmic . equivalence is a stricter property than just ranking equivalence. we have results on ranking equivalence  too  however  due to the space restriction in this paper  we decided to present only a result on equivalence.
+　for which conditions are bir and lm equivalent  our approach is to express rsvbir such that we achieve an equivalence of bir and lm. we formalise the bir-lm equivalence in the following theorem.
+　theorem 1  bir-lm equivalence . if the rsv contribution coming from relevant documents is constant  same for all documents   i.e.
+
+and if the bir term weight based on the collection  collections is assumed to represent the statistics for non-relevant documents  is equal to the lm term weight multiplied by a constant α  i.e.
+		 1 
+then bir and lm are equivalent.
+proof. start with the definition of rsvbir.
+rsv
+insert the condition for the term weights  equation 1 .
+rsvbir d q  = kr+
+	1	δ	plm t d 
+	logα ，  1 +	 	，	||  
+	δ	plm t c 
+t（d”q
+	=	kr + logα + rsvlm d q 
+
+　what does this theorem bring  it explains bir in the event space of lm  i.e. given pbir t|c   for bir and lm to be equivalent  we obtain a function plm t|d  for the within document term frequency which can be interpreted as the within-document term frequency assumed by bir.
+solve equation 1 for obtaining plm t|d . this leads to:
+plm t|d  =
+=  ， ||   1  ，   ， plm t|c  1 pbir t c  δ α pbir t c  1 δ
+=	 1    1 + α  ， pbir t|c   ，	 	，	，	| | δ	plm t c 
+	1	δ	α pbir t c 
+apply the poisson bridge  equation 1   and we obtain:
+	avgtf t c 
+	|	 	，	|	， 1   δ ， α ， avgdl c 
+figure 1 shows plm t|d  as a function of pbir t|c   and plm t|d  is plotted for various average term frequencies avgtf t c . the graphs keep avgdl c  = 1  lm mixture δ = 1  and α = 1 constant.
+　plm t|d  is maximal for pbir t c  = 1  which is according to expectation  since rare terms have a positive effect for bir  this being reflected in the maximal value for the
+
+figure 1: plm t|d  as a function of pbir t|c .
+within document frequency. the constant α in equation 1 is a scaling factor that allows to stretch the value interval of plm t|d . for α   1  we obtain accordingly greater values for plm t|d  than shown in figure 1.
+　next  figure 1 illustrates the product pbir t|c  ， avgtf t c  = λ t c .
+
+figure 1: burstiness and frequency of terms
+　figure 1 divides the terms in rare and frequent based on pbir t|c  on the horizontal axis  and in solitude and bursty based on avgtf t c  on the vertical axis. we will see in the next section on tf-idf  how the burstiness is reflected in tf-idf when tf-idf is derived from rsvpm.
+1. tf-idf
+　in this section  we explore the dual application of bir and lm parameters for expressing tf-idf.
+1 dual application of bir and lm parameters
+　we show in this section that by starting from rsvpm  we can derive a tf-idf retrieval function  and we show two equivalent formulations  one based on the probability pbir t|c   and one based on the probability plm t|c . these formulations stress the duality of bir and lm: depending on the event space  parameter estimation is different  however  pbir t|c  and plm t|c  can be alternatively used for expressing rsvpm and tf-idf  respectively.
+the rsvpm is defined as follows  see figure 1 :
+	rsv	 1 
+apply the bir side of the poisson bridge  equation 1   and we obtain the bir-based formulation of rsvpm:
+rsv
+apply the lm side of the poisson bridge  and we obtain the lm-based formulation of rsvpm:
+
+the bir-based and lm-based formulations of rsvpm stress that both  bir and lm probabilities can be used in a dual way  and we link this in the next section to tf-idf.
+1 idf and ilf
+　we apply the definition idf t x  :=  logpbir t|x  and obtain the equation 1 from the bir-based equation 1.
+	rsvpm d q =	 1 
+t（
+　next  we define the inverse location frequency  ilf   analogously to idf : ilf t x  :=  logplm t|x . then  we obtain the equation 1 from the lm-based equation 1:
+	rsvpm d q =	 1 
+t（
+　the idf -based and ilf -based formulations of the pm differ from classical tf-idf in a factor that is for idf based on the average term frequencies of a term t in the documents in which t occurs  the t-documents   and for ilf  the factor is based on the average document lengths. set avgtf t r  = avgtf t c   and we are close to classical tf-idf  apart from the document normalisation.
+　from the probability of relevance point of view  bir and pm are based on p d|q r   whereas lm is based on p q|d r . this implies that there is no document normalisation in bir and pm  whereas normalisation comes for free in lm.
+　to compensate for the lack of document normalisation in p d|q  approaches  tf-idf  bm1  and pivoted document length    add normalisations. for example  traditional tf-idf replaces the total term frequency nl t d  in rsvpm by the linear estimate tf t d  := p t|d  = nl t d /nl d   the normalisation being reflected by nl d   the document length.
+　bm1 gives evidence that a tf-factor such as tf t d  := nl t d / nl t d  + k  works better than the linear estimate. growth of the bm1 tf is non-linear  and for k=1  we find the lower bound 1 ＋ tf t d   independent of document length. in bm1  the factor  avgdl   dl / avgdl + dl  awards short documents  and penalises long documents.
+　pivoted document length helps to balance single term weights by replacing the non-pivoted normalisation factor by pivoted norm =  1	. for example  view  and the average document length could be the pivot. then  we obtain a normalisation that assigns smaller term weights for small documents and larger term weights to large documents  than the non-pivoted normalisation does. the slope parameter controls the impact of the pivot.
+1. summary and conclusions
+　we derived - strictly parallel - the three grand probabilistic retrieval models: bir  pm  and lm. the parallel derivation in a stringent mathematical formalism highlighted the event spaces  background models  frequencies  probabilities  term probability interpretations  summarised in figure 1   and document/query interpretations  retrieval status values  and parameter estimations  summarised in figure 1 .
+　there have been several motivations for this parallel derivation: first of all  the explanation of retrieval models through the probability of relevance involves notations such as p t|c  for the probability of a term  and this notation is correct for lm but misleading for bir and pm  since not terms but judgements and frequencies form the event spaces for bir and pm  respectively. therefore  this paper clarifies in a mathematical formalism the event spaces and notations of the models.
+　the second motivation has been the observation that there are ranking equivalences and even equivalences of the models; due to space restriction  we reported only one equivalence. equivalences allow for an interesting insight of what the models assume. for example  looking at bir through lm glasses shows that bir assumes the probabilities plm t|d   i.e. the probabilities of the terms in the documents  to be a function of the document occurrence in the collection  pbir t|c    and other parameters such as the average term frequency in the elite set of the term  and the average document length.
+　the third motivation was born when looking for theoretical arguments for tf-idf. whereas for bir and pm  the relationship is well researched  this paper highlights through the poisson bridge the dual representation of tf-idf retrieval applying either bir or lm parameters.
+　we carried out this theoretical investigation of the parallel derivation of the probabilistic models to clarify the origin and assumptions of the models  and to find relationships of the models. the result supports the well-defined refinements of the models  and it might support the search for the quarks of ir.
+　acknowledgements: hugo zaragoza  stephen robertson  arjen de vries  and djoerd hiemstra influenced significantly the content of this paper. thanks to hugo for enjoyable and effective workshops  where hugo questioned poisson  stephen challenged event spaces  and arjen stressed consistent notation. thanks to djoerd for the discussion in our ir seminar  and  thanks to the reviewer who went so deeply into the notation and formulae in this paper  and provided most valuable feedback.

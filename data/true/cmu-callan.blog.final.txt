@@ -1,0 +1,84 @@
+this paper presents our system and results for the feed distillation task in the blog track at trec 1. our experiments focus on two dimensions of the task:  1  a large-document model  feed retrieval  vs. a small-document model  entry or post retrieval  and  1  a novel query expansion method using the link structure and link text found within wikipedia.
+1 introduction
+blog distillation  or  feed search   is the task of finding blog feeds with a principle  recurring interest in x  where x is some information need expressed as a query. thus  the input to the system is a query and the output is ranked list of blog feeds. tailoring a system for feed search requires making several design decisions. in this work  we explored two different decisions:
+1. is it most effective to treat this task as feed retrieval  viewing each feed as a single document; or entry retrieval  where ranked entries are aggregated into an overall feed ranking 
+1. how can query expansion be appropriately performed for this task  two different approaches are compared. the first one is based on pseudo-relevance feedback using
+the target collection. the second is a simple novel technique that expands the query with ngrams obtained from wikipedia hyperlinks. exploiting corpora other than the target corpus for query expansion has proven a valuable technique  especially for expanding difficult queries .
+¡¡the four runs submitted to the blog distillation task correspond to varying both of these dimensions. throughout our experiments  all retrieval was done with the indri1 retrieval engine using only terms from the topic title.
+¡¡the remaining of this paper is organized as follows. section 1 describes the pre-processing steps. section 1 describes the target-corpus- and wikipedia-based query expansion techniques. section 1 describes the two retrieval models used  as well as our methods of parameter selection for the different features used in those models. experimental results and analysis are presented in section 1.
+1 corpus pre-processing
+for all of the runs submitted  we only used the information contained within the feed documents. the blog1 collection contains approximately 1k feed documents  which are a mix of atom and rss xml. these two formats contain different xml elements which were mapped to a unified representation in order to make use of the structural elements within the feeds. we used the universal feed parser1 package for python1 to abstract the different data elements across all feed types to a single universal representation. for details on the mapping between atom and rss elements refer to the universal feed parser documentation. documents were stemmed using the krovetz stemmer and common stop words were removed as well as manually identified web- and feed-specific stop words such as  www    html  and  wordpress . we filtered documents that were selfidentified as non-english  in their feed.lang or channel.language elements  and feeds with fewer than 1 posts.
+1 two	query	expansions models
+query expansion is a well-studied technique used in ad hoc retrieval to improve retrieval performance  particularly for queries with insufficient content. on the trec 1 blog distillation task  the average number of words per topic title1 was 1. expanding such terse queries with as many relevant terms has a strong potential for improving precision and recall.
+1 indri's relevance model
+our first query expansion feature used indri's built-in facilities for pseudo-relevance feedback  1  1  1 . to generate our query expansion terms  we constructed a full dependence model query  1  1  with the terms in the topic title.1 for all of our submissions  this query was run against the entire indexed feeds and did not take advantage of any indexed document structure. in preliminary experimentation this yielded the best results. using this query  n = 1 documents were retrieved and a relevance model was built with those returned results. the top k = 1 most likely terms were extracted from that relevance model  and these terms constituted our relevance model query qrm. this query was then used as a feature for our unified feed and entry queries. n and k were set to values that had previously been shown to be effective for pseudo-relevance feedback in other tasks .
+1 wikipedia for query expansion
+some prior work has explored using using wikipedia for query expansion. in   collinsthompson and callan combine term association evidence from wordnet1 and wikipedia1 in a markov chain framework for query expansion. in   li et al. use wikipedia for query expansion more directly. in their algorithm  as in our approach  each test query was run on both the target corpus and wikipedia. wikipedia articles were ranked differently  however  utilizing article metadata unique to wikipedia. each wikipedia article belongs to one or more categories. a weight wc was assigned to each category c based on the number of articles belonging to c ranking among the top 1. then  each wikipedia article d was ranked by a linear combination of its original document score and wd = pcat d ¡Êc wc  the sum of the weights wc for each category c to which d belongs. twenty expansion terms were selected ad hoc from the top 1 wikipedia articles.
+¡¡wikipedia articles are available for download in their original markup language  called wikitext  which encodes useful metadata such as the article's title and its hyperlinks. each hyperlink contains both the title of the target page and optional anchor text. in cases where no anchor text is specified  it resolves to the title of the target page. during preprocessing  a sample of about 1 articles from the english portion of the wikipedia were indexed using indri. our simple algorithm was motivated by the observation that valuable expansion ngrams are contained in hyperlinks pointing to wikipedia articles that are relevant to the base query.
+¡¡first  the seed query was run against the wikipedia corpus. the top n ranked articles were added to set dn. then  all anchor phrases used in hyperlinks in dn were added to set a dn . note that an anchor phrase ai in a dn  may occur several times in dn and different occurrences of ai need not be associated with hyperlinks to the same article. for example  suppose that the seed query is space exploration. within the top n articles  the phrase nasa may occur several times as the anchor text of a hyperlink. some of these hyperlinks may link to the wikipedia article on the national aeronautics and space administration  while others may link to the wikipedia article on the nasa ames research center  and so forth. a single occurrence of anchor phrase ai is denoted as aij and the target article of the hyperlink anchored by aij is denoted as target aij . each anchor phrase ai was scored according to score ai  = x hi rank target aij   ¡Ü t 
+aij¡Êa dn 
+i
+¡Á  t   rank target aij    .
+¡¡the identity function i ¡¤  equals 1 if rank target aij   ¡Ü t and 1 otherwise. intuitively  the score of anchor ngram ai is highest when the hyperlinks anchored by ai link to many articles that are ranked highly against the seed query. in our runs  n = 1 and t = 1  and were selected ad hoc. anchor ngrams occurring less than 1 times were ignored and the 1 top scoring anchor ngrams were selected. their scores were normalized to sum to 1 and each ngram's normalized score was used to weight it with respect to the other expansion ngrams.
+¡¡n and t may seem large compared to parameters typical of prf. intuitively  n and t play different roles. n controls the size of the search space. t controls the range of topical aspect of the ngrams considered. thus  a large n and a small t increases the chance of finding synonyms or paraphrases of the same concept by focusing on many anchor ngrams that link to the same highly-ranked article. with larger values of t  it is expected that ngrams will relate to a wider range of topics. larger values of t also increase the risk of extracting irrelevant ngrams. by setting n and t large in our runs  we aim for high synonym variability and broad topical aspect coverage. one natural question is how sensitive this method is to parameters n and t. ultimately  anchor ngrams are scored proportional to the rank of their hyperlink's target page. initial experiments varying n and t with t sufficiently large  ¡Ý 1  showed stability in the top ranked expansion phrases.
+finally  the resulting query  qw is given by:
+#weight 	score a1  dma1	score a1  dma1
+	...	score a1  dma1 
+where dmai is the full-dependence model query formed with the anchor text ngram  ai.
+1 two retrieval models
+as described above  we investigated two models of feed retrieval:  1  the large document approach  where each feed was treated as a single document and then ranked in the typical fashion  and  1  the small document approach  where posts were the unit of retrieval and feeds were ranked based on the quantity and quality of their retrieved posts. the following sections describe these two approaches in detail and our method for selecting parameters used in these models.
+1 large document model
+the large document approach does not distinguish between post content and number of posts within a feed. we did retain the structural elements present in feeds such as feed.title and feed.entry  but treated these as features of the monolithic feed document. we performed retrieval in a standard fashion on these feed documents  utilizing the feed and entry structural elements.
+¡¡the query features used in the large document model are given below:
+  full dependence model on the feed.title field  dmt  
+  full dependence model on the feed.entry field s   dme  
+  indri's relevance modeling prf  qrm   and
+  wikipedia-based expansion  qw .
+and the final indri query is as follows:
+#weight ¦Ët dmt¦Ëe dme¦Ërm qrm¦Ëw qw where ¦Ëi   1 p¦Ëi = 1.
+1 small document model
+the small document model views the feeds as different document collections and the entries as documents within those collections. under this framework  the feed retrieval task can be seen as analogous to that of resource selection or ranking in federated search - given a query  find the document collections most likely to contain relevant documents.
+¡¡our approach to resource ranking was similar to the relevant document distribution estimation  redde  . in that approach  given known  true or estimated  collection sizes and a database of sampled documents from all collections  collections are ranked by retrieving from the sampled database and summing the document scores from that sampled retrieval. the basic redde resource scoring formula for collection cj is:
+rel  q j  = x p rel|di p di|cj ncj
+di¡Êcj
+where p rel|di  is the probability of document relevance for the query  p di|cj  is the probability of selecting the document from collection cj  or  as is typically the case  from our sampled version of the true collection   and ncj is the size of the collection.
+¡¡to support a simplified federated search model of feed retrieval  we chose to create a new collection by sampling the posts from each feed. the blog1 corpus contains feeds ranking in size from just 1 or 1 posts to feeds with several hundred. figure 1 illustrates the distribution of feed sizes in the corpus.
+num. posts vs. num. blogs
+
+posts
+figure 1: blog size distribution
+¡¡when creating the corpus for our federated search model  we sampled 1 posts per feed  with replacement   letting us assume a uniform ncj = 1  j. assuming all posts are equally likely to be retrieved for each feed  i.e. p di|cj  = 1  the above resource scoring formula simplifies to:
+rel  q j  = x p rel|di 
+di¡Êcj
+there is one difference between our approach and the redde approach. in the redde approach  ncj is the size of the original collection  possibly estimated   and not the size of the sampled collection. here  we set .
+by doing so  a feed's original  pre-sampled size does not directly factor into the scoring function. this choice was made because the goal of the task is to find feeds with a central interest in some topic x  irrespective of feed size.
+¡¡the scoring function  rel  q j   can be easily expressed in the indri query language:
+#wsum  1 #combine entry   qe   
+where	qe	is	our	entry	query 	the	inner
+#combine entry  produces scores over entries within a single feed  and the outer #wsum adds these scores to generate a feed-level score. note that there is no #sum operator in the indri query language  necessitating the constant 1 in the query  which doesn't have any effect on the final ranking.
+¡¡the entry query qe used the same pseudorelevance feedback features described above:
+#weight ¦Ëe dme ¦Ërm qrm ¦Ëw qw 
+1 parameter selection
+the above queries have a number of free parameters that must be chosen appropriately for effective retrieval. to do this  we selected a small subset of the queries  1  1  1  1  1  1 and two others not included in the evaluation   performed initial retrieval experiments using simple bag-of-words queries  and judged the top 1 documents retrieved as relevant/nonrelevant. we used this small training set to tune our parameters via a simple grid-search. table 1 gives the parameter settings that maximized mean average precision for all runs using both retrieval models and different pseudo relevance feedback features.
+¡¡although we used a small subset of the evaluation queries to train our system  we do not believe our results are strongly biased towards these queries. our best run's performance  cmufeedw  on these training queries was highly variable  achieving the best performance on only one of the training queries  1  and close to our worst performance on several
+modelprf¦Ët¦Ëe¦Ërm¦Ëwlarge-docrm rm+w1
+11
+11
+1-
+1small-docrm rm+w-
+-1
+11
+1-
+1table 1: query weight settings. rm=relevance model prf  w=wikipedia prf
+others. figure 1 shows the performance of this run with the training queries clearly indicated.
+1 results & discussion
+table 1 shows the performance of our four runs: large document  cmufeed  vs. small document  cmuentry  retrieval models and the wikipedia  *w  expansion model. the large document model clearly outperformed the small document model  and wikipedia-based expansion improved average performance of all runs. figure 1 shows our best run  cmufeedw  compared to the per-query best and median average precision values.
+runmapr-precp1cmufeed111cmufeedw111cmuentry111cmuentryw111table 1: performance of our 1 runs
+¡¡retrieval performance was superior with wikipedia-based query expansion than without. adding wikipedia-based expansion improved performance in 1 queries under the small document model and 1 queries under the large document model. the largest improvement under both document models  based on average precision  was for query 1  home baking. an improvement of 1% was achieved under the small document model and 1% under the large document model. table 1  shows the expansion terms obtained in descending order of confidence for both retrieval models.
+
+figure 1: best & median ap per query compared to cmufeedw  ordered by cmufeedw .
+wikipediarelevance modelbreadhomebakingbusinessflourbasebutter1yeastworkcakestartbaking powderjobcookieshoecarbon dioxideportalhoneybreadtable 1: top 1 expansion terms/phrases for topic 1  home baking  for both of our expansion models.
+¡¡one limitation of our wikipedia-based approach is that its parameters  e.g.  the number of expansion terms  remain constant irrespective of the seed query. this is troublesome in cases where the topic drifts rapidly down the ranked list of wikipedia articles.
+¡¡in conclusion  our experimental results showed that the large document approach outperformed the small document approach for this task. additionally  the simple method of finding query expansion terms and phrases from wikipedia proved to be effective across runs. the two retrieval models and the wikipedia feedback model present interesting research questions. alternate sampling and rank aggregation methods may improve the performance of the small document model. the use of anchor text for query expansion could be explored further  beyond wikipedia and feed distillation.
+acknowledgments
+this work was supported in part by the erulemaking project and nsf grant iis-1  and darpa contract ibm w1  darpa prime agreement # hr1-1 .

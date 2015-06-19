@@ -1,0 +1,82 @@
+if modal logics for coalitions need to be applied  one must know how to translate coalition power into agents' actions. to these days  the connection between coalition power and the actions of the agents has not been studied in the literature. this paper fills the gap by presenting a semantic translation from pauly's coalition logic to a  fragment of an  action logic. the interpretation of the empty coalition in pauly's system and the representation of the notion of ability are discussed.
+¡¡keywords: modal logic  coalitions  coordination and cooperation  multiagent systems  concurrency
+1	introduction
+in the last decade  there has been increasing interest in logics suited for reasoning about groups of agents  1; 1; 1; 1; 1  and some systems emerged as paradigmatic in this area. among these  pauly's coalition logic  1; 1  seems to identify the core properties of coalitions and it is practically taken as a parametric system to verifying the adequacy of other logics in this area.
+¡¡generally  these modal logics for coalitions address the relationship between models and relative expressivity of the systems without tackling the relationship between coalition power and each agent's actions. they essentially capture implicit coalition power as in  coalition c can enforce proposition     which here we contrast with logics of explicit coalition power   coalition c  doing such and such  can enforce proposition   . the relationship between these two types of systems must be studied if we want to be able to use the general view provided by coalition logics in frameworks where actions and their consequences can be evaluated  cf.  . the study of such a relationship is the goal of this work.
+¡¡the first issue is the choice of the target language that can relate coalition power to agents' actions. one way to represent coalition power is to introduce a unary modality with two indices  say  c a   where c is a coalition and a is an action; informally  given a proposition p  formula  c a p stands for  coalition c can enforce p by performing action a . if a coalition c is capable of enforcing p  we need a coalition action to express this fact in the language. if a model has n possible worlds  there are 1n distinct subsets of worlds and  roughly  the same number of coalition actions are needed to effectively capture c's power in this model.
+¡¡a way out is to refer to actions without actually naming them. this seems to match the general idea of coalition logic since  informally  what it captures is not  action such and such performed by c enforces p  but  c has a way to enforce p   i.e.   there exists a coalition action for c to enforce p . this latter approach guarantees a concise language by introducing quantifiers. we can implement it in two ways: on the one hand using variables for coalition actions and  on the other hand  using variables for agent actions. at a closer analysis  the first option gives us  c  x  which does not differ in expressive power from pauly's coalition modality  c .
+¡¡the other option is what we study in this paper and requires a logic with new features. such a logic has already been studied with other motivations in . here we isolate a fragment of that system and show how to translate coalition logic in it. overview: sections 1 and 1 present the coalition logic  cl  and the action logic  al . section 1 discusses the assumptions of the translation and defines the coalition action logic cal. sections 1 and 1 give the model correspondence. section 1 discusses the approach and the notion of ability.
+1	the coalition logic cl
+the coalition logic cl  is a modal system for reasoning about groups of agents. the logic is developed to formally prove what a coalition of agents can bring about in a multiagent system. the semantics associates an  extensive  game of perfect information to each state in the system. the central notion is effectiveness: a coalition of agents is effective for a set of states in a game if the coalition can guarantee that the system will necessarily move to one state in the set .
+¡¡the language of clis a type of propositional multi-modal logic. it is built out of a countable set of proposition identifiers propid  with ¡Í ¡Ê propid  and contains 1|n| modal operators for some fixed finite set n. the modality markers are the subsets of n:  c  is a modality in clif and only if c   n. formulas in clare defined inductively:
+a  all elements of propid are formulas  atomic formulas 
+b    ¡Å ¦× and    are formulas if   and ¦× are formulas
+c   c   is a formula if c   n and   is a formula
+¡¡the intuition behind the formalism is that the modal operator  c  expresses the power of the group c of agents. the formula  c   states that the agents in c  acting as a coalition  can enforce   no matter what the remaining agents do.
+¡¡the semantics is based on game frames  that here we dub standard coalition frames. note that standard coalition frames are not kripke frames because modalities in cldo not satisfy the normality condition  i.e  they do not distribute over implication.
+definition 1  coalition frame 
+a coalition frame for a set n is a pair where
+w is a non-empty set  the set of states  and r is a subset of w ¡Á p n  ¡Á p w . furthermore  for all s ¡Ê w  c   n  andsatisfies the following:
+i  
+ii   s c w  ¡Ê r
+iii  if 
+iv  if  then 
+v  if c1 ¡És cc1 =¡È c  1  xs c1¡É xx1   ¡Ê¡Ê r r and  s c1 x1  ¡Ê r  then  
+ paulyp w   . the two definitions are equivalent.introduces r as a function r : w ¡ú  p n  ¡ú
+p
+proposition 1  coalition monotonicity and	for all s ¡Ê w
+
+definition 1  coalition structure 
+a coalition structure for a set n is a triple mf	=  where:
+- is a coalition frame fn;
+- ¡¤ is a valuation function propid.
+writeandsincer s  ncis fixed in advance  we drop it in  for the set of sets v such that  s c vf s c vn. also  we 	 r¡Ê. r
+r c  for the set of pairs  s v   such that
+mlently fix a coalition structuresatisfied	mclf -formulaand a state.  isstrue.	we write ¡Êequiva-
+f s |=   to mean that the  at state s of structure mf
+1 atomic 
+1 
+1 
+1 
+f
+mfor a set of formulaswe writef  that is  it is true at each state ofmf |=¦² into mean that formulacl is a structure. we writem . amf |coalition modelf. =such that allis  to meanvalid in
+formulas   ¡Ê ¦² are valid in mf that   is valid in each model based on frameclffollows the ap-
+¡¡the interpretation of modal operators in proach called minimal models   cf. clause 1 . from condition i  on relation r  a structure for cl is serial with respect to all the modalities.
+axioms for coalition logic:
+ 1   	   ¡ú	 ;	 1 	  ¡Ä	¡ú	  ¡Ä
+ 1 clletis determined by the class of coalition structuresc1 ¡É c  1c=1   1 ¡Ä  c1  1  ¡ú  c1 ¡È c1   1 ¡Ä   1  .
+1	the action logic al
+we consider the multi-agent modal logic given in . this language has the characteristics of merging modalities and quantifiers to model true concurrency  and was shown to be complete and decidable with respect to kripke semantics. for our task  we will apply the fragment of this system selected below and that we dub al.
+¡¡fix a set propid of proposition identifiers  with ¡Í ¡Ê propid  and a disjoint set of variables  var. we will use pi for proposition identifiers and xi for variables.
+definition 1  modality marker for al  a modality marker for al is a k-column of quantified variables
+qi ¡Ê {   }
+to maintain a direct connection1 with   no variable can occur more than once in a modality marker.
+¡¡the set of formulas for al is the smallest set satisfying the following clauses:
+a. all elements of propid are formulas  atomic formulas 
+b.   ¡Å ¦× and    are formulas if   and ¦× are formulas
+c.  m   is a formula if m is a modality marker and   is a formula
+ from this  all al formulas turn out to be closed. 
+¡¡there is an obvious bijection between the set of modality markers and the set of modal operators in the language. we will use the two notions indifferently.
+definition 1  k-action  given a set act of actions  a kaction is any column of k elements with ¦Ái ¡Ê act.1
+definition 1  multi-agent kripke frame for al 
+ a	multi-agent	kripke	frame	for al	is	a	triple where:
+- w is a non-empty set  the set of states  
+- act is a non-empty set  the set of actions   and
+- r is an  accessibility  relation mapping k-actions a  over act  to binary relations on w: r a    w ¡Á w.
+definition 1  multi-agent kripke structure for al  a multi-agent kripke structure for al is a 1-tuple
+¡¤ where:
+-  is a multi-agent kripke frame k;
+- ¡¤ is a valuation function propid.
+¡¡in the remaining of the paper  we use the terms kripke frames  structures  respectively  to refer to multi-agent kripke frames  structures .
+definition 1  instances  fix a k-action a and a modality marker m. a i   m i   resp.  is the i-th entry of a  m . for each j  we say that a j  instantiates the j-th variable of m.
+fix a kripke structure mk and a state s. relation |= is defined recursively for mk as follows:
+1. atomic 
+1.
+1. |	|	|
+1. let x1 ... xr  r ¡Ý 1  be all the existentially quantified variables in m and let xj occur at m ij  
+mk s |=  m   if  ¦Á1 ... ¦Ár ¡Ê act  ¦Ám ¦Án not necessarily distinct  such that for all k-action a with
+ xj in m  for all j ¡Ü r  if s s	¡Ê	then	k s |	 .
+¡¡we write mk |=   to mean that formula   is valid in mk  that is  it is true at each state of mk. a kripke model for a set  of formulas¡Ê ¦² are valid in¦² in almis a structurek. we writemk |k=such that all formulas  to mean that   is valid in each model based on frame k.
+¡¡let k be the number of agents in the multi-agent system one wants to model. fix an arbitrary order of the agents and let a1 be the first agent  a1 the second agent  ... ak the k-th agent. technically  a formula  m p with existential entries i1 i1 ...  is true in a state s when there exist values for the existentially quantified variables such that no matter the values selected for the universally quantified variables  the corresponding k-action brings  through r  only to states verifying p. from the point of view of a multi-agent system  a formula  m p is true if the agents ai1 ai1 ...  those whose positions correspond to existential entries of m  can perform a set of actions that force p to be verified no matter the actions executed by the remaining agents.  the general perspective behind al is presented in . 
+1	the coalition action logic cal
+in this section  we analyze the relationship between cl and al. a byproduct of this comparison is the clarification of a common misunderstanding on the notion of coalition in cl.

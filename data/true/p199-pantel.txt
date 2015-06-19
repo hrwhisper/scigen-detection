@@ -1,0 +1,177 @@
+document clustering is useful in many information retrieval tasks: document browsing  organization and viewing of retrieval results  generation of yahoo-like hierarchies of documents  etc. the general goal of clustering is to group data elements such that the intra-group similarities are high and the inter-group similarities are low. we present a clustering algorithm called cbc  clustering by committee  that is shown to produce higher quality clusters in document clustering tasks as compared to several well known clustering algorithms. it initially discovers a set of tight clusters  high intra-group similarity   called committees  that are well scattered in the similarity space  low inter-group similarity . the union of the committees is but a subset of all elements. the algorithm proceeds by assigning elements to their most similar committee. evaluating cluster quality has always been a difficult task. we present a new evaluation methodology that is based on the editing distance between output clusters and manually constructed classes  the answer key . this evaluation measure is more intuitive and easier to interpret than previous evaluation measures. 
+categories and subject descriptors 
+h.1  information storage and retrieval : information search and retrieval---clustering. 
+general terms 
+algorithms  measurement  experimentation. 
+keywords 
+document clustering  evaluation methodology  machine learning  document representation. 
+1. introduction 
+document clustering was initially proposed for improving the precision and recall of information retrieval systems . because clustering is often too slow for large corpora and has indifferent performance   document clustering has been used more recently in document browsing   to improve the organization  and viewing of retrieval results   to accelerate nearest-neighbor search  and to generate yahoo-like hierarchies . common characteristics of document clustering include: 
+  there is a large number of documents to be clustered; 
+  the number of output clusters may be large; 
+  each document has a large number of features; e.g.  the features may include all the terms in the document; and 
+  the feature space  the union of the features of all documents  is even larger. 
+in this paper  we propose a clustering algorithm  cbc  clustering by committee   which produces higher quality clusters in document clustering tasks as compared to several well known clustering algorithms. many clustering algorithms represent a cluster by the centroid of all of its members  e.g.  k-means   or by a representative element  e.g.  k-medoids  . when averaging over all elements in a cluster  the centroid of a cluster may be unduly influenced by elements that only marginally belong to the cluster or by elements that also belong to other clusters. to illustrate this point  consider the task of clustering words. we can use the contexts of words as features and group together the words that tend to appear in similar contexts. for instance  u.s. state names can be clustered this way because they tend to appear in the following contexts: 
+ list a      appellate court campaign in          capital governor of          driver's license illegal in          outlaws sth. primary in         's sales tax senator for     if we create a centroid of all the state names  the centroid will also contain features such as: 
+	  list b  	   's airport 	archbishop of     
+	 	   's business district 	fly to     
+
+permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. to copy otherwise  or republish  to post on servers or to redistribute to lists  requires prior specific permission and/or a fee. 
+sigir'1  august 1  1  tampere  finland. 
+copyright 1 acm 1-1/1...$1.  
+ 	   's mayor 	mayor of     
+ 	   's subway 	outskirts of     
+because some of the state names  like new york and washington  are also names of cities. 
+using a single representative from a cluster may be problematic too because each individual element has its own idiosyncrasies that may not be shared by other members of the cluster. 
+cbc constructs the centroid of a cluster by averaging the feature vectors of a subset of the cluster members. the subset is viewed as a committee that determines which other elements belong to the cluster. by carefully choosing committee members  the features of the centroid tend to be the more typical features of the target class. for example  our system chose the following committee members to compute the centroid of the state cluster: illinois  michigan  minnesota  iowa  wisconsin  indiana  nebraska and vermont. as a result  the centroid contains only features like those in list a. 
+evaluating clustering results is a very difficult task. we introduce a new methodology that is based on the editing distance between clustering results and manually constructed classes  the answer key . we argue that it is easier to interpret the results of this evaluation measure than the results of previous measures. 
+the remainder of this paper is organized as follows. in the next section  we review related clustering algorithms that are commonly used in document clustering. section 1 describes our representational model and in section 1 we present the cbc algorithm. the evaluation methodology and experimental results are presented in sections 1 and 1. in section 1  we show an example application of cbc. finally  we conclude with a discussion and future work. 
+1. related work 
+generally  clustering algorithms can be categorized as hierarchical and partitional. in hierarchical agglomerative algorithms  clusters are constructed by iteratively merging the most similar clusters. these algorithms differ in how they compute cluster similarity. in single-link clustering   the similarity between two clusters is the similarity between their most similar members while complete-link clustering  uses the similarity between their least similar members. average-link clustering  computes this similarity as the average similarity between all pairs of elements across clusters. the complexity of these algorithms is o n1logn   where n is the number of elements to be clustered . these algorithms are too inefficient for document clustering tasks that deal with large numbers of documents. in our experiments  one of the corpora we used is small enough  1 documents  to allow us to compare cbc with these hierarchical algorithms. 
+chameleon is a hierarchical algorithm that employs dynamic modeling to improve clustering quality . when merging two clusters  one might consider the sum of the similarities between pairs of elements across the clusters  e.g. average-link clustering . a drawback of this approach is that the existence of a single pair of very similar elements might unduly cause the merger of two clusters. an alternative considers the number of pairs of elements whose similarity exceeds a certain threshold . however  this may cause undesirable mergers when there are a large number of pairs whose similarities barely exceed the threshold. chameleon clustering combines the two approaches. 
+most often  document clustering employs k-means clustering since its complexity is linear in n  the number of elements to be clustered. k-means is a family of partitional clustering algorithms. the following steps outline the basic algorithm for generating a set of k clusters: 
+1. randomly select k elements as the initial centroids of the clusters; 
+1. assign each element to a cluster according to the centroid closest to it; 
+1. recompute the centroid of each cluster as the average of the cluster's elements; 
+1. repeat steps 1 for t iterations or until the centroids do not change  where t is a predetermined constant. 
+k-means has complexity o k¡Át¡Án  and is efficient for many document clustering tasks. because of the random selection of initial centroids  the resulting clusters vary in quality. some sets of initial centroids lead to poor convergence rates or poor cluster quality. 
+bisecting k-means   a variation of k-means  begins with a set containing one large cluster consisting of every element and iteratively picks the largest cluster in the set  splits it into two clusters and replaces it by the split clusters. splitting a cluster consists of applying the basic k-means algorithm ¦Á times with k=1 and keeping the split that has the highest average elementcentroid similarity. 
+hybrid clustering algorithms combine hierarchical and partitional algorithms in an attempt to have the high quality of hierarchical algorithms with the efficiency of partitional algorithms. buckshot  addresses the problem of randomly selecting initial centroids in k-means by combining it with average-link clustering. cutting et al. claim its clusters are comparable in quality to hierarchical algorithms but with a lower complexity. buckshot first applies average-link to a random sample of n elements to generate k clusters. it then uses the centroids of the clusters as the initial k centroids of k-means clustering. the complexity of buckshot is o k¡Át¡Án + nlogn . the parameters k and t are usually considered to be small numbers. since we are dealing with a large number of clusters  buckshot and k-means become inefficient in practice. furthermore  buckshot is not always suitable. suppose one wishes to cluster 1 documents into 1 newsgroup topics. buckshot could generate at most 1 initial centroids. 
+1. representation 
+cbc represents elements as feature vectors. the features of a document are the terms  usually stemmed words  that occur within it and the value of a feature is a statistic of the term. for example  the statistic can simply be the term's frequency  tf  within the document. in order to discount terms with low discriminating power  tf is usually combined with the term's inverse document frequency  idf  which is the inverse of the percentage of documents in which the term occurs. this measure is referred to as tf-idf  : 
+tf-idf = tf ¡Á log idf 
+we use the mutual information  between an element 
+ document  and its features  terms . 
+in our algorithm  for each element e  we construct a frequency count vector c e  =  ce1  ce1  ...  cem   where m is the total number of features and cef is the frequency count of feature f occurring in element e. in document clustering  e is a document and cef is the term frequency of f in e. we construct a mutual information vector mi e  =  mie1  mie1  ...  miem   where mief is the mutual information between element e and feature f  which is defined as: 
+cef
+mief = log ¡Æi cif ¡Án ¡Æj ncej 
+n
+where n = ¡Æ¡Æcij is the total frequency count of all features of i	j all elements.  
+we compute the similarity between two elements ei and ej using the cosine coefficient  of their mutual information vectors: 
+¡¡¡¡¡¡¡¡¡¡¡¡¡Æmiei f ¡Ámiej f sim ei  ej  = ¡Æfmiei f 1 ¡Á¡Æmiej f 1 
+	f	f
+1. algorithm 
+cbc consists of three phases. in phase i  we compute each element's top-k similar elements. in our experiments  we used k = 1. in phase ii  we construct a collection of tight clusters  where the elements of each cluster form a committee. the algorithm tries to form as many committees as possible on the condition that each newly formed committee is not very similar to any existing committee. if the condition is violated  the committee is simply discarded. in the final phase of the algorithm  each element is assigned to its most similar cluster. 
+1 phase i: find top-similar elements computing the complete similarity matrix between pairs of elements is obviously quadratic. however  one can dramatically reduce the running time by taking advantage of the fact that the feature vector is sparse. by indexing the features  one can retrieve the set of elements that have a given feature. to compute the top similar elements of an element e  we first sort the mutual information vector mi e  and then only consider a subset of the features with highest mutual information. finally  we compute the pairwise similarity between e and the elements that share a feature from this subset. since high mutual information features tend not to occur in many elements  we only need to compute a fraction of the possible pairwise combinations. with 1 elements  phase i completes in 1 minutes. using this heuristic  similar words that share only low mutual information features will be missed by our algorithm. however  in our experiments  this had no visible impact on cluster quality. 
+1 phase ii: find committees 
+the second phase of the clustering algorithm recursively finds tight clusters scattered in the similarity space. in each recursive step  the algorithm finds a set of tight clusters  called committees  and identifies residue elements that are not covered by any committee. we say a committee covers an element if the element's similarity to the centroid of the committee exceeds some high similarity threshold. the algorithm then recursively input: a list of elements e to be clustered  a similarity database s from phase i  thresholds ¦È1 and ¦È1. 
+step 1: 	for each element e ¡Ê e 
+  cluster the top similar elements of e from s using average-link clustering. 
+  for each cluster discovered c compute the following score: |c| ¡Á avgsim c   where |c| is the number of elements in c and avgsim c  is the average pairwise similarity between elements in c.   store the highest-scoring cluster in a list l. 
+step 1: 	sort the clusters in l in descending order of their scores. 
+step 1: 	let c be a list of committees  initially empty. 
+ 	 	for each cluster c ¡Ê l in sorted order 
+  compute the centroid of c by averaging the frequency vectors of its elements and computing the mutual information vector of the centroid in the same way as we did for individual elements.  
+  if c's similarity to the centroid of each committee previously added to c is below a threshold ¦È1  add c to c. 
+step 1: 	if c is empty  we are done and return c. 
+step 1: 	for each element e ¡Ê e 
+  if e's similarity to every committee in c is below threshold ¦È1  add e to a list of residues r. 
+ 	 
+step 1: 	if r is empty  we are done and return c. 
+  otherwise  return the union of c and the output of a recursive call to phase ii using the same input except replacing e with r. output: a list of committees. 
+figure 1. phase ii of cbc. 
+attempts to find more committees among the residue elements. the output of the algorithm is the union of all committees found in each recursive step. the details of phase ii are presented in figure 1. 
+in step 1  the score reflects a preference for bigger and tighter clusters. step 1 gives preference to higher quality clusters in step 1  where a cluster is only kept if its similarity to all previously kept clusters is below a fixed threshold. in our experiments  we set ¦È1 = 1. step 1 terminates the recursion if no committee is found in the previous step. the residue elements are identified in step 1 and if no residues are found  the algorithm terminates; otherwise  we recursively apply the algorithm to the residue elements. 
+each committee that is discovered in this phase defines one of the final output clusters of the algorithm. 
+1 phase iii: assign elements to clusters 
+in phase iii  every element is assigned to the cluster containing the committee to which it is most similar. this phase resembles kmeans in that every element is assigned to its closest centroid. 
+unlike k-means  the number of clusters is not fixed and the centroids do not change  i.e. when an element is added to a cluster  it is not added to the committee of the cluster . 
+1. evaluation methodology 
+many cluster evaluation schemes have been proposed. they generally fall under two categories: 
+  comparing cluster outputs with manually generated answer keys  hereon referred to as classes ; and 
+  embedding the clusters in an application  e.g. information retrieval  and using its evaluation measure. 
+one approach considers the average entropy of the clusters  which measures the purity of the clusters . however  maximum purity is trivially achieved when each element forms its own cluster. 
+given a partitioned set of n elements  there are n ¡Á  n   1  / 1 pairs of elements that are either in the same partition or not. the partition implies n ¡Á  n   1  / 1 decisions. another way to evaluate clusters is to compute the percentage of the decisions that are in agreement between the clusters and the classes . this measure sometimes gives unintuitive results. suppose the answer key consists of 1 equally sized classes with 1 elements in each. treating each element as its own cluster gets a misleadingly high score of 1%. 
+the evaluation of document clustering algorithms in information retrieval often uses the embedded approach . suppose we cluster the documents returned by a search engine. assuming the user is able to pick the most relevant cluster  the performance of the clustering algorithm can be measured by the average precision of the chosen cluster. under this scheme  only the best cluster matters. 
+the entropy and pairwise decision schemes each measure a specific property of clusters. however  these properties are not directly related to application-level goals of clustering. the information retrieval scheme is goal-oriented  however it measures only the quality of the best cluster. we propose an evaluation methodology that strikes a balance between generality and goal-orientation. 
+like the entropy and pairwise decision schemes  we assume that there is an answer key that defines how the elements are supposed to be clustered. let c be a set of clusters and a be the answer key. we define the editing distance  dist c  a   as the number of operations required to transform c into a. we allow three editing operations: 
+  merge two clusters; 
+  move an element from one cluster to another; and 
+  copy an element from one cluster to another. 
+let b be the baseline clustering where each element is its own cluster. we define the quality of cluster c as follows: 
+1  distdist  cb   aa   
+
+figure 1. an example of applying the transformation rules to three clusters. a  the classes in the answer key; b  the clusters to be transformed; c  the sets used to reconstruct the classes  rule 1 ; d  the sets after three merge operations  step 1 ; e  the sets after one move operation  step 1 ; f  the sets after one copy operation  step 1 . 
+this measure can be interpreted as the percentage of savings from using the clustering result to construct the answer key versus constructing it from scratch  i.e. the baseline . 
+we make the assumption that each element belongs to exactly one cluster. the transformation procedure is as follows: 
+1. suppose there are m classes in the answer key. we start with a list of m empty sets  each of which is labeled with a class in the answer key. 
+1. for each cluster  merge it with the set whose class has the largest number of elements in the cluster  a tie is broken arbitrarily . 
+1. if an element is in a set whose class is not the same as one of the element's classes  move the element to a set where it belongs. 
+1. if an element belongs to more than one target class  copy the element to all sets corresponding to the target classes  except the one to which it already belongs . 
+dist c  a  is the number of operations performed using the above transformation rules on c. 
+figure 1 shows an example. in d  the cluster containing e could have been merged with either set  we arbitrarily chose the second . the total number of operations is 1. 
+1. experimental results 
+in this section  we describe our test data and present an evaluation of our system. we compare cbc to the clustering algorithms presented in section 1 and we provide a detailed analysis of kmeans and buckshot. we proceed by studying the effect of different clustering parameters on cbc. 
+table 1. the number of classes in each test data set and the number of elements in their largest and smallest classes. 
+data set total docs  total classes largest class smallest class reuters 1 1 1 1 1-news 1 1 1 1  
+table 1. cluster quality  %  of several algorithms on the reuters and 1-news data sets. 
+ reuters 1-news cbc 1 1 k-means 1 1 buckshot 1 1 bisecting k-means  1 1 chameleon 1 n/a average-link 1 1 complete-link 1 1 single-link 1 1  
+1 test data 
+we conducted document-clustering experiments with two data sets: reuters-1 v1 and 1news-1  see table 1 . for the reuters corpus  we selected documents that: 
+1. are assigned one or more topics; 
+1. have the attribute lewissplit= test ; and 
+1. have  body  and  /body  tags. 
+there are 1 such documents. the 1news-1 data set contains 1 newsgroup articles partitioned  nearly  evenly across 1 different newsgroups. 
+1 cluster evaluation 
+we clustered the data sets using cbc and the clustering algorithms of section 1 and applied the evaluation methodology from the previous section. table 1 shows the results. the columns are our editing distance based evaluation measure. cbc outperforms k-means with k=1 by 1%. on the 1-news data set  our implementation of chameleon was unable to complete in reasonable time. for the 1-news corpus  cbc spends the vast majority of the time finding the top similar documents  1 minutes  and computing the similarity between documents and committee centroids  1 minutes . the rest of the computation  which includes clustering the top-1 similar documents for every one of the 1 documents and sorting the 
+
+figure 1. k-means cluster quality on the 1-news data set for different values of k plotted of over eight iterations. 
+
+figure 1. buckshot cluster quality on the 1-news data set for different values of k plotted of over eight iterations. 
+clusters  took less than 1 minutes. we used a pentium iii 1mhz processor and 1gb of memory. 
+1 k-means and buckshot 
+figure 1 and figure 1 show the cluster quality of different k's on the 1-news data set plotted over eight iterations of the k-means and buckshot algorithms respectively. the cluster quality for kmeans clearly increases as k reaches 1 although the increase in quality slows down between k=1 and k=1. 
+buckshot has similar performance to k-means on the reuters corpus; however it performs much worse on the 1-news corpus. this is because k-means performs well on this data set when k is large  e.g. k=1  whereas buckshot cannot have k higher than 
+ 1 . on the reuters corpus  the best clusters for kmeans were obtained with k = 1  and buckshot can have k as large as 1. however  as k approaches 1  buckshot degenerates to the k-means algorithm  which explains why buckshot has similar performance to k-means. figure 1 compares the cluster quality between k-means and buckshot for different values of k on the 1-news data set. 
+
+figure 1. comparison of cluster quality between k-means and buckshot for different k on the 1-news data set. 
+buckshot first applies average-link clustering to a random sample of n elements  where n is the number of elements to be clustered. the sample size counterbalances the quadratic running time of average-link to make buckshot linear. we experimented with larger sample sizes to see if buckshot performs better. for the 1-news data set  clustering 1 elements using average-link is very fast so we can afford to cluster a larger sample. figure 1 illustrates the results for k=1 on the 1-news data set where f indicates the forced sample size and f=sqrt is the original buckshot algorithm described in section 1. since k   1  f=sqrt is just the k-means algorithm  we always sample at least k elements . buckshot has better performance than k-means as long as the sample size is significantly bigger than k. all values of f ¡Ý 1 converged after only two iterations while f=sqrt took four iterations to converge. 
+1 clustering parameters 
+we experimented with different clustering parameters. below  we describe each parameter and their possible values: 
+1. vector space model  described in section 1 : 
+a  mi 	: the mutual-information model; 
+b  tf 	: the term-frequency model; 
+c  tfidf1 : the tf-idf model; 
+d  tfidf1 : the tf-idf model using the following formula: tf-idf = tf ¡Á log idf. 
+1. stemming: 
+a  s- 	: terms are not stemmed; 
+b  s+ 	: terms are stemmed using porter's stemmer . 
+1. stop words: 
+a  w- 	: no stop words are used as features; 
+b  w+ 	: all terms are used. 
+1. filtering: 
+a  f- 	: no term filtering is performed; 
+b  f+ 	: terms with mi 1 are deleted. 
+when filtering is on  the feature vectors become smaller and the similarity computations become much faster. 
+we refer to an experiment using a string where the first position corresponds to the stemming parameter  the second position 
+
+figure 1. buckshot cluster quality with k=1 for varying sample size  f  on the 1-news data set plotted over five iterations. 
+corresponds to the stop words parameter and the third position corresponds to the filtering parameter. for example  experiment s+w-f+ means that terms are stemmed  stop words are ignored  and filtering is performed. the vector space model parameter will always be explicitly given. 
+figure 1 illustrates the quality of clusters generated by cbc on the reuters corpus while varying the clustering parameters. most document clustering systems use tfidf1 as their vector space model; however  the mi model outperforms each model including tfidf1. furthermore  varying the other parameters on the mi model makes no significant difference on cluster quality making mi more robust. tf performs the worse since terms with low discriminating power  e.g. the  furthermore  are not discounted. although tfidf1 slightly outperforms tfidf1  on experiment s+w-f-   it is clearly not as robust. except for the tf model  stemming terms always produced better quality clusters. 
+1. example 
+we collected the titles and abstracts for the 1 papers presented at sigir-1 and clustered them using cbc. for each paper  we used as part of its filename the session name in which it was presented at the conference and a number representing the order in which it appears in the proceedings. for example  cat/1 refers to a paper that was presented in the categorization session and that is the 1th paper in the proceedings. the results are shown in table 1.  
+the features of many of the automatically generated clusters clearly correspond to sigir-1 session topics  e.g. clusters 1  
+table 1. output of cbc applied to the 1 papers presented at sigir-1: the left column shows the clustered documents and the right column shows the top-1 features  stemmed terms  forming the cluster centroids. 
+# cluster elements top-1 features  stemmed  1 cat/1  cat/1  lrn/1 text  featur  learn  categor  classif  approach  svm 1 ms/1  eval/1  ms/1  sys/1  cat/1 threshold  score  term  base  distribut  optim  scheme 1 lm/1  lm/1  lm/1  cl/1  cl/1  cl/1 model  languag  translat  expans  estim  improv  framework 1 us/1  us/1  us/1  sys/1  sum/1  eval/1  lrn/1 user  result  use  imag  system  search  index 1 web/1  sys/1  ms/1  eval/1 search  engin  page  web  link  best 1 sum/1  lrn/1  lm/1 stori  new  event  time  process  applic  content 1 sum/1  sum/1  sum/1  lm/1  sum/1 summar  term  text  summari  weight  scheme  automat 1 lrn/1  sys/1 level  space  framework  vector  comput  recent 1 qa/1  qa/1  qa/1  ms/1 answer  question  perform  task  passag  larg  give 1 rm/1  rm/1  rm/1  rm/1 queri  languag  similar  data  framework  seri 1 web/1  sum/1  web/1 link  algorithm  method  hyperlink  web  analyz  identifi cat=categorization  cl=crosslingual  eval=evaluation  lm=languagemodels  lrn=learning  ms=metasearch  qa=questionanswering  rm=retrievalmodels  sum=summarization  sys=systems  us=userstudies  web=web 
+ 
+
+figure 1. cbc evaluation of cluster quality when using different clustering parameters  reuters corpus . 1  1  1  1 and 1 . applying the evaluation methodology of section 1 gives a score of 1%. this score is fairly low for the 
+following reasons: 	  
+  some documents could potentially belong to more than one session. for example  lrn/1 was clustered in the categorization cluster #1 because it deals with learning and text categorization  it is titled  a meta-learning approach for 
+text categorization  . using the sessions as the answer key  lrn/1 will be counted as incorrect. 
+cbc generates clusters that do not correspond to any session topic. for example  all papers in cluster #1 have news stories as their application domain and the papers in cluster #1 all deal with search engines. 
+1. conclusion 
+document clustering is an important tool in information retrieval. we presented a clustering algorithm  cbc  which can handle a large number of documents  a large number of output clusters  and a large sparse feature space. it discovers clusters using wellscattered tight clusters called committees. in our experiments on document clustering  we showed that cbc outperforms several well-known hierarchical  partitional  and hybrid clustering algorithms in cluster quality. for example  in one experiment  cbc outperforms k-means by 1%. 
+evaluating cluster quality has always been a difficult task. we presented a new evaluation methodology that is based on the editing distance between output clusters and manually constructed classes  the answer key . this evaluation measure is more intuitive and easier to interpret than previous evaluation measures. 
+cbc may be applied to other clustering tasks such as word clustering. since many words have multiple senses  we can modify phase iii of cbc to allow an element to belong to multiple clusters. for an element e  we can find its most similar cluster and assign e to it. we can then remove those features from e that are shared by the centroid of the cluster. then  we can recursively find e's next most similar cluster and repeat the feature removal. this process continues until e's similarity to its most similar cluster is below a threshold or when the total mutual information of all the residue features of e is below a fraction of the total mutual information of its original features. for a polysymous word  cbc can then potentially discover clusters that correspond to its senses. preliminary experiments on clustering words using the trec collection  1gb  and a proprietary collection  1gb  of grade school readings from educational testing service gave the following automatically discovered word senses for the word bass: 
+ clarinet  saxophone  cello  trombone  
+ allied-lyons  grand metropolitan  united biscuits  
+cadbury schweppes  
+ contralto  baritone  mezzo  soprano  
+ steinbach  gallego  felder  uribe  
+ halibut  mackerel  sea bass  whitefish  
+    kohlberg kravis  kohlberg  bass group  american home  and for the word china: 
+ russia  china  soviet union  japan   earthenware  pewter  terra cotta  porcelain  
+the word senses are represented by four committee members of the cluster. 
+1. acknowledgements 
+the authors wish to thank the reviewers for their helpful comments. this research was partly supported by natural sciences and engineering research council of canada grant ogp1 and scholarship pgsb1. 

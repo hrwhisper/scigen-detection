@@ -1,0 +1,120 @@
+1 introduction 
+the robust retrieval track is a traditional ad hoc retrieval task where the evaluation methodology emphasizes a system's least effective topics. the goal of the track is to improve the consistency of retrieval technology by focusing on poorly performing topics.  
+¡¡¡¡this year is the first time for lcc  large-scale content computing  group in ict to participate in the robust track. the last two years since 1 showed that the most promising approach to improving poorly performing topics is to utilize external text collections such as the web other than the target collection . but we didn't exploit web-assisted tools such as google for query expansion  which has been viewed as a very effective strategy for improving retrieval performances . we argue that google can be only viewed as web-assisted tool rather than an external web collection  because we don't know any mechanism or retrieval procedure behind google and what we can do is just to use its retrieval results for enhancing the original query.  in the robust track  we focus on how to effectually improve the retrieval performances  effectiveness and robustness measured by map and gmap1   respectively  by merging multiple retrieval ranks produced by multiple retrieval methods with or not with query expansion. to rank the documents  we utilize five document scoring functions  called okapi-bm1  lmir-jm  lmir-dir  lmir-abs  lmir-gjm1  respectively. to expand the original query  we use three local-analysis based expansion methods  named as locooc  locfb  and kld  respectively. a novel fusion method ---- rankfusion  which is independent of the retrieval methods and document score  is proposed for merge multiple runs. 
+¡¡¡¡the remainder of our paper is organized as follows. in section 1 we present the basic retrieval architecture of our ir system and summary the five retrieval methods and the three query expansion methods used in the track. in section 1 we give a formal description of rankfusion. in section 1 we introduce our query difficulty prediction method. official submissions and results are presented in section 1. conclusions of our work are summarized in section 1. 
+ 
+ 
+fig.1 retrieval architecture of our ir system 
+1 retrieval methods and query expansion methods 
+the architecture of our ir system is illustrated in fig. 1  where retrieval module  query expansion module and rankfusion module are the main parts of the system. in retrieval module  we exploit five retrieval methods  okapi-bm1  lmir-jm  lmir-dir  lmir-abs  lmir-gjm1   according to the following uniform document scoring form: 
+	sim d q  = ¡Æt¡Êqw  t | q   w  t | d  	 1  
+where sim d q  is the relevance score of document d given query q  w t|q  and w t|d  are the weights of term t in q and in d  respectively.  
+¡¡¡¡in the five retrieval methods  okapi-bm1 originates from the popular 1-possion based probability retrieval model . the other four methods are derived from the language modeling approach to ir   each using a different smoothing method: jm denotes jelinek-mercer  dir denotes dirichlet priors  abs denotes absolute discounting  and gjm1 denotes gjm-1 smoothing method . the five retrieval methods are summarized in table 1 in terms of w t|q  and w t|d  in the uniform form. table 1 also gives the default values of parameters in each retrieval method. 
+¡¡¡¡in query expansion module  we exploit three local-analysis based expansion methods  which use a local document set  generally composed of the top-ranked n documents retrieved by original query  to extract most appropriate terms to expand the query. the core of query expansion is the term ranking function score t q|c s   which indicates the correlation degree of term t with original query q given the document collection c and the local document set s. according to score t q|c s   the top-scored k terms are added to the query. table 1 summarizes the three expansion methods  named as locooc  locfb  kld  in terms of score t q|c s . 
+for reweighting the terms in the expanded query qexp  we use the following function : 
+score   t
+	w t q  |	exp  =¦Á w t q  |	  +¦Â 	 	 1  
+maxscore
+where w t|q  is the weight of term t in original query q  score t  is equivalent to score t q|c s   and maxscore is the maximum score of all the selected expansion terms. the coefficient ¦Á and ¦Â are both set to 1 in all experiments. 
+table 1. summary of the five retrieval methods used for the robust track. tf t|q  and tf t|d  are the frequencies of term t occurring in query q and document d  respectively. dl d  is the length of document d  |d| = dl d . avdl c  is the average length of all the documents in collection c. pml t|d  and pml t|c  are the maximum likelihood estimators of the probabilities of term t occurring in document d and collection c  respectively. |d|u is the number of unique terms in document d. 
+retrieval method w t|q  w t|d  param values rm1: 
+okapi-bm1  k1 +1   tf  t | q  
+
+k1 + tf  t | q 	 k1 +1  tf t | d 	 	n df t | c +1 
+log
+	 	dl d   	df t | c +1
+k1   1 b +b  avdl c   +tf t | d k1 = 1  k1 = 1  b = 1 rm1: lmir-jm tf w|q  log ¦Ëpml t | d  +  1 ¦Ë pml t | c   ¦Ë = 1  title  or ¦Ë = 1  desc  rm1: lmir-dir tf w|q   tf  t | d 
+log  	| d+¦Ì| +p¦Ìml w| c       
+ ¦Ì = 1 rm1: lmir-abs tf w|q  log    max tf  |td| d|    ¦Ä 1  +¦Ä||dd||u pml t | c      
+ ¦Ä = 1 rm1: lmir-gjm1 tf w|q  	  | d|	| d|	 
+log   | d|u +u¦Ìpml w| d  +  1  | d|u +u¦Ì pml w|c     ¦Ì = 1 table 1. summary of the three query expansion methods used for the robust track. idf ¡¤|c  is inverse document frequency of a term in the collection. cood t q|s  is the co-occurrence degree of the term t and the query term q in s  see. w t|d  is the weight of term t in document d  generally using the weighting form in okapi-bm1. p t|s  and p t|c  are the probabilities of term t occurring in s and in collection c  respectively. 
+qe method score t q|c s  qe1: locooc ¡Æq¡Êq idf  q | c idf  t | c log cood t q | s  +1  qe1: locfb 1 ¡Æd¡Êsw  t | d  nqe1: kld ¡¡¡¡¡¡¡¡¡¡p t | s  p t | s  log	 
+p t | c   
+¡¡¡¡table 1 gives the retrieval performances of the three expansion methods and their improvements over the initial retrieval results  i.e. no expansion is used  for each retrieval method. from the table we can see that in all retrieval methods  although query expansion can improve average precision  map  significantly  it can usually hurt retrieval robustness  measured by gmap  seriously. these observations are also testified in previous robust tracks . 
+table 1. the retrieval performances  map and gmap  of the three expansion methods and their improvements over the initial retrieval results  i.e. no expansion is used  for each retrieval method. the document collection is disk1&disk1-cr  with queries constructed only using the title of topics exploited in this year's robust track. stop-words are removed and porter-stemming is applied. the  rmx  column is id of retrieval method x see table 1 .  rmx.qey 1 .run  denotes the retrieval result using retrieval method  rmx  and query expansion method  qey   see table 1   qe1  denotes no expansion . the expansion parameters are set to  1  for all expansion methods  where 1 is the number of top-retrieval documents and 1 is the number of expansion terms. 
+rmx rmx.qe1.run rmx.qe1 1 .run rmx.qe1 1 .run rmx.qe1 1 .run map gmap map gmap map gmap map gmap rm1 1 1 1 +1% 1 
+-1% 1 +1% 1 
+-1% 1 +1% 1 
++1% rm1 1 1 1 +1% 1 
+-1% 1 
++1% 1 +1% 1 +1% 1 +1% rm1 1 1 1 +1% 1 
+-1% 1 +1% 1 
+-1% 1 +1% 1 
+-1% rm1 1 1 1 +1% 1 
+-1% 1 +1% 1 
+-1% 1 +1% 1 
+-1% rm1 1 	1 1 +1% 1 
+-1% 1 +1% 1 
+-1% 1 +1% 1 
+-1% table 1. the influences of rankfusion to map and gmap. the data set is the same as that used in table 1. the  rmx  column is id of retrieval method x see table 1 . the  rmx.qe1.run  column shows the performances for retrieval method  rmx  with no query expansion. other columns which contain  rf  show the performances after using rankfusion for combination: rmx.qeyrf.run = 1*rmx.qe1.run  1* rmx.qey 1 .run rmx.qey 1 .run   rmx.qerf.run = rmx.qe1rf.run rmx.qe1rf.run  rmx.qe1rf.run the last row shows the performances of final integrative results merged by the results produced for each retrieval method. 
+rmx rmx.qe1.run rmx.qe1rf.run rmx.qe1rf.run rmx.qe1rf.run rmx.qerf.run map gmap map 	gmap map gmap map gmap map 	gmap rm1 1 1 1 	1 
++1% +1% 1 
++1% 1 
++1% 1 +1%1 +1% 1 	1 
++1% +1%rm1 1 1 1 	1 
++1% +1%1 
+1% 1 +1%1 +1%1 
++1% 1 1 +1% +1%rm1 1 1 1 	1 
++1% +1% 1 +1%1 +1%1 +1%1 
++1% 1 	1 
++1% +1%rm1 1 1 1 	1 
++1% +1% 1 +1%1 
++1% 1 +1%1 
++1% 1 	1 
++1% +1% rm1 1 	1 1 	1 
++1% +1% 1 +1%1 
++1% 1 +1%1 
++1% 1 	1 
++1% +1% qerf.run  rm1.qerf.run rm1.qerf.run ... rm1.qerf.run : map=1  gmap=11 merging multiple results with rankfusion 
+previous studies indicate that retrieval performances can often be improved by using a number of different retrieval algorithms and combining the results  in contrast to using just a single retrieval algorithm . this is because different retrieval algorithms  or retrieval experts  often emphasize different document and query features when determining relevance and therefore retrieve different sets of documents .  
+¡¡¡¡many combination methods took a linear combination of the relevance scores  based on saracevic and kantor's early observation that the more runs a document is retrieved by the more likely it is that the document is relevant . however the relevance scores may be not comparable across the runs. some other combination methods tried normalization of relevance scores prior to combination and got very little success  probably due to the different distribution of the scores in each run . 
+¡¡¡¡in the robust track  the method proposed for results combination is named as rankfusion  which computes the rank score for each retrieved document based on the document's rank order in its result list  and then uses the rank score to reorder all the documents in the combined retrieved document set. formally  suppose we have m rank lists of retrieved documents for query q: {l1 q  ... li q  ... lm q }. each rank list li q  has ni retrieved documents  ni is usually equal to 1 in trec-style result : 
+	l qi  	  ¡Ô   di 1 si 1   di 1  si 1   ...  di j   si j    ...  di n  i  si ni      1 ¡Ü i ¡Ü m  1 ¡Ü j ¡Ü ni
+where si j is the relevance score of document di j in li q   and si j   si j+1. for the query q  suppose the final combined rank list l q  is  
+	l q  ¡Ô   d s1 	   d s1  1  ...  d sj   j   ...  d sn  n    
+where each document dj occurs at least one list in the m rank lists and sj is the relevance score of document dj. how do we merge the m rank lists {l1 q  ... li q  ... lm q } into l q   
+ in our combination method  we assign a rank score rankscore d|li q   to each document d in the rank list li q . the rank score is computed based on the reciprocal of the rank order1 
+rankorder d|li q  . that is   
+	rankscore d | li     q =1/ rankorder d | li     q 	 1  
+for any document that is not in the list li q   rankorder d|li q   is  ni+1 . 
+¡¡¡¡to get the final combined rank list l q   we first use the following formula to compute the combined rank score comrankscore d|q  of any document d that occurs at least one list in the m rank lists: 
+m
+	comrankscore d | q  = ¡Æ¦Ái   rankscore d | li  q   	 1  
+i=1
+where ¦Ái is a positive coefficient to control the confidence in each rank list.  
+¡¡¡¡the comrankscore d|q  reflects integrative estimate of the document d being relevant to the query and can be directly used for measuring the relevance score of d in the final combined list. we reorder all the unique documents in the m rank list according to comrankscore d|q  and return the top-ordered n documents to the user  where the relevance score sj of document dj in the final combined list is equal to comrankscore dj|q . for the sake of simplicity  we introduce an operator     to denote the combination of multiple results  or runs  in the remainder of the paper: 
+m
+	run=¨’¦Ái runi =¦Á1run1 ¨’¦Á1run1 ¨’...¨’¦Ámrunm 	 1  
+i=1
+where each combination coefficient ¦Ái is set empirically in our experiments. 
+ in our experiments we exploited various fusion strategies with rankfusion and found that in most cases rankfusion can improve gmap significantly while not hurting map too much. our experiments showed that for each retrieval method  with appropriate setting of the combination coefficients  using rankfusion to merge the initial retrieval result with the result after query expansion can improve the robustness significantly though it sometimes has some harm for the average precision when compared with query expansion. in addition  merging the results produced by different retrieval methods can also achieve better gmap  as indicated in table 1.  
+1 query difficulty prediction with kl-divergence 
+our prediction of query-difficulty is based on the assumption that if there is a significant divergence of query-term distribution in the top-ranked documents and in the total document collection  then we make the hypothesis that this divergence is caused by the query which is easy-defined. that is to say  we can use the negative kl-divergence to predict the query difficulty. p w| s 
+	difficultyscore = ¡Æw¡Êq p w| s log p w| c  	 1  
+where p w|s  is the probability of term w in the document set s composed of top-ranked documents: 
+	p 	 1  
+and p w|c  is the probability of term w in the document collection: 
+	p 	 1  
+1 official submissions and results 
+in our experiments  according to whether port-stemming is used or not  two kinds of indexes are built: stemmed and unstemmed. we think that using rankfusion to merge the results on stemmed data set with the results on unstemmed data set other than on a single data set  the retrieval robustness can be improved further. in the robust track  we exploited five retrieval methods  table 1   with the retrieval parameters being set to default values.  
+   for each retrieval method rmx  x denotes the id of the retrieval method  see table 1   we used the three query expansion methods  table 1  with appropriate parameter settings to obtain multiple retrieval resultsd. for each query expansion method  we experimented with various setting of expansion parameters  primarily including n and k  where n is the number of top retrieved documents and k is the number of expansion terms. we found that in most cases the appropriate values of  n k  are  1  or  1  on stemmed data set. on unstemmed data set  the good setting of  n k  is  1  or  1 .  
+   for each retrieval method rmx  suppose  rmx.qe1.run  is the run id of the retrieval result with the original query  i.e. no query expansion is applied    rmx.qey n k .run  is the run id of the retrieval result using query expansion method y  see table 1   with expansion parameters being  n k . as  mentioned  collection enrichment is a good strategy to improve the retrieval performances of difficult topics. we used gov data set as an alternative external collection for collection enrichment. first we utilized okapi-bm1 to retrieve the gov collection and extracted 1 terms from the top-ranked 1 documents to form an expanded query. then for each retrieval method rmx  a new result  rmx.qe-gov.run  was retrieved using the expanded query. thus we had total 1 temporary runs for each retrieval method rmx  on stemmed data set and unstemmed data set  respectively. the temporary runs on stemmed data set are:  rmx.qe1.run  rmx.qe-gov.run  rmx.qe1 1 .run  rmx.qe1 1 .run   rmx.qe1 1 .run  rmx.qe1 1 .run  rmx.qe1 1 .run  rmx.qe1 1 .run 
+   runs on unstemmed data set are very similar to them  except the qe parameter  n k  is set to  1  and  1 . using these temporary runs for rankfusion  we submitted 1 title-only  ict1qerft.run  ict1qerftg.run  and 1 description-only  ict1qerfd.run  ict1qerfdg.run  runs. the runs whose names contain the label  g  are those that use external collection in a first-pass retrieval. table 1 shows the performances of the final submitted runs. appendix 1 gives an exhaustive description of the temporary merged runs and their retrieval performances for title-only task. 
+table 1. retrieval performances of the submitted runs 
+run id comment map gmapr-prec recall ict1qerftg title-only  collection enrichment with gov 111 1ict1qerft title-only  no collection enrichment 111 1ict1qerfdg description-only  collection enrichment with gov111 1ict1qerfd description -only  no collection enrichment 111 11 conclusions 
+this is the first time for lcc  large-scale content computing  group in ict to participate in the robust track. we focus on using different retrieval methods and query expansion methods for improving the retrieval effectiveness. our experiments show that query expansion can hurt robustness seriously while it improves the average precision. we propose a novel combination method - rankfusion  for merging multiple retrieval results. the experimental results show that with appropriate parameters setting  using rankfusion for merging runs can improve the robustness significantly while not harming the average precision too much or even increasing the average precision in some cases. 
+acknowledgments 
+the index of document collection was built using lemur1  version: 1  toolkit. we also used some api functions of lemur for index accessing.  
+appendices 
+1. performances of temporary and submitted runs for title-only task on stemmed and unstemmed indexes. the above half part shows temporary results on stemmed index  while the below half part shows temporary results on unstemmed index. the last two rows give the performances of the submitted runs for title-only. rmx denotes the retrieval method with id being  x  see table 1 . qey denotes the query expansion method with id being  y  see table 1 .  
+performanes on stemmed data set: aquaint  title-only rmx rmx.qe1.run rmx.qe1rf.run rmx.qe1rf.runrmx.qe1rf.runrmx.qe-gov.runrmx.qerf.run rmx.qerf-g.run map gmap map gmap map gmapmap gmapmap gmapmap gmap map gmap rm1 1 1 1 1 1 1111111 1 1 rm1 1 1 1 1 1 1111111 1 1 rm1 1 1 1 1 1 1111111 1 1 rm1 1 1 1 1 1 1111111 1 1 rm1 1 1 1 1 1 1111111 1 1 final result on stemmed dataset with no collection enrichment  qerf.run : map = 1  gmap = 1final result on stemmed dataset with collection enrichment  qerf-g.run : map = 1  gmap = 1performanes on unstemmed data set: aquaint  title-only rmx rmx.nqe.run rmx.qe1rf.run rmx.qe1rf.runrmx.qe1rf.runrmx.qe-gov.runrmx.qerf.run rmx.qerf-g.run map gmap map gmap map gmapmap gmapmap gmapmap gmap map gmap rm1 1 1 1 1 1 1111111 1 1 rm1 1 1 1 1 1 1111111 1 1 rm1 1 1 1 1 1 1111111 1 1 rm1 1 1 1 1 1 1111111 1 1 rm1 1 1 1 1 1 1111111 1 1 final result on unstemmed dataset with no collection enrichment qerf.run : map = 1  gmap = 1final result on unstemmed dataset with collection enrichment qerf-g.run : map = 1  gmap = 1performances of submitted runs on title-only ict1qerft map = 1  gmap = 1 ict1qerftg map = 1  gmap = 1  note: the runs on stemmed data set whose name contains  rf  are merged using rankfusion  according to the following fusion strategy: 
+rmx.qeyrf.run = 1*rmx.qe1.run 1* rmx.qey 1 .run rmx.qey 1 .run  rmx.qerf.run = rmx.qe1rf.run rmx.qe1rf.run rmx.qe1rf.run rmx.qerf-g.run = 1*rmxqerf.run 1*rmx.qe-gov.run qerf.run = rm1.qerf.run rm1.qerf.run ... rm1.qerf.run qerf-g.run = rm1.qerf-g.run rm1.qerf-g.run ... rm1.qerf-g.run 
+¡¡the runs on unstemmed data set whose name contains  rf  are merged with similar strategy  except the query expansion parameters were set to  1  and  1 . 
+¡¡the final submitted runs  ict1qerft and ict1qerft  were obtained using the following fusion formula: 
+ict1qerft = stem.qerf.run unstem.qerf.run 
+¡¡¡¡¡¡¡¡ict1qerftg = stem.qerf-g.run unstem.qerf-g.run where stem.qerf.run  or stem.qerf-g.run  is the qerf.run  or qerf-g.run  on stemmed data set  unstem.qerf.run  or unstem.qerf-g.run  is the qerf.run  or qerf-g.run  on unstemmed data set.  
+ 
+ 
+ 
+ 
+ 

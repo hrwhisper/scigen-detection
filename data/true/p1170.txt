@@ -1,0 +1,6 @@
+a novel framework for eliciting a user's conceptualization based on an ontology-driven dialog is presented here. it has been integrated in an rdf/owl-based architecture of an adaptive learning content management system. the implemented framework is illustrated with an application scenario to deal with the cold start problem and to enable tailoring the system's behavior to the needs of each individual user.
+categories and subject descriptors
+i.1  artificial intelligence : knowledge representation formalisms and methods; k.1  computers and education : computer uses in education-computer-assisted instruction  distance learning
+general terms:human factors  design
+keywords:personalization on the semantic web  user modeling  adaptive content management  application of semantic web technologies
+1. interactiveontology-baseduser modeling

@@ -1,0 +1,170 @@
+accurate estimation of information retrieval evaluation metrics such as average precision require large sets of relevance judgments. building sets large enough for evaluation of realworld implementations is at best inefficient  at worst infeasible. in this work we link evaluation with test collection construction to gain an understanding of the minimal judging effort that must be done to have high confidence in the outcome of an evaluation. a new way of looking at average precision leads to a natural algorithm for selecting documents to judge and allows us to estimate the degree of confidence by defining a distribution over possible document judgments. a study with annotators shows that this method can be used by a small group of researchers to rank a set of systems in under three hours with 1% confidence.
+categories and subject descriptors: h.1 information storage and retrieval; h.1 systems and software: performance evaluation
+general terms: algorithms  measurement  experimentation  theory
+keywords: information retrieval  evaluation  test collections  algorithms  theory
+1.	introduction
+　information retrieval system evaluation requires test collections: corpora of documents  sets of topics  and relevance judgments indicating which documents are relevant to which topics . ideal measures of retrieval performance should reward systems that rank relevant documents highly  precision  and that retrieve many relevant documents  recall . stable  fine-grained evaluation metrics take both of these into account  but they require large sets of judgments to accurately measure system performance.
+　the trec conferences were set up by nist with several goals. most relevant to this work is the goal of building test collections that could be used by information retrieval
+permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. to copy otherwise  to republish  to post on servers or to redistribute to lists  requires prior specific permission and/or a fee.
+sigir'1  august 1  1  seattle  washington  usa.
+copyright 1 acm 1-1/1 ...$1.
+practitioners to build and evaluate their retrieval systems. the test collections need to be reusable; that is  they need to not only provide accurate evaluation of the set of retrieval systems submitted to trec  but also to evaluate future retrieval systems that may be developed. to that end  nist uses a process of pooling to build sets of relevance judgments: top results from many system runs on the same topics are pooled  and the entire pool is judged . this gives a large set of judgments that are sufficient for future use .
+　reusability is not always a major concern. for example  someone setting up a search engine for a collection simply wants to know which retrieval system is best for the types of queries he expects. trec-style topics and judgments may not suit his purpose  and he may have neither the time nor money to collect the thousands of relevance judgments necessary to do a trec-style evaluation on his own topics. another case is a researcher performing a user study or a preliminary investigating a new retrieval task. she wants her retrieval system to be the best possible  but she has no relevance judgments for her topics. reusability is not a concern; she just wants to do the minimum set of judgments to tell her which system is best.
+　a third example is a large  highly dynamic collection such as the web. from month to month  topics and documents become obsolete; new documents enter the collection; collection statistics change. meanwhile new algorithms must constantly be evaluated. a comparison of algorithms one month may result in a set of judgments that are not usable the next month simply because too many documents have disappeared or become less relevant as new documents and topics have appeared .
+　for any of these tasks  building a database of tens of thousands of relevance judgments is quite inefficient.
+　our goal in this work is to show that it is possible and not difficult to evaluate a set of retrieval systems with high confidence with a minimal set of judgments. we present a novel perspective on average precision that leads to a natural algorithm for building a test collection. we show that average precision  ap  is normally distributed over possible sets of relevance judgments  allowing us to estimate our confidence in ap. this is used as a probabilistic stopping condition for our algorithm. in this way  evaluation and test collection construction are explicitly linked.
+　we then implement the algorithm and run a study with annotators. with only 1 hours of annotator time and under three hours real time we can achieve a ranking that is correct and that we have 1% confidence in. simulation experiments test further aspects of our algorithm.
+1.	previous work
+　the method used by nist to build test collections for trec is pooling . at trec  text retrieval conference  each year  sites submit retrieval runs on a corpora without relevance judgments. the top n documents from each submitted system are pooled and judged  and that set of relevance judgments is used to evaluate all systems. the pooling method has been shown to be sufficient for research purposes  1  1 .
+　work building on the pooling method shows how sets of trec judgments can be obtained more efficiently. cormack et al. and zobel independently investigated dynamic orderings of documents such that systems that have yielded more relevant documents are given greater priority in a pool  1  1 . soboroff et al. investigated random assignment of relevance to documents in a pool and found that this could actually give a decent ranking of systems . more recently  sanderson and joho found that systems could be ranked reliably from a set of judgments obtained from a single system or from iterating relevance feedback runs   and carterette and allan proposed an algorithm based on paired comparisons of systems that was able to achieve high rank correlation with a very small set of judgments .
+　all of these works have focused on building collections from trec systems. in this work we move away from the trec environment to a smaller experimental environment that a research lab might find itself in.
+1.	intuition and theory
+　precision is the ratio of relevant documents retrieved to documents retrieved at a given rank. average precision is the average of precisions at the ranks of relevant documents. for a set r of relevant documents 
+	 	 1 
+　average precision is a standard information retrieval evaluation metric. it has been shown to be stable ; that is  it reliably identifies a difference between two systems when one exists.
+　let xi be a boolean indicator of the relevance of document i. numbering documents in the order they were retrieved  we can rewrite ap as a sum over ranks 1 to n  the total number of documents in the corpus:
+
+if we order documents arbitrarily  we replace the  with coefficient aij:
+
+to see why this is true  consider a toy example: a list of 1 documents with relevant documents x1 x1 at ranks 1 and 1.
+average precision will be 
+  because x1 = 1 x1 = 1 x1 = 1.
+　the difference in average precision between two systems is then
+		 1 
+　suppose we believe that  ap   1 and we wish to find the set of documents that would prove it. intuitively  a document that supports  ap   1 is relevant and has positive  weight   that is  pcijxixj   1. a document that supports the opposite hypothesis  ap   1 has negative weight. if we can show that the sum of the weights of relevant documents is greater than the maximum possible sum of the weights of negative documents  we can conclude that  ap   1.
+　let s be the set of judged relevant documents and t be the set of unjudged documents. the following inequality is a sufficient stopping condition:
+	x cij   x |cij|    ap   1	 1 
+i j（s	ii j（s j（ctij（ ort1 and
+the left-hand side  lhs  is  ap calculated over judged relevant documents only. the right-hand side  rhs  is an upper bound on the amount  ap would decrease if unjudged documents were judged relevant.
+　before any documents have been judged  the lhs is 1 and the rhs is the sum of all negative coefficients. it is intuitively clear that we want to increase the lhs by finding relevant documents and decrease the rhs by finding nonrelevant documents.
+1	an optimal algorithm
+　the stopping condition of eq. 1 suggests an algorithm: select documents to maximize the left-hand side and minimize the right-hand side.
+　suppose we have no relevance judgments. if we were to judge document i relevant  we would add cii  the difference in reciprocal ranks of i  to the lhs. if i were nonrelevant  we would subtract ci1+ci1+，，，+cin = pcij from the rhs. it seems intuitively clear that we want to pick the document that will have the greatest expected effect on either side. give each document a  relevant weight  wir  the amount it would add to the lhs if relevant  and a  nonrelevant weight  win  the amount it would subtract from the rhs if nonrelevant   and the document to judge should be the one that maximizes max{piwir  1   pi win}  pi = p xi = 1 .
+　this algorithm is optimal for our stopping condition. we sketch part of a proof in the appendix. 1	ap is normally distributed let pi = p xi = 1 . let qi = 1   pi. then
+
+
+deltaap
+figure 1: average precision is normally distributed. we simulated two ranked lists of 1 documents. setting pi = .1  we randomly generated 1 sets of relevance judgments and calculated  ap for each set. the histogram conforms to a standard normal distribution. the anderson-darling goodness of fit test  concludes that we cannot reject the hypothesis that the sample came from a normal distribution.
+the error term  for some c   1  so we may safely
+ignore it.1
+as n ★ ± 
+
+　this means that with any incomplete test collection  ap is distributed normally over all possible assignments of relevance to all unjudged documents. we have shown this by simulation  fig. 1   and have sketched a formal proof using martingale limit theory. eq. 1 is normally distributed independent of how aij is defined  so  ap is distributed normally as well.
+　given a set of relevance judgments  we use the normal cumulative density function  cdf  to find p  ap ＋ 1 . if p  ap ＋ 1    .1  at least 1% of the possible assignments of relevance would conclude that  ap   1 and we can conclude that  ap   1 with 1% confidence. our previous stopping condition is replaced by the probabilistic stopping condition p  ap ＋ 1    1   α or p  ap ＋ 1    α.
+　note that we must make some assumption about pi. we make the  neutral  assumption that if i is unjudged  pi = 1.using prior information about rates of relevance or ranks at which documents were retrieved could give better results  but we do not explore that here.
+1	application to map
+mean average precision is the average of aps computed for a set of topics t. because topics are independent 
+
+then if ap ; n 1   map ; n 1  as well.
+　the algorithm for determining a difference  map follows directly from the algorithm for average precision. we treat each  topic  document  pair as a unique  document  and proceed exactly the same way.
+1.	experimental evaluation
+　having developed the algorithm from first principles  we wish to show that it can be used in a research setting on a new corpus. previous work has shown simulated results of efficient judging algorithms on trec ad hoc collections  1  1  1  1  1 ; rather than repeat those experiments  we will evaluate the algorithm as it might be used in a research or industrial environment.
+　the outline of our experiment is as follows: we ran eight retrieval systems on a set of baseline topics for which we had full sets of judgments. we asked six annotators to develop new topics; these were run on the same eight systems. the same six annotators then judged documents selected by the algorithm.
+1	baseline topics
+　the baseline topics were used to estimate the system performance. it is generally assumed in information retrieval that 1 topics are a sufficient sample for reliable comparison of retrieval systems. this has been shown recently by sanderson and zobel  and earlier by zobel . we expect  therefore  that performance of systems on our new topics will track performance on the baseline topics.
+　the baseline topics were the 1 robust/hard track topics  and ad hoc topics 1 through 1. we used only topic titles for queries.
+1	corpora
+　we indexed two different corpora: one was the aquaint corpus consisting of about 1 million articles from the new york times news service  associated press worldstream
+news service  and xinhua news service from 1 through
+1. the second was trec disks 1 and 1  with about 1 documents from the financial times  federal register  la times  and foreign broadcast information service  covering 1 through 1. we ran the robust queries on the aquaint corpus and the ad hoc queries on the trec corpus  so even though some topics were duplicated  the retrieved results are different.
+1	retrieval systems
+topicssystemall 1robust 1-1-1-1 new1 new-norm1
+1.1
+.1.1
+.1.1
+.1.1
+.1.1
+.1.1＼＼.1.1
+.1
+1
+1.1
+.1
+.1.1
+.1
+.1.1
+.1
+.1.1
+.1
+.1.1
+.1
+.1.1.1＼＼＼.1.1.1
+.1
+.1
+1.1
+.1.1
+.1.1
+.1.1
+.1.1
+.1.1＼＼.1.1
+.1.1.1.1.1.1.1 .1.1＼
+table 1: true maps of eight systems over 1 topics; broken out into four sets of 1 topics; and expected map  with 1% confidence intervals  over 1 new topics. the final column is expected map rescaled to the range  .1 .1  for easy comparison to performance on other topic sets. horizontal lines indicate  bin  divisions　we used six freely-available retrieval systems: indri  lemur  lucene  mg  smart  and zettair1. with these six systems determined by statistical significance.
+we obtained eight retrieval runs on all 1 baseline queries. the runs use different retrieval models  okapi weighting  tfidf weighting  language modeling   different stemmers  krovetz  porter   and different stop lists. one run used pseudo-relevance feedback.
+　since we did not tune the systems  we want to avoid identifiable claims about relative performance. we number the systems 1 through 1  with 1 having lowest mean average precision on all 1 baseline topics and 1 having highest.
+　results of the eight retrieval runs are shown in table 1. the table shows that the ranking can vary some by topic sets  though the bins the systems fall into remain the same. significant differences between pairs of systems are always preserved.
+1	query formulation
+　six volunteer annotators were given an interface to query and browse the aquaint corpus and asked to come up with 1 topics each. they were asked to provide a title query and a description of what should and should not be considered relevant. they were asked to create topics that were not too easy  too many relevant documents found in the browsing interface   but not too hard  no relevant documents .
+　we wanted to minimize drift in annotators' definitions of relevance. we kept the time between defining topics and judging documents as short as possible so that annotators would not forget what they were thinking. all judging was done in a 1-hour block with a break for lunch so that definitions of relevance would be unlikely to change drastically. our annotators were experienced in the field of information retrieval; we hoped their greater understanding of the definition of relevance would also help keep drift down. finally  by asking annotators to explicitly state what should be considered relevant and displaying that to them while they judged documents  we hoped to reduce drift further.
+　some of the topics  along with number of judgments made and number of relevant documents found  are shown in table 1. apart from two topics about  intelligent design   all topics were unique.
+1	algorithm implementation
+　the algorithm was implemented in r . using vector arithmetic  weights could be calculated in linear time; the complexity of the algorithm is o s1 . we used only the top 1 documents retrieved by each system  partially for computational reasons  but also because this is the usual
+no.title queryjudgedrel1environmental conservation policies11journalistic plagiarism11sea piracy11intelligent design11indian nuclear tests and visas11africa aids orphans11environmental impact of us army11aquifer water levels1table 1: selected topics developed by annotators.
+cutoff for collecting judgments for trec. if a document was not ranked in the top 1 by a system  its reciprocal rank for that system was defined to be 1.
+　when comparing pairs of systems  we used the document with max weight in the pair. to extend that to ranking a set of systems  we use the document with the max weight in all pairs of systems.
+　the implementation was very fast. there was no perceivable lag between an annotator submitting a judgment and receiving the next document.
+　strictly speaking  the algorithm requires that judgments be made one at a time in the determined order. this would require that annotators spend a lot of time idle  waiting for a document from one of their topics to be served. instead  we separated the topics into six sets of ten and ran the algorithm independently on each set. this may give slightly suboptimal performance  but it is a better use of annotator time.
+1	experimental process
+　the 1 topics developed were run on the same eight retrieval systems against the aquaint corpus. a server was set up to feed documents to annotators for judging. they used a web interface to judge documents. each annotator judged documents from their own 1 topics. they spent about 1 hours judging  1 total hours of annotator time   with a break for lunch after the first hour.
+1.	results
+　in 1 hours we obtained 1 relevance judgments  about 1 per system per topic on average  about 1 per minute per annotator  and about 1 per minute. the trec pooling approach with a depth of 1 would have yielded 1 documents for judgment. nist annotators spent a total of 1 hours judging the 1 documents in the pool for
+robust/hard systems  a rate of 1 judgments per minute.
+　of the documents judged  1% were relevant. judgments by annotators on the first 1 documents were compared to judgments by one of the authors of this paper; annotator agreement was 1%.
+　the fastest annotator judged twice as many documents as the slowest. some topics were more difficult to interpret than others  and some topics retrieved documents that were longer on average; that affected the number of documents an annotator could judge. in section 1 we simulate a single annotator judging all topics.
+we rank systems by expected value of map !
+where pi = 1 if document i has been judged relevant  1 if nonrelevant  and .1 otherwise.
+　emap ranges from 1 to 1. a ranking by emap is directly comparable to a ranking by map  though emap has compressed range compared to map. emap is shown in table 1 with the maps on the baseline topics for comparison. the ranking is within the range of normal variation we would expect from performance on different topic sets. in fact  apart from the inversion of the first two systems  the ranking is identical to the canonical ranking. table 1 also shows emap rescaled to the range  1 1  for comparison to the other topics.
+　using the normal cdf  we calculate the confidence that  map   1 for each pair of systems. we estimate the confidence in the ranking as the average of the confidences in each pair. with no judgments  confidence is .1; with a full set of judgments  confidence would be 1. this can be interpreted as the expected confidence in  map if any two systems are selected from the set at random. by that measure  our algorithm has 1% confidence that this is the correct ranking.
+　figure 1 shows how confidence increases as more judgments are made. a correct ranking is found very fast: after only 1 judgments  the systems are binned correctly; after 1 judgments  the systems are ranked correctly. confidence after 1 judgments is only 1%  but after 1 judgments  the systems are ranked correctly with 1% confidence. it took about one hour real time  1 hours of annotator time  to reach that point.
+1.	discussion
+　here we present some results of simulations of our algorithm to attempt to evaluate its performance in general settings. the simulation is done by running the client/server setup described previously  but using judgments from the qrels produced by nist instead of judging manually. documents not judged by nist were assumed nonrelevant. table 1 shows true  map and p  emap ＋ 1  for a simulation using the robust 1 topics. some questions we explore are:
+  to what degree are the results dependent on the algorithm rather than the evaluation metric    how many judgments are required to differentiate a single pair of ranked lists with 1% confidence 
+
+figure 1: confidence increases as more judgments are made.
+1111.1.1.1.1.1.1.1.1111-.1.1.1.1.1.11111-.1.1.1.1.1.1.1.11--.1.1.1.1.1.1.11-.1.1.1.1.11-.1.1.11-.1table 1: each cell shows difference in true map and p  map ＋ 1  for each pair of systems after 1 judgments for the robust 1 topics. pairs in which we have 1% confidence that additional judgments will not change the outcome are bolded.
+  how does confidence vary as more judgments are made 
+  are test collections produced by our algorithm reusable 
+1	comparing emap and map
+　the main advantage of emap over standard map is that it takes advantage of information provided by nonrelevance. map is calculated using only relevant documents  and thus it only helps to find relevant documents  except insofar as a nonrelevant judgment indicates that the document has been judged and does not need to be judged again . more value is extracted from each judgment.
+　another advantage is that emap is normally distributed. this provides all the power that the normal distribution provides. the caveat is that we must make an assumption about the probability of a document's relevance.
+　we ran the following simulation: after several documents had been judged  we calculated both emap and map on all systems  ranked them  and compared the ranking to the  true  ranking by map computed using all relevance judg-
+
+figure 1: as the number of judgments increases  kendall's tau correlation to the true ranking increases. correlation between expected map and true map increases faster than correlation between map and true map.
+ments. we did this after 1  1  1  1  ...  1 judgments.
+　to compare rankings we use a rank correlation measure called kendall's tau . kendall's tau is calculated using pairwise inversions between elements in two lists. it ranges from -1 to 1  with -1 indicating that the two lists are reversed  1 that half the pairs of elements are inverted  and 1 that the two lists are identical. since we have only 1 systems  the range of values is limited.
+　the result is shown in figure 1. we see that the correlation between emap and true map increases very fast; after only 1 judgments it is about .1. it takes regular map 1 judgments to get to the same point.
+　the bpref metric also uses nonrelevance information . this result tracks with bpref.
+1	how many judgments 
+　the number of judgments that must be made in comparing two systems or a set of systems depends on how similar the systems are.  similarity  could be measured by true difference in average precision  or by a ranking distance metric. figure 1 shows absolute difference in true ap for robust 1 topics vs. number of judgments to 1% confidence for pairs of ranked lists for individual topics. as the figure shows  if difference in ap is greater than .1  it will generally take fewer than 1 judgments to distinguish performance. but as difference in ap gets closer to 1  the number of judgments rises fast. the axes can be flipped: if many documents have been judged but 1% confidence is not in sight  the lists must be very similar. the correlation between difference in ap and number of judgments to 1% confidence is  1.
+　a simple distance measure is the sum over all documents of absolute difference in reciprocal rank  i.e..
+the correlation between distance and number of judgments is 1.
+　difference in ap and our distance metric have a correlation of 1  indicating that an increase in distance leads to an increase in difference in ap.
+
+figure 1: absolute difference in true ap and the number of judgments it takes to achieve 1% confidence that a difference exists. each point represents a pair of ranked lists. in 1% of the pairs  the sign of the difference was predicted correctly.
+1	confidence over time
+　figure 1 shows a long simulation of a single annotator judging documents for the robust/hard queries. confidence reaches .1 very rapidly  about as fast as it did in figure 1  and after that continues to approach 1  the point at which the ranking would not change with more judgments. it takes 1 judgments to reach 1  less than half the number in the robust 1 qrels. the curve from figure 1 is included for comparison.
+　figure 1 shows a comparison to a pooling method that we will call  incremental pooling . in this method all documents in a pool of depth k will be judged. since the order in which they are judged affects the estimated confidence  we must impose an ordering on the pool. we judge them in rank order. this could be seen as a weaker version of our algorithm  which will tend to judge high-ranked documents unless they are found at a similar position in every list.
+　the pool of depth 1 for our robust/hard runs contains 1 documents. there were 1 documents in the pooled set that were not in our algorithmic set  and vice versa . this means that our algorithm tends to pick documents from the top of the ranked lists  which is expected since those have the greatest effect on map. it also shows that high confidence can be achieved more rapidly by drawing documents from outside the pool.
+1	reusability of test collection
+　we showed above that emap can produce a good ranking with a very small set of judgments. this suggests that a test collection created by this algorithm may be able to evaluate new systems that were not used in the creation of the test collection.
+　to test this  we removed one system from our set of eight and simulated our algorithm to build test collections of 1  1  1  and 1 judgments from the remaining seven. then we replaced the eighth system and ranked all eight by emap  setting pi to be the ratio of relevant documents in the test collection.
+　table 1 shows rank confidence averaged over eight trials  removing a different system for each trial. confidence ac-
+
+figure 1: a long simulation showing confidence approaching 1. the original experiment is shown for comparison.
+
+figure 1: comparison between our algorithm and incremental pooling. we have more confidence in the rankings by the algorithm's documents than by pooling's.
+tually increases when adding the 1th system back in  likely because of the better estimate of pi. furthermore  the 1th system is always placed in the correct spot in the ranking or swapped with the next  statistically indistinguishable  system. this suggests that the test collections can be reused reliably in at least some cases. in general it depends on how many documents in the new system have been judged and the estimates of pi.
+1.	conclusion
+　a new perspective on average precision leads to an algorithm for selecting documents that should be judged to evaluate retrieval systems in minimal time. using actual annotators  we implemented the algorithm and showed that it can be used to rank retrieval systems with a high degree of confidence and a minimal number of judgments. after only six hours of annotation time  we had a achieved a ranking with 1% confidence. this is applicable to a variety of retrieval environments when little relevance information is available.
+no.rank confidencejudgments1 systems1 systems1.1.1.1.1.1.1.1.1table 1: reusability of test collections. judgments are collected from seven systems  then all eight are ranked using those judgments. rank confidence increases when the eighth is replaced.
+　a clear direction for future work is extending the analysis to other evaluation metrics for different tasks. some initial exploration in this direction suggests that it would be very easy to analyze precision  for instance. another direction is estimating probabilities of relevance. uniformly using the same value is not optimal; better estimates based on ranks provide better results.
+acknowledgments
+this work was supported in part by the center for intelligent information retrieval  in part by the defense advanced research projects agency  darpa  under contract number hr1-c-1  and in part by an nsf award under grant number cns-1. any opinions  findings  and conclusions or recommendations expressed in this material are those of the authors and do not necessarily reflect those of the sponsor.

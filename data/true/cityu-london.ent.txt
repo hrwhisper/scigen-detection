@@ -1,0 +1,63 @@
+1. introduction 
+　this is the second year for the enterprise expert search task. one of the common methods for this task is to create a profile for each expert and then apply normal ir techniques to index and search these profiles  using the topics as queries  1  1  1  1  1 . the key issue for this is how to generate profiles by collecting various expertise evidences from the enterprise collections. some work has been done using this method in trec 1  e.g. macdonald et al  generate profiles by using weighted occurrences of person in corpus  personal website and email threads. fu et al  developed a novel method called document reorganization which collects and combines related information from different media formats to organize a document for an expert candidate.  zhu et al  represented each name extracted from corpus with a collection of documents  for instance  all the emails the person had sent  and then used different information retrieval models  vector space  vs  model and latent semantic indexing  lsi  model   to measure the relevance between the collections of documents and the topics. azzopardi et al  use various expert name and email match methods to extract possible expert information and then build expert profile based on this. their experiments show that the performance depends crucially on the ability to recognize names of experts.  
+　in this paper  a window-based method is adopted to build descriptions of experts. that is  we use a window around occurrences of an expert name or email address to create a profile for the expert. the basic idea of our approach is that the information around the expert name and email address should have more association with the expert  than other textual information. some past research such as  1 1  have shown that using this method is effective for document retrieval. we hope this could also be applied to enterprise expert search  although the effectiveness still needs to be investigated. 
+　in the next section we briefly describe the preliminary search completed for the expert search challenge in order to help the community to understand relevance assessments for this track. this gives some motivation for our approach. we then briefly introduce the retrieval model bm1 used in our experiment in section 1. we then describe our experiment in section 1 and explore the evaluation results in section 1. a conclusion is given at the end. 
+1. expert search challenge 
+　in order to give participants in the track some common experience in judging relevance for the expert search task  a challenge was set to find experts in the field of  scalable vector graphics animation . the expert identified should have had significant knowledge in the area of animation in svg  general knowledge of svg was regarded as being insufficient.  fig 1 lists the results of our exploratory search: 
+ 
+ 
+candidate-1 jon ferraiolo http://www.w1.org/tr/1/cr-svg-1/ candidate-1 david duce http://www.w1.org/tr/1/cr-svg-1/ candidate-1 jerry evans http://www.w1.org/tr/1/cr-svg-1/ candidate-1 vincent hardy http://www.w1.org/tr/1/cr-svg-1/ candidate-1 lofton henderson http://www.w1.org/tr/1/cr-svg-1/ candidate-1 dean jackson http://www.w1.org/tr/1/cr-svg-1/ candidate-1 christophe jolif http://www.w1.org/tr/1/cr-svg-1/ candidate-1 kelvin lawrence http://www.w1.org/tr/1/cr-svg-1/ candidate-1 chris lilley http://www.w1.org/tr/1/cr-svg-1/ 
+ 
+figure 1. results of search for expert on svg animation 
+ 
+　the search undertaken was simple and rushed  very typical of the type of search end users undertake. the search on the w1c site led to one particular page on scalable vector graphics which was found directly from the hitlist and was linked to via other links on the hitlist. most of the retrieved links dealt with accessibility  and we did not feel that any people associated with this knowledge would necessarily know about svg animation. this is why the choice of candidates is more restricted than others who completed the expert search challenge. 
+　one issue which was difficult to resolve  was that the authors associated with a specification where not differentiated with respect to the components they had worked on - that is  a specification usually has a single list of authors. the experts identified in figure 1 could be wrong as some of the candidates chosen may not know that much about graphics - they may be experts in other parts of the specification. it would appear that using a single source of evidence to identify an expert is therefore problematic. we hope that the window method put forward in this paper  will in part deal with this issue. 
+ 
+1. modelling 
+　in our experiments  we use the bm1 as the core retrieval model. bm1 is a series of probabilistic models derived by robertson et al  for document level retrieval. the formula used in our experiment is as follows: 
+　　　　　　　 k1 +1 tf j n   df j + 1 wj  d c  =                    1  k1  1 b  +b   +tf j df + 1
+avdl
+ 
+where  
+c denotes the document collection   tf j is the term frequency of the jth term in document d   df j is the document frequency of term j   dl is the document length  avdl is the average document length across the col-
+lection   and k1 and b are tuning parameters which normalize the term frequency and 
+element length.  
+　then the document score is obtained by term weights of terms matching the query q: 
+                    w d q c  = ‘w j  d c  q j                                         1 
+j
+　due to the huge variety of the generated expert profile length and the number of documents containing the expert name and email address  we use various k1 and b for submitting the runs. these will be discussed in section 1.  
+1. experiment 
+　our experiment is largely conducted on okapi 1 in a linux environment  using red hat 1 . the experimental procedure is divided into four steps: the first step is the expert recognition and profile creation; the second step is the profile indexing and the original document collection indexing; the third step is the retrieval and ranking of experts; and the last step is the retrieval and ranking for the supporting document. the details are as follows: 
+ 
+expert recognition and profile creation. as mentioned above  the key issue for expert search is to generate an expert profile. these need technique such as name entity recognition to extract expert name and email address. due to the time limitations  we used naive string match algorithm to extract expert full name and email addresses  and then used a fixed window around the expert name or email address to build the expert profile. in our experiment  the fixed window size is 1 characters length which is about 1 words.  
+ 
+profile and the original document collection indexing. this year's expert search task required participants to submit both ranked experts and supporting documents. both the expert profiles and the original document collection were indexed. due to the huge variety length of generated profiles  from several kb to 1mb   we modified okapi slightly to support large document record indexing. at the same time  we also built an index for the original document collection. 
+ 
+retrieval and ranking of the experts. based on the indexed expert profiles  we submit queries and rank experts accordingly based on bm1. the only issue which needs to be mentioned with respect to the ranking formulae is that we use various k1 and b for submitting the runs due to the huge variety of the expert profiles' length and associated document numbers. the values of parameters {k1  b} used for the 1 submitted runs are {1  1}  {1  1}  {1  1} and {1  
+1}. these represent typical values found to be effective in document search. 
+ 
+retrieval and ranking of the supported documents. for each expert  the associated documents were ranked to illustrate their support of the corresponding expert. we firstly retrieved all the documents relating to a specific query  and then we use the association between documents and experts to filter out those documents which are not pertinent to the expert. the remaining documents are then ranked as supporting evidence.  
+1. evaluation  
+　as mentioned above  we submitted 1 runs by using different k1 and b values. the results of these runs without taking support into account are listed in table 1 and the results of those taking support into account are listed in table 1.  
+　from the tables we can see that parameter b has more effect than k1. the runs using the smallest value of b have the best results for most of the metrics. this suggests that the length of profiles is not a very important feature in ranking.  more specifically  we should not normalise tf values too strongly.  a query term which appears one or more times in the profile is a strong indicator of relevance  irrespective of profile length.  this result is somewhat similar to results obtained using anchor text in web search - good b values for anchor text are often lower than for body text.  to put it another way  it seems that if a profile is long and contains many terms  this is evidence that the expert is indeed expert in many topics.  however  from our limited experiments  varying k1 has little effect.  this may indicate that we simply do not often get high tf values in our profiles. 
+ 
+runs k1 b map r-prec b-pref recip-
+rank p 1 ex1 1 1 1 1 1 1 1 ex1 1 1 1 1 1 1 1 ex1 1 1 1 1 1 1 1 ex1 1 1 1 1 1 1 1 table 1:  results without taking support into account 
+ 
+runs k1 b map r-prec b-pref recip-
+rank p 1 ex1 1 1 1 1 1 1 1 ex1 1 1 1 1 1 1 1 ex1 1 1 1 1 1 1 1 ex1 1 1 1 1 1 1 1 table 1:  results taking support into account 
+ 
+these results suggested that we should try more b values around the lower end. 
+for a fuller investigation of this after the conference  we tuned b from 1 to 1 jumping by 1; the results are shown in figure 1. the implication of figure 1 seems to be that we should turn the b parameter  which controls the extent of document length normalization  right down to zero in this application.  this is an interesting conclusion  and diverges from most of our other experiences. 
+ 
+ 
+figure 1. evaluation results on all measures by tuning the b parameter 
+ 
+　a possible hypothesis as to why this is so is as follows.  document length normalization is usually necessary because a scattering of occurrences of a query term over a longer document provides weaker evidence of relevance than the same number of occurrences concentrated in a shorter document.  but in this case the 'document'  actually user profile  is constructed from fixed length windows from other documents; so the variation in length is primarily due to the number of such windows observed  i.e. to the number of mentions of the identified expert in the database.  it appears that each window provides independent evidence of relevance; a lot of other windows indicating other expertise areas of this expert do not in any way reduce the evidence gathered from some windows about expertise in the domain of the query.  a similar effect  although not quite so strong  is observed in web search using anchor text. 
+　note that there is a slightly complex interaction with the k1 parameter which controls the tf effect  which we have not yet explored. 
+1 conclusion 
+　we have tried a simple window-based method for enterprise expert search. due to the time limitation  we only submitted runs with various k1 and b values. the window size is fixed to 1 character-length. in the future work  we will exploit the effectiveness of this method by using different window sizes. and we also need to use more sophisticated techniques to extract expert name and email address  so that we can build more concrete profiles for the expert.  
+ 
+acknowledgements 
+ 
+this work is supported in part by national social science foundation of china 1ctq1. 

@@ -1,0 +1,189 @@
+a spreading activation network model is applied to the problem of reconciling heterogeneous indexing  sti index terms and apj subject descriptors  in a database of documents in the field of astronomy. drawing on evidence from a set of co-indexed documents  a 1-layer feed-forward network is constructed. it includes an input term layer  source vocabulary   document layer  and output term layer  target vocabulary . results of experiments show that the network can uncover both static  term-to-term relationships  and those that depend on the context of a particular document's indexing. from the static mapping experiment  the asymmetric nature of term mapping is revealed. a visualization tool graphically shows complex term relationships identified by this model. the contextsensitive mapping experiment tests the robustness of the network against the removal of each document node under testing. the performance of the complete network is compared to that of the reduced network. the results imply that mapping is largely dependent on regularities emerging from the entire pattern of connections in the network rather than localist representations. the mapping from specific to general shows better performance than the mapping from general to specific. several issues related to the model including limitations  application of a learning algorithm  and the generality of the study are discussed.
+1	introduction
+this paper describes an experimental automatic mapping of documents from one indexing language into another  and the spreading activation network developed to accomplish that mapping. the documents were drawn from the nasa astrophysics data system  ads   a popular database of abstracts and full text documents used by astronomers worldwide . ads provides access via the worldwide web to over a million documents in the areas of astronomy  astrophysics  and instrumentation. ads users can search for documents by title  author  publication date  astronomical object name  and the text of abstracts. but ads lacks consistent subject indexing: several different inter-related controlled indexing languages are represented. this heterogeneity prompted the ads adminis-
+
+¡¡¡¡the authors wish to thank michael kurtz and guenther eichhorn of the harvardsmithsonian center for astrophysics  and the anonymous reviewers of this paper for their helpful suggestions
+trators to merge the service's subject descriptor and abstract text indexes. the main ads search form permits searches of a combined abstract and subject descriptor field  but searching of the descriptor field alone has been disabled. a topic or concept may be represented by a variety of different descriptors  each from a different controlled vocabulary. the mapping experiment reported in this paper is part of an ongoing project investigating methods of reconciling the indexing languages represented in ads  1  1  1 .
+   vocabulary control provides standardized labels for concepts  thus helping to overcome the variability of authors' natural language . it also allows authors or professional indexers to identify the most important or central ideas in a document  permitting more precise searches to be conducted. the search precision advantage is obviously lost when users of the database cannot restrict their queries to the subject descriptors alone. standardization is defeated when documents indexed with two or more vocabularies are mixed in the same database. in ads  for example  one document may have been indexed with the term andromeda galaxy  while another uses the heading galaxies: individual messier number: m1.
+   a number of vocabulary mapping and thesaurus merging studies have been reported  1  1  1  1  1  1 . often  though  these studies presuppose that the indexing systems under consideration are of the same or similar type  e.g.  two different thesauri of index terms . in ads  however  very different indexing systems are represented. many descriptors have been drawn from the nasa thesaurus and applied by professional indexers at nasa's scientific and technical information group  sti . many others are labeled with subject headings or keywords that have been applied by authors and journal editors. this complicates the identification of corresponding concepts between the vocabularies. one indexing language may provide a much greater degree of specificity and detail than another. a pre-coordinated subject heading may map to two or more coordinate index terms. two indexing languages were investigated in this study:
+apj the subject keyword list for astrophysical journal. this is a list of over three hundred subject headings  some of which are pre-coordinated  and a large number of labels for astronomical objects  specific stars  galaxies  planets  etc. . apj subject headings are selected by document authors and approved by the journal editor.
+   
+permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page.  to copy otherwise  to republish  to post on servers or to redistribute to lists  requires prior specific permission and/or a fee. sigir '1   1 berkley  ca  usa
+copyright 1 acm 1-1/1 . . . $1
+sti terms drawn from the much larger  syndetically rich nasa thesaurus  and applied to documents by indexers at nasa's sti group.
+   earlier work on this project employed a clustering method based on lexical resemblance between descriptors . in this study 
+
+figure 1: a network representation of information retrieval
+descriptors that differ only in spelling  word order  and punctuation are conflated to identical  lexical signatures . using that method  descriptors such as wolf rayet star  wolf-rayet stars  and stars: wolf-rayet can be unified. the present study takes advantage of another source of evidence a subset of documents in ads that have been indexed using both apj subject headings and sti index terms. as will be described in detail below  the documents in this subset and their descriptors are represented as nodes in a spreading activation network . mapping of a document from one indexing system to another is achieved by constrained spreading activation from one layer of descriptor nodes to the layer of document nodes  and from there to the layer of nodes representing the target vocabulary.
+1	a spreading activation model for vocabulary merging
+in the field of information retrieval  ir   there has been an extensive research of applying connectionist and/or spreading activation models to the ir problems  1  1 . a connectionist approach can be distinguished from other approaches in ir from the fact that it represents queries  terms  documents  and their relationships as a network of interconnected nodes. many studies have shown that ir problems can be formulated as a connectionist network model. some models used an associative semantic network with labelled links  1  1  1   while others employed a multi-layer network with weighted links  1  1  1  1  1 . this approach is appealing in ir research since its network representation and spreading activation process are quite appropriate for the ir task. although the connectionist approach has been widely used in ir research  there has been few attempt of applying this approach to vocabulary merging.
+   within the connectionist framework  one indexing system can be modeled as a two-layer network of index terms and documents. in this network representation  an input of a set of index terms  a query  into the network will activate all the connected document nodes  a set of relevant documents  in the output layer. this twolayer network representation of ir can be extended to model subject vocabulary mapping . two ir networks based upon different subject vocabularies could be combined and represented as a 1-layer network if a subset of documents are commonly indexed by both vocabularies.
+   we developed a spreading activation model of vocabulary merging by combining two subject vocabularies via jointly indexed documents. the architecture of network representation is shown in figure 1. the network is composed of three layers: an input term layer  document layer  and output term layer. the input term layer contains a set of nodes corresponding to descriptors from one subject vocabulary  and nodes in the output term layer represent descriptors from the other vocabulary. the middle layer comprises of a set of document nodes which are linked to both the input term and output term node s . either term layer can serve as the input layer or the output layer. when descriptors from one subject vocabulary are selected as input terms  the corresponding term nodes
+
+figure 1: bi-directional weight assignment
+are activated. this initial activation passes through the network to the document layer  and then to the output term layer. as a result  a set of output term nodes which corresponds to the descriptors from the other vocabulary will be activated. the activation level of each output term represents the degree of matching to the input term s . this is a feed-forward network since activation always spreads from the input layer to the output layer. in this model  the network representation is automatically constructed by means of statistical analysis of document co-assignment pattern for the participating subject vocabularies.
+   calculation of activation level follows a simple weighting rule. a term node and a document node are linked together when the document is indexed by the term. the weight assigned to the link between them is determined by the number of connections and the direction of activation. the conservation of activation principle is applied to guarantee that the sum of input activation equals to that of output activation. for this purpose  total activation received by one node is divided up in amounts proportional to the link weights.
+   in this model  a binary indexing rule is used to assign weights to the links. hence  all the connections from one node will have the same initial weight of 1    . if a weighted indexing rule is applied  when descriptors used to index a document are different in terms of relevance   connections between a document node and corresponding descriptor nodes will have different weights according to their importance in indexing. the adjusted weight     can be computed according to the formula in equation 1.
+		 1 
+   the initial weight is adjusted by the number of connections from the originating node. the adjusted weight     becomes
+¡¡¡¡  where is the number of links from the node i in one layer to the nodes in the next layer. coincidentally  this weighting scheme between the input term layer and document layer resembles the inverse document frequency  idf  indexing scheme. similarly  the weighting scheme between the document layer and output term layer could be considered as an  inverse term frequency  weighting. the weight between two nodes can be changed according to the direction of activation  although the network representation remains the same. that is to say  the weight assigned to the link from the node i to the node j might be different from the weight of the link from the node j to the node i. figure 1 shows the example of the asymmetric characteristic of weight assignment.
+ 1 
+   the activation received by a document node is calculated by summing up the activation coming from all the connected input term nodes. in this process  each activation is modified by multiplying the corresponding link weight. the computation of the activation received by an output term node follows the same way. the formulas for calculating activation levels are shown in equations 1 and 1.
+ 1 
+ 1 
+     is the activation level of an input term node ; is the activation level of a document node ; is the activation level of an output term node ; is a weight between an input term node and a document node ; is a weight between a document node and an output term node . in this model  a linear function is used as an activation rule  input-output relation . no learning algorithm is applied since weighting is determined by the pattern of association between terms and documents.
+1	application and evaluation
+the spreading activation model was applied to the problem of reconciling two different subject vocabularies employed in ads: astrophysical journal headings  apj  and index terms applied by nasa's scientific and technical information group  sti . these two vocabularies differ in many respects. apj headings are assigned to the documents by authors while sti terms are by professional indexers. apj headings include pre-coordinated descriptors while sti terms come from the nasa thesaurus. another distinction between these two vocabularies lies in their scope and degree of specificity: the nasa thesaurus has many levels of broader and narrower terms  and professional indexers are trained to apply more specific terms wherever possible .
+   the test collection is composed of two sets of documents. one set has 1 documents  and indexed by apj headings. another set has 1 documents  and indexed by sti terms. out of these two sets of documents  1 documents are found to be co-indexed. basic statistics of this test collection are presented in table 1.
+   since two vocabularies are merged through the jointly indexed documents  two sets have the same number of documents. average number of documents indexed by each keyword is 1 in the sti set  and 1 in the apj set. average number of keywords used to index each document is 1 in the sti set  and 1 in the apj set. these statistics imply the difference in the degree of term specificity in indexing. from these records  the three-layer network is constructed  including the sti term layer  1 nodes   the document layer  1 nodes   and the apj heading layer  1 nodes . the activation spreads through the network in the direction of input-term layer document layer output-term layer. since the direction of activation determines which layer is the input and which the output  two spreading activation networks are constructed: apj sti network and sti apj network.
+1	static term-to-term mapping
+the most straightforward application of the network is to attempt to map each descriptor in one vocabulary  source vocabulary  to
+stiapjnumber of documents11number of descriptors11average number of postings1average number of descriptors per document11table 1: statistics of the test collection
+input term  sti 	statistics
+	andromeda galaxy 	number of co-indexed document s : 1
+number of active terms  ¦Á ¡Ý 1 :1  1 
+number of terms above the cutoff point: 1
+output term  apj 
+galaxies: individual messier number: m1 = 1
+galaxies: stellar content = 1
+galaxies: nuclei = 1
+galaxies: local group = 1
+galaxies: distances = 1
+stars: novae = 1
+galaxies: structure = 1
+clusters: globular = 1
+galaxies: internal motions = 1
+galaxies: photometry = 1
+galaxies: interstellar matter = 1
+gamma rays: bursts = 1
+galaxies: magellanic clouds = 1
+interstellar: molecules = 1
+stars: abundances = 1
+cosmology = 1
+black holes = 1
+nebulae: planetary = 1
+stars: neutron = 1
+galaxies: redshifts = 1
+galaxies: ism = 1
+	figure 1: a sample output: sti	apj mapping
+input term sti  andromeda galaxy
+
+figure 1: the distribution of activation levels for output terms
+one or more candidate descriptors in the other  target vocabulary . to accomplish this  each term from the source vocabulary is provided as input term to the network. through the spreading activation process  all the activated terms from the target vocabulary are identified.
+   the output of the network is the list of activated target terms which might be related to the input term. terms in the output layer are ranked by activation level representing their apparent degree of association to the input term. figure 1 shows one example of the network output. in here  the sti term of andromeda galaxy is used as an input term  and the list of apj headings are identified as activated nodes in the output layer. the number of activated documents in the middle layer is 1. the number of activated apj headings is 1  out of 1 apj headings in total . in the figure  only terms with the activation level of more than 1 are displayed.
+   the network produces a large list of output terms  most of which have very low activation levels. the average number of activated terms is 1 in the sti apj mapping  and 1 in the apj sti mapping. therefore  a cutoff procedure is needed for differentiating more related terms from less related ones. we applied the so-called  mexican-hat  function which is the second derivative of the gaussian curve. this function has been successfully used for detecting edges in vision processing . it was ap-
+input term  apj  	statistics
+	ism: abundances	number of co-indexed document s : 1
+number of active terms  ¦Á ¡Ý 1 : 1  1 
+number of terms above the cutoff point: 1
+output term  sti 
+abundance = 1
+interstellar matter = 1
+molecular clouds = 1
+interstellar gas = 1
+absorption spectra = 1
+line spectra = 1
+astronomical spectroscopy = 1
+h ii regions = 1
+milky way galaxy = 1
+ultraviolet astronomy = 1
+emission spectra = 1
+star formation = 1
+astronomical models = 1
+spectrum analysis = 1
+ultraviolet spectra = 1
+	figure 1: a sample output: apj	sti mapping
+plied to the output of the spreading activation model: if the activated output terms are ranked by their activation level  the distribution of the activation levels for those terms is obtained  see figure
+1 .
+   the ranked array of activation levels change is convolved with the second derivative of the gaussian curve. as a result  the point where the slope of the activation value distribution drops most dramatically will be determined. only terms above this cutoff point are selected as mapping terms. in the example of figure 1  the cutoff point is set between the first and the second terms. only one term  galaxies: individual messier number: m1  is selected as corresponding to the input term  andromeda galaxy . figures 1 and 1 show one example from the apj sti mapping.
+   here  the input heading is ism: abundances from the source vocabulary  apj . the output of the spreading activation includes 1 activated terms from the target vocabulary  sti . by applying the mexican-hat function  the cutoff point is determined between the second and the third terms. therefore  two sti terms are selected as mapping terms: abundance and interstellar matter. the average number of descriptors above the cutoff point is 1 for sti apj mapping  and 1 for apj sti mapping.
+   mappings identified by the spreading activation model include a variety of relationships. they ranges from simple spelling variants to complicated semantic factoring . we are encouraged that the model identified many of the same connections uncovered in an earlier lexical resemblance study   although the current model employs no lexical evidence. in addition  this model is successful in revealing other semantic relationships such as the following:
+	1. exact match  astrometry	astrometry 
+1. spelling variants  galactic clusters galaxies: clustering 
+1. synonymy  andromeda galaxy galaxies: individual messier number: m1 .
+1. ordering  clusters: globular	globular clusters 
+1. pre-coordination  cosmic rays: abundances abundance  cosmic rays 
+1. term omission  catalogs	astronomical catalogs 
+1. class relation  galaxies: individual messier number m1 / m1	spiral galaxies 
+   the asymmetric characteristic of term relationships has received little attention in the research of vocabulary merging. the
+input term apj  ism: abundances
+
+figure 1: a case of two terms above the cutoff point
+relationship of the term a to the term b is not always the same as that of the term b to the term a. for example  the sti term galactic structure and the apj heading galactic structure are mapped to each other. by comparison  the sti term kinematics is mapped to the apj heading galaxies: kinematics and dynamics. whereas  the apj heading galaxies: kinematics and dynamics is mapped to the sti term galactic structure. therefore  the mapping of the term a to the term b does not imply the reverse mapping of the term b to the term a. we are developing a visualization tool in order to help users understand this kind of complex nature of term relationship. it displays term mapping structure among participating vocabularies using a graphical interface. a directed graph method is used to represent the asymmetric character of the mappings. figure 1 displays a sample directed graph which shows the term relationship between sti and apj descriptors identified by the spreading activation model.
+1	context-sensitive mapping
+although the static mapping method described in the previous section can uncover a variety of term relationships  there are some limitations to its application in addressing ads's indexing problem. consider the situation where descriptors in the input layer may have a many to one relationship with descriptors in the output layer. for example  in converting a document from sti indexing to apj  assignment of the apj pre-coordinated heading cosmic rays: abundances should happen only if the document has been indexed with both the abundance and cosmic rays sti index terms. the spreading activation model permits a more context-sensitive  document by document mapping  in which sets of nodes are activated simultaneously at the input layer  rather than individual nodes. usually  it is difficult to define the meaning of a term independent of the context. terms used in isolation might be very ambiguous. a term may become more specific in meaning when the term is used in a context  e.g.  co-existence of other terms .
+   context-sensitive mapping uses the list of all descriptors applied to each document as input  rather than one descriptor at a time. since the model uses a set of jointly indexed documents as evidence  each document has two sets of descriptors  one from each vocabulary. the input list produces a list of activated descriptors in the output layer. then  the output is compared to the document's actual indexing in the target vocabulary. figure 1 shows the example of the input list  target list  and a part of the output list for a document.
+
+figure 1: a directed graph for visualizing term mapping
+ document #:id  1: 1apj...1..1d 1 co-indexed document s  input term list   apj   target term list  sti  1accretion disksstars: eclipsing binariesastronomical photometrystars: individual alphanumeric: kpd 1balmer seriesstars: individual constellation name: cataclysmic variables               v1 aquilaeeclipsing binary starstars: novaeemission spectra
+novae output term list  sti  : 1 stellar physic* eclipsing binary stars =  1
+* cataclysmic variables =  1
+* novae =  1
+* stellar spectra =  1
+* accretion disks =  1
+* emission spectra =  1
+* astronomical photometry =  1
+* balmer series =  1
+* stellar physics =  1
+   light curve =  1
+   astronomical spectroscopy =  1
+   white dwarf stars =  1
+   spectrum analysis =  1
+   sky surveys  astronomy  =  1stellar spectrafigure 1: an example of the input  target  and output term list
+   if the network successfully predicts the document's indexing in the target vocabulary  the target list will be the same as the output list. in a less perfect situation  not all the descriptors in the target list will be identified in the output list. a measure of the degree of matching between the output and the target lists is needed to evaluate the method's success.
+   as shown earlier  the output of the network is the list of descriptors ranked by their activation level. in the case of static termto-term mapping  the distribution of the activation values is used for selecting mapping descriptors from the output. the ranking information itself is not used for the analysis of static term mappig  since only descriptor-to-descriptor mapping is explored. contextsensitive mapping uses the ranks for comparing the output and target lists. in the example of figure 1  target descriptors accretion disks and astronomical photometry are ranked the fifth and the seventh. in this way  the actual ranking of the target term list in the given document is 1  1  1  1  1  1  1  1  and 1. figure 1 shows the rankings of the target terms for 1 sample documents with respect to both spreading activation networks; sti apj mapping and apj sti mapping.
+   we adapted the rocchio's measure of normalized recall  to evaluate the success of the rankings. this measure has been used to quantify the difference in retrieval sequence between the ideal ir system and a real one . the underlying assumption of this measure is that all relevant documents are retrieved before any nonrelevant ones in the ideal system. perfect ranking of the relevant documents follows a stepwise function  e.g.  1  1  1  1   and the maximum value equals the number of relevant documents. how-
+sti ¡ú  apj
+ docu source target output   rankings for the
+   id   term   term   term     target terms
+1      1    1      1  
+1      1    1      1  
+1      1    1      1   1  
+1      1    1      1  
+1      1    1      1   1  
+1      1    1      1   1  
+1      1    1      1   1   1  1  
+1      1    1      1   1  
+1      1    1      1   1   1   1  
+1      1    1      1   1  
+apj ¡ú  sti
+ docu source target output   rankings for the
+   id   term   term   term     target terms
+1      1    1    1 1 1 
+1      1    1    1 1 1 1 
+1     1    1    1 1 1 1
+1      1    1    1 1 1 1 
+1      1    1    1 1 1 1 
+1      1    1    1 1 1 1 
+1      1   1    1 1 1 1 1 
+1      1    1    1 1 1 1 
+1      1   1    1 1 1 1 1 
+1      1   1    1 1 1 1 
+figure 1: the result of rankings for two spreading activation networks
+ever  ranking is usually not perfect  and the ranking of the relevant documents will not follow the stepwise function  e.g.  1  1  1  1 . performance can be measured by the difference between the ideal ranking and the actual ranking  which is normalized by considering the number of relevant documents     and the total number of documents in the collection    .
+		 1 
+   this measure is applied to the spreading activation model for evaluating context-sensitive mapping. it is assumed that the ideal ranking of the target list follow the stepwise function. the actual ranking of the target list is determined by the ranking of those terms in the output list. the goodness of mapping from the source vocabulary to the target vocabulary is measured by the difference between the ideal and predicted target term ranking  normalized by the number of target terms     and the total number of the output terms    . in a perfect situation  the target terms will be ranked higher than any other terms in the output term list  and the difference between the ideal ranking and predicted ranking of the target terms will be zero  resulting in the rocchio measure of 1 . in the worst case  the output term list will not include any target terms  and the predicted ranking of the each target term will be    . this results in the rocchio measure of 1.
+   we wished to predict how well the results of the contextsensitive mapping will generalize to documents outside of our test data. the network seems to use regularities emerging from its entire pattern of connections. but since our test data consists of the same documents used to construct the network  there is a possibility that in predicting the indexing of a document x  that the node representing the document x itself may act as a  grandmother cell.  in any case  a network such as ours ought to be robust against the removal of any single node. to ensure robustness  we adapted the network to exclude each document node in turn  as the indexing for the corresponding document was presented as input. to put it an-
+number of predictions
+
+figure 1: distribution of rocchio measures for sti	apj mapping  reduced network 
+other way  we temporarily excised the potential  grandmother cell  as each document was tested. to gauge the impact of this precaution  we conducted our tests using both the reduced and complete network  and compared the results.
+   context-sensitive mapping between sti and apj vocabularies was tested for the entire set of documents  1 co-indexed documents . we obtained two rocchio measures of indexing prediction from the source to the target vocabulary  sti apj and apj sti  for each document.
+   the results from the reduced network are shown in figure 1 for sti apj mapping and in figure 1 for apj sti mapping. the rocchio measures range from 1  no prediction  to 1  perfect prediction  for both mappings. the average rocchio measure is 1 for sti apj mapping  and 1 for apj stimapping. the number of mapping instances with a high rocchio measure     is 1  1%  for sti apj and 1  1%  for apj sti mapping. this result indicates that sti apj mapping is better than apj sti mapping. since the sti vocabulary has more specific terms than the apj one  the result implies that the prediction from a specific vocabulary  sti  to a more general one  apj  shows better performance than the prediction from general  apj  to specific  sti . after analyzing mappings of poor performance  the rocchio measure is found to be capable of discovering poorly indexed documents in which a very specific single descriptor  such as astronomical object names  is used to index a document.
+   figures 1 and 1 show the distribution of rocchio measures for the complete network representation with including the document node under testing. the rocchio measures range from 1 to 1 for sti apj mapping  and from 1 to 1 for apj sti mapping. the average rocchio measure is 1 for sti apj mapping  and 1 for apj sti mapping. the number of mapping instances with a high rocchio measure     is 1  1%  for sti apj and 1  1%  for apj sti.
+   as stated earlier  we ran our experiments on both the reduced and complete network. the impact of the change can be seen in a comparison of figures 1 and 1 with figures 1 and 1. as shown in the figures  excising one node on each run widened the range of the distributions of the test measure  but did not shift the mode or change the general shape of either distribution. comparing the rocchio measures of the complete and the reduced network  it was revealed the decrease in the mapping performance for apj sti mapping is much larger than for sti apj mapping when the network is reduced. tables 1 and 1 show the differential changes
+
+figure 1: distribution of rocchio measures for apj	sti mapping  reduced network 
+
+figure 1: distribution of rocchio measures for sti	apj  complete network 
+number of predictions
+
+figure 1: distribution of rocchio measures for apj	sti  complete network 
+rocchio measurecompletereducedrange1average11number of mappings   1  1% 1  1% table 1: statistics of rocchio measures for sti	apj mapping
+rocchio measurecompletereducedrangeaverage11number of mappings   1  1% 1  1% table 1: statistics of rocchio measures for apj	sti mapping
+in rocchio measures for two mappings in terms of the range of the values  the average  and the number of successful mapping instances. from this result  it can be said that the sti apj network is more robust since the mapping is more dependent on the overall structure of the network representation rather than the existence of the very document node under testing. in general  we found that the performance suffered most in the reduced network  when the rocchio measure was low to begin with in the complete network. our interpretation is that documents indexed with the most popular terms  i.e.  those with nodes most richly interconnected in the network  do not depend on the effects of a  grandmother cell  to predict their indexing in the target vocabulary. clearly  however  our model's success is a function of the amount of evidence it can bring to bear.
+1	discussion and conclusions
+vocabulary merging studies typically involve attempts to map individual descriptors in one vocabulary with corresponding descriptors in another. we have presented an approach to this problem which affords both static  term-to-term mapping  and contextsensitive  document-by-document mapping. vocabulary merging is modeled by a spreading activation network representation. out of the evidence of document co-assignment  a three-layer feedforward network is constructed. term relationships are identified by spreading activation from the input term layer  source subject vocabulary  to the document layer to the output term layer  target vocabulary .
+   the static term-to-term mapping experiment reveals the asymmetric nature of term mapping which has received little attention so far. a visualization tool using a directed graph method is being developed to show these complex term relationships graphically. the  mexican-hat  function was successfully applied as a cutoff criterion in order to select mapping terms out of a large number of activated terms. the context-sensitive mapping experiment indicates that the mapping from specific to general  sti apj  shows better performance than the mapping from general to specific  apj sti . the robustness of the constructed networks is tested by comparing the performances of the complete network and the reduced one. the results indicate that most of the mappings are largely determined by emerging properties of the richly connected network rather than by a specific document node. the sti apj network shows more robustness against the removal of any single document node than the apj sti network. as a test measure  we adapted the rocchio measure for the evaluation of the success of context-sensitive mapping.
+   there are several issues remaining to be explored. a learning algorithm could be implemented in this 1-layer feed-forward network model through weight changes in the network. if the information about the desired output is available  a supervised learning technique  such as the error back-propagation method with a delta rule  can be applied to connectionist models. for term-to-term mapping  the correct response to the input  single descriptor  is not known. but for context-sensitive mapping  the correct response to the input  a set of descriptors as a surrogate for a document  is known a priori from the set of co-indexed documents. therefore  an error-back propagation learning algorithm could be applied to context-sensitive mapping. however  a learning algorithm is not used in the proposed model because the aim of this study is to use the network as a source of evidence  not to attempt training a perfect predictor of human indexers.
+   the present study investigates reconciliation of controlled vocabularies. mapping of a controlled vocabulary into a full-text index might also be explored. there exist a large number of databases in which a controlled vocabulary is used for indexing the collection of documents in the database. the task of subject or keyword indexing can be seen as the process of abstracting from a full-text document into a subset of a controlled vocabulary. this could be implemented with a spreading activation network model similar to that employed in the present study. for this purpose  a three-layer network needs to be constructed  including a list of full-text index terms  input layer   a collection of documents  middle layer   and a controlled vocabulary  output layer . since the information about the correct response  a set of keywords or descriptors for a document  to the input  full-text index terms as a surrogate for a document  is available  a supervised learning algorithm would be employed in the model.

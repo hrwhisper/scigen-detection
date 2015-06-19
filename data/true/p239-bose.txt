@@ -1,0 +1,334 @@
+we are presenting a framework for continuous querying of time-varying streamed xml data. a continuous stream in our framework consists of a finite xml document followed by a continuous stream of updates. the unit of update is an xml fragment  which can relate to other fragments through system-generated unique ids. the reconstruction of temporal data from continuous updates at a current time is never materialized and historical queries operate directly on the fragmented streams. we are incorporating temporal constructs to xquery with minimal changes to the existing language structure to support continuous querying of timevarying streams of xml data. our extensions use time projections to capture time-sliding windows  version control for tuple-based windows  and coincidence queries to synchronize events between streams. these xquery extensions are compiled away to standard xquery code and the resulting queries operate continuously over the existing fragmented streams.
+1. introduction
+　many data management applications require the existence of time-varying data. for example  medical information systems store information on patient histories and how each patient responds to certain treatments over time. financial databases use histories of stock prices to make investment decisions. temporal databases provide a complete history of all changes to a database and include the times when changes occurred. this permits users to query the current state of the database  as well as past states  and even future states that are planned to occur.
+　there is a recent interest in a new type of data management based on streams of historical data. stream data may be infinite or repeated and transmitted in a continuous stream  such as measurement or sensor data transmitted by a real-time monitoring system continuously. an infinite stream may consist of a finite data stream followed by an infinite number of updates. since client queries may refer
+permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage  and that copies bear this notice and the full citation on the first page. to copy otherwise  to republish  to post on servers or to redistribute to lists  requires prior specific permission and/or a fee.
+sigmod 1 june 1  1  paris  france.
+copyright 1 acm 1-1/1 . . . $1.
+to past history as well as to current data  a data stream resembles a read-once temporal database where all versions of data must be available to the client upon request. for example  a server may broadcast stock quotes and a client may evaluate a continuous query on a wireless  mobile device that checks and warns on rapid changes in selected stock prices within a time period.
+　while temporal query languages were developed to handle stored historical data  continuous queries were designed to operated on streaming data. for example  sliding window queries capture streaming data in a moving fixed-size window and are executed in a continuous manner over each window  1  1 . streamed data is inherently associated with a valid or transaction time dimension that identifies the time instant when the data is valid or is generated. for example  a temperature sensor may indicate the temperature reading at a certain location taken at a particular time of the day. streamed data can be broadly classified into two types: instantaneous or event based  which takes place at a certain point of time  and epoch or lifetime based  which is valid during a certain time interval. instantaneous data is typically associated with sensor streams  such as traffic sensors  while lifetime data is associated with change-based or update streams  such as stock quotes.
+　earlier work on continuous query processing has focused on relational data transmitted as a stream of tuples. each tuple is typically associated with a timestamp  which allows the specification of time-sliding windows in continuous queries. for example  an update to a record may simply be a newly inserted record in the stream with the same key but with different timestamp and values. this makes the continuous queries over historical stream data easier to specify in relational form than in other forms. recent proposals of continuous query languages  such as cql  1  1   extend sql with simple temporal constructs  such as time-interval and version projections to specify time- and tuple-based windows  but do not support temporal joins to synchronize events between streams.
+　in our framework  data is transmitted in xml form  since it is now the language of choice for communication between cooperating systems. a typical configuration for our pushbased data model consists of a small number of servers that transmit xml data over high-bandwidth streams and many clients that receive this data. even though our model resembles a radio transmitter that broadcasts to numerous small radio receivers  our clients can tune-in to multiple servers at the same time to correlate their stream data. in contrast to servers  which can be unsophisticated  clients must have enough storage capacity and processing power to evaluate sophisticated  continuous queries on the xml data streams. contrary to other data stream management systems  a client would have to register/unregister with a server only once using a pull-based web service  but would be capable of executing any number of continuous queries without registering the queries with the server. the server  on the other hand  would multicast its data to the registered clients without any feedback from them. pushing data to multiple clients is highly desirable when a large number of similar queries are submitted to a server and the query results are large   such as requesting a region from a geographical database. furthermore  by distributing processing to clients  we reduce the server workload while increasing its availability. on the other hand  a stream client does not acknowledge correct receipt of the transmitted data  which means that  in case of a noise burst  it cannot request the server to resubmit a data packet to correct the errors.
+　a data stream in our framework consists of a finite xml document followed by continuous updates to the document. it is essential  therefore  to specify xml updates unambiguously  that is  to uniquely identify the updated element in an xml document. hierarchical key structures  can uniquely identify xml elements  such as elements with an id attribute  but not all elements can be identified this way. our approach to updating xml streams is novel in that it does not require keys to update xml elements. instead  we fragment an xml document into manageable chunks of information. these chunks  or fragments  are related to each other and can be reassembled at the client side upon arrival. our xml fragments follow the hole-filler model  1  1  in which every fragment is treated as a  filler  and is associated with a unique id. when a fragment needs to refer to another fragment in a parent-child relationship  it includes a  hole   whose id matches the filler id of the referenced filler fragment. a document can be fragmented to produce fillers and holes in arbitrary ways and the fragments can be arranged to any depth and breadth in a document tree. a server may choose to disseminate xml fragments from multiple documents in the same stream  can repeat some fragments when they are critical or in high demand  can replace them when they change by sending delta changes  and can introduce new fragments or delete invalid ones.
+　the notion of the filler id is similar to that of a surrogate key in relational databases or an oid in object-oriented databases  but the granularity of our data is a fragment  which may contain multiple elements  rather than a single xml element. in our hole-filler model  updating a fragment is simply streaming a new fragment with the same filler id but with different timestamp and content. an insertion of a new child to a node is achieved by updating the fragment that contains the node with a new hole  and deletion of a child  by removing the hole corresponding to the deleted fragment. when a fragment is deleted all its children fragments become inaccessible. in essence  a fragment is the unit of updates: one can only replace the entire fragment  not parts of it. if an xml document is transmitted unfragmented  any update would have to transmit the entire updated document. it is essential  therefore  that a server does a reasonable fragmentation of data to accommodate future updates with minimal overhead.
+　at each instance of time  a client should be able to see the complete history of changes in the transmitted document since the beginning of time. the hole-filler model is too low a level for the client to execute high-level xqueries since it requires the user to navigate from holes to the corresponding fillers during querying. more importantly  since a hole may correspond to multiple fillers due to updates  historical queries would have to explicitly manipulate the timestamp component of fragments. instead  we provide the client a virtual view of historical data upto the current time that is easy and intuitive to query. this temporal view is derived by merging all versions into one xml tree  by replacing each hole with the sequence of all fragments that correspond to the hole. this view is never materialized; instead xqueries over this view is translated into xqueries over the existing streams of fragments.
+　the rest of the paper is organized as follows: section 1 proposes the xcql language to perform continuous queries on a temporal view of stream data. section 1 details the approach we adopt to process stream events and updates in a temporal context. section 1 describes the streaming strategy employed to model events and updates as fragments of xml data embedded with contextual information. section 1 covers the reconstruction of a temporal view of the transmitted fragments. section 1 formalizes the translation of xcql expressions to process fragments as and when they arrive  without waiting for complete materialization. section 1 provides the results of our experimental evaluation  and section 1 summarizes the contributions and proposes future work envisioned in this framework. section 1 discusses the related work  and section 1 concludes the paper.
+1. the xcql language
+　our query language  xcql  is xquery extended with temporal language constructs for effective querying of historical data. these extensions are compiled away when an xcql query over the temporal view is translated into an xquery over the fragmented stream. instead of restricting the lifespan of input streams only  as is done in cql   we let our temporal extensions apply to any xquery expression. essential to our query language is the notion of time and time intervals. time can be any xquery expression of type xs:datetime  which conforms to the iso1 extended format ccyy-mm-ddthh:mm:ss where cc represents the century  yy the year  mm the month and dd the day. the letter t is the date/time separator and hh  mm  ss represent hour  minute and second respectively . the time duration used in expressions takes the form pnynmndtnhnmns  where ny represents the number of years  nm the number of months  nd the number of days  t is the date/time separator  nh the number of hours  nm the number of minutes and ns the number of seconds . in addition  time expressions may use the constant start to indicate the beginning of time and the constant now to indicate the current time  which changes during the evaluation of a continuous query.
+　the time interval   time1 time1   contains all the time points between and including time1 and time1. xcql supports a number of syntactic constructs to compare two time intervals a and b  such as a before b  which is equivalent to a.t1 b.t1 when a= t1 t1  and b= t1 t1 . the time interval   time   contains just one time point: time  so is a shorthand for  time time . our version numbering scheme uses integers 1 ... last to number all versions of a fragment  starting from the first version  1  and ending at the last version at the current time  last. a version interval   e1 e1   contains all the versions e1 e1 ... e1  where e1 and e1 are integer expressions. as before   e  is a shorthand of  e e .
+　time and version intervals can only be used in the following xcql syntax:
+	e time interval	interval projection
+	e#version interval	version projection
+vtfrom e  interval begin vtto e  interval end
+where e is any xcql expression. note that the interval and version projections may be used at the same time to restrict versions applicable within the time range. the conceptual temporal view of data is based on the assumption that any xml element has a lifespan  a time interval   which can be accessed using the vtfrom/vtto functions. in reality  very few elements are typically directly associated with a lifespan. these are the elements that correspond to event or temporal fragments in the hole-filler model. the lifespan of any other element is the minimum lifespan that covers the lifespans of its children  or  start now  for leafs . any xquery expression  even those that construct new xml elements from temporal elements  conforms with this temporal view since temporal information is propagated from children to parent. the default interval projection applied to an expression is  start now   which has no effect on the temporal information of data. if the most recent data is desired  then e  now  should be used. when an interval projection is applied to an expression  the lifespan of the resulting value will be equal to the intersection of the projection interval and the current lifespans of input  the semantics will be given in section 1 . on the other hand  only elements associated with event or temporal fragments have versions. when a version projection is applied to a temporal element  that is  an element associated with an event or temporal fragment   then the correct version is chosen  if exists  and its lifespan is used in a temporal projection over the children of the element. even though the interval and version projections have very simple syntax  they are very powerful and can capture many operations proposed by others. for example  windowing  such as r partition by r.a rows n  or r partition by r.a range n days  in cql  can be simulated by performing the group by first using regular xquery and applying a version or an interval projection respectively to the result.
+the following are examples in xcql:
+1. suppose that a network management system receivestwo streams from a backbone router for tcp connections: one for syn packages and another for ack packages that acknowledge the receipt. we want to identify the misbehaving packages that do not receive an acknowledgment within a minute:
+for $s in stream  gsyn  //packet where not  some $a in stream  ack  //packet
+　　　　  vtfrom $s +pt1m now  satisfies $s/id = $a/id
+and $s/srcip = $a/destip and $s/srcport = $a/destport 
+return  warning  { $s/id }  /warning  where pt1m is one minute duration.
+1. in a radar detection system  a sweeping antenna monitors communications between vehicles by detecting the time of the communication  the angle of the antenna when it captures the signal  the frequency  and the intensity of the signal. this information is streamed to a vehicle monitoring system. this system can locate the position of a vehicle by joining the streams of two radars over both frequency and time and by using triangulation:
+for $r in stream  radar1  //event  $s in stream  radar1  //event
+　　　　　　　  vtfrom $r -pt1s vtto $r +pt1s  where $r/frequency = $s/frequency return
+ position 
+{ triangulate $r/angle $s/angle  }
+ /position 
+where function triangulate uses triangulation to calculate the x-y coordinates of the vehicle from the x-y coordinates of the two radars and the two sweeping angles. here we assume that each antenna rotates at a rate of one round per second  thus  when a vehicle is detected by both radars  the two events must take place within one second.
+1. some vehicles  such as buses and ambulances  have vehicle-based sensors to report their vehicle id and location periodically. road-based sensors report their sensor id and the speed of the passing vehicles. some traffic lights  on the other hand  not only report their status each time it changes  but they also accept instructions to change their status  e.g.  from red to green . when an ambulance is close enough to a traffic light  we would like to switch the light to green at a time that depends on the speed and the position of the ambulance:
+for $v in stream  vehicle  //event
+$r in stream  road sensor  
+　　　　//event  vtfrom $v  vtto $v   $t in stream  traffic light  
+             //event  vtfrom $v  vtto $v   where distance $v/location $r/location  1
+and distance $v/location $t/location  1 and $v/type =  ambulance 
+return
+ set traffic light id= {$t/id}  
+ status green /status  
+ time  {vtfrom $t 
++ distance $v/location $t/location  div $r/speed }
+ /time 
+ /set traffic light 
+1. our approach
+　in our framework  we consider data from a wide variety of streaming data sources  such as computer applications that generate values automatically or through user interactions. the ability to synchronize between the streams by issuing coincidence queries  using simple extensions to the standard xquery language  is one of the contributions of our work.
+　events and updates generated by a data stream application are usually associated with context information. for example  a temperature sensor generating temperature readings is associated with the locational information of the sensor  which is primarily static. while events are dynamic  the event context information is primarily static  but changing at times. for example  a credit card account is associated with a credit limit  which changes from time to time. charge transactions made on the card are associated with and are bounded by the credit limit on the account at that particular point in time. the charge transactions are the events  and the credit limit  along with other account information  forms a context for the event. we observe that when events are generated  the context information need not be sent every time  however  the events must be processed within the overall context in a historical timeline to accurately capture the semantics of the event within its global context. the context information may itself change at times  so we would like to capture its temporal extents in the same way as we do for regular events. thus  we treat both events and updates as stream entities and identify them with their contextual locality so that they can be integrated together and processed uniformly in the historical timeline. also  we are faced with a challenge of sending xml data in fragments  associated with a context such that the data can be processed within its context. we address this challenge by encoding fragments with a context id and using the id to construct a complete xml document  with the events as sequences with an associated valid time within their context  and updates as elements associated with temporal duration. the fragments encoded with structural context information and associated with temporal extents can be visualized as forming a complete xml document so that queries on the entire xml document view can be processed with xcql expressions.
+　our approach benefits from two aspects. first  since we only send data in fragments  which is a unit of information for both events and updates  the amount of data transfer is minimal and sufficient. second  we can process temporal queries against these fragments in a continuous fashion as and when they arrive without waiting to materialize the fragments to a complete xml document. the data fragments in the stream  comprising of events and updates to event contexts  provide a temporal xml view in the historical timeline of the stream.
+　we illustrate our approach in figure 1. the events stream generates an infinite sequence of fragments corresponding to real-life events. the update stream produces fragments corresponding to updates to the event context and other related temporal data. by capturing both events and updates as fragments with temporal extents  we provide a unified continuous query processing  using the xcql language  to query both historical and current data.
+　while an event is associated with a single time point  updates are associated with a valid time duration with  from  and  to  extents  denoting the temporal duration of validity. however  for convenience and simplicity  we associate  from  and  to  extents to events also  both being the same as its valid time.
+1 running example
+
+events　as a running example consider a credit card processing system. the accounts present in the system are associated with temporal qualifiers indicating their lifetime. moreover  accounts are associated with credit limits  which change  	
+ stream    r   stream-  xcql - temporal
+ 
+		xml
+ merge 
+
+updates stream 
+figure 1: event and update stream processing
+from time to time. while charge transactions arrive in a continuous event stream  as charges gets posted to accounts  account-level updates  such as credit limit changes  arrive in an update stream.
+　the dtd for the credit card system  with the associated temporal qualifiers  is the following:
+ !doctype creditsystem  
+ !element creditaccounts  account*  
+ !element account  customer  creditlimit*  transaction*  
+ !attlist account id id #required 
+ !attlist account vtfrom cdata #required 
+ !attlist account vtto cdata #required 
+ !element customer  #cdata  
+ !element creditlimit  #pcdata  
+ !attlist creditlimit vtfrom cdata #required   !attlist creditlimit vtto cdata #required 
+ !element transaction  vendor  status*  amount  
+ !attlist transaction vtfrom cdata #required 
+ !attlist transaction vtto cdata #required 
+ !element vendor  #pcdata  
+ !element status  #pcdata  
+ !attlist status vtfrom cdata #required 
+ !attlist status vtto cdata #required 
+ !element amount  #pcdata     
+　even though transactions are event-based  being associated with a single valid time extent  we encode their temporal dimension with both  from  and  to  time points  equal to the valid time of the event  for simplicity and uniformity to facilitate the xcql translation. as charge transactions are made against credit cards  the transaction fragments are transmitted in the stream. moreover  the transactions in an account may be questioned  suspended  revoked  charged at different points in time based on customer/vendor feedback. the following is a fragment of the temporal credit card system xml data:
+ creditaccounts 
+ accounts id= 1  vtfrom= 1-1:1  vtto= 1-1:1  
+ customer  john smith  /customer 
+ creditlimit vtfrom= 1-1:1  vtto= 1-1:1  
+1  /creditlimit 
+ creditlimit vtfrom= 1-1:1  vtto= now   1  /creditlimit 
+ transaction id= 1  vtfrom= 1-1:1  vtto= 1-1:1  
+ vendor  southlake pizza  /vendor 
+ amount  1  /amount 
+ status vtfrom= 1-1:1  vtto= now  
+charged
+ /status 
+ /transaction  ...
+ /accounts  ...
+ /creditaccounts 
+　based on the temporal xml view of the credit system  we would like to answer the following useful queries.
+　query 1 : retrieve all accounts and their current creditlimit  which are maxed-out in the billing period of november 1. assume billing periods for all accounts start on the 1st of every month.
+for $a in stream  credit  //account where sum $a/transaction  1-1-1 
+ status =  charged  /amount   =
+　　　$a/creditlimit  now  return
+ account 
+{ attribute id {$a/ id} 
+$a/customer 
+$a/creditlimit }
+ /account 
+　note that the window specification  in our xcql language  is blended into a temporal duration specification in a seamless xquery compatible format. the window condition acts as a filtering criterion to group together matching elements along with other filtering conditions. also note that the  transaction  elements are inherently grouped by accounts so that the transactions pertaining to each account may be processed as a group within the window/filter criterion.
+　query 1 : retrieve all accounts that exhibit potential fraudulent behavior  that is  to detect the credit cards that may be lost and misused  so that the account holder may be contacted and alerted. we need to determine all accounts whose transactions within an hour totals a value of more than a maximum of $1 and 1% of its current credit limit.
+for $a in stream  credit  //account where sum $a/transaction  now-pt1h now 
+          status =  charged  /amount   = max $a/creditlimit  now  * 1  1  return
+ alert 
+ account id={$a/ id}  {$a/customer}
+ /account 
+ /alert 
+1. fragmented xml data
+　as and when events are generated in the system  eg. when transactions are made against credit cards  the system will  result 
+temporal xml -xquery	- temporal xml
+	1
+translation
+	materialize	xcql -	materialize
+ query  translation＞    	
+xml fragments - xquery - xml fragments
+ stream 
+figure 1: xcql query on fragmented stream
+transmit the event data framents consisting of transaction information. transmitting data in fragments  instead of sending the entire xml document  is expedient as only a part of the data  in our case transactions  needs to be transmitted. as and when new events get posted  a fragment comprising of the event data is transmitted along with information regarding the structural location of the event within its context. similarly  for stream updates  only the fragment corresponding to the change has to be transmitted as none of the data in its structural context changes. moreover transmitting in fragments is beneficial  as small fragments can be processed as and when they occur  as will be seen in the later sections. this increases the throughput of query processing  as fragments are processed as soon as they arrive without waiting to reconstruct the entire xml document before processing begins.
+　our approach in transmitting xml fragments as and when they are generated  and processing xml fragments as and when they arrive  without reconstructing the complete xml document in its historical entirety  is summarized in figure 1. the unit of transfer in our system is an xml fragment  which can relate to an event or an update to an xml element. when fragments are received  one simple option is to materialize the complete xml document based on the context information in the fragments. a query written in xcql  is then compiled-out to translate interval and version projections into a standard xquery  which is processed against the materialized xml. as an efficient alternative  instead of materializing a complete xml document  we would like to process the xml fragments as and when they arrive in a continuous fashion. thus the xcql query translation must now be cognizant of the context of a fragment in order to process the fragments prior to materialization. we transform the xcql expressions into xquery expressions to operate on fragments and then we materialize the resulting xml by reconstructing the processed result fragments with its context information.
+1 tag structure
+　our framework makes use of a structural summary of xml data  called the tag structure  which contains  along with structure of data  information about fragmentation and the temporal dimensions of data. the tag structure defines the structural make-up of the xml data stream  and captures all the valid paths in the data fragments. this information is used in the transformation process of xcql expressions to operate on the xml fragments and during materialization of the result. moreover  the tag structure is used while expanding wild-card path selections in the queries. also  this structure gives us the convenience of abbreviating the tag names with ids  not used here  for compressing stream data. the tag structure is structurally a valid xml fragment that conforms to the following simple recursive dtd:
+ !doctype tagstructure  
+ !element tag  tag*  
+ !attlist tag type  snapshot | temporal | event 
+　　　　　　　　　　　　　#required   !attlist tag id cdata	#required 
+ !attlist tag name cdata #required    
+a tag is qualified by an id and name along with the type of the elements occurring with that tag name. since there are 1 types of fragments that are possible in a streaming context  namely snapshot  temporal and event  we annotate the tag structure with the type of fragment to aid in query processing on the fragments. while a snapshot tag defines fragments as regular non-temporal elements that have no temporal dimension  the temporal tag defines fragments that have a  valid time from  and  valid time to  time dimensions  and the event tag defines fragments as transaction elements with only a  valid time  time dimension. the xml data is fragmented only on tags that are defined as temporal and event nodes only. the tag structure corresponding to the credit card application can be defined as follows:
+ stream:structure 
+ tag type= snapshot  id= 1  name= creditaccounts  
+ tag type= temporal  id= 1  name= account  
+ tag type= snapshot  id= 1  name= customer / 
+ tag type= temporal  id= 1  name= creditlimit / 
+ tag type= event  id= 1  name= transaction    tag type= event  id= 1  name= vendor / 
+ tag type= temporal  id= 1  name= status / 
+ tag type= snapshot  id= 1  name= amount / 
+ /tag   /tag   /tag 
+ /stream:structure 
+　the tag structure provides information on the location of holes in the filler fragments. when the tag type in the tag structure is  event  or  temporal   the corresponding tag in the stream will occur in a filler fragment. a tag annotated as  snapshot  will always be embedded within another temporal/event element or will be the root element  which is always static.
+1 xml fragments
+　the xml fragments are annotated with the tag structure id  tsid  in order to readily infer its structural location  given the tag structure of the stream. also  since fragment must identify the holes they fill in their context fragment  they are associated with filler ids. the filler and hole ids in the fragments form the link to reconstruct the entire xml document from the fragments. moreover  the fragment is qualified by a validtime extent  denoting the time of its generation. as we will see in section 1  the validtime in the filler container is used to derive the temporal dimension of the fragment contained in the materialized temporal view of the xml stream. in our credit system example  since the streamed charge transactions on credit cards must be associated to their accounts in the temporal stream view  we encode the transactions as fragments qualified with a filler id matching a hole in its account fragment along with its time of occurrence. the transmitted fillers fill holes in their contextual xml document  thus producing a temporal view of the entire stream. for example  the following filler transaction fragments will be transmitted as and when the charge transactions are made against a credit card. filler 1:
+ filler id= 1  tsid= 1  validtime= 1-1:1  
+ transaction id= 1  
+ vendor  southlake pizza  /vendor 
+ amount  $1  /amount 
+ hole id= 1  tsid= 1 / 
+ /transaction 
+ /filler  filler 1:
+ filler id= 1  tsid= 1  validtime= 1-1:1  
+ status  charged  /status 
+ /filler 
+ from the example above  the  charge status  filler fragment 1  with id = 1  fills the hole  with id = 1  in its context  transaction  fragment. it can be noted that the fragmentation granularity used in the example above closely models the real-life behavior of requesting for a charge transaction and receiving a response of  charged  or  denied  at a later time. when the card is successfully charged  the entire  transaction  fragment need not be re-transmitted again  but only information relevant to the status  such as the confirmation number. the event generator  however  retains the knowledge of the fragments so that the appropriate hole/filler ids may be associated with the fragments. when the holes in above fragments are resolved  the materialized view will resemble the transaction element in the xml excerpt in section 1.
+　since the validity of a charge transaction on a credit card may be questioned by the account holder  the status of a transaction is associated with temporal extents to capture the time points at which the status changed as is illustrated below: filler 1:
+ filler id= 1  tsid= 1  validtime= 1-1:1  
+ transaction id= 1  
+ vendor  resaris contaceu  /vendor 
+ amount  $1  /amount 
+ hole id= 1  tsid= 1 / 
+ /transaction 
+ /filler  filler 1:
+ filler id= 1  tsid= 1  validtime= 1-1:1  
+ status  charged  /status 
+ /filler  filler 1:
+ filler id= 1  tsid= 1  validtime= 1-1:1  
+　 status  suspended  /status   /filler 
+filler 1 and 1 correspond to the charge transaction performed on the card  and filler 1 corresponds to a suspension of the charge caused by a investigation request by the customer at a later date. after filler 1 is transmitted  any query that filters transactions for charges more than $1  for example  must not report this transaction  as its status has now changed to  suspended . we will see how this is accomplished in the later sections.
+1. reconstruction of the temporal view
+　the fragments received by a client may be reconciled for holes and the resulting temporal view materialized to form a complete xml document. since fragments represent events and updates to the xml data with temporal extents  after materialization  elements in the resultant xml will be encoded with their temporal duration of validity. however  materializing the fragments to form a temporal xml document before processing is not our goal. we could do better by processing the fragments as is  and then materialize the result xml. the following function materializes an element of a fragment by replacing holes with fillers:
+define function temporalize $tag as element  * 
+as element  *
+{ for $e in $tag/*
+return if not empty $e/*    then element {name $e }
+     {$e/ *  temporalize $e } else if name $e = hole   then temporalize get fillers $e/ id  
+else $e }
+　central to the temporalize method is the get fillers function  which returns the filler fragments corresponding to a hole id along with their deduced temporal extents. the get fillers method is used while traversing a hole to a filler based on the hole-id and is defined as follows:
+define function get fillers $fid as xs:integer 
+as element  
+{  filler id= {$fid}  
+{ let $fillers := doc  fragments.xml  /fragments/ filler  id=$fid 
+for $f at $p in $fillers let $e := $f/* order by $f/ validtime return element {name $e }
+{$e/ *  attribute vtfrom {$f/ validtime}  attribute vtto
+{ if  $p = count $fillers   then  now 
+else $fillers $p+1 / validtime } 
+$e/node  } }
+ /filler  }
+　the get fillers method encases the versions of elements present in matching filler ids into a filler with the same id. this is required so that we can perform path projections to extract the required elements from the fillers  since a context element may contain holes pertaining to different elements. for example  the  account  fragment has holes for both the  creditlimit   temporal  and the  transaction   event  subelements. so the get fillers method on the transaction may yield fillers with both  creditlimit  and  transaction  elements. by performing the  creditlimit  path projection  we will get only  creditlimit  elements  and  transaction  path projection   transaction  elements.
+　the temporalize method replaces all occurrences of  holes  with fillers based on the hole id. thus the materialized result is a temporal xml  devoid of holes. as we mentioned before  we will materialize the result only when a query has completed execution and the results ready to be rendered. notice that the temporalize function is a recursive one  since holes could be present anywhere deep in the filler chain. in the following section  we will see how we can flatten this recursive function by leveraging schema information on the stream.
+1 schema-driven reconstruction
+　to remove recursion from the get fillers function that temporalizes a fragmented xml stream  we leverage the schema of the stream in the form of a tag structure presented in section 1. since the tag structure provides information on the location of holes in the fragments and the type of fragments  the following instance of temporalize is generated automatically from the tag structure:
+define function temporalizecreditaccounts $e1 as element   
+as element  
+{  creditaccounts 
+{ for $e1 in get fillers list 
+　　$e1/creditaccounts/hole/ id /account return
+ account 
+{$e1/ *  $e1/customer  for $e1 in get fillers list $e1/hole/ id /* return if name $e1  =  creditlimit   then $e1 else
+ transaction  { $e1/ * 
+$e1/vendor  $e1/amount  for $e1 in get fillers list 
+　　$e1/hole/ id /status return $e1 }
+ /transaction  }
+ /account }
+ /creditaccounts }
+　the tags that correspond to a type  event  or  temporal  in the tag structure will appear as separate filler fragments. thus  while elements with tag type  snapshot  are accessed with a direct path projection  those qualified as  event  and  temporal  are accessed by resolving the holes  using the get filler function. when we come across a tag with type  event  or  temporal   we use the hole-id in the fragment to get all the fillers corresponding to the hole. since the get fillers function only returns the various versions of a single element corresponding to a hole id  we use a list-variant of the get fillers function  get fillers list  to return a set of versions of elements corresponding to a set of hole ids  since a filler could have several holes relating to its various child elements. the get fillers list function is defined as follows:
+define function get fillers list $fids as xs:integer*  as element  *
+{ for $fid in $fids return get fillers $fid  }
+　after the fillers are retrieved based on the hole ids  we perform path projections to retrieve the elements based on the tag structure  and the fillers are further explored for embedded holes. for example  the  accounts  tag could have elements  which are either  creditlimit  or  transaction . in the former case  we do not need to navigate further  since a  creditlimit  element does not have other child elements  whereas the  transaction  element has other sub-elements  which need to be explored recursively.
+1. xcql translation
+　since xcql is xquery with temporal extensions  our first step would be to translate xcql expressions to xquery expressions so that the queries in our framework can be evaluated using a xquery compliant query processor. the fragments we receive with temporal extents can be materialized to produce a temporal xml document on which the translated query will be processed. however  since we would like to process the fragments ad verbatim without materialization  the xcql expressions would need to handle the presence of holes within fillers in order to be able to continue processing over the filler fragments having holes. we observe that only the path traversal expressions of an xcql expression need to be translated to handle holes in filler fragments when a path expression crosses-over a hole. thus the following path traversal components of an xcql  xquery  expression  e  are to be translated to handle holes.
+e::=stream x stream accessor|e/apath projection|e/ any projection|e//awild-card path projection|e/ aattribute projection|e pred predicate|e  tb te interval projection|e# vb ve version projection　we employ the tag structure to facilitate the path translation to handle holes. based on the tag structure  if an element is qualified as a  temporal  or  event  type  then we know that the element will be present only as a filler fragment filling a hole in the context element. we use the get fillers function to find all the fillers having ids matching the hole id. the mapping function that converts the xcql path expressions into a valid xquery is presented using denotational semantics in figure 1.
+　in figure 1  e : ts ★ e1 indicates that e has tag structure ts and is translated into e1. when a path projection is encountered  the tag type in the tag structure is used to determine if a hole resolution must be performed. if the tag type is  snapshot  then the element will be directly embedded in the context  or will be present in another filler otherwise. in the latter case  we use the hole id in the context element to find out the fillers filling this hole. the get filler method is used to determine the versions of the filler elements that fill the hole. the new tag structure of the projection is derived by going one level deeper into the tag tree using the projection tag name.
+　for a wild-card tag projection  since the tag structure describes all possible paths in the fragments  we traverse through all child elements recursively  each time going one level deeper into the tag structure  until we reach the termination condition of the presence of the tag. for an attribute projection  since we do not have version attributes  the mapping is straightforward.
+　since a filtering condition can also be a xcql expression  we interpret the pred in the path expression in the current context before applying the predicate to its context path. we translate the interval projection and the version projection into xquery functions to keep the translation modularized. the interval projection finds the set of elements having a valid temporal duration within the duration specified in the filter. it performs temporal slicing on the elements  by recursively navigating into the fragment  traversing  holes  in the process  so that the temporal extents of all the elements in the sub-tree fall within the specified range. the interval projection method is defined as follows:
+define function interval projection1 $e as element    $tb as xs:time  $te as xs:time 
+{ if empty $e   then    else if name $e  =  hole   then for $f in get fillers $e/ id  return interval projection $f $tb $te 
+else if  empty $e/ vtfrom   then element {name $e }
+{ if empty $e/*   then $e/text   else for $c in $e/*
+return interval projection $c $tb $te }
+else if $e/ vtto lt $tb or $e/ vtfrom gt $te 
+then   
+else
+element {name $e }
+{ attribute vtfrom {max $e/ vtfrom $tb }  attribute vtto {min $e/ vtto $te }  if empty $e/*   then $e/text   else for $c in $e/*
+return interval projection $c $tb $te  }
+} define function interval projection $e as element  * 
+$tb as xs:time  $te as xs:time  as element  *
+{ for $l in $e
+return interval projection1 $l  $tb  $te  }
+　in the above function  it is assumed that $tb ＋ $te. also notice that the temporal extents of elements  which intersect with the input range  are clipped to fall within the range of intersection. when there is no interval projection  it is implied e  start now   that is  for elements other than snapshot  all the versions of the context elements are returned in the system. the version projection on the other hand uses the index of the elements in their historical timeframe to determine the elements  whose index falls within the version range requested. after the version elements are selected  the time interval of those elements are used to determine the temporal extents of the child elements in the tree that needs to be retrieved. thus the version projection method determines the right version s   and then uses the interval projection method to perform a temporal slicing on the subtree. the version projection method is defined as follows:
+stream x  : tagstructure x  ★ get fillersx 1 
+e/* :  ts1 ... tsn  ★  e1 ... en  where  ci （ ts/tag/ name : e/ci : tsi ★ ei e//a :  ts1  ts1 ... tsn  ★  e1  e1 ... en  where e/a : ts1 ★ e1 and  ci （ ts/tag/ name : e/ci//a : tsi ★ ei given that e : ts ★ e1   then :
+e/ a : ts ★ e1/ a
+e/a : ts/tag  name =  a   ★ e1/a	if ts/tag  name =  a  / type =  snapshot  e/a : ts/tag  name =  a   ★ get fillersx e1/hole/ id /a	otherwise e pred  : ts ★ e1 pred1 	where pred : ts ★ pred1 e  tb te  : ts ★ interval projection e1 tb te  e# vb ve  : ts ★ version projection e1 vb ve figure 1: schema-based translation  e : ts ★ e1 means that e has tag structure ts and is translated into e1 define function version projection $e as element  *  $vb as xs:integer  $ve as xs:integer  as element  *
+{ for $item at $pos in $e where $pos  = $vb and $pos  = $ve
+return element {name $item }
+{ $e/ *  for $c in $e/*
+return interval projection $c $e/vtfrom $e/vtto 
+} }
+　in the version projection method  we assume $vb ＋ $ve. as an example of version projection  the following xcql expression:
+stream  credit  
+//transactions vendor= abc inc  # 1 
+will retrieve the first ten transactions by vendor  abc inc  recorded in the system. note that the application of the version projection has the same semantics as specifying a tuple window with a grouping operation. our xcql language version/interval expressions thus blend naturally with an xquery predicate filter. when the input element is a  snapshot   the version projection considers it as a single version element. note that holes embedded within the context element sub-tree in a version projection  are resolved by the interval projection function.
+1 example translations
+　consider the following simple xquery to return all transactions that carry a charge amount of  $1.
+for $t in stream  creditsystem  /creditaccounts/
+　//transaction where $t/amount   1 and $t/status =  charged  return $t
+the query is transformed to interrogate filler fragments as follows:
+for $t in get fillers  get fillers 
+get fillers 1 /creditaccounts/hole/ id
+ /account/hole/ id
+ /transaction
+where $t/amount   1 and
+get fillers $t/hole/ id /status =  charged 
+return $t
+the  creditaccounts  element is defined as a snapshot type  and hence does not need hole traversals. however  since the  account  tag is defined as  temporal  type  the get filler method is used to traverse the holes to get all accounts. the same holds for the  transaction  and the  status  elements. note that due to the existential semantics of xquery path expressions  the above query will retrieve filler 1 in section 1  since it requires at least one  status  element to be  charged . the more accurate way of writing this query would be:
+for $t in stream  creditsystem  /creditaccounts/
+　//transaction where $t/amount   1 and
+　　　$t/status  now  =  charged  return $t
+in this case  the query is transformed with an interval projection as follows:
+let $now := currentdatetime   for $t in get fillers  get fillers 
+get fillers 1 /creditaccounts/hole/ id
+ account/hole/ id
+　　　 /transaction where $t/amount   1 and
+interval projection  get fillers $t/hole/ id /status  $now  $now 
+　　　　=  charged  return $t
+the above query would not retrieve the filler 1  since its current status  after filler 1 is received  is  suspended . note that  in this example  we could have also used e# last  to achieve the same result.
+　the translation for query 1 in section 1  which determines the accounts that have maxed-out in the month  is as follows:
+let $now := currentdatetime   for $a in
+get fillers  get fillers 1 /creditaccounts/hole/ id  /account
+where
+sum interval projection 
+get fillers $a/hole/ id /transaction   1-1   1-1  
+ get fillers ./hole/ id /status=  charged  
+　/amount   = interval projection 
+get fillers $a/hole/ id /creditlimit 
+     $now $now  return
+ account 
+{ attribute id {$a/ id} 
+$account/customer  get fillers $a/hole/ id /creditlimit }
+ /account 
+any  transaction  xml fragment occurring in the stream as an event  falling within the interval projection of the month duration  is filtered and is used to compute the cumulative charge amount for the month. this is then compared with the current creditlimit to determine if the card has exceeded its limit. if so  further transaction requests are denied. query 1 in section 1  is translated as follows:
+let $now := currentdatetime   for $a in
+get fillers  get fillers 1 /creditaccounts/hole/ id
+　 /account where
+sum interval projection 
+get fillers $a/hole/ id /transaction 
+$now-pt1h $now 
+ get fillers ./hole/ id /status=  charged  
+　/amount   = max interval projection get fillers $a/hole/ id 
+/creditlimit  $now  $now 
+       * 1  1  return
+ alert 
+ account id={$a/ id}  {$a/customer}
+ /account 
+ /alert 
+the temporal duration qualifiers in the above translation  eg. pt1h  are actually embedded in a xdt:daytimeduration xml type constructor in our implementation  but not shown here. thus the temporal queries defined using our xcql language are translated to process xml fragments directly instead of materializing the temporal view. note that the window specification in our framework is blended into a temporal query construct to provide clear semantics of stream query processing. by treating both stream events and updates to xml data in our framework  we provide a unified query language and processing methodology well suited for efficient xml data exchange.
+1. experimental evaluation
+　we have implemented the xcql translator in java  which translates xcql queries into xqueries operating directly on fragments of xml data  as outlined in section 1. we have used the qizx xquery processor  to process the translated queries and we have evaluated our filler-processing query translations against the xmark  benchmark framework. our query processing approach on fragmented xml streams is to process the queries directly on filler fragments before reconstructing the result  as opposed to reconstructing the complete document by reconciling the holes  and then executing the query on the materialized document. we have selected three representative queries  q1  q1 and q1  from the xmark framework to compare the performance on selective  range  and cumulative queries. the experiments were run on datasets generated by the xmlgen program to produce an auction xml stream  provided by the xmark framework  with various scaling factors of 1  1 and 1. we have written an xml fragmenter that fragments an xml document into filler fragments  based on the tag structure defining the fragmentation layout. the first method of query execution is to construct the entire document from the filler fragments and then executing the query on the document  caq . the second method is to process the fragments directly  thereby filtering those fillers that would not be part of the result set and then constructing the resulting document  qac . the third method leverages the tag structure id encoded in the filler fragments to process only those fillers that are required by the query  qac+ . while in qac  the fillers are resolved starting from the root fragment  on demand  along the query execution path  resolving holes along the path traversal. in  qac+   only the fillers required by the query are processed without resolving the holes in other levels not required by the query. we ran the experiments on a 1ghz intel pentium iii processor  with 1mb ram  under normal load. the results of the experiments are summarized in figure 1.
+　to illustrate the differences in the execution of the query methods on the filler fragments  consider the aggregate query q1 that determines the number of auctions that have closed with a price of over $1  defined in the xmark framework as:
+count for $i in document  auction.xml  /site/
+closed auctions/closed auction
+where $i/price/text    = 1 return $i/price 
+in the caq method  this query is translated to first materialize the entire document and then to execute the query as follows:
+count for $i in temporalize get fillers 1  /
+closed auctions/closed auction
+where $i/price/text    = 1 return $i/price 
+in the qac method  the query is translated to operate on the fragments  starting from the root  recursively reconciling the holes  as follows:
+count for $i in get fillers  get fillers 1 
+/site/closed auctions/hole/ id
+　　　　 /closed auction where $i/price/text    = 1 return $i/price 
+in the qac+ method  the query is translated to operate only on the fragments required by the query path  guided by the tag structure-based mapping of the path to the tsid  as follows:
+queryfilefragmentedmethodrun timesizefile sizeq1.1kb1kbqac+1msqac1mscaq1ms1mb1mbqac+1msqac1mscaq1ms1mb1mbqac+1msqac1mscaq1 1msq1.1kb1kbqac+1msqac1mscaq1ms1mb1mbqac+1msqac1mscaq1ms1mb1mbqac+1msqac1mscaq1 1msq1.1kb1kbqac+1msqac1mscaq1ms1mb1mbqac+1msqac1mscaq1ms1mb1mbqac+1msqac1mscaq1 1msfigure 1: experimental results
+count for $i in doc  auction fillers.xml  /fragments
+         /filler  tsid=1 /closed auction where $i/price/text    = 1 return $i/price 
+where tsid = 1 matches the tag id for the closed auction filler fragments in the fragmented auction xml document.
+　 from the experimental results we observe that at higher loads  the qac method outperforms the caq method by an order of magnitude  and is outperformed by the qac+ method by an order of magnitude. the difference in performance widens in queries such as query q1 and q1  as the queries are more selective  and the lesser performing methods spend much time reconciling the holes  which would otherwise not be needed in the query. in the qac+ method  however  the fillers are retrieved using the tsid attribute and the path expression does not require any hole reconciliation.
+1. summary and future work
+　in our framework  we propose xcql as a xquery extension to process streaming xml data in a temporal dimension. the queries operate seamlessly on fragments without materializing the entire stream to execute the temporal query. moreover  xml-encoded stream events and xml data updates are captured with temporal extents and the xcql query is performed with consistent semantics. we prove the feasibility of our proposed approach of processing directly the fragments prior to re-construction instead of materializing the document and then executing queries  by means of experimental evaluation using the xmark benchmark. although we have addressed the processing of xml fragments directly without materialization  we have not addressed the mechanics of scheduling the fragments through the xcql query tree. techniques for operator scheduling in a stream management system have been proposed in  1  1  and will be addressed in our framework as future work. we have not addressed versioning attributes in our framework. although we can accommodate attribute versioning in our existing framework by versioning the elements having the attributes  we will address this comprehensively as part of future work. τxquery  has handled attribute versioning by constructing pseudo-elements to capture the time extents of temporal element attributes. also  we would like to consider the effects of id/idrefs on temporality of the stream data and the handling of recursive xml  which are not currently supported in our current framework. since our translation relies heavily on efficiency of the get fillers function  we would like to research optimization techniques to unnest/fold the get fillers functions using language rewriting rules. an alternative visualization of the get fillers method would be a join between the hole-ids and the fillerids so that various join optimizations may be employed.
+1. related work
+　the tribeca  data stream processing system provides language constructs to perform aggregation operations  multiplexing and window constructs to perform stream synchronization  however  is restricted to relational data. other efforts concentrating on windowed stream processing  such as cql   streaquel   cougar   aquery  also addresses only relational data  and provides sql-like constructs to process streaming data. in our framework  we address streams of xml data  which is inherently hierarchical and semistructured. we have developed xcql as a simple extension to the xquery language to perform complex stream synchronization  grouping and aggregation. moreover  since our language is based on xquery  it provides seamless integration between streamed and stored xml data sources without additional conversion constructs. moreover  we have envisioned a unified model for processing events and updates to xml data as fragments  wherein data may be transmitted in manageable chunks closely modeling reallife behavior. the cougar  system proposes the use of adts in object-relational database systems to model streams with associated functions to perform operations on the stream data. the aurora system  1  1  provides a graphical interface tool to build operator trees that will be processed as the data streams through  and addresses operator scheduling to improve system efficiency of the continuous queries.
+　temporal coalescing  addresses the merging of temporal extents of value-equivalent tuples. in our framework  temporal coalescing is performed by capturing the time of occurrence of a change in a filler fragment. when a query is executed  fillers are interrogated in the order of their validtime timestamp and the temporal extents of the fragment are determined before the query is evaluated. in   multidimensional xml  mxml   an extension of xml is used to encode the temporal dimensions and represent changes in an xml document. moreover  in mxml  the changes are always materialized as separate instances. a variant of the hole-filler model  for navigating xml data  has been proposed in   however  in the context of pull-based content navigation over mediated views of xml data from disparate data sources. in our framework  the hole-filler model is used in a push-based streaming model  for fragmenting xml data to be sent to clients for continuous query processing in a historical timeline.
+　in   an xml-xsl infrastructure is proposed to encode temporal information into web documents  and support temporal predicate specification. τxquery  has been proposed as a query language for temporal xml. although the τxquery language is based on xquery  unlike our xcql language  it proposes basically two types of temporal modifiers  current and validtime  to denote current queries and sequenced queries. while the former slices the xml tree on the current snapshot  the latter derives sequences of validtime groups. compared to τxquery  xcql blends naturally to the xquery language  with only minor extensions to perform powerful temporal and continuous stream synchronization. also  we have shown how xcql can be operated on streaming xml data  which arrives as fragments. moreover  we provide a unified methodology to continuously process xml-encoded stream events and updates to xml data in an integrated historical timeline.
+1. conclusion
+　our framework for data stream management is different from other proposals in terms of data model  query language  and query processing. our data model of continuous xml updates and events  does not require the introduction of keys and the fragmentation necessary for updating is hidden from users. our query language works on multiple xml data streams and is able to correlate and synchronize their data. even though the virtual view of the historical streamed data is purely temporal  this view is never materialized; instead temporal queries are translated into continuous queries that operate directly over the fragmented input streams and produce a continuous output stream.
+acknowledgments: this work is supported in part by the national science foundation under the grant iis-1.

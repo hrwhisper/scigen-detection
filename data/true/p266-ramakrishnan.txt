@@ -1,0 +1,240 @@
+we present an unusual algorithm involving classification trees- cartwheels-where two trees are grown in opposite directions so that they are joined at their leaves. this approach finds application in a new data mining task we formulate  called redescription mining. a redescription is a shift-ofvocabulary  or a different way of communicating information about a given subset of data; the goal of redescription mining is to find subsets of data that afford multiple descriptions. we highlight the importance of this problem in domains such as bioinformatics  which exhibit an underlying richness and diversity of data descriptors  e.g.  genes can be studied in a variety of ways . cartwheels exploits the duality between class partitions and path partitions in an induced classification tree to model and mine redescriptions. it helps integrate multiple forms of characterizing datasets  situates the knowledge gained from one dataset in the context of others  and harnesses high-level abstractions for uncovering cryptic and subtle features of data. algorithm design decisions  implementation details  and experimental results are presented.
+categories and subject descriptors: h.1  database management : database applications - data mining; i.1  artificial intelligence : learning general terms: algorithms.
+keywords: classification trees  redescriptions  data mining in biological domains.
+1.	introduction
+¡¡classification and regression trees  cart  were among the earliest proposed approaches for pattern classification and data mining . while being powerful in terms of accuracy and efficiency of induction  their results are also simple to understand as they mimic the decision-making logic of human experts. the renewed emphasis on data mining propagated by the kdd community in the 1s has fueled a resurgence of interest in tree-based methods  1  1 .
+permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. to copy otherwise  to republish  to post on servers or to redistribute to lists  requires prior specific permission and/or a fee.
+kdd'1  august 1  1  seattle  washington  usa.
+copyright 1 acm 1-1/1 ...$1.
+¡¡in this paper we introduce a new data mining task- redescription mining-and also propose a novel tree-based algorithm  cartwheels  for mining redescriptions. a redescription is a shift-of-vocabulary  or a different way of communicating information about a given subset of data; the goal of redescription mining is to find subsets of data that afford multiple descriptions.
+¡¡consider the set of all countries in the world. the elements of this set can be described in various ways  e.g.  geographical location  political status  scientific capabilities  and economic prosperity. such features allow us to define various subsets of the given  universal  set  called descriptors. examples of these are shown in fig. 1.
+¡¡redescriptions are equivalences describing a subset in two ways  for instance:
+	'countries with   1 nobel prize winners'	 
+'countries with   1 billionaires'
+both sides of this redescription refer to the singleton set {us}. such relationships can be mined using techniques from the association rules literature   but our view of redescriptions is broader in scope and also includes set-theoretic expressions involving descriptors: 'countries with defense budget   $1 billion' ¡É
+	'countries with declared nuclear arsenals'	 
+'permanent members of u.n. security council'  
+'countries with history of communism'
+here  we have constructed a set intersection on the left and a set difference on the right  from the given descriptors  and obtained a redescription for the 1-element set: {us  uk  france}. a typical approach to mining such patterns would be to first fix the form of the set-theoretic expressions and then search within the space of possible instantiations. the goal of this paper is to present an algorithmic framework that simultaneously constructs set-theoretic expressions and searches in the space of possible redescriptions.
+¡¡formally  the inputs to redescription mining are the universal set of objects o  e.g.  countries  and two sets  x and y   of subsets of o. the elements of x are the descriptors xi  and are assumed to form a covering of o  si xi = o . similarly si yi = o. the only requirement of a descriptor is that it be a proper subset of o and denote some logical grouping of the underlying objects  for ease of interpretation . the goal of redescription mining is to find equivalence relationships of the form e   f that hold at or above a given jaccard's coefficient   where e and
+countries with   1 nobel prize winners
+countries with   1 billionaires
+countries with history of communism
+countries with defense budget   $1 billion
+permanent members of the u.n. security council
+countries with declared nuclear arsenals=
+=
+=
+=
+=
+={
+{
+{china
+{china {
+{chinafrance france francegermanyindiaisraeljapanpakistanrussia
+russia russiauk uk
+ukus} us}
+}
+us} us} us}figure 1: six descriptors defined over a universal set of countries.f are set-theoretic expressions involving xi's and yi's  respectively. for tractability purposes  some restrictions on the length of the allowable set-theoretic expressions  not their form  is assumed to be provided. redescription mining hence involves constructive induction  the task of inventing new features  and exhibits traits of both unsupervised and supervised learning. it is unsupervised because it finds conceptual clusters underlying data  and it can be viewed as supervised because clusters defined using descriptors are given meaningful characterizations  in terms of other descriptors . why is this problem relevant  we posit that today's highthroughput data-driven sciences are drowning in not just the dimensionality of data  but also in the multitude of descriptors available for characterizing data. consider gene expression studies using bioinformatics approaches. the universal set of genes in a given organism  o  can be studied in many ways  such as functional categorizations  expression level quantification using microarrays  protein interactions  and biological pathway involvement. each of these methodologies provides a different vocabulary to define subsets of o  e.g.  'genes localized in cellular compartment nucleus ' 'genes up-expressed two-fold or more in heat stress ' 'genes encoding for proteins that form the immunoglobin complex ' and 'genes involved in glucose biosynthesis' . while traditionally we would custom-build data mining algorithms to work with each of these vocabularies  redescription mining provides a uniform way to characterize and analyze the results from any of them. in addition  it helps bridge diverse experimental methodologies by uniformly relating subsets across the corresponding vocabularies.
+¡¡we further argue that redescription mining serves as a fundamental building block of many important steps in the iterative  often unarticulated  knowledge discovery process. a shift of vocabulary allows a given subset of data to be interpretable in a different context  and allows us to harness existing knowledge from this other context. for instance  if we are able to redescribe results from a new stress experiment onto  say  a heat shock experiment studied earlier  we will be able to study the new results in terms of known biological knowledge about heat shock. chains of redescriptions allow us to relate diverse vocabularies  through important intermediaries.
+¡¡even redescriptions that hold with jaccard's coefficient   1 find application in many domains. an approximate redescription implies a common meeting ground for two concerted communities of objects. a chain of such approximate redescriptions can effectively relate two subsets that have nothing in common! this is especially useful in story telling and link analysis applications. a query such as 'what is the relationship between people traveling on flight 1 and the top 1 wanted list by the fbi ' can be posed in terms of redescription finding.
+¡¡while related problems have been studied in the data mining community  most notably  conceptual clustering  1  1   niche finding  and profiling classes    we believe that the above formulation of redescription mining has not been attempted before. our contributions here are both the introduction of this new data mining problem  as well as a novel tree-based algorithm for mining redescriptions.
+1. redescription mining as alternating tree induction
+¡¡we now introduce an approach  cartwheels  to mining redescriptions that involves growing two trees in opposite directions  so that they are matched at their leaves. the decision conditions in the first tree  say  top  are based on set membership checks in entries from x and the bottom tree is based on membership checks in entries from y ; thus matching of leaves corresponds to a potential redescription. this idea hence uses paths in the classification trees as representations of boolean expressions involving the descriptors.
+¡¡the cartwheels algorithm is an alternating algorithm  in that the top tree is initially fixed and the bottom tree is grown to match it. next  the bottom tree is fixed  and the top tree is re-grown. this process continues  spouting redescriptions along the way  until designated stopping criteria are met.
+1	working example
+¡¡for ease of illustration  consider the artificial example in fig. 1 that shows two sets of descriptors for the universal set o = {o1 o1 o1 o1 o1}. here  the set x corresponds to the set of descriptors {x1 x1 x1 x1} and y corresponds to {y1 y1 y1 y1}. the cardinalities of x and y may not be the same in the general case. further  in a realistic application  the number of descriptors would far exceed the number of objects.
+¡¡to initialize the cartwheels alternation  we prepare a traditional dataset for classification tree induction  where the entries correspond to the objects  the boolean features are derived from one of x or y   and the classes are derived from the other. in the dataset shown in fig. 1  left   the features correspond to set membership in entries of y and each object is assigned a unique class  chosen from the xi's it participates in. we employed a greedy set covering of the objects using the entries of x in order to establish the class labels in fig. 1  left . for instance  o1 belongs to both x1 and x1  but the tie is broken in favor of x1. notice that in this process  x1 does not receive any representation in the prepared dataset.
+¡¡a classification tree can now be grown using any of the impurity measures studied in the literature  e.g.  entropy  gini index  misclassification rate . fig. 1  right  depicts a possible tree. the leaves of the tree deterministically predict a class label from x  typically the majority class. at this point  the specific details of how the tree was induced are not important  only that any such tree will induce a partition of the underlying objects. in this case  the tree induces a 1-partition which mirrors the 1-class partition present in the original dataset  but is not exactly the same. the left most path corresponds to the region y1 ¡Éy1  the right most path corresponds to o y1 y1  and the union of the two middle
+¡¡
+	x1	=	{	o1 	o1	}	y1	=	{	o1 	o1 	}
+	x1	=	{	o1 	o1	}	y1	=	{	o1 	o1 	o1	}
+	x1	=	{	o1 	o1	}	y1	=	{	o1 	o1	}
+	x1	=	{	o1 	o1	}	y1	=	{	o1 	o1 	o1	}
+figure 1: example data for illustrating operation of cartwheels algorithm.
+objecty1y1y1y1classo1 o1 o1 o1 o1¡Ì
+¡Ì
+¡Á
+¡Á¡Á¡Ì
+¡Ì
+¡Ì¡Á
+¡Á¡Ì
+¡Á¡Ì¡Ì
+¡Ì
+¡Á
+¡Á¡Ìx1
+x1
+x1
+x1
+x1	¡Á	¡Á	
+figure 1:  left  dataset to initialize cartwheels algorithm.  right  induced classification tree.
+	obj.	x1	x1	x1	x1	class	obj.	y1	y1	y1	y1	class
+¡Á¡Ì
+¡Ì
+¡Á¡Á
+¡Á¡Ì
+¡Ì¡Ì¡Á
+¡Á¡Ì¡Á ¡Á
+¡Á¡Ì y1   y1  ¡È  y1   y1   y1   y1  ¡È  y1   y1 
+y1 ¡É y1
+o   y1   y1
+ y1	y1 	 y1	y1 o1 o1 o1 o1 o1¡Ì
+¡Á
+¡Á¡Á¡Ì
+¡Ì
+¡Ì¡Á
+¡Á¡Ì
+¡Á¡Ì¡Ì
+¡Á
+¡Á¡Ìo1 ¡Ì ¡Ì ¡Ì  x1 ¡É x1  ¡È  x1   x1  o1 x1 ¡É x1  ¡È  x1   x1  o1 o   x1   x1 
+o1 x1   x1 
+	o1	¡Á	¡Á	¡Á	 	¡È	 	¡Á	¡Á	 x1 ¡É x1  ¡È  x1   x1 
+figure 1:  left  dataset for second iteration of cartwheels algorithm. notice that class labels are now set-theoretic expressions involving yi's.  right  dataset for third iteration of cartwheels algorithm.
+
+figure 1: alternating tree growing in the cartwheels algorithm. the alternation begins with a tree  first frame  defining set-theoretic expressions to be matched. the bottom tree is then grown to match the top tree  second frame   which is then fixed  and the top tree is re-grown  third frame . colored arrows indicate the matching paths. redescriptions corresponding to matching paths at every stage are read off and subjected to evaluation by jaccard's coefficient.
+¡¡
+paths gives  y1   y1  ¡È  y1   y1 . the reader can verify that these regions do not have a one-to-one correspondence with the regions x1  x1  and x1 in the original partition. for instance  only x1 enjoys such a correspondence  with o   y1   y1. in 'reading off' a partition from a tree in this manner  a conjunction thus results from a path of length   1  a disjunction results from multiple paths predicting the same class  with negations corresponding to following the 'no' branch from a given node. this partition is used as the starting point for the alternation  fig. 1  first frame .
+¡¡we now prepare a dataset with entries from x as the features and the regions thus formed  involving yi's  as the classes  as shown in fig. 1  left . inducing a classification tree from this dataset really corresponds to growing a second tree to match the first tree at the leaves  as depicted in fig. 1  second frame . in this case  the second tree also learns a 1partition and we can evaluate each of these matchings using the jaccard's measure. this produces three redescriptions:
+ x1 ¡É x1  ¡È  x1   x1   y1   y1  ¡È  y1   y1  x1   x1   o   y1   y1  o   x1   x1   y1 ¡É y1 all of which hold at jaccard's coefficient 1. this need not be the case in general. the bottom tree might be able to match only some paths in the top tree  or the matches might not pass our jaccard's cutoff. this process is then continued  now with yi's as features and the partitions derived from the bottom tree as classes  see right of fig. 1 . the new matchings yield the redescriptions:
+ x1 ¡É x1  ¡È  x1   x1  y1 o   x1   x1   y1   y1  x1   x1   o   y1   y1 which  fortuitously  also have a jaccard's coefficient of 1. notice that  this time  the root decision node that has been picked is y1  see third frame of fig. 1  and the tree actually resembles a decision list  a tree where every internal node has a leaf on its 'yes' branch . the alternation can be continued  see sec. 1 for ways to configure the search .
+¡¡if we limit the size of the trees at every iteration  it is easy to see that the set-expressions constructed cannot get arbitrarily long. in our running example  we use a depth limit of 1 so that all expressions on either side of a mined redescription can involve at most three descriptors. the longest expressions result from unions of two paths involving different subtrees.
+1	why does cartwheels work 
+¡¡the use of trees to mine one-directional implications  rules  is well understood and is the idea behind algorithms such as c1 . in cartwheels  we exploit the duality between class partitions and path partitions to posit the stronger notion of equivalence. in fact  if a tree reduces the entropy to zero  it is clear that there must be a one-to-one correspondence between its path partitions and class partitions  which are really path partitions from the other tree. keep in mind that different paths are union-ed when they predict the same class  and this property is crucial to establishing the duality.
+¡¡the search for redescriptions in cartwheels can be viewed as a problem of identifying  and creating  correlated random
+
+figure 1: contour plot depicting best attainable jaccard's coefficient  for different set sizes.
+variables. we present a simple analysis in the case of onelevel tree  the extension to more levels is beyond the scope of this paper . a descriptor  e.g.  d  can be considered to be a discrete random variable that takes on values from o. every object in d occurs with probability  and other objects occur with probability zero  to yield total probability mass of 1. notice that this makes the self entropy of such a random variable to be the logarithm of the size of the descriptor. now consider running a cartwheels alternation with a depth limit of 1 for the classification trees. mining a redescription with jaccard's coefficient of 1 is equivalent to identifying a random variable d whose entropy distance from d is zero. the entropy distance is given by:
+
+where	  is the joint entropy function ofand
+i qualifies the mutual information  in turn given by:
+
+where h d  is the self-entropy of d and   is the conditional entropy of d given d. in other words  the average reduction in uncertainty about d due to knowing d is exactly the self entropy of d  causing an entropy distance of 1. entropy distance is a true distance measure  unlike measures such as the kullback-leibler  kl  divergence. smaller values of entropy distance hence imply higher values of jaccard's coefficient.
+1	configuring alternations in cartwheels
+¡¡cartwheels provides a general framework to explore a space of redescriptions; to configure its alternation  there are several issues to be considered.
+¡¡we will begin by observing that the continuation of cartwheels alternation  after mining a redescription  is really an attempt to explore and stay within a relatively small region of high jaccard's coefficient. fig. 1 shows an idealized scenario where descriptors  or expressions derived from them  occur in all possible sizes  with the best possible overlaps. in a realistic dataset  the regions of high jaccard's coefficient might be disjoint  and a good exploration policy must try to visit all potential regions.
+¡¡in contrast to traditional classification tree induction which is motivated at reducing entropy  cartwheels must actually maintain entropy in some form  since impurity drives exploration. however  if the impurity in the underlying datasets remains constant  some redescriptions are bound to be found over and over again. the tradeoff here is clearly between ex-
+input: objects o  descriptor sets {xi}  {yi} output: redescriptions r parameters:
+¦È  jaccard's coefficient   d  depth of trees   ¦Ñ  # of class participations allowed/descriptor   and ¦Ç  max. # of consecutive unsuccessful alternations .
+initialization:
+set answer set r = {}
+set class participation counts for all {xi}  {yi} = 1
+set feature set f = {yi} set classes c = {xi}
+¡¡¡¡set dataset d = constructdataset o  f  c  set tree t = constructtree d  d  if  all leaves in t have same class c ¡Êc  set l = random leaf in t having non-zero entropy impurify t l  c = paths to classes t  flag = false; count = 1 alternation:
+g = {xi}
+while  count   ¦Ç 
+f = g
+if  flag = false 
+{xi} = g; g = {yi}
+else
+{yi} = g; g = {xi}
+endif
+d = constructdataset o f c  t = constructtree d d 
+if  all leaves in t have same class c ¡Êc  set l = random leaf in t having non-zero entropy impurify t l 
+endif
+rnew = eval t ¦È  if  rnew = {}  count = count + 1
+else
+count = 1 foreach c ¡Êc if c is involved in some r ¡Ê rnew h = descriptors c  foreach descriptor g ¡Êg¡Éh increase g's class participation count
+if g's class participation count   ¦Ñ remove g from g
+endfor
+endif
+endfor
+end if
+¡¡¡¡r = r¡Èrnew; flag = not flag  c = paths to classes t  end whiletable 1: cartwheels algorithmic framework.
+ploration and redundancy: to support sufficient exploration  we must accept redundancy  and conversely if we desire to reduce redundancy  we must settle for insufficient coverage of the redescription space. this tradeoff suggests that a tunable parameter for cartwheels alternation is the number of times that a descriptor is allowed to participate in redescriptions.
+1	thecartwheelsalgorithmicframework
+¡¡table 1 describes the cartwheels algorithmic framework in detail. the outline follows the example shown previously: constructdataset prepares a dataset suitable for cart induction as in fig. 1; constructtree creates the decision tree of depth d; and paths to classes reads expressions off an induced tree  to be used as classes in the next step for each object in o. notice the use of an impurify function in both the initialization and the alternation steps  which typically assigns the second-best class label to the chosen leaf l. additional impurification steps  to aid exploration  are included in our implementations of constructtree  e.g.  we do not always branch on the attribute with the best entropy gain and sometimes perform randomized moves at the root level .
+¡¡the eval function returns redescriptions satisfying the jaccard's threshold ¦È. our implementation of eval requires redescriptions to hold in both the mined and complementary forms  e.g.  for the equivalence e1¡Èe1   f to be considered as a redescription  it must hold with jaccard's coefficient at least ¦È  as must its complement:  e1 ¡É  e1    f. this ensures that every redescription truly induces a partition of o ¡Á o space. descriptors is a function that analyzes a set-theoretic expression and returns the set of descriptors participating in it.
+¡¡the important tunable parameter in table 1 is ¦Ñ  controlling the tradeoff between redundancy and exploration. a participation count is incremented each time a given descriptor appears in a redescription in its role as part of a class  and when this reaches ¦Ñ  the descriptor is removed from consideration. the parameter ¦Ç specifies the maximum number of alternations that cartwheels can go through without mining any redescriptions.
+1	assessingsignificanceofminedredescriptions
+¡¡there are many ways to assess significance of redescriptions mined by cartwheels. they vary in their formulation of the null hypothesis. for instance  given a redescription x   y with jaccard's coefficient ¦È we can ask 'how likely is it that two descriptor expressions of size |x| and |y | have ¦È as their jaccard's coefficient ' or 'how significant is it that expressions having the same syntactic bias as x and y have ¦È as their jaccard's coefficient ' the first approach focuses on the sizes of the descriptor expressions whereas the second is concerned with the way expressions are constructed  and must inherently utilize the distribution of descriptor sizes  and maybe second order information  such as commonality or differences . we adopt the first approach in this paper.
+¡¡specifically  we assess if the jaccard's coefficient  ¦È  can happen by chance if we had chosen sets x and y randomly from the available universal set o  keeping |x| and |y | fixed. this yields a simple statistical test giving a p-value based on the distribution of set overlaps for the given set sizes  details omitted for space considerations . keep in mind that one way to get a strong p-value would be to have very small sizes for x and y  which in turn  make the achievement of a respectable ¦È difficult . on the other hand  if x and y are large  the ease with which they could overlap increases  and hence even high jaccard coefficients might not correspond to a strong p-value. therefore  for interpretation purposes  it is important to not think of intersection size as a surrogate for significance of redescriptions. in the experiments reported here  we have found statistically significant redescriptions involving as few as 1 object to as large as 1 objects.
+1	implementation details
+¡¡cartwheels is implemented in c++ atop a postgres database providing access to the descriptors. we use an ad-tree data structure  for fast counting purposes and estimation of entropy  this is distinct from the classification tree table 1: summary of universal sets and descriptors.
+g1g1g1# stresses11# expts11# orfs11go  biological process  descriptors11go  cellular component  descriptors11go  molecular function  descriptors11expression level range descriptors11k-means clusters11histone expression range descriptors11# descriptors11that combines the descriptors . the ad-tree provides access to the distributions of 'class labels' for every combination of 'features' and  since the definition of features and class labels change at every iteration  is rebuilt continually. notice that the data structure is expected to provide both the sizes of descriptors as well as their negations  when we follow the 'no' branch  and hence  the depth of the ad-tree is set to just greater than the allowable depth of the classification trees. the cartwheels algorithm consults the ad-tree whenever it must make a choice of a decision node  except when its move is exploratory . after evaluating matchings  set-expressions read off the trees are subjected to tabular minimization  in order to arrive at a canonical form.
+¡¡the implementation allows for configuring the space of redescriptions that are explored. the depth limit for the top and bottom trees can be individually specified  and we can also preferentially include or exclude certain types of expressions in mined redescriptions. for instance  syntactic constraints on redescriptions  e.g.  only conjunctions are allowed  can be incorporated as biases in the tree construction phase of cartwheels.
+1.	applications in bioinformatics
+¡¡we now present an application of cartwheels to studying gene expression datasets from microarray experiments conducted on the budding yeast saccharomyces cerevisiae. bioinformatics is fertile ground for application of cartwheels and s. cerevisiae is arguably the most well studied  and documented  model organism through bioinformatics techniques. practically every experimental methodology applied toward yeast can be viewed as a way to define descriptors. even the results of other data analysis/mining algorithms can be used as a source of descriptors! the underlying universal set of objects could be initialized to the set of genes  proteins  or processes  in s. cerevisiae. cartwheels hence brings many computational and experimental technologies to bear upon redescription mining. it supports the capture of both similarities and distinctions among descriptors derived from these diverse sources.
+1	datasets
+¡¡the redescription process begins by defining the universal set of genes  or open reading frames  orfs  g  which is dependent on our biological goals. here  we are interested in characterizing similarities and differences in yeast gene expression behavior across related families of stresses. gasch et al.    is an important source for such a study since it provides results from more than 1 comparisons  across a variety of environmental stresses. we use three different universal sets  to illustrate diverse ways of using the cartwheels framework:
+g1: the set of orfs that show significant change in expression  more than 1-fold up- or down-regulation  in some time point in each of the five stresses from  heat shock from 1 c to 1 c  hyper-osmotic shock  hypo-osmotic shock  h1 exposure  and mild heat shock at variable osmolarity .
+g1: the set of orfs that show more than 1-fold up- or down-regulation change in expression in some time point in each of the seven stresses from  heat shock from 1 c to 1 c  hyper-osmotic shock  hypo-osmotic shock  h1 exposure  mild heat shock at variable osmolarity  heat shock from 1 c to 1 c  and heat shock from 1 c to 1 c . notice that two additional stresses are included  from how g1 was constructed.
+g1: the set of orfs more than 1-fold up- or down-regulation change in expression in some time point in each of the seven stresses in g1 and that do not belong to the set of esr  environmental sress response  genes as characterized by gasch et al.   . the esr dataset  comprising 1 orfs  constitute a characterization of yeast orfs that show a marked uniformity of expression across diverse stresses  and hence have been excluded by many researchers in their analyses - see for instance    .
+¡¡the choice of the universal set can be viewed as a conditioning context and must be kept in mind when interpreting any mined redescriptions. it can be viewed as an implicit descriptor occurring on both sides of every mined redescription  e.g.  e   f in g1 can be viewed as e ¡Ég1   f ¡Ég1.
+1	descriptor definition
+¡¡we defined descriptors for the genes in the chosen universal sets in a variety of ways. one class of descriptors was derived from categories in the go  gene ontology  biological process  go cellular component  and go molecular function taxonomies  that have representation among the chosen genes. the microarray results from the stresses of gasch et al.  relevant to each universal set  were bucketed to yield range descriptors of the form 'expression level ¡Ê  %x  1  in time point %y of stress experiment %z'  for negative %x  and 'expression level ¡Ê  1  %x  in time point %y of stress experiment %z'  for positive %x . notice that we are not constrained to pick descriptors from only the stresses used to define the universal set  although we have made that choice here. further  k-means clustering was performed using the genesis software suite    on each of the stresses individually  with a setting of 1 clusters for g1 and 1 and 1 clusters for g1. no descriptors based on k-means clustering were defined for g1. since heat shock and mild heat shock at variable osmolarity are actually pairs of experiments  this step yields  1  ¡Á 1 = 1  for g1  and  1  ¡Á  1 + 1  = 1  for g1  descriptors  depicting clusters of genes with similar temporal profiles. it must be kept in mind that each of these experiments in turn comprise of multiple time points  different for each stress. finally  we included microarray results from a histone depletion experiment conducted by wyrick et al.    and created range descriptors similar to the gasch stresses; this is to allow us to relate the effect of histone depletion to that of environmental stresses.
+table 1 summarizes the number of descriptors of each type defined for each of the universal sets  and provides count statistics. fig. 1 presents frequency plots for the sizes of the descriptors in each of the universal sets. as expected  a majority of descriptors in each case have very few number of orfs.
+1	cartwheels configuration
+¡¡to invoke cartwheels for a particular universal set  we initialized x to be all descriptors derived from the gasch et al. dataset  which includes the range descriptors as well as the k-means clusters . this ensures that all redescriptions will involve some aspect of the gasch et al. experiment and prevents the possibility of  say  mining a redescription between two go taxonomies. y was initialized to the set of all descriptors; thus  there is some overlap between x and y . in order to prevent obvious redescriptions arising from this overlap  the algorithm was precluded from utilizing descriptors in one tree if they are already present in the other tree.
+¡¡we employed a jaccard's threshold ¦È of 1 and a depthlimit d ¡Ü 1 in both the top and bottom tree induction alternations. the limit on the number of allowable alternations ¦Ç is set to 1  and ¦Ñ was varied from 1 to 1. redescriptions mined by cartwheels are subjected to a 'tightening' step  akin to rule pruning in packages like c1   . this might involve attempting to drop terms from both sides of the redescription  or restricting range descriptors  if they occur in the redescription   and determining whether this causes significant degradation of jaccard's coefficient. if no degradation is observed  then the redescription can be tightened. a p-value cutoff of 1 for significance of redescriptions was utilized in this paper. we first describe the qualitative nature of biological results obtained through redescription and then assess the exploratory behavior of cartwheels.
+1	example redescriptions
+¡¡seven key mined redescriptions  r1-r1  are depicted in fig. 1. r1-r1 are defined over universal set g1  r1-r1 over g1  and r1 over g1. these redescriptions were selected for both their biological interest as well as for their feature construction novelties. the proteins encoded by genes in a redescription may interact with one another or  with other proteins not included in the redescription. such analyses make it possible to uncover cryptic and subtle features of gene expression and regulation.
+¡¡r1 is a redescription where both sides involve descriptors from gene expression bucketing. it relates negatively expressed orfs in the histone depletion experiment with similarly expressed orfs in a gasch comparison  heat shock . r1 can be read as 'of the 1 orfs in the first universal set  the orfs negatively expressed in the histone depletion experiment  1 hours  are also those that are negatively expressed two-fold or more in the heat shock  1 minutes  experiment.' this redescription holds with a jaccard's coefficient of 1. since each side contains a single descriptor  this redescription does not present any set construction. r1 involves 1 orfs  three of which are reported to be regulated by similar mechanisms  according to the work of segal et al.   . these orfs comprise functions related to metabolism  catalytic activity  and are located in the cytoplasm. the pearson coefficients for these orfs in the histone depletion experiments match very strongly  showcasing the use of redescription in identifying a concerted set of orfs.
+¡¡r1 relates a k-means cluster to a set difference of two related go cellular component categories. while the 1 orfs in r1 appear to be part of different response pathways  1 of these 1 orfs are similarly regulated according to the work of segal et al.; these genes relate to the cellular hyperorganization and membrane dynamics in the regulation network.
+¡¡r1 is actually a triangle of redescription relationships that illustrates the power of cartwheels. three different experimental comparisons are involved in this circular chain of redescriptions  with 1 orfs being implicated in all three descriptors. from a biological standpoint  this is a very interesting result - the common genes indicate concerted participation across stress conditions; whereas the genes participating in  say  two of the descriptors  but not the third  suggest a careful diversification of functionality. 1 of the 1 orfs are related to cell growth and maintenance. 1 of the 1 orfs have binding motifs related to the dna binding protein reb1. the importance of phosphate and ribosomes appears to be salient in this redescription. it is important to note that the circularity of r1 is not directly mined by cartwheels  but inferred post-hoc from a linear chain.
+¡¡the theme in r1 is ribosome assembly/biogenesis and rna processing. r1 is a linear chain comprising two redescriptions  and uses a go descriptor as an intermediary between two expression-based descriptors. it is also interesting that this redescription involves a set of 1 orfs!
+¡¡r1 is an even longer chain involving 1 orfs that are common to all descriptors. notice the rather complicated set construct involving a disjunction of a conjunction and a difference  involving three different go biological categories. incidentally  this is the most complicated set expression representable in a 1-level tree.
+¡¡r1 is a relationship between two k-means clusters  between heat shock stresses. the orfs participating in r1 demonstrate a clear focus on sugar or sugar phosphate metabolism.
+¡¡r1 is a redescription relating a disjunction of descriptors to a go cellular component category. it is also our first example of a redescription where a rectangular region is mined in a 1d space involving two different experimental comparisons. usually such a region would require a 1-level tree  but since it is bounded by the extremal values specific to each experiment  it can be captured by a conjunction of merely two descriptors.
+1	effect of ¦Ñ and ¦Ç
+¡¡if we view the alternation process as one of information retrieval  we can adapt traditional precision and recall metrics for algorithm assessment. precision here refers to the number of unique redescriptions as a fraction of the total number of redescriptions mined. recall refers to the number of unique redescriptions as a fraction of the total number of redescriptions possible. unfortunately  the latter metric is nearly impossible to attain  even for our depth limit of 1. for even the smallest universal set considered here  the size of the space of possible redescriptions is o 1 ! our approach hence is to track precision and the total number of redescriptions  across various values of ¦Ñ. fig. 1 shows the monotonic decrease of precision as ¦Ñ is increased  and fig. 1 depicts the steady increase in the total number of redescriptions mined. these graphs indicate that the tradeoff between redundancy and exploration holds across all the
+¡¡
+
+trend  hs1    =   trend  sorb 1m     =   trend  sorb 1c 1m to 1c no    =   trend  hs1 
+heat shock  hs-1   1 minutes   =  -1   = cellular go category 1: nucleolus  =   1 mm h1 1 minutes   =  -1
+-1 -1 -1 -1 -1 -1
+heat shock 1 minutes hs-1redescription r1
+orf listybr1c  ycl1c 
+ydl1c  ydl1c 
+ydr1w  ygl1w 
+ygl1c  ygl1w 
+ygr1c  yhr1w 
+yhr1c  yhr1w 
+yhr1w  ykl1w 
+ykl1c  ykl1w 
+ykr1c  yll1w  
+yll1w  ylr1c 
+ylr1w  ylr1w 
+ylr1w  ylr1c 
+ylr1c  yml1w 
+ymr1c  ymr1c 
+ymr1c  ynl1c 
+ynl1w  ynl1c 
+ynl1c  ynl1c 
+ynl1c  yol1c 
+yol1c  yor1c 
+yor1c  yor1c 
+ypl1w  ypl1w 
+ypl1w  ypl1w  ypl1w
+heat shock  1 minutes  hs-1   = -1  =   biological go category 1: cytoskeleton organization and biogenesis   and biological go category 1: g1 phase of mitotic cell cycle    or   biological go category 1: ribosome biogenesis and assembly and not  biological go category 1: cytoskeleton organization and biogenesis     =  heat shock 1 minutes  hs-1  = -1  =  biological go category 1: ribosome biogenesis     =  heat shock 1 minutes hs-1  = -1-1 -1 -1 -1 -1 -1
+heat shock 1
+cellular go category 1: cell wall  =  1c +1m sorbitol to 1c + 1m sorbitol   1 minutes   = 1 and 1 mmh1  1 min  = 1 or 1c +1m sorbitol to 1c + 1m sorbitol   1 minutes   = -1heat shock  hs-1   1 minutes   =  -1   = 
+histone depletion  1 hr    =  -1cellular go category 1: membrane  and not  cellular go category 1: inner membrane   =  trend  h1 
+time point  h1 redescription
+r1
+orf listydr1c  ygl1w
+yhr1c  yhr1c
+yml1c  yol1w
+yol1c  ypl1c
+-1 -1 -1 -1 -1 -1
+heat shock 1 minutes hs-1
+redescription r1
+orf list
+-1 -1 -1 -1 -1 -1
+histone depletion  1 hr
+yal1c  ygl1w 
+ygr1w  yml1c
+ynl1w  yor1w  ypl1wfigure 1: seven redescriptions mined from gene expression studies on saccharomyces cerevisiae. each box gives a readable statement of the redescription  presents it in graphical form  and identifies the orfs conforming to the redescription. r1-r1 are defined over universal set g1  r1-r1 over g1 and r1 over g1. the jaccard's coefficient is displayed over the redescription arrow. notice that some redescriptions  e.g.  r1  involve few orfs  whereas others such as r1 involve larger numbers.
+figure 1: frequency plot of descriptor sizes for universal set g1  g1  and g1  respectively.
+¡¡
+datasets considered here. a formal characterization is underway.
+¡¡the effect of ¦Ç parameter  that controls the number of unsuccessful consecutive alternations  is as expected: increasing ¦Ç results in a greater number of  total and unique  redescriptions mined  not shwon for space considerations .
+1.	discussion
+¡¡this paper is a first exploration into the formulation of the redescription mining problem and has presented an approach for mining redescriptions automatically. redescriptions can be thought of as generalizations of one-directional implications  e.g.  association rules   rules in ilp    where one descriptor is required to be a proper subset of the other. this generalization coupled with the automatic identification of set-theoretic constructions makes cartwheels a very powerful approach to mining  approximate  equivalence relations. we have demonstrated the effectiveness of cartwheels in a domain that exhibits a richness of descriptors  and shown how it captures patterns involving small as well as large sets of objects.
+¡¡the work presented here has close connections with ideas pursued in the schema matching   clustering categorical data   and model management  literature. the relationships considered in schema matching research are primarily of the foreign key nature or otherwise operate at the instance level  whereas we consider more complex set-theoretic relationships. clustering categorical data focuses on defining similarity measures in non-metric spaces and this research can be fruitfully integrated with our work. however  notice that we are not merely clustering data but also imposing describability constraints. model management is a framework that recognizes the complex inter-relationships that would exist in multi-database enterprises and provides union  intersection  and difference operators for reconciliation  integration  and migration purposes. the relationships here are assumed to be user provided  and the emphasis is on actually 'executing a redescription.' cartwheels can thus be usefully employed here as a driver for determining what these relationships should be.
+¡¡we now outline some directions for future research. the connection between jaccard's coefficient and algorithmic driver parameters  such as entropy  deserves further study. other ways of evaluating redescriptions  1  1  are also pertinent here  e.g.  dice coefficient  and some of these could support more efficient tree-based algorithms than the jaccard's coefficient. ideally  an evaluation metric would obey some closure properties in the space of redescriptions  which can be used to configure an exploration strategy. in addition  it is preferable that an evaluation metric lend itself to the design of a statistical test of significance for redescriptions.
+¡¡thus far  we have assumed a 'flat' organization of the given descriptors and do not recognize any structural relationships between them. however  some descriptor vocabularies  e.g.  derived from go  enjoy a hierarchical structure  which can be exploited by the mining algorithm. specialized redescription algorithms can thus be designed for targeted descriptor families.
+¡¡there are various other formulations of the redescription mining problem  in particular the question of identifying a generating set of redescriptions is open. this will avoid having to find all redescriptions and instead allow us to exploit the algebraic structure of descriptors  akin to the strategy pursued by zaki for mining a non-redundant set of association rules .
+¡¡there is an intrinsic limit to a dataset's potential to reveal redescriptions  which can be studied through statistical analysis of set size distributions and estimates of overlap potential. of particular interest here is qualifying the 'expected' results from a cartwheels alternation before actually performing the alternation  using notions such as the entropy rate of the stochastic process underlying the alternation .
+¡¡our current focus is on using redescriptions to automatically span multiple levels of abstraction  e.g.  gene subsets ¡ú pathways ¡ú biological processes . this would firmly establish the importance of redescription in bridging the diverse levels at which information is created and characterized.
+acknowledgements
+nr and dk are supported by nsf grants eia-1 and eia-1. the work of mp and rh is supported through the multidisciplinary university research initiative  muri  program of the department of defense  biomimetic cell and tissue stasis; n1-1  and the metabolic engineering for cellular stasis program of darpa  n1-g1-p1 and n1-1-g1 . bm is supported by grants from nsf's itr  qubic  and sger programs  darpa  the us air force  afrl   national institutes of health  nih   and new york state office of science  technology & academic research  nystar . we thank chris bailey-kellogg and t.m. murali for useful comments.

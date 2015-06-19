@@ -1,0 +1,329 @@
+we compare two recently proposed frameworks for combining generative and discriminative probabilistic classifiers and apply them to semi-supervised classification. in both cases we explore the tradeoff between maximizing a discriminative likelihood of labeled data and a generative likelihood of labeled and unlabeled data. while prominent semi-supervised learning methods assume low density regions between classes or are subject to generative modeling assumptions  we conjecture that hybrid generative/discriminative methods allow semi-supervised learning in the presence of strongly overlapping classes and reduce the risk of modeling structure in the unlabeled data that is irrelevant for the specific classification task of interest. we apply both hybrid approaches within naively structured markov random field models and provide a thorough empirical comparison with two well-known semi-supervised learning methods on six text classification tasks. a semi-supervised hybrid generative/discriminative method provides the best accuracy in 1% of the experiments  and the multi-conditional learning hybrid approach achieves the highest overall mean accuracy across all tasks.
+categories and subject descriptors
+i.1  artificial intelligence : learning
+general terms
+algorithms  experimentation  performance
+keywords
+semi-supervised learning  hybrid generative/discriminative methods  text classification
+permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. to copy otherwise  to republish  to post on servers or to redistribute to lists  requires prior specific permission and/or a fee.
+kdd'1  august 1  1  san jose  california  usa.
+copyright 1 acm 1-1-1/1 ...$1.
+1. introduction
+﹛most machine learning methods rely on the availability of large labeled datasets. however  human annotation is timeconsuming  making labeled data costly to obtain in practice. motivated by this problem  researchers have proposed semisupervised learning methods that leverage large amounts of relatively inexpensive unlabeled data along with small amounts of labeled data. the increasing interest in applying machine learning to new domains and the vast availability of unlabled data from the web and elsewhere are driving interest in semi-supervised learning.
+﹛semi-supervised learning is especially relevant for applications in data mining  as when initially analyzing data from a new domain  obtaining any labeled data requires laborious human annotation. the lowest effort approach to data mining would use unsupervised learning. however  supervised learning methods typically provide better  more taskfocused results.
+﹛for example  consider the problem of classifying messages as belonging to a mac hardware or pc hardware newsgroup. although there are word features in the data relevant to this task  such as powerbook indicating mac  or dell indicating pc   because mac and pc postings have high word overlap  an unsupervised clustering algorithm could discover many different ways to partition this data. for example  messages about hard drives or networking may appear as clusters  but these clusters may not be directly relevant to the classification task of interest. if posed as a supervised classification task  however  with labeled examples from each newsgroup  the classifier will learn to focus on the features relevant to the mac   pc task  and make the desired separation.
+﹛training methods for machine learning classifiers are often characterized as being generative or discriminative. generative training estimates the joint distribution of all variables  both the classes and the  input  data  while discriminative training is concerned only with the decision boundary. classifiers trained discriminatively seem to have lower asymptotic error than analogous generatively-trained classifiers because  intuitively  they are able to focus limited representational capacity on predicting just the class variable. however  discriminative approaches do not always provide the highest accuracy. when the amount of training data is small  generative training can provide better accuracy even when the model is not a very good fit to the data. ng and jordan demonstrate this  comparing naive bayes and logistic regression .
+﹛motivated by these observations  several researchers have proposed hybrid methods that combine generative and discriminative training. these hybrid methods have delivered promising results in the domains of text classification  1  1   pixel classification   and object recognition  1  1   among others.
+﹛a variety of semi-supervised techniques have been developed for both generative and discriminative models. a straightforward  generative semi-supervised method is the expectation maximization  em  algorithm. the em approach for naive bayes text classification models is discussed by nigam et al. in . generative semi-supervised methods rely on a model for the distribution of the input data  and can fail either when this model is wrong  or when the structure of the input data is not correlated with the classification task  as illustrated in the mac-pc example above . discriminative semi-supervised methods  including probabilistic and non-probabilistic approaches  such as transductive or semi-supervised support vector machines  tsvms  s1vms   1  1  and a variety of other graph based methods  1  1  assume high density within class and low density between classes  and can fail when the classes are strongly overlapping. hence  these approaches for semi-supervised learning in discriminative classifiers also use model assumptions about the structure of the input data  but typically do not encode these assumptions as explicit models of input probability density.
+﹛in this paper  we apply hybrid generative/discriminative methods to semi-supervised learning. we compare two recently proposed approaches to combining generative and discriminative methods in detail. the first is multi-conditional learning   a class of training objective functions composed of the product of multiple likelihoods that share one set of parameters and are derived from an underlying joint model. we formulate the semi-supervised training problem in terms of the optimization of a multi-conditional objective function that is a weighted combination of a discriminative likelihood of labeled data and a marginal likelihood of both labeled and unlabeled data. we also consider a framework proposed by lasserre et al.  which we henceforth refer to as the parameter coupling prior1 method. in this approach  the discriminative and generative components derived from a common joint model have separate sets of parameters. these parameters are coupled by a prior distribution that specifies how one set of parameters influences the other.
+﹛both of these hybrid approaches can be interpreted as discriminative classifiers trained using the marginal likelihood of the input data as parameter regularization. we conjecture that for many problems this form of regularization is more helpful than typical discriminative regularization approaches penalizing decision boundaries passing through regions of high marginal density. in contrast  these generative/discriminative hybrids are not constrained to avoid low-density regions between classes when placing decision boundaries. additionally  they are able to balance between leveraging innate clusters in the input data  which may or may not be useful  and task-specific evidence from the labeled data  which may or may not be representative . hybrid methods can avoid relying on generative modeling assumptions by emphasizing the discriminative likelihood during maximization. in summary  these methods allow us to avoid the assumptions of discriminative semi-supervised approaches and mitigate the assumptions of generative semisupervised methods. by emphasizing each component of the objective function appropriately  they allow semi-supervised learning in cases that other methods fail.
+﹛in addition to the motivation provided above  the contributions of this paper are:
+  we apply multi-conditional learning to semi-supervised learning.
+  we compare the multi-conditional learning approach with a framework recently proposed by lasserre  et al. in . we subject this method to much more thorough evaluation than was provided in   only one dataset  no comparisons to other methods .
+  we implement these model-independent approaches in a naively structured markov random field model and derive the appropriate gradients.
+  we provide an empirical comparison of the two approaches along with two other prominent semi-supervised methods for classification. a hybrid method outperforms other methods in 1% of the experiments and the multi-conditional learning approach gives the highest overall mean accuracy.
+1. two general generativediscriminative aproaches
+﹛first  we define the learning problem. suppose we have data d = dl﹍du  where dl and du represent the labeled and unlabeled data  respectively. each example in dl is a pair  y x   where the vector y has length equal to the number of classes and a 1 in the position corresponding to the index of the correct class  other entries are 1 . vector x has length equal to the number of features of the input and each position contains the value of a particular feature for this example. in du  each example is only  x   as the value of y is hidden. in the case of document classification  for example  each example corresponds to a document  and each position in x might contain the number of times a particular word occurs.
+notice that x can be decomposed into   where
+  so that each wi corresponds to the event of observing a feature. vector wi has a single 1 in one position and 1 elsewhere. for example  in document classification wi represents a word occurrence. another occurrence of the same word in the document would correspond to separate event wk. this decomposition of x into individual events is useful for understanding the graphical model introduced in section 1. first  we discuss two model-independent hybrid approaches.
+1 multi-conditonal learning
+multi-conditional learning  is a class of training objec-
+tive functions composed of the product of multiple weighted likelihoods  each with parameters derived from the same underlying joint model. an advantage of the multi-conditional framework is the flexibility it allows to craft an objective function for a specific learning task. for example  an objective function composed of the product of weighted discriminative likelihoods for multiple tasks is a natural framework for transfer learning or multitask learning .
+﹛mccallum et al.  combine discriminative and generative likelihoods using the multi-conditional objective function:
+p y |x;成 汐p x|y ;成 汕
+training text classification models with this objective function was found to produce improvements in classification accuracy. here  we express semi-supervised training in terms of a multi-conditional objective function by combining the weighted discriminative likelihood of the labeled data and the weighted marginal likelihood of labeled and unlabeled data. this objective function is:
+o 成  = p yl|xl;成 汐p x;成 汕 
+where xl and yl denote the labeled data and the term p x;成  includes both labeled and unlabeled data.
+it is convenient to maximize the natural log of o:
+	lno 成  = 汐lnp yl|xl;成  + 汕 lnp x;成 	 1 
+we choose the model parameters 成 that maximize 	o:
+	成 = 	argmax lno 成  .
+成
+﹛in equation  1   increasing 汐 gives more weight to the discriminative component during maximization  while increasing 汕 gives more weight to the generative component.
+﹛a practical concern is that each component and its gradient may be different in scale. notice that p yl|xl;成  is a distribution is over the number of labels  and p x;成  is a distribution over the number of features. this means that if the distributions were uniform the magnitude of the log-likelihood for the generative component would be much smaller than that of the discriminative component. additionally  in semi-supervised learning the number of labeled examples is typically much smaller than the number of unlabeled examples  so the sums inside each likelihood calculation have a different number of terms. this makes it difficult to choose values of 汐 in an interpretable way. choosing 汐 = 1 and 汕 = 1 does not correspond to maximizing with 1% of the weight on the discriminative component  as the discriminative gradient magnitudes tend to be larger than those of the generative component.
+﹛one potential solution to this problem is to normalize each of the components so that they have the same magnitude  and weight the normalized componenets. in non-log space  normalizing each component corresponds to raising each component to a power x. if x   1  then this makes the probability distribution more peaked  whereas if x   1  the probability distribution is flattened. since p yl|xl;成  is convex  stretching or flattening it should make little difference in terms of the ability of a gradient-based optimizer to find the maximum. however  p x;成  is not convex  and consequently flattening it could actually change the maximum found by the maximizer  if x is small enough to sufficiently smooth the distribution. because the generative likelihood is smaller in magnitude and flattening it by raising it to a power x   1 may be detrimental  we avoid normalization and set 汕 = 1 and 汐    汕.
+﹛the difference in the magnitude of the likelihoods could also cause maximization to appear to converge when one component conceals the changes in the other. to deal with this issue  we adapt convergence criteria so that training converges only when both components  considered independently  have converged.
+﹛in addition to the terms above  we use a standard zeromean gaussian prior over parameters:
+.
+1 parameter coupling prior
+﹛in the approach of lasserre  et al.   which again we refer to as the parameter coupling prior approach  the generative and discriminative components have separate sets of parameters. the two sets of parameters are jointly trained and are coupled using a prior distribution. following   we define the joint distribution of features x  classes y   and parameters 成d and 成g  for the discriminative and generative models  respectively  as:
+p x y 成d 成g  = p 成d 成g p y |x;成d p x;成g 
+let us consider two special cases of priors. if the prior p 成d 成g  constrains 成d = 成g  then we have a generative model based on the joint distribution.
+p x y 成g  = p 成g p x y ;成g 
+if the prior assumes that the two sets of parameters are independent p 成d 成g  = p 成d p 成g   then we have:
+p x y 成d 成g  = p 成d p y |x;成d  p 成g p x;成g  
+in other words  if the underlying joint model is such that the parameters of the marginal model and the conditional model are completely independent  then the terms inside the brackets are constant with respect to 成d  and hence play no role in classification. therefore  this is a discriminative model.
+﹛a prior that imposes a soft constraint that the parameters must be similar allows blending of the generative and discriminative. as in   we couple the two sets of parameters by a prior of the form:
+		 1 
+lasserre et al. noted that the generative component p x;成g  can make use of unlabeled data  and can hence be used for semi-supervised learning. experimental results on one dataset using the above prior demonstrated the potential for semi-supervised learning using this method.
+1. model
+﹛it is important to note that the two approaches described above are model-independent because they only specify the form of the objective function. we can derive concrete versions of the objective functions for a specific graphical model. here  we apply them to a markov random field
+
+figure 1: a factor graph for a naively-structured makrov random field model.
+ mrf  model  an undirected graphical model. the model is structured so that the input variables wi are conditionally independent given the class y. this can be interpreted as an undirected analog to naive bayes models. for this reason we refer to this specific structure as a naively structured mrf. the factor graph for this model is shown in figure 1. we could also use these training objective functions in more complicated models with hidden topic variables or models for sequences.
+1 training
+﹛we estimate the parameters of the model by finding the parameters that maximize the objective functions defined in section 1. we use gradient methods to find the maximum. below we define these objective functions for the naively-structed mrf model  and compute the gradients. the components of each objective are derived from the joint distribution of the model given by:
+	 	 1 
+where   is a normalizing factor that ensures a true probability distribution. first  we derive the gradient for the discriminative component of the objective function  the conditional log-likelihood ly|x = logp y |x    where y  and x  denote observations and
+ly|x = x `成ty y  + y t成txyx    lnz x  ∩ 
+ x  y  ﹋dl
+where
+.
+y
+the gradient is then computed as
+!
+where ex ﹞  denotes the expectation under p x  and ex  ﹞  denotes an expectation under the empirical distribution of
+x. the gradient of ly|x with respect to parameters 成y is similar. the log marginal likelihood for p x  is
+!
+and has gradient
+!
+!
+= x 
+≦ ex  hey|x xyt i   ex y xyt 
+for the multi-conditional objective function  the parameter matrices 成xy and 成y are the same for both the discriminative and generative components. for the parameter coupling prior method  成xy and 成y are different for each component and are coupled by  1 . the derivative of this prior with respect to each set of parameters is:
+
+﹛if 汕 = 1 in the multi-conditional approach or 考 = ﹢ in the parameter coupling priors approach  then the lx term drops out of the objective function and we only maximize ly|x which uses no unlabeled data. maximizing only ly|x in the naive mrf model yields a maximum entropy classifier . we use maximum entropy classifiers as the supervised counterpart to our hybrid semi-supervised methods.
+﹛we use limited-memory-bfgs  a quasi-newton optimization method that has been shown to work well for maximum entropy models   in conjunction with the adapted converge criteria discussed in section 1. note that the marginal density p x  is not convex  which means neither the multi-conditional nor the parameter coupling prior objective functions are convex. because l-bfgs is a convex optimizer  we converge to a local maximum. empirically  we have found that l-bfgs requires fewer training iterations converges to better maxima than other convex optimizers. using a method to specifically address the lack of convexity may be beneficial  but is an issue we leave for future research.
+1. related work
+1 semi-supervised learning
+﹛although many semi-supervised methods have been proposed  they each fall into one of a small number of classes of methods  each of which make certain assumptions.
+﹛co-training  and related multi-view learning methods  1  1  assume that multiple classifiers are trained over multiple feature views  splits  of the same labeled examples. as capacity control  these classifiers are encouraged to make the same prediction on any unlabeled example. however  multiple feature views often do not naturally exist in practice  and these methods resort to artificially creating random feature splits.
+﹛graph based semi-supervised learning  1  1  assumes that labeled and unlabeled examples are connected by a graph  where edges represent similarity between examples. the discriminant function is encouraged to vary smoothly with respect to the graph. as a result  connected nodes tend to have the same label. one interpretation of this it is that labels 'propagate' through unlabeled examples via graph edges. however  the graph is usually constructed from the distances in feature space  and is susceptible to overlapping classes. indeed if unlabeled data from different classes strongly overlap  the graph will be wrong  and the method can be expected to be inferior to supervised learning.
+﹛semi-supervised or transductive support vector machines  s1vms  tsvms   1  1  also assume that there is a wide margin in kernel induced feature space between unlabeled data from different classes. the margin may be different than the traditional margin of labeled examples. s1vms attempt to place the decision boundary in the unlabeled margin. however  there are two issues: first  such margin may not exist if the classes strongly overlap even in the kernel induced feature space. second  s1vms involves a highly non-convex optimization problem which is difficult to solve .
+﹛generative semi-supervised methods based on the expectation maximization  em  algorithm assume a model for the input distribution. in  nigam  et al. use the em algorithm in conjunction with a mixture of multinomials  or naive bayes  generative model. in the e step  each unlabeled example is assigned a label distribution according to its expected value under the current model. in the m step  the multinomial parameters are re-estimated. in practice this model can fail when the assumption of independent input features is violated or when the best generative structure does not correspond to the decision boundary.
+1 generative discriminative hybrids
+﹛there have been several successful applications of hybrid generative/discriminative methods in addition to the two approaches that are the focus of this paper. in many approaches  parameters are separated into two subsets  one of which is trained discriminatively and the other generatively.
+﹛raina et al.   present a model for document classification in which documents are split into multiple regions. for a newsgroup message  regions might include the header and the body. in this model  each region has its own set parameters that are trained generatively  while the parameters that weight the importance of each region in the final classification are trained discriminatively. experimental results show that this hybrid algorithm gives better classification accuracy than either naive bayes or logistic regression  a generative/discriminative pair   alone. additionally  raina  et al. show that because the number of discriminative parameters in the model is small  only a small amount of training data is required to estimate these parameters.
+﹛kang and tian  extend naive bayes by splitting features into two sets x1 and x1. the directed graphical model for this approach has nodes x1 as the parents of the class variable y   and parameters x1 as the children of y . parameters of this model are estimated by maximizing p y |x1   the discriminative component   and p x1|y    the generative component . an iterative algorithm based on classification accuracy is used to decide which features go in x1.
+﹛bouchard and triggs  propose a method to trade-off generative and discriminative modeling that is similar to multi-conditional learning because it maximizes a weighted combination of two likelihood terms using one set of parameters. defining lgen = lnp y x  and ldisc = lnp y |x   bouchard and triggs present a combined objective function l竹 = 竹lnp x y   +  1   竹 lnp y |x . a subtle difference between this objective function and those presented here is that in their approach the generative component is the full joint distribution. as in other related work  experimental results show that highest accuracy is obtained somewhere between fully generative  in this case 竹 = 1  and fully discriminative  竹 = 1 .
+1. experiments
+﹛semi-supervised learning methods are rarely applied in practice  in part because there are few empirical comparisons of multiple semi-supervised methods. additionally  many semi-supervised experiments use binary datasets that have few features and are easily separable. here we provide a substantial comparison of two semi-supervised hybrid generative/discriminative methods and two prominent semi-supervised learning methods  as well as their supervised counterparts  on multi-class datasets with large numbers of features.
+1 setup
+﹛we first discuss the supervised/semi-supervised pairs of methods we use in the experiments.
+naive bayes / em naive bayes  nb emnb 
+we use the naive bayes implementation in the mallet toolkit . as in nigam et.al   we use laplace  plus-1  smoothing  so that unseen events do not get zero probability.
+svm / transductive svm  svm tsvm 
+ in our experiments we use universvm  an svm implementation introduced in  that uses the concave-convex procedure  cccp  to optimize transductive svms. collobert et al. show that optimizing tsvms with cccp improves accuracy and decreases training time when compared to other heuristic methods. the tsvm introduces several hyperparameters that need to be tuned. in our experiments  we tune  and c  ﹋ {1 1 1 1}  the cost parameters for the labeled and unlabeled data  respectively. collobert et al. also tune the symmetric ramp loss for the unlabeled data  but doing a grid search over three parameters  each with several possible values  was not practical for large-scale comparison. we set the symmetric ramp loss parameter to  1 in all experiments and use a linear kernel. although we do not perform normalization of feature counts for other methods  we find that this is very important to achieve reasonable tsvm results and therefore normalize feature vectors to have euclidean length 1 for the svm and tsvm experiments.
+max entropy / multi-conditional method  me mcl 
+we use the implementation of maximum entropy models in mallet  and also use this framework to implement the multi-conditional method. for both we tune the gaussian prior variance 考1 ﹋ {1 1 1 1}. for the multiconditional method  we also tune the relative weighting of the discriminative component 汐 ﹋  1  at every order of magnitude. we use 汕 = 1 for all experiments. see section 1 for some discussion of settings for 汐 and 汕.
+parameter coupling prior  pcp 
+we implement this model in mallet  as well. following lasserre et al.   we tune the parameter 汐  which is translated into a value for 考  the strength of the coupling prior  using. we use 汐 =  1 1  in intervals of
+1. we use 考1 = 1 for the gaussian prior on parameters  because we find that tuning this value provides little benefit when compared to the extra time it requires  we later show that pcp requires more time to train than the other methods . as above  the supervised counterpart for this method is the maximum entropy classifier.
+﹛we run experiments on five text classification datasets and one sliding-window sequence labeling classification dataset. for the text classification datasets  features correspond to word occurrence counts. for the ner task  features are binary word occurrences and properties of those words  such as capitalization  within three time steps. stopwords  html  message headers  where appropriate   and features that only occurred once are removed from all datasets. where noted  low frequency features are also removed.
+datasets
+  movie  1 features  1 classes  classify the sentiment of movie reviews from imdb as positive or negative.
+  webkb  1 features  1 classes  classify university webpages as student  course  faculty  or project.
+  sraa  1 features  1 labels  classify messages by the newsgroup to which they were posted: simulatedaviation  real-aviation  simulated-autoracing  realauto.
+  sector  1 features 1 labels  classify webpages into specific industry sectors.
+  blogs  1 features  1 labels  classify the age of a blogger given blog posts. due to the large number of features in this dataset  those that occur less than 1 times are removed. this dataset was introduced in
+.
+  ner  1 features  1 labels  sliding-window namedentity recognition using the conll 1 dataset.
+﹛although all datasets are labeled  we simulate unlabeled data by ignoring the labels for some examples. specifically  we choose examples to remain labeled randomly  but ensure that the number of labeled examples is the same for each class as in . we treat the remaining examples as unlabeled  up to a maximum of 1 unlabeled examples. the success of semi-supervised learning is dependent on the quality of the  seed  set of labeled examples. therefore  we average results over five random labeled sets. we report accuracy on a held-out test data  rather than reporting accuracy on the unlabeled data  as is done with tsvms .
+﹛many semi-supervised methods introduce hyperparameters including graph methods  1  1  and tsvms . we discuss the issue of choosing hyperparameters and provide some heuristics that reduce the need for hyperparameter tuning for generative/discriminative methods in section 1. for these experiments we use a grid search to find the best settings  and use parameters settings that give the best test set accuracy  as also in . therefore  these results can therefore be interpreted as an indication of the potential of these methods  though further research is needed for practical parameter tuning.
+1 results and discussion
+﹛classification accuracy results are presented in table 1. either mcl or pcp achieves the highest accuracy in 1% of the experiments  and mcl and pcp achieve the largest mean accuracy improvements over their supervised counterpart at 1% and 1%  respectively. additionally  mcl is the only method to show semi-supervised improvements on every dataset. figure 1 illustrates that for both mcl and pcp the best accuracies are attained in the space between purely generative and purely discriminative.
+﹛we argue in the introduction that hybrid approaches are able to avoid or mitigate the assumptions of other semisupervised methods. we would like to determine if the cases in which the hybrid methods perform well empirically match our intuitive justifications. it is difficult to quantifiably compare the degree of overlapping classes or the degree to which model assumptions fail across text datasets  but we can gain some insight by considering the datasets on which hybrid semi-supervised methods do well and other methods do poorly.
+﹛first notice that naive bayes performs worst on datasets sector and ner  in which em naive bayes gives lower accuracy than supervised naive bayes. additionally  despite semi-supervised improvements  em naive bayes gives much lower accuracy on blogs than other methods. these three datasets have the largest number of classes  most complicated and correlated features  and greatest number of features  respectively. highly correlated features clearly violate the naive assumption of feature independence. we also expect that for these tasks the natural clusters in the data will not necessarily be correlated with the decision boundary. for example  both ner and blog involve a very specific task on text that includes a wide variety of words and topics. the hybrid methods are able to mitigate these generative assumptions using the discriminative component.
+﹛relative to the other methods  tsvms perform poorly on ner and sraa  cases in which we expect classes to be strongly overlapping. the sraa dataset contains messages from newsgroups on simulated aviation  real aviation  simulated auto
+﹛
+datasetnbemnbsvmtsvmmemclpcpmovie  1 1111111movie  1 1111111webkb  1 1111111webkb  1 1111111sector  1 1111111sector  1 1111111ner  1 1111111ner  1 1111111sraa  1 1111111sraa  1 1111111blogs  1 1111111blogs  1 1111111mean1111111table 1: classification accuracy results. parenthesized values indicate the number of labeled documents per class.
+featurediffmemclfeaturediffmemclim dont
+lol
+today haha yeah good fun school pretty home gonna day kinda guess.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1nbsp
+urllink arianna years wife frienz couple moved town bar renee world doesn city ago-.1
+-.1
+-.1
+-.1
+-.1
+-.1
+-.1
+-.1
+-.1
+-.1
+-.1
+-.1
+-.1
+-.1
+-.1.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1table 1: parameters with largest positive and negative differences in discriminative power for the blog dataset with 1 labeled documents per class for label age 1 between supervised and semi-supervised with the multi-conditional method. the gaussian prior variance for the maximum entropy classifier is 1. for the mcl method  汐 = 1 and the gaussian prior variance is 1  corresponding to a case when the testing accuracy was 1.
+featurediffmepcpfeaturediffmepcpairspeed altitude pitch preflight rudder stephenames downwind ppl ames prop garden afm flew crab climb.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1font autos div nextpart iso
+voodoo meta px
+printable
+mb
+racing gb ns cars version-.1
+-.1
+-.1
+-.1
+-.1
+-.1
+-.1
+-.1
+-.1
+-.1
+-.1
+-.1
+-.1
+-.1
+-.1.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1
+.1table 1: parameters with largest positive and negative differences in discriminative power for the sraa dataset with 1 labeled documents per class for label real aviation between supervised and semi-supervised with the parameter coupling prior method. the gaussian prior variance for the maximum entropy classifier is 1. for the pcp method  汐 = 1  corresponding to a case when the testing accuracy was 1.
+	mean accuracy vs. alpha for multi!criteria method: blogs  1 	mean accuracy vs. alpha for parameter coupling prior method: sraa  1 
+
+	1	1	1	1 1 1 1 1 1 1 1 1
+	log alpha	alpha
+figure 1: mean accuracies vs. 汐 for hybrid methods. the dashed line represents the supervised accuracy. the best accuracies are obtained in the region between purely generative and purely discriminative.
+﹛
+racing  and real automobiles. these classes have high word overlap  as both simulated and real automobile newsgroups will include words like tire and engine   for example. the ner dataset contains classes for the start of a token type  such as location  and the continuation of a token type. we expect that the  begin  and  continuation  classes for a token type will not have a low density region between them  and we see in the results that the tsvm chooses poor locations for the decision boundaries as the accuracy is much worse than supervised.
+﹛we note that we originally conducted the svm/tsvm experiments without normalizing feature vectors  and the tsvm only improved accuracy over the supervised svm in two cases  blog  1  . interestingly  normalization seems to have a much larger impact on semi-supervised learning than on supervised learning. excluding the ner dataset  the mean svm accuracy increases by 1% using normalization  whereas the mean tsvm accuracy increases by 1%. even when using normalization  tsvms do not always give improvements over supervised svms. one possible explanation is that most published evaluations of tsvms use simple  two-class datasets. additionally  tsvm experiments typically use the eventual test data as unlabeled data during training  whereas here we use a held-out test set that is separate from the unlabeled training data. a more complicated kernel may improve accuracy  but note that the other methods only use linear combinations of features.
+﹛comparing the two hybrid generative/discriminative methods  mcl achieves higher mean accuracy than pcp on seven of the twelve experiments  as well as higher overall mean accuracy across all tasks. notice that the two methods rarely perform well on the same dataset. the fundamental difference between the two methods is that mcl has one shared set of parameters while pcp has two coupled sets of parameters. an advantage of the pcp method is that the gradients of the two components do not directly compete to modify parameter values. this allows each component of the pcp objective to have more freedom in modeling the data. if some generative parameter needs to be set in a way which does not correspond to a good discriminative setting  this penalty can absorbed if it leads to an improved model. additionally  the pcp method allows the inclusion of a prior that only effects the discriminative parameters. with mcl  a gaussian prior on parameters helps prevent the discriminative component from overfitting  but because the parameters are shared  this prior has a negative impact on the generative component. namely  we observe that the penalty on large parameter values tends to prevent large changes in parameter value due to the generative component  as empirically the generative parameters need to be more spread out than their discriminative counterparts. however  it appears that the extra modeling power afforded by the pcp method sometimes makes it more difficult to find good parameter settings during training. we note that the cases in which mcl gives improved accuracy over pcp tend to be more complicated datasets in terms of the number of labels or features. this suggests that pcp may be preferable for less complicated datasets and mcl for more complicated datasets.
+﹛in tables 1 and 1 we show how parameter values change after introducing the generative component that uses unlabeled data. these tables show differences in the discriminative power of features in a supervised maximum entropy model and a semi-supervised hybrid. the values for each feature can be interpreted as the probability that a single word document containing that word feature belongs to the class listed in the table caption. in table 1  we see that for the blogs dataset and label age 1  the discriminative power of  im    lol    school  and  home  increases  and the discriminative power of wife   couple   and bar decreases. in table 1  we see that for dataset sraa and label real aviation  the discriminative power of  airspeed    altitude   and  preflight  increases  while the power of  autos    racing   and  cars  decreases. intuitively  we see that the addition of the generative component helps to boost the discriminative power of features that the supervised model could not discover with limited labeled data.
+methodmovie  1 sraa  1 ner  1 emnb111svm111tsvm111me111mcl111pcp111pcp-init111table 1: mean training time in seconds.
+1 practical considerations
+﹛hyperparameter values are often important to the success of semi-supervised learning methods  but tuning hyperparameters can be difficult in practice. in supervised learning  hyperparameter values are typically chosen using cross-validation. if we apply this method for semi-supervised learning  each fold test set ends up with a very small number of labeled examples  since the total number of labeled examples is small. this means that the performance estimate obtained from this test set may be inaccurate. additionally  optimal hyperparameter values may depend upon the specific set of labeled examples. training with a subset of those labeled examples could result in drastically different ideal settings for the the hyper-parameters  as  for example  a poor seed set of labeled examples may require a hybrid classifier to put more weight on the generative component and rely on unlabeled data. another option is to choose the hyperparameters that give the highest likelihood on the training data. however  we have found that these hyperparameters produce the highest likelihood models because of overfitting. finally  choosing hyperparameters using a validation set is not practical  as if more labeled data is available  it would almost certainly be more beneficial to use that data during training than to use it to tune hyperparameters.
+﹛another practical issue in semi-supervised learning is that the added complexity of semi-supervised training algorithms increases the overall model training time  as shown in table 1. on average  the pcp method takes the longest to train. in addition to having twice as many parameters as the mcl method  it also seem to take more iterations to converge. the em naive bayes semi-supervised learning is extremely fast because the maximum likelihood estimates can be computed in closed form.
+﹛we propose a heuristic for hybrid models to simultaneously reduce training time and reliance on hyperparameter settings that involves ensuring reasonable initial parameter settings. for the pcp method  we initialize both sets of parameters to the results of supervised training on the labeled data. we present results using supervised initialization of the pcp method in table 1. this also reduces training time  as shown by the entry pcp-init in table 1. for the mcl method  we propose to use the discriminative component exclusively in the first few iterations of training. since the discriminative component is convex  this guarantees that we move into a reasonable region parameter space. at the same time  by avoiding going the whole way to the global maximum  we give the parameters room to move away from the discriminative maximum.
+datasetaccuracymovie  1 1movie  1 1webkb  1 1webkb  1 1sector  1 1sector  1 1ner  1 1ner  1 1sraa  1 1sraa  1 1blogs  1 1blogs  1 1table 1: classification results when using supervised initialization for parameter coupling prior model. parenthesized values indicate the number of labeled documents per class.
+﹛these heuristics seem to make the algorithms more consistent  as the mean accuracy across all hyperparameter settings is higher. however  the maximum accuracies attained are sometimes lower. intuitively  one of the real benefits of these methods is that the generative component can pull the discriminative component into regions of parameter space very different from those chosen by supervised discriminative learning on the limited labeled data. with these initializations  we ensure that we do not converge to a poor local maximum  but sacrifice the potential to find drastically different parameter settings.
+1. conclusion and future work
+﹛we have considered hybrid generative/discriminative approaches to semi-supervised classification in which the generative component includes unlabeled data. we compare two methods for combining generative and discriminative likelihood in detail: a multi-conditional learning method and a method where each component has its own set of parameters that are coupled by a prior distribution. in a substantial empirical comparison  a hybrid method provides the best accuracy in eight of the twelve experiments. intuitively  we conjecture that they perform well by mitigating the modeling assumptions of generative semi-supervised methods and avoiding the low-density-between-class assumptions of discriminative semi-supervised methods.
+in future work  we would like to apply hybrid genera-
+tive/discriminative approaches to transfer or multi-task learning  consider heuristic and probabilistic methods to learn hyperparameters from data  and research alternative optimization techniques utilizing ideas from the multi-criteria optimization literature.
+1. acknowledgments
+﹛this work was supported in part by the center for intelligent information retrieval  in part by the central intelligence agency  the national security agency and national science foundation under nsf grant #iis-1  in part by nsf nano #dmi-1  and in part by the defense advanced research projects agency  darpa   through the department of the interior  nbc  acquisition services division  under contract number nbchd1. cp appreciates support by microsoft research under the memex and escience funding programs and support from kodak research. any opinions  findings and conclusions or recommendations expressed in this material are the authors' and do not necessarily reflect those of the sponsor.

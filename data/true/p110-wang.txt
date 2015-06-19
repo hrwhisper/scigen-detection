@@ -1,0 +1,280 @@
+with the growing importance of xml in data exchange  much research has been done in providing flexible query facilities to extract data from structured xml documents. in this paper  we propose vist  a novel index structure for searching xml documents. by representing both xml documents and xml queries in structure-encoded sequences  we show that querying xml data is equivalent to finding subsequence matches. unlike index methods that disassemble a query into multiple sub-queries  and then join the results of these sub-queries to provide the final answers  vist uses tree structures as the basic unit of query to avoid expensive join operations. furthermore  vist provides a unified index on both content and structure of the xml documents  hence it has a performance advantage over methods indexing either just content or structure. vist supports dynamic index update  and it relies solely on b+trees without using any specialized data structures that are not well supported by dbmss. our experiments show that vist is effective  scalable  and efficient in supporting structural queries.
+1. introduction
+with the growing importance of xml in data exchange  much research has been done in providing flexible query mechanisms to extract data from xml documents  1  1  1  1  1  1 . the semi-structured nature of xml data and the requirements on query flexibility pose unique challenges to database indexing methods. in this paper  we introduce a novel index structure  vist1  which provides solutions to a
+wide range of challenges  and offers better performance and usability than previous approaches in xml indexing.
+xml provides a flexible way to define semi-structured data. for instance  purchase records that contain information of buyers and sellers can be described by the dtd schema shown in figure 1. a sample xml document based on this
+
+1vist stands for virtual suffix tree
+permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. to copy otherwise  or republish  to post on servers or to redistribute to lists  requires prior specific permission and/or a fee.
+sigmod 1  june 1  1  san diego  ca.
+copyright 1 acm 1-1-x/1...$1.
+dtd is shown in figure 1.
+h!element purchases purchase* ih!element purchase seller  buyer ih!attrist sellerid id location cdata name cdataih!element seller item* ih!attrist buyerid id location cdata name cdataih!element item item* ih!attrist itemname cdata manufacturer cdataifigure 1: dtd of purchase records. sellers supply items  some contain sub-items  to buyers.
+several query languages  including xpath   quilt   xmlql   and xquery   have been proposed for semistructured xml data. the ability to express complex structural or graphical queries is one of the major focuses in xml query language design. in figure 1  we show four sample queries in graph form. it is well known that querying xml data is equivalent to finding sub structures of the data graph that match the query structure.
+many state-of-the-art approaches create indexes on paths  e.g.   /p/s/i/m  as in q1  or nodes in dtd trees. path indexes can answer simple queries such as q1 efficiently. however  queries involving branching structures  q1  for instance  usually have to be disassembled into multiple subqueries  each corresponding to a single path in the graph. the results of these sub-queries are then combined by expensive join operations to produce final answers. for the same reason  these methods are also inefficient in handling '*' or '//' queries  q1 and q1  for instance   which too  correspond to multiple paths. to avoid expensive join operations  some index methods create special index entries for frequently occurring multiple-path queries  known as refined paths   1  1 . the potential disadvantages of this approach include i  we need to monitor query patterns  ii  it is not a general approach since not every branching query is optimized  and iii  the number of refined paths can have a huge impact on the size and the maintenance cost of the index.
+moreover  to retrieve semi-structured data efficiently  it is essential to have index on both structure and content of the xml data. nevertheless  many algorithms index on structure only  or index on structure and content separately  which means  for instance  attribute values in q1  q1  and q1 are not used for filtering in the most effective way.
+		boston	newyork	boston	intel
+ q1: find all manufacturers that supply items q1: find orders with boston sellers and ny buyers　q1: find orders with a boston seller or buyer q1: find orders that contain intel products  items or subitems figure 1: xml queries in graph formanother important aspect to xml indexing is whether the index structure supports dynamic data insertion  deletion  and update  and whether the index depends on specialized data structures not well-supported by database systems.
+p: purchase 
+s: seller
+i: item
+l: location
+n: name level 
+	intel	1
+figure 1: a single purchase record
+in this paper  we propose vist  a novel index structure that addresses a wide range of challenges in indexing semistructured data. our objective is to provide a general method so that structural xml queries need not be decomposed into sub-queries  which means join operations can be avoided.
+we transform xml data and xml queries into structureencoded sequences. we demonstrate that xml queries  including those with branches  or wild-cards  '*' and '//'   can be expressed by structure-encoded sequences. we show that querying xml data is equivalent to finding  non-contiguous  subsequence matches  and we use a virtual suffix tree to organize structure-encoded sequences to speed up the matching process. our index structure consists of two parts  the d-ancestor index and the s-ancestor index. the former indexes nodes by their ancestor-descendant relationships in the original xml document tree and the latter indexes nodes by their ancestor-descendant relationships in the virtual suffix tree. together  structural xml queries can be answered in a way similar to substring matching using suffix trees.
+our approach also answers challenges in index structure design. unlike many previous methods that index either just structure or content of the xml data  vist unifies structural indexes and value indexes into a single index. in addition  we propose a technique called dynamic virtual suffix tree labeling  based on which  structural xml queries  as well as dynamic index update  can be performed directly on b+trees  instead of relying on specialized data structures such as suffix trees that are not well supported by dbmss.
+our contributions
+to the best of the authors' knowledge  the index structure proposed in this paper is the first approach that provides all of the following features at the same time.
+  unlike most indexing methods that disassemble a structured query into multiple sub-queries  and then join the results of these sub-queries to provide the final answers  our method uses tree structures as the basic unit of query to avoid expensive join operations.
+  our approach provides a unified index on both the content and the structure of xml documents  hence it has a performance advantage over methods indexing either just content or structure.
+  unlike some xml indexing approaches that rely on specialized data structures such as the suffix tree  which is not well-supported for disk-based data  we leverage the mature disk-based b+tree index.
+  our index structure supports dynamic data insertion and deletion.
+paper organization
+in the next section  we introduce structure-encoded sequence  a sequential representation of xml documents and xml queries  and show that querying structured xml data is equivalent to finding subsequence matches. we present our sequence matching algorithm in section 1. section 1 contains experiments that show the effectiveness of our algorithms. in section 1  we review several state-of-the-art xml indexing approaches. we conclude our work in section 1.
+1. structure-encoded sequences
+in this section  we introduce structure-encoded sequences  a sequential representation of both xml data and xml queries. we show that querying xml is equivalent to finding subsequence matches.
+the purpose of modeling xml queries through sequence matching is to avoid as many unnecessary join operations as possible in query processing. that is  we use structureencoded sequences  instead of nodes or paths  as the basic unit of query. through sequence matching  we match structured queries against structured data as a whole  without breaking down the queries into sub queries of paths or nodes and relying on join operations to combine their results. many xml databases  such as dblp  and the internet movie database imdb   contain a large set of records of the same structure. other xml databases may not be as homogeneous. a synthetic xmark  dataset consists of one  huge  record. however  each sub structure in xmark's schema  items  closed auction  open auction  person  etc  contains a large number of instances in the database and justifies to have an index of its own. our sequence matching approach ensures that queries confined within the same structure are matched as a whole.
+mapping data and queries to structure-encoded sequences
+consider the xml purchase record shown in figure 1. we use capital letters to represent names of elements/attributes  and we use a hash function  h    to encode attribute values into integers. suppose  for instance  v1 = h  dell   and v1 = h  ibm  . we then use v1 and v1 to represent  dell  and  ibm  respectively.
+we represent an xml document by the preorder sequence of its tree structure. for the purchase record example  its preorder sequence is shown in table 1.
+psnv1imv1nv1imv1inv1lv1blv1nv1
+table 1: preorder sequence of the xml purchase record example  figure 1 
+since isomorphic trees may produce different preorder sequences  we enforce an order among sibling nodes. the dtd schema embodies a linear order of all elements/attributes defined therein. if the dtd is not available  we simply use the lexicographical order of the names of the elements/attributes. for example  under lexicographical order  the buyer node will precede the seller node under purchase. for multiple occurring child nodes  such as the item nodes under seller   we order them arbitrarily. as we shall see later  branching queries require special handling when multiple occurring child nodes are involved.
+to reconstruct trees from preorder sequences  extra information is needed. our structure-encoded sequence  defined below  is a two dimensional sequence  where the second dimension preserves the structure of the data.
+definition 1. structure-encoded sequence
+a structure-encoded sequence  derived from a prefix traversal of a semi-structured xml document  is a sequence of
+ symbol  prefix  pairs:
+　　　　　　d =  a1 p1   a1 p1  ，，，   an pn  where ai represents a node in the xml document tree   of which a1 ，，，  an is the preorder sequence   and pi is the path from the root node to node ai.
+based on the definition  the xml purchase record  figure 1  can be converted to the structure-encoded sequence in figure 1. the prefixes in the sequential representation contain much redundant information; however  as we shall see  since we do not store duplicate  symbol  prefix  pairs in the index and that the prefix can be encoded easily  it will not create problems in index size or storage.
+
+figure 1: the structure-encoded sequence of the purchase record document  figure 1 . the underlined non-contiguous subsequence of d matches query q1  table 1 .
+in the same spirit  we convert xml queries to structureencoded sequences. the queries in figure 1 can be transformed to the structure-encoded sequences in table 1. the following rules are observed in the conversion:
+  just like converting xml data  we use preorder sequences to represent queries.  example: q1  q1 
+  wild-card nodes  '*' and '//'  are discarded. however  the prefix paths of their sub nodes will contain a '*' or '//' symbol as a place holder. as we shall see  '*' and '//' are handled as range queries by vist in sequence matching.  example: q1  q1 
+querying xml through structure-encoded sequence matching
+the purpose of introducing structure-encoded sequences is to model xml queries through sequence matching. in other words  querying xml is equivalent to finding  non-contiguous  subsequence matches. we show this by queries q1 ，，，  q1  table 1 .
+the structure-encoded sequence of q1 is a subsequence of d  and we can see q1 is a sub tree of the xml purchase record that d represents. the sequence of q1 is a non-contiguous subsequence of d  and again  q1 is a sub tree of the xml purchase record. the same can be said for query q1 and q1  where prefix paths contain wild-cards '*' and '//' - if we simply match '*' with any single symbol in the path  and '//' with any portion of the path.
+the obvious benefits of modeling xml queries through sequence matching is that structural queries can be processed as a whole instead of being broken down to smaller query units  paths or nodes of xml document trees   as combining the results of the sub queries by join operations is often expensive. in other words  we use structures as the basic unit of query.
+	path expression	structure-encoded sequence
+
+table 1: xml queries in path expression and sequence formmost structural xml queries  including q1 ，，，  q1  can be represented by a single structure-encoded sequence. the only exception occurs when branching queries have same child nodes under the branches. for instance  in q1 = /a b/c /b/d  the two nodes under the branch are the same: b. in this case  the tree isomorphism problem can not be avoided by enforcing sibling orders  since the two nodes are identical. as a result  the preorder sequences of xml data trees that contain such a branch can have two possible forms. in order to find all matches  we convert q1 to two different sequences  
+and  we find matches for these two sequences separately and union their results. if  in the unlikely case  the query contains a large number of same child nodes under a branch  we can choose to disassemble the tree at the branch into multiple trees  and use join operations to combine their results. for instance  q1 into two trees: 
+ 	  	  	  .
+after both xml data and xml queries are converted to structure-encoded sequences  it is straightforward to devise a brute force algorithm to perform  non-contiguous  sequence matching. the rest of the paper focuses on building a dynamic index structure so that such matches can be found efficiently.
+1. the vist approach
+we present vist in three stages. the na： ve algorithm  based entirely on suffix trees  requires traversal of a large portion of the tree structure for non-contiguous subsequence matching. we then present rist  which improves the na： ve algorithm by using b+trees to index suffix tree nodes. finally  we present vist  an index structure having the same functionality but relying exclusively on b+trees.
+1 desiderata
+the desiderata of an xml indexing method include:
+1. the index method should support structural queries directly. with structure-encoded sequences  this requirement is equivalent to having efficient support for  non-contiguous  subsequence matching.
+1. instead of relying on specialized data structures such as suffix trees  the index method should leverage wellsupported database indexing techniques such as b+trees.
+1. the index structure should allow dynamic data insertion  deletion  etc.
+1 a naive algorithm based on suffix trees
+much research has been done in the area of subsequence matching . the most widely used index structure for
+
+1
+q1 is a special case where each split tree is a single path. substring matching is the suffix tree   which embodies a compact index to all the distinct  contiguous substrings of a given string.
+
+
+xml docs and queries in structure-encoded sequences
+list of docids of xml documents whose insertion ends up at this node
+a tree structure for doc1 and doc1
+figure 1: suffix-tree-like structure for structureencoded sequences  labels h. .i are described in section 1 
+figure 1 shows an example of using a suffix-tree-like structure to index structure-encoded sequences for non-contiguous matching. we insert two sequences  doc1 and doc1  into the suffix tree. originally  the elements in the sequences represent nodes in the xml document trees  from which the sequences are derived. now  they also represent nodes in the suffix tree. since the nodes are involved in two different trees  two kinds of ancestor-descendant relationships among the sequence elements arise: i  the ancestor-descendant relationships of the nodes that they represent in the original xml document tree  and ii  the ancestor-descendant relationships of the nodes that they represent in the suffix tree. we call the 1st relationship the d-ancestorship  and say  for instance  element  s p  is a d-ancestor of  l ps . we call the 1nd relationship the s-ancestorship  and say  for instance  element  v1 psn  is an s-ancestor of  l ps .
+algorithm 1 presents a na： ve method for non-contiguous subsequence matching. suppose node x is one of the nodes
+input: q = q1 ，，，  qk  a query sequence
+s  a suffix tree for a set of sequences
+output: all occurrences of q in s
+/*	search begins at	the root	of	the suffix tree */
+naivesearch s★root 1 ;
+function naivesearch n i 
+if i ＋ k then for each node c that is a descendent of node n do
+/* n is an s-ancestor of c */ if c matches qi then
+/* n is a d-ancestor of c */
+　naivesearch c i + 1 ; end
+else
+　output all document ids attached to the nodes under node n; endalgorithm 1: naivesearch: a na： ve algorithm based on suffix trees.
+matching q1 ，，，  qi 1. to match the next element qi  we check all the nodes under x  which are the nodes satisfying the s-ancestorship. among them  we find those that match qi's  symbol  prefix  pair  which are the nodes satisfying the d-ancestorship  as prefix encodes d-ancestorship in the xml document tree. for example  to match q1  we start with the root node  which matches the first element of
+ then  we search under the root for all nodes that match  l p    which yields  l ps  and  l pb . finally  we search for  v1 psl   wild-card '*' in the query is instantiated to 's' by the previous match  under the node labeled  l ps   and  v1 pbl  under the node labeled  l pb .
+in essence  algorithm 1 searches nodes first by s-ancestorship  searching under a suffix tree node   and then d-ancestorship  matching nodes by symbols and prefixes . algorithm 1 supports structural query  however  there are several difficulties in using suffix tree to index structure-encoded sequences. first  searching for nodes satisfying both s-ancestorship and d-ancestorship is extremely costly since we need to traverse a large portion of the subtree for each match. second  suffix trees are main memory structures that are seldom used for disk resident data   and most commercial dbmss do not have support for such structures.
+1 rist: indexing by ancestor-descendent relationships
+rist1 improves the na： ve algorithm by eliminating costly suffix tree traversal. with rist  when we reach node x after matching a prefix of the query  we can 'jump' directly to those nodes y to which x is both a d-ancestor and an s-ancestor. thus  we no longer need to search among the descendents of x to find such y s one by one. more specifically  rist is designed as follows.
+1. we index nodes in the suffix tree by their  symbol 
+
+1 rist stands for relationships indexed suffix tree prefix  pairs. this is realized by a b+tree. it enables us to search nodes by  symbol  prefix   that is  by d-ancestorship  since prefix encodes ancestordescendant relationships in the xml document tree. we call this b+tree the d-ancestorship b+tree.
+1. among all nodes satisfying d-ancestorship  we are interested in those satisfying s-ancestorship as well. we create labels for suffix tree nodes so that we can tell s-ancestorship between two nodes by their labels. we use b+trees to index nodes by labels. we call such b+trees s-ancestorship b+trees.
+index construction
+we determine the d-ancestorship between two elements by checking their prefixes  however  to determine s-ancestorship between two elements requires additional information. we label each suffix tree node x by a pair hnx sizexi  where nx is the prefix traversal order of x in the suffix tree  and sizex is the total number of descendants of x in the suffix tree. labeling can be accomplished by making a depth-first traversal of the suffix tree. an example of such labeling is shown in figure 1. with the labeling  the s-ancestorship between any two nodes can be decided easily: if x and y are labeled hnx sizexi and hny sizeyi respectively  node x is an s-ancestor of node y iff ny （  nx nx + sizex .
+to construct the b+trees  we first insert all suffix tree nodes into the d-ancestorship b+tree using their  symbol  prefix  as keys. for all nodes x inserted with the same  symbol  prefix   we index them by an s-ancestorship b+tree  using the nx values of their labels as keys.
+in addition  we also build a docid b+tree  which stores for each node x  using nx as key   the document ids of those xml sequences that end up at node x when they are inserted into the suffix tree.
+
+d-ancestor b+tree	s-ancestor b+trees	docid  b+tree
+figure 1: the rist index structure
+figure 1 shows the index structure of rist. in summary  the construction of the index structure takes three steps: i  adding all structure-encoded sequences into a suffix tree; ii  labeling the suffix tree by making a preorder traversal; and iii  for each node  symbol  prefix  labeled hn sizei  inserting it to the d-ancestor b+tree using  symbol  prefix  as the key  and then the s-ancestor b+tree using n as the key.
+subsequence matching
+suppose node x  labeled with hnx sizexi  is one of the nodes matching a query prefix q1 ，，，  qi 1. to match the next element qi in the query  we consult the d-ancestor b+tree using qi as a key. the d-ancestor b+tree returns the root of an s-ancestor b+tree. we then issue a range query nx   n ＋ nx +sizex on the s-ancestor b+tree to find the descendants of x immediately. for each descendant  we use the same process to match symbol qi+1  until we reach the last element of the query.
+if node y is one of the nodes that matches the last element in the query  then the document ids associated with y or any descendant node of y are answers to the query. based on y's label  say hny sizeyi  we know y's descendants are in the range of  ny ny + sizey . thus  we perform a range query  ny ny + sizey  on the docid b+tree to retrieve all the document ids for y and y's descendants.
+algorithm 1 formalizes the querying process.
+input: q = q1 ，，，  qk  a query sequence
+d-ancestor b+tree  index of  symbol prefix  pairs
+s-ancestor b+trees  index of hn sizei labels docid b+tree  mapping between the n values in
+node labels and document ids
+output: all occurrences of q in the xml data
+search h1 sizei 1 ; /* h1 sizei is the label of the root node of the suffix tree */
+function search hn sizei i 
+if i ＋ |q| then
+　　○ retrieve  from the d-ancestor b+tree  the s-ancestor b+tree that represents qi;
+n ○ retrieve from t  the s-ancestor b+tree  all nodes
+with range inside  n n + size ; for each node c （ n do
+assume c is labeled hn1 size1i;
+   search hn1 size1i i + 1 ; end
+else
+　perform a range query  n n+size  on the docid b+tree to output all document ids in that range; endalgorithm 1: search: non-contiguous subsequence matching using b+tree
+handling wild cards '*' and '//'
+if an element in the query sequence contains wild-card '*'  more than one s-ancestor b+trees might match the element. let to match  l p    we issue a range query to the d-ancestor b+tree  the key of the d-ancestor b+tree is ordered first by the symbol  then by the length of the prefix  and lastly by the content of the prefix . the search then continues on each s-ancestor b+tree returned by the range query. note that we only need to handle  l p    or elements whose prefixes end with '*'  since the matching of  l p   will instantiate the '*' in  v1 p l  to a concrete symbol  which means  v1 p l  is not considered as a wild-card query. queries with wild-card '//' are handled as a series of '*' queries. thus  the index supports wild cards '*' and '//' appearing both in the beginning and in the middle of a query sequence.
+in summary  unlike the na： ve algorithm  rist does not use suffix trees for subsequence matching  algorithm 1 . from any node  instead of searching the entire subtree under the node  we can 'jump' to the sub nodes that match the next element in the query right away. thus  rist supports noncontiguous subsequence matching efficiently. in comparison with many other indexing approaches that break a query down to pieces and then join the results  rist has the advantage of querying tree structures as a whole.
+1 vist: the virtual suffix tree
+rist uses a static scheme to label suffix tree nodes  which prevents it from supporting dynamic insertions  since for any node x labeled hn sizei  late insertions can change the number of nodes that appear before x  in the prefix order  as well as the size of the subtree rooted at x  which means neither n nor size can be fixed.
+the sole purpose of the suffix tree is to provide a labeling mechanism to encode s-ancestorships. suppose a node x is created for element di during the insertion of sequence d1 ，，，  di ，，，  dk. if we can estimate i  how many different elements will possibly follow di in future insertions  and ii  the occurrence probability of each of these elements  then we can label x's child nodes right away  instead of waiting until all sequences are inserted. it also means i  the suffix tree itself is no longer needed  because its sole purpose of providing a labeling mechanism can be accomplished on the fly; and ii  we can support dynamic data insertion and deletion.
+vist uses a dynamic labeling method to assign labels to suffix tree nodes. once assigned  the labels are fixed and will not be affected by subsequent data insertion or deletion.
+1.1 dynamic virtual suffix tree labeling we present a dynamic method for labeling suffix tree nodes without building the suffix tree. the method relies on rough estimations of the number of attribute values  and other semantic/statistical information of the xml data. to the authors' knowledge  the only dynamic labeling scheme available was recently proposed by cohen et al.  to label xml document trees. our dynamic scheme is designed to label suffix trees built for structure-encoded sequences derived from xml document trees.
+top-down scope allocation
+a tree structure defines nested scopes: the scope of a child node is a sub scope of its parent node  and the root node has the maximum scope which covers the scope of each node. initially  the suffix tree contains a single node  root   and we let it cover the entire scope   1 max   where max is the maximum value that the machine can represent under certain precision1.
+
+1
+ max = 1   1 if we use 1 bytes to represent an integer. alternatively  we can use 1 bytes for a max as large as 1   1.
+semantic and statistical clues
+semantic and statistical clues of structured xml data can often assist sub scope allocation. figure 1 shows a sample xml schema. we use p u|x  to denote  in an xml document  the probability that node u occurs given node x occurs. for a multiple occurring node v  p v|x  denotes the probability that at least one v occurs given x occurs in an xml document.
+
+figure 1: a simple xml schema
+if x is the parent of u  usually it is not difficult to derive or estimate  from the semantics of the xml structure or the statistics of a sample dataset  the probability p u|x . for instance  if each buyer has a name  then p name|buyer  = 1. if we know that roughly 1% of the items contain at least a sub-item  then p subitem|item  = 1.
+we start with two assumptions: i  we know probability p u|x  for all u  where x is the parent of u; and ii  in xml document trees  sibling nodes occur independently of each other. we will see how assumption ii  can be relaxed. if node x appears in an xml document based on the schema in figure 1  then each of the following symbols can appear immediately after x in the sequence derived from the document: u  v  w  y  z  and   empty  x is the last element . these symbols form the follow set of x.
+definition 1. follow set
+given a node x in an xml scheme  we define the follow set of x as a list  i.e.  follow x  = y1 ，，，  yk  where yi satisfies the following condition: x   yi   yi+1  according to prefix traversal order  and the parent of yi is either x or an ancestor node of x.
+it is straightforward to prove that only symbols in x's follow set can appear immediately after x. suppose follow x  = y1 ，，，  yk  based on the assumption that sub nodes occur independently  we have: p yi|x  = p yi|d   where d is the parent of yi  1 
+eq 1  is trivial if d = x. if d 1= x  then based on the definition of the follow set  d must be an ancestor of x  so we have p yi|x  = p yi|x d . since x and yi are in different branches under d  according to our assumption  they occur independently of each other  which means p yi|x d  = p yi|d .
+let follow x  = y1 ，，，  yk. the probability that x is followed immediately by y1 is p y1|x   by y1 is  1 p y1|x  p y1|x .
+the probability that x is followed immediately by yi is:
+i 1
+	px yi  = p yi|x 	 1   p yk|x  	 1 
+k=1
+we allocate subscopes for the child nodes in the suffix tree according to the probability. more formally  if x's scope is  l r   the size of the subscope assigned to yi  the ith symbol in x's follow set  is:
+　　　　　　　　si =  r   l   1 px yi /c  1  where is a normalization factor
+ we do not allocate any scope to  .
+in other words  we should assign a subscope  li ri     l r  to yi  where:
+i
+	li	=	l + 1 +  r   l   1 	px yj 	 1 
+j=1
+	ri	=	li + si
+in the following situations  the follow set and eq 1  need to be adjusted.
+  a same node can occur multiple times under its parent node. let follow x  = y1 ，，，  yk. if x occurs multiple times under its parent  then x also appears in follow x   i.e.  follow x  = y1 ，，，  x ，，，  yk  where the symbols before x are the descendants of x. let the probability that an xml document contains n occurrences of x under d is pn x|d   then the probability that theis followed immediately by the n-th x is pn x|   k=1   p yk|x  .
+  nodes do not occur independently. eq 1  is derived based on the assumption that nodes occur independently. however  this may not be true. suppose for instance  in figure 1  either u or v must appear under x  and p u|x  = p v|x  = .1. we have follow x  = u v  since if either u and v must occur  there is no possibility that any of can immediately follow x. thus  we have 
+	px u 	=	p u|x  = .1
+	px v 	=	 1   p u|x  p v| u x  = .1 〜 1 = .1
+dynamic scope allocation without clues
+assume we do not have any statistical information of the data  or any semantic knowledge about the schema  and all that we can rely on is a rough estimation of the number of different elements that follow a given element. the best we can do is to assume each of these elements occurs at roughly the same rate. this situation usually corresponds to attributes values. for instance  in a certain dataset  we roughly estimate the number of different values for attribute countryofbirth to be 1.
+suppose node x is assigned a scope of  l r . node x itself will then take l as its id  and the remaining scope  l+1 r  is available for x's child nodes. assume the expected number of child nodes of x is λ. without the knowledge of the occurrence rate of each child node  we allocate λ1 of the remaining scope to x's first inserted child  which will have a scope of size  r   l   1 /λ. we allocate  of the remaining scope to x's second inserted child  which will have a scope of size . the third inserted child will use a scope of size  r  l   1  λ  1/λ1  and so forth.
+
+	 n+1 size/1 	 n+1+size/1 size/1   n+1*size/1 size/1 
+figure 1: dynamic scope allocation with parameter λ = 1
+figure 1 demonstrates an example of dynamic range allocation with parameter λ = 1. it shows that the kth child is allocated a range that is 1k of the parent range in size. as another example  assuming the expected number of sub nodes of node y is 1  then the ranges of those child nodes that are inserted among the first 1 occupy 1%  .1%  .1%  .1%  .1% of the parent range respectively. apparently  the allocation method has a bias that favors nodes inserted earlier.
+more formally  according to the above procedure  for a given node x with a range of  l r   the size of the subrange assigned
+　　　　　　　　　　　　　　　k to its kth child is. it is easy to prove
+that
+	sk =  r   l   1  λ   1 k 1/λk	 1 
+in other words  we should assign a subrange  lk rk     l r  to the kth child of node x  where:
+	lk	=	l + 1 +  r   l   1  1    λ   1 k 1/λk 1 	 1 
+	rk	=	lk + sk
+based on the above discussion  we introduce the following definition of dynamic scope.
+definition 1. dynamic scope of a suffix tree node
+the dynamic scope of a node is a triple hn size ki  where k is the number of subscopes allocated inside the current scope. let the dynamic scopes of x and y be sx = hnx sizex kxi and sy = hny sizey kyi respectively. node y is a descendant of x if sy   sx  i.e.   ny ny + sizey     nx nx + sizex .
+scope underflow
+let t = t1 ，，，  tk be a sequence. each ti corresponds to a node in the suffix tree. assume the size of the dynamically allocated scopes decreases on average by a factor of γ every time we descend from a parent node to a child node. as a result  the size of ti's scope comes to max/γi 1  where max is the size of the root node's scope. apparently  for a large enough i  max/γi 1 ★ 1. this problem is called scope underflow.
+as we have mentioned  xml databases such as dblp  and imdb  are composed of records of small structures. for databases with large structures  such as xmark   we break down the structure into small sub structures  and create index for each of them. thus  we limit the average length of the derived sequences.
+if scope underflow still occurs for a given sequence t = t1 ，，，  tk at ti  we allocate a subscope of size k  i+1 from node ti 1  and label each element ti ... tk sequentially. if node ti 1 can not spare a subscope of size k i+1  we allocate a subscope of size k i+1 from node ti 1  and so forth. intuitively  we borrow scopes from the parent nodes to solve the scope underflow problems for the descendent nodes. in order to do this  we preserve certain amount of scope in each node for this unexpected situation  so that it does not interfere with the dynamic labeling process prescribed by eq  1  1  1  1 . using this method  the involved nodes are labeled sequentially  each node is allocated a scope for only one child   and they can not be shared with other sequences  but they are still properly indexed for matching.
+1.1 the algorithms
+in this section  we present the dynamic labeling algorithm and the index construction algorithm of vist. vist uses the same sequence matching algorithm as rist  algorithm1 .
+algorithm 1 outlines the top-down dynamic range allocation method described above. the labeling is based on a virtual suffix tree  which means it is not materialized.
+input: p: parent scope e: symbol for which a subscope is to be created output: s  a subscope inside the parent scope p p  updated parent scope
+assume p = hn size ki;
+if semantical/statistical clues for e is available then assume e is the ith symbol in the follow set of e's parent node;
+s ○ hli si 1i;	/* li and si are defined in eq 1  and eq 1  respectively */
+else
+s ○ hlk sk 1i;	/* lk and sk are defined in eq 1  and eq 1  respectively */
+end p ○ hn size k + 1i; return s;algorithm 1: subscope parent  e : create a sub scope within the parent scope for e
+we use an example to demonstrate the process of inserting a structure-encoded sequence into the index structure. suppose  before the insertion  the index structure already contains the following sequence:
+
+the sequence to be inserted is
+
+the index before the insertion of doc1 is shown in figure 1 a . for presentation simplicity  we make two assumptions: i  max = 1  that is  the root node covers a scope of  1 ; and ii  there is no semantic/statistical clues available and the top-down dynamic scope allocation method uses a fixed parameter λ = 1 for all nodes.
+the insertion process is much like that of inserting a sequence into a suffix tree - we follow the branches  and when there is no branch to follow  we create one. we start with    and then  s p   which has scope h1 1i. next  we search in the s-ancestor b+tree of  l ps  for all entries that are within the scope of  1 . the only entry there  h1  1i  is apparently not an immediate child1 of h1 1i. as a result  we insert a new entry h1  1i  the 1nd child of  s p   in the s-ancestor b+tree of  l ps . the scope for the  s p  node is updated to h1  1i as it has a new child now. similarly  when we reach  v1 psl   we insert a new entry h1  1i. finally  we insert key 1 into the docid b+tree for doc1. the resulting index is shown in figure 1 b .
+
+	d-ancestor b+tree	s-ancestor b+trees	docid  b+tree
+ a  index containing doc1
+
+	d-ancestor b+tree	s-ancestor b+trees	docid  b+tree
+ b  changes caused by the insertion of doc1
+figure 1: index structure before and after insertion
+algorithm 1 details the process of inserting an xml sequence into the index structure.
+
+1
+ we can tell the immediate parent-child relationship by eq  1  and eq  1 .
+input: t : a structure-encoded sequence	id: id of the
+xml document represented by t
+output: updated index file f
+assume t =  a1 l1  ，，，   ai li  ，，，   ak lk ;
+s ○ h1 max ki;	/* s is the scope of the root node of
+the virtual suffix tree */
+i ○ 1; while i ＋ k do
+search key  ai li  in the d-ancestor b+tree; if found then e ○ the s-ancestor b+tree associated with  ai li ;
+else
+e ○ new s-ancestor b+tree;
+insert e into the d-ancestor b+tree with key
+ ai li ;
+end
+search in e for scope r such that r is an immediate child scope of s ; if not found then r ○ hn size ki ○ subscope s ai  ;
+   insert  n size  into s-ancestor b+tree e with n as key; end s ○ r; i ○ i + 1;
+end
+assume s = hn size ki;
+insert  n id  into the docid b+tree;algorithm 1: index an xml document
+1. experiments
+we implemented rist and vist in c++ for xml indexing. we also implemented a path index method similar to index fabric   and a node index method similar to xiss  for comparison purposes. the implementation uses the b+tree api provided by the berkeley db library . we carry out our experiments on a linux machine with a 1 mhz pentium iii cpu and 1 mb main memory.
+data sets
+for our experiments  we use public xml databases dblp   the xml benchmark database xmark   and we also generate our own synthetic datasets.
+  dblp. the popular computer science bibliography database is widely used in benchmarking xml index methods. in the version we downloaded  there are 1 records  1 1 elements  and 1 attributes  totaling 1 kbytes of data. each record of dblp corresponds to a publication  with a simple tree structure of maximum depth 1. the average length of the structure-encoded sequences derived from the dblp records is around 1.
+  xmark. unlike dblp  an xmark dataset is a single record with a very large and complicated tree structure. since it is not meaningful to represent the entire dataset with a single structure-encoded sequence  we break down its tree structure into a set of sub structures  including item  objects for sale   person  buyers and sellers   open auction  closed auction  etc. we convert each instance of these sub structures into a structure-encoded sequence. in our experiments  we use an xmark dataset generated by xmlgen  with scaling factor 1  totaling 1 mbytes of data.
+  synthetic. we also generate our own synthetic datasets for scalability tests. the data generator is based conceptually on a tree of height k where each node has j sub nodes. we generate a subtree of l nodes. first we select the root node  then we randomly select the next node x from the tree  under the condition that x has not been selected  and x is a child node of a selected node. we repeat this process n times to generate n data sequences of length l. random queries can be generated in the same way. since no semantic meaning is associated with this synthetic dataset  we collect statistics during data generation for dynamic labeling purpose.
+
+ a  synthetic: n=1  l=1. query: varying lengths.
+
+ b  synthetic: n=   l=1. query: length l=1.
+figure 1: random queries over synthetic datasets
+performance of query processing
+we first demonstrate the scalability of rist and vist with regard to query processing. as both approaches use the same sequence matching algorithm  algorithm 1  and work on the same index structure1  they exhibit the same performance in query processing. we generate synthetic datasets with parameters k = 1 and j = 1. the synthetic dataset used in figure 1 a  has 1 1 sequences  which are of an average length of 1 elements. the query processing
+
+time shown in the figure does not include the time spent in data output after each range query on the docid b+tree. figure 1 a  indicates it takes more time to process longer queries  as longer queries require larger amount of index traversals. the synthetic datasets used in figure 1 b  are of varying sizes  but each is composed of sequences of the same average length  1. it shows that our index structure scales up sub-linearly with the increase of data size. we also tried synthetic datasets generated with different values of k and j  and found no significant differences in performance.
+we tried various kinds of queries on the dblp and the xmark dataset  and compared rist/vist with two other index methods. one method  using xml paths as the basic unit of query  is the index fabric algorithm   without the extra index for refined paths.  the other method is xiss   which uses nodes as the basic query unit.
+table 1 lists 1 queries with ascending complexity. the experimental results of using rist/vist  index fabric  raw paths   and xiss to answer these queries are summarized in table 1. q1 is a single path query  and there is no attribute values involved. rist/vist and index fabric have similar response times  while it takes longer for xiss  as it joins the results of two 1 sub queries. an attribute value is involved in path query q1  and it slows down index fabric and xiss since value indexes require special handling in the two approaches. q1 and q1 use wild-cards  which affects the performance of index fabric  unless both are treated specially as refined paths  frequently occurring queries with additional index support . q1 ，，，  q1 are branching queries  and from table 1 we can see that rist/vist has the most satisfactory performance. note that each of the 1 queries is converted to one structure-encoded sequence  and rist/vist solves the query with one sequence matching  without using any join operations. both index fabric  raw paths  and xiss have to use  multiple  join operations to answer most of the queries.
+rist/vistraw path indexnode index index fabric  xiss q1.1.1.1q1.1.1.1q1.1.1.1q1.1.1.1q1.1.1.1q1.1.1.1q1.1.1.1q1.1.1.1table 1: comparing rist/vist with path index and node index  time in seconds 
+index size and index construction time
+	path expression	dataset
+
+q1/inproceedings/titledblpq1/book/author text='david' dblpq1/*/author text='david' dblpq1//author text='david' dblpq1/book key='books/bc/maierw1' /authordblpq1/site//item location='us' /mail/date text='1/1' xmarkq1/site//person/*/city text='pocatello' xmarkq1//closed auction * person='person1'  /date text='1/1' xmarktable 1: sample queries over dblp and xmark datasetsfinally  we study the space requirement of the index structure used in the rist/vist approach and the time it takes to build such indexes. the index structure of vist is realized by two b+trees  the docid b+tree and the combined d-ancestor and s-ancestor b+trees. both b+trees are implemented using the berkeley db library . for a dataset with n sequences  each sequence having l elements on an average  there are a total number of n entries in the docid b+tree. this is because for each document  we make one insertion into the docid b+tree of the following information: its docid  together with the label of the last virtual suffix tree node it reaches.
+in the most unlikely case  the s-ancestor and the d-ancestor b+trees will have altogether n 〜 l elements. this occurs  of course  only if none of the sequences share any nodes in the virtual suffix tree. thus  the entire space requirement of vist is o n + nl . rist takes more space than vist  since it maintains a suffix tree  which is of size o nl  in the worst case.
+figure 1 shows the size of the index structure for dblp  1 mbytes of data  and xmark  for structure items only  totaling 1 mbytes of data . figure 1 b  shows linear index construction time on synthetic datasets generated with parameters k = 1  j = 1  and l = 1. in both tests  we use disk pages of size 1k for berkeley db b+trees  and we use 1 bytes to label a virtual suffix tree node  i.e.  max = 1   1 .
+
+ b  index construction time
+figure 1: index structure
+1. related work
+one of the most critical tasks in indexing xml documents is to provide efficient support for arbitrary structured queries with branches  wild-cards  etc. most approaches find it time-consuming to answer such queries  since they rely on expensive join operations to combine results of multiple sub queries based on small graph units  such as paths or elements  that are more easily manageable.
+xiss  uses single elements/attributes as the basic unit of query. a complex path expression is decomposed into a collection of basic path expressions. atom expressions  a single element or attribute  are found by directly accessing the index structure. all other forms of expressions involve join operations. one of the merits of the xiss approach is its flexibility  since all kinds of structural queries  including regular expression queries  can be constructed using the most basic building block: the atom expressions.
+paths are also used as the basic query unit. dataguide  provides concise summaries of path structures for a semistructured database. dataguide is restricted to raw paths and do not support complex path expression or regular expression queries . the index fabric  is conceptually similar to the dataguide in that it indexes all raw paths starting from the root element. in addition  it supports refined paths  i.e.  a set of query patterns that occur frequently. such query patterns can contain branches  wild-cards '*' and '//'  etc. a tree-structured query not in the set of refined paths  however  has to rely on join operations.
+apex  is an adaptive path index for xml data. unlike the traditional techniques  apex uses data mining algorithms to summarize paths that appear frequently in the query workload. when the query workload changes  the apex is incrementally updated. instead of keeping all paths starting from the root  it maintains every path of length two. therefore  it also has to rely on join operations to answer path queries with more than two elements.
+similar to index fabric   f+b index  optimizes a set of branching queries. it is based on the forward and backward index  f&b index    which covers all branching paths but is often too big to be efficient in query evaluation. f+b index supports an index definition scheme to restrict the class of branching queries being indexed. it attains significant speedup for pre-defined query types but still has to rely on the f&b index for generic queries.
+besides the ability of answering structured queries with branches and wild-cards  it is also very important whether or not the index structure contains value indexes in addition to structure indexes  since attribute values in the query often have the major influence on selectivity. many index methods  including  1  1  1  1   however  do not support value indexes.
+another important criterion in evaluating index methods is whether it relies on special data structures such as the suffix tree that are not well-supported in dbmss. the xiss approach  is based on b+trees. most other approaches  including dataguide   index fabric   apex   f+b   etc  however  rely on specialized data structures.
+recently  tree labeling has become a focus of study as it is important in answering ancestorship queries. xiss   for example  uses a static labeling scheme for this purpose. several studies  1  1  1  focus on the minimum label sizes. cohen et al  introduced a dynamic labeling scheme  which is indispensable for dynamic index structures.
+our approach supports strutural xml queries by converting xml documents into sequeces. the indexing method supports efficient non-contiguous sequece matching. a similar technique is used for weighted-subsequece matching and pattern discovery . we unify structure indexes and value indexes into a single index that relies solely on b+trees through a dynamic labeling method.
+1. conclusion
+we have developed vist  a dynamic indexing method for xml documents. we convert xml data  as well as structured xml queries to sequences that encode their structural information. efficient sequence matching algorithms are introduced to find xml documents that contain the structured queries. while state-of-the-art xml indexing methods have difficulty in handling queries containing branches  insofar as most of them first disassemble a structured query into multiple sub-queries each handling a single path in the structured query  and then join the results of the sub-queries to provide the final answers  vist uses the structures as the basic unit of query  which enables us to process  through sequence matching  structured queries as a whole  and as a result  to avoid expensive join operations. in addition  vist supports dynamic insertion of xml documents through the top-down scope allocation method. finally  the index structure of vist is entirely based on b+trees  which  unlike some specialized data structures used in other approaches  are well supported by dbmss.

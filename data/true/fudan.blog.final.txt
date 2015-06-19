@@ -1,0 +1,98 @@
+this paper describes our participation in the opinion retrieval task at blog track 1. the system consisted of the preprocess part  the topic retrieval part and sentiment analysis part. in the topic retrieval part  we adopted pseudo-relevance feedback and a novel approach to form a modified query. in the sentiment analysis part  each blog post was given an opinion score based on the sentences contained in this post. the subjectivity of each sentence was predicted by a cme classifier. then the blog posts were reranked based on the similarity given by the topic retrieval and the opinion score given by the sentiment analysis.
+1 introduction
+the opinion retrieval task was aimed to explore the information seeking behaviour in the blogosphere. the large scale test collection  the trec blog1 collection  was used again in blog track 1.
+   our approach to this task was a three-step process. a preprocess was first conducted to extract the content from the permalink html pages. lucene1 was used to build the index on the preprocessed corpora. then in the topic retrieval part  we retrieved the top 1 blog posts for each topic. the expansion terms for a query were extracted by pseudo-relevance feedback. a machine learning approach was developed to select the expansion terms aiming at raising the map. in the sentiment analysis part  a cme classifier was trained to predict the subjectivity of each sentence in a blog post. then a svm classifier gave an opinion score for this blog post based on the sentence-analysis. finally  all the blog posts were reranked based on the similarity given by the topic retrieval and the opinion score given by the sentiment analysis. the top 1 blog posts were submitted.
+   the remainder of this paper is structured as follows. section 1 provides an overview of the system. section 1 describes the topic retrieval part. section 1 describes the sentiment analysis part. section 1 introduces the submitted runs and the evaluation result. conclusions are made in section
+1.
+
+figure 1: system architecture
+1 system overview
+the system was composed by the preprocess part  the topic retrieval part and the sentiment analysis part. the system architecture is shown in figure
+1.
+¡¡¡¡the preprocess part was designed to extract the content of the permalink html pages  which would be discussed in section 1.
+   the topic retrieval part retrieved 1 blog posts for each of the 1 topics. pseudo-relevance feedback extracted expansion query terms from the initial retrieval result. the top t expansion terms together with the weight were generated from the top k returned documents. a svm was trained to rerank these expansion terms.
+   the sentiment analysis gave each blog post an opscore opinion score . a cme classifier was trained to predict the subjectivity for each sentence in a blog post. this cme classifier was trained on the movie review data. based on the sentence-level prediction  the opscore for this blog post was predicted by a svm classifier.
+   combining the opscore with the similarity by the topic-retrieval part  the 1 blog posts were reranked and the top 1 were selected.
+1 corpus and preprocess
+the trec blog1 collection contains the permalinks html pages  the feed file and the blog homepage. we only use the permalink html pages for the opinion retrieval task. these permalinks html pages were in different style and some of them were poorly structured  filled with noisy information.
+   for each blog post  we discarded the hyper-links  the script and the style information in the web page and filter all the html tags. some html pages were damaged and we only filtered the html tags and hyper-links in those damaged-structure html pages.
+   before the preprocess  the permalink html pages amounted to about 1g  after the preprocess the cleaned permalink html pages amounted to about 1g.
+1 topic retrieval
+based on the preprocessed corpora  index was build using lucene. pseudorelevance feedback modified the original query by adding expansion terms from the initial retrieval. expansion terms were further selected using machine learning approach.
+1 pseudo-relevance feedback
+for the vector space model  query expansion approach had been discussed to reformulate the query so that it could be closer to the term-weight vector space of relevant documents. the standard rochio formulation generated a modified query  q¡úm as follows
+
+dr : set of relevant documents among the retrieved documents. dn : set of non-relevant documents among the retrieved documents.
+¦Á ¦Â ¦Ã are constants.
+   for the pseudo-relevance feedback in our case  it was assumed that the top k documents from the initial retrieval made up of the relevant document set dr  the non-relevant document set dn was hard to define and omitted here. then the query was reformed as follows
+ q¡úm =  ¡úq + ¦Á x  ¡údj =  ¡úq + ¦Á ¡úd
+ ¡ú
+ dj¡Êdr
+ ¡úq was the original query   ¡údj represented the term weight vector of doc-
+¡¡¡¡¡¡¡¡¡ú  ument j  dj =  w1 j w1 j ¡¤¡¤¡¤ wn j . and
+ ¡ú x ¡ú  x
+	d =	dj =	 w1 j w1 j ¡¤¡¤¡¤ wn j  =  w1 w1 ¡¤¡¤¡¤ wn 
+	 ¡ú	 ¡ú
+¡¡¡¡¡¡¡¡¡¡¡¡¡¡ dj¡Êdr	 dj¡Êdr wi j was the term weight of word i in document j  and wi = pwi j was the term weight of word i in the local collection dr. we used a heauristic modified wi j = tfi j  idfi/sidfi  where sidfi was the idf value of word i in the local collection dr  while the idfi was the idf value of word i in the global collection. this formulation decreased the weight of those terms  which had similar distribution in the local document set dr and the global collection.  ¡ú
+the vector d contained the term weight of all the words. 
+ ¡ú
+was a factor  which normalized every term weight in d and made any term weight lower than 1. we assumed that the weight of any expanded term should be less than the original query.
+1 expanded terms reranked by svm
+we needed the top t terms together with the weight to form a modified
+¡ú 
+query. this could be done by ranking all the term weight in d to find the top t terms. however  we hoped to find out a machine learning approach for the expansion term selection. these two approaches were both tried in our submitted runs.
+   a svm was trained to predict on the expanded terms. the advantage using a machine learning approach was that the expanded term selection could be conducted more reliable compared with ranking the terms by empirical expression. our approach provided a method to generate the training data set  to tell whether one expanded term was more related to the topic than another expanded term.
+   the training set of instance-label pairs  xi yi  were generated from blog track 1. xi ¡Ê rn representing the feature vector of the expanded term i and yi is a label indicating the closeness of this term with the topic. sv mlight was used to train a rbf regression module. the training data was generated as follows.
+1. original query q was retrieved and evaluated by trec eval  the map referred as basemap
+1. expanded terms of this query were extracted.  t1 t1 ¡¤¡¤¡¤ 
+1. for the expanded term ti  build the feature vector xi
+1. q and ti form a new query qi  which was retrieved and evaluated by trec eval  the map referred as termmapi
+1.   the pair  xi yi  was an instance of the training data the feature vector of the expanded term ti  xi ¡Ê rn was defined as
+xi where for expanded term ti  sumtf was the sum of term frequency of every document in dr  avgtf was the average term frequency in dr  maxtf was the maximum term frequency in dr  idf was the idf in the global collection  sdf was the document frequency in dr  sidf was the idf in dr.
+   the label indicated the relationship of expanded term ti with the topic. the closeness of the expanded term was calculated by how much this term could help to raise the map when adding it to the original query. yi   1 meant this term was useful in raising the performance  while yi   1 meant this term was less related.
+   sv mlight was used to do the rbf regression. blog track 1 provided two kinds of assessment on the run  the opinion retrieval results and the topic-relevance results. correspondingly  two kinds of regression module were trained on these two assessments. the module trained on the topicrelevance results was aimed to raise the topic-relevance map with no sentiment analysis feature. the module trained on the opinion retrieval results was aimed to raise the opinion retrieval map  which had sentiment analysis feature to some extense.
+   for a topic  empirically  the top 1 documents composed of the dr  the top 1 expanded terms were predicted and reranked. the top 1 expanded terms were finally added to the original query to form a new one. the top 1 blog posts were returnedby retrieving this new modified query. each blog post was assigned a similarity score sim representing the relevance of this post with the query.
+1 sentiment analysis
+sentiment analysis in opinion retrieval task focused on the classification between the opinion blog post and non-opinion blog post. first  each sentence of a blog post was given a sentence score indicating the subjectivity of this sentence. then  based on all the sentences in this blog post  an opscore opinion score  was given to indicate the subjectivity of this blog post by svm. finally  the opscore given by the sentiment analysis and sim similarity  given by the topic retrieval was combined to form a final score.
+1 sentence evaluation and blog post evaluation
+for the sentence evaluation  each sentence was predicted by a cme classifier. the training data for the cme classifier was from the movie review data1. the subjectivity data set v1 of movie-review data contains 1 subjective and 1 objective processed sentences. the features for the cme classifier were unigram  bigram  whether this sentence contains words in opinion. the opinion word was detected by general inquirer lexicon1.
+   for the blog post evaluation  a svm classifier was trained to predict the opscore opinion score  for a blog post based on all the sentences in this blog post. the training data  xi yi  were generated from the blog track 1. the training data was opinioned relevant documents labeled as yi = +1  and non-opinioned but relevant documents labeled as yi =  1 .
+   the feature xi was generated from all the sentences in the i   th blog post. a blog post was transformed into a vector. each element in the vector corresponded to a sentence. suppose there were l sentences in a blog post  each sentence got a sentence score describing the subjectivity or objectivity.
+the blog post could be represented as follows 
+	1	sentence i is subjective
+o =   1 s1   sl   si   1 sentence i is objective
+   then  another two vector describing the subjectivity and the objectivity could be derived from.
+¡¡1	sentence i is subjective = 1	sentence i is objective
+	= 1	sentence i is subjective
+	1	sentence i is objective
+   a sentence was taken as relevant sentence if this sentence contained the term in the original query. the document was presented as follows
+	1	if sentence contain query term
+	t =   1 	l 	i =
+1 otherwise
+                                                          ¡ú then  a fuzzy relevant sentence vector could be derived from dt . if the previous two sentences contained the query term  this sentence could also be labeled as relevant sentence.
+1 previous 1 sentences contain query term
+f =   1 t1 	 tl  	ti =
+	1	otherwise
+   features xi were generated from the vector dsub  dobj and dt   df . the features we used are described as follows.
+featuredescriptionsubscore relbasedtsub ¡¤ dtrel base cnt# relevant sentencesrel base cnt# fuzzy relevant sentencesrelbase sub cnt# sentences both relevant and subjectiverelbase obj cnt# sentences both fuzzy relevant and objectiverelwin sub cnt# sentences both relevant and objectiverelwin obj cnt# sentences both fuzzy relevant and objectivesim subscore relbasedtsub ¡¤ dt / 1 + |dsub|  1 + |dt | sim subscore relwindtsub ¡¤ df / 1 + |dsub|  1 + |df | sim objscore relbasedtobj ¡¤ dt / 1 + |dobj|  1 + |dt | sim objscore relwindtobj ¡¤ df / 1 + |dobj|  1 + |df | 1 similarity and opinion score
+the opinion score opscore ¡Ê   1   given by the svm classifier was integrated with the similarity sim ¡Ê  1   given by the topic retrieval.
+   the opinion score was normalized to  1  by a logistic function  the logistic opinion score logopscore  was defined as
+if x   1 if x   1
+   the final score for a blog post was score = logopscore   sim  all the blog posts were reranked by the final score.
+1 submission and evaluation results
+we submitted 1 automatic runs  as follows:
+  fdunooptisd: a baseline run only using the pseudo-relevance feedback without svm regression module
+  fdunoprsvmt: the fdunooptisd with svm regression module trained on topic-relevance results
+  fdutisdopsvm: the fdunooptisd with svm regression module trained on opinion retrieval results  this module has some feature of sentiment analysis
+  fdunooptsem: the fdunooptisd run with sentiment analysis
+  fdutnrsvmsem: the fdunoprsvmt run with sentiment analysis
+  fdutosvmsem: the fdutisdopsvm run with sentiment analysis
+table 1: opinion finding result
+runmapr-precb-prefp 1baseline1111fdunooptisd1111fdunoprsvmt1111fdutisdopsvm1111fdunooptsem1111fdutnrsvmsem1111fdutosvmsem1111table 1: topic relevance result
+runmapr-precb-prefp 1baseline1111fdunooptisd1111fdunoprsvmt1111fdutisdopsvm1111fdunooptsem1111fdutnrsvmsem1111fdutosvmsem1111   the evaluation results of the 1 submitted runs are listed in the table 1 and table 1. all these submitted results were using query expansion techniques  so we added a  baseline  result for comparison. this  baseline  run didn't use any query expansion or sentiment analysis module. our best run  fdutisdopsvm  is emphasized in the table.
+   from the table above  we can find that the query expansion approach using svm to rank the expanded terms could get better performance than using the empirical expansion.
+1 conclusion
+we described our system in this paper. the opinion retrieval task required the combination of information retrieval techniques and the sentiment analysis approaches.
+   we developed a pseudo-relevance feedback approach by empirical query reformulation. a novel approach was developed to rerank the expanded terms by machine learning method. the sentiment analysis was based on sentence-level analysis. in future work  we intend to make a further exploration on the expansion approach using machine learning method and the sentiment classification of a blog post.
+acknowledgements
+this work was partially supported by nsf of china under the grant of 1.

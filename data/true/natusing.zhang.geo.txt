@@ -1,0 +1,54 @@
+this paper reports our knowledge-ignorant machine learning approach to the triage task in trec1 genomics track  which is actually a text categorization problem. we applied support vector machine  svm  and found that information-gain based feature selection is helpful. although we achieved decent performance in leave-one-out cross-validation experiments  the evaluation result on the test data turned out to be surprisingly poor. further experiments revealed that there is a chasm between the training and test data distributions. it seems that more aggressive feature selection can partially alleviate the trouble caused by distribution change. 
+keywords 
+text categorization  machine learning  support vector machine  feature selection  distribution change. 
+1. introduction 
+in this year's trec conference  we have only tried to attack the triage task of the genomics track1. the goal of this task is to correctly identify which mouse-related papers have been deemed to have experimental evidence warranting annotation with go1 codes by mgi1.  it is exactly a text categorization  problem. since we do not have any biological or medical background  we just took a knowledge-ignorant machine learning  approach.  
+support vector machine  svm   1  1  is generally regarded as one of the most powerful machine learning methods. it has shown very promising performances in a number of recent text categorization studies  1  1  1 . an efficient svm implementation  svmlight1   was used throughout our experiments.  
+in fact  we achieved decent performance in leave-one-out cross-validation experiments. however  to our surprise  the evaluation result on the test data is quite poor. we present our approach in section 1  and investigate the reason of failure in section 1.  
+1. our approach 
+1 data 
+the given document collection consists of mouse-related articles from three journals  jbc  jcb and pnas  over two years  1 and 1 . the first year's  1  documents comprise the training data  while the second year's  1  documents make up the test data. the training data include 1 positive examples and 1 negative examples. the test data include 1 positive examples and 1 negative examples. 
+each example corresponds to a journal article which can be uniquely identified by its pmid. the sgml format full-text information of each example was provided. furthermore  we fetched the xml format bibliographic information of each example from the pubmed1 server. 
+we obeyed the  separate  strictness of data usage:  no information from any test example is allowed to affect the processing of any other test example. 
+1 features 
+to apply svm  the data need to be represented as vectors. inspired by the traditional bag-of-words  representation of text documents  we converted each example into a bagof-features through the feature extraction and selection process explained later. then we constructed a vector for each example based on its bag-of-features: the entries/dimensions of the vectors correspond to all distinct features  and the value of each entry is the weight of its corresponding feature. here we used the smart  word-vector-weighting1 scheme ltc. finally all vectors are normalized to have unit length. 
+for each example  the features are extracted from the following fields of its semi-structured bibliographic and full-text information: mesh  journal  chemical  grant  author  affiliation  title  abstract  st  section title  and caption  table/figure caption . especially the caption fields have been reported to be quite useful for a similar task .  
+mesh 1  medical subject headings  is a controlled vocabulary produced by the national library of medicine and used for indexing  cataloging  and searching for biomedical and health-related information and documents. all mesh descriptor are organized in a tree structure. each mesh descriptor can be mapped to a specific node in the mesh tree. for each mesh descriptor of the given example  we found its corresponding node in the mesh tree. then we would generate a feature for every node in the path from the root to that node. if the mesh descriptor is modified by a qualifier  subheading   we would generate a new feature identified by that descriptor plus that qualifier. if the mesh descriptor/qualifier is considered describing the major topic of the document  we would generate another new feature indicating that it is a major 
+mesh term. for example  the mesh term  
+ meshheading  
+ descriptorname majortopicyn= n   
+transcription factors 
+ /descriptorname  
+ qualifiername majortopicyn= y   physiology 
+ /qualifiername   
+ /meshheading  
+would be converted into a set of features:  
+mesh d1   
+mesh d1   
+mesh d1 1   
+mesh d1 1 q1   
+mesh d1 1 q1 major  
+where  d1.1  indicates the position of the mesh descriptor  transcription factors  in the mesh tree  and  q1  is the id of the qualifier  physiology . 
+for the journal  chemical  grant  author and affiliation fields  every specific entity would be treated as a feature. for example  such kind of features of the example with pmid 1 would include: 
+journal 1  chemical plasmids  grant id hl 1  and author wm canfield  etc. 
+for the title  abstract  st and caption fields  the contained texts would be extracted and canonicalized by the umls specialist lexical tool luinorm1  then we would generate two features for every specific term in the texts: one is the term itself  the other is the term tagged by its occurring field. for example  such kind of features of the example with pmid 1 would include: clone  
+title clone  mouse  abstract mouse   rna  caption rna  etc. 
+the feature selection criterion we used is the informationgain  since it has been shown to work well for various text categorization tasks  1  1 . the decline of informationgain across features is very sharp  as shown in figure 1. 
+
+	1	1	1
+features sorted by information gain 
+ only first 1 features are shown 
+figure 1: distribution of features by information-gain. 
+ 
+it is generally believed that svm requires no or very little feature selection for text categorization .  however  we have found that aggressive feature selection is very helpful to svm for this specific problem. we think the reason is that a large number of features generated by the above feature extraction method are irrelevant or redundant. this finding is consistent with a recent study . 
+1 runs 
+we used linear kernel and accepted the default values for all parameters of svmlight except c and j. the parameter c determines the trade-off between training error and margin  while the parameter j specifies the cost-factor by which training errors on positive examples outweight errors on negative examples. another variable parameter is the feature selection threshold. 
+our tactic for parameter tuning is pretty much like that of . we trained svm classifiers with different parameter settings and estimated their performance by leave-one-out cross-validation  loocv . svmlight can compute loocv performances very efficiently using a clever algorithm that prunes away cross-validation folds that do not need to be explicitly executed . in addition  we found that a faster approximate version of pruning  the options  -x 1  and  -o 1   gave almost identical estimates as the exactly correct version of pruning  options  -x 1  and  -o 1  . a minor complexity was that svmlight only outputs loocv estimates of error-rate  precision and recall  but the official performance measure is the utility score defined as 
+unorm = uraw = u tpri +unrifp   
+	umax	u apri
+where ur = 1 is the relative utility of a relevant document  and unr = -1 is the relative utility of a non-relevant document. the solution is to calculate the utility score based on the precision and the recall:   
+	unorm = recall + nr	1	 1 irecall 
+	        = recall   i 	 1 irecall . 
+1 precision
+our experiments showed that heuristically setting c = 1 / 1 and j = 1 *  #neg / #pos  generated optimal loocv performances  where #pos and #neg represents the number of positive and negative training examples respectively. for the svm with this parameter setting  the relationship between the loocv utility score and the number of selected features is shown in figure 1. the optimal loocv performance was achieved using about 1 features  which is only 1% of all features.  
+we submitted four runs with slight different feature selection levels: nusbird1a  nusbird1b  nusbird1d  and nusbird1e. the best performing run among these four submissions is nusbird1a that used 1 features. its loocv utility score on the training data is 1. however  its utility score on the test data is only 1  even worse than the baseline run that classifies all examples as positive. such a large discrepancy is surprising.  

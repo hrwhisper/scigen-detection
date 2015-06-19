@@ -1,0 +1,115 @@
+a realistic classification model for spam filtering should not only take account of the fact that spam evolves over time  but also that labeling a large number of examples for initial training can be expensive in terms of both time and money. this paper address the problem of separating legitimate emails from unsolicited ones with active and online learning algorithm  using a support vector machines  svm  as the base classifier. we evaluate its effectiveness using a set of goodness criteria on trec1 spam filtering benchmark datasets  and promising results are reported.  
+1. introduction 
+the well-documented problem of unsolicited email  or spam  is currently of serious and escalating concern. to date most research in the area of spam detection has focused on some tasks like non-stationarity of the data source  severe sampling bias in the training data  and non-uniformity of misclassification costs. unfortunately  the researches on spam filtering rarely takes account of the fact that spam should evolve over time and we should adopt an efficient strategy to accelerate the learning process.  
+¡¡in this paper  we explicitly address the necessity and feasibility of the adaptive learning strategy to spam filtering task. we present and evaluate a classification model for spam filtering with active and online learning algorithm. the research focuses on the use of support vector machines  svms  as our base classifier  since their demonstrated robustness and ability to handle large feature spaces makes them particularly attractive for this task. based on svms  an active learning algorithm that adopts informative-ness combined with diversity as selection criterion and an online learning strategy that only use the historical sv samples and the incremental training samples in re-training are studied  and their performance is evaluated on trec1 spam filtering benchmark datasets. advantages of directly accounting for active and online learning methods are demonstrated. 
+ in the remainder of this paper  we first give a short survey of related work  and then describe the active and online algorithm in detail. after that  we present our results of applying the algorithm to email classification. finally  we give our conclusions and discuss the prospects for future work. 
+1. related work 
+the spam filtering problem has traditionally been presented as an instance of a text categorization problem with the categories being spam and ham. in reality  the structure of email is richer than that of flat text  with meta-level features such as the fields found in mime compliant messages. researchers have recently acknowledged this  setting the problem in a semi-structured document classification framework. several solutions have been proposed to overcome the spam problem. among the proposed methods  much interest has focused on the machine learning techniques in spam filtering. they include rule learning   naive bayes 1  1   decision trees  support vector machines or combinations of different learners. the basic and common concept of these inductive approaches is that using a classifier to filter out spam and the classifier is learned from training data rather than constructed by hand.  
+¡¡usually spam filtering task is a continuous work with email sequence increasing in size  there is a need to scale up the learning algorithms to handle more training data. and since it is time consuming to retrain the classifier whenever a new example is added to the training set  it is more efficient from a computational point of view to minimize the number of labeled examples to learn a function at a certain accuracy level. 
+we can use support vector machines  svms  and adopt the active and online learning techniques as possible solutions to these problems. svms have worked well for the incremental model learning 1  1  and have shown impressive performance in the active learning applications for its nice properties of summarizing data in the form of support vectors. the active learning is to select the most useful example for labeling and add the labeled example to training set to retrain model. tong and koller control the labeling effort and accelerate the learning process by using the current svm classifier to query the instance closest to the decision hyperplane in terms of version space bisection. brinker first incorporate diversity criterion in active learning to maximize the training utility of a batch. the online learning is attractive for solving the problem of dynamic nature of data and drifting concepts. the elegant solution to online svm learning is the incremental svm which provides a framework for exact online learning. syed et al. proposed an incremental svm learning algorithm  which uses only the historical sv samples and the incremental training samples in re-training. all non-sv samples are discarded after previous training. xiao et al. proposed a different incremental learning approach for svm based on the boosting idea. 
+¡¡these scalability and accelerative learning task are almost confined to the text classification task and seldom discussed in spam filtering.  
+1. active and online learning for spam filtering task 
+1 brief introduction of svm 
+the main idea of support vector machine is to construct a nonlinear kernel function to map the data from the input space into a possibly high-dimensional feature space and then generalize the optimal hyper-plane with maximum margin between the two classes.  
+  given a t-element training set { xi yi :xi¡Êrd yi¡Ê{-1} i=1 ... t} a linear svm classifier: 
+	f x    = ¡Æai yi x x b x  i +	=	 ¡Æai yi x b x w bi +	=	 	+	 	 1  
+	i	i
+¡¡where ai ¡Ý1  b is a bias term and d is the dimension of the input space; ¡¤ is a dot-product operator  and w is the normal vector of the classification hyperplane. typically  the multipliers ai have non-zero values only for a small subset of the training set  which is called the support set and its elements the support vectors. the optimal hyperplane is found such as to maximize the classification margin  given by 1/¡¬w¡¬1  where w denotes the normal vector of the hyperplane. the soft-margin optimization task is formulated as: 
+               p 1 minimize:¡Æci¦Îi + w
+                 i	1	 	 1  subject to 	: y w x 	 	+b  ¡Ý  1 ¦Îi
+¡¡where ci¡Ý1  p¡Ý1 and ¦Îi= 1-y w¡¤x+b  ; z +=z for z¡Ý1 and is equal to 1 otherwise; the slack variables ¦Îi take non-zero values only for bound support vectors  i.e.  points that are misclassified or lie inside the classifier's margin. note that in eq. 1  the accuracy over the training set is balanced by the  smoothness  of the solution. we will consider the case of p=1  for which a number of highly efficient computational methods have been developed. 
+1 active learning for spam filtering 
+so far we have considered learning strategies in which data is acquired passively. however  svms construct a hypothesis using a subset of the data containing the most informative patterns and thus they are good candidates for active or selective sampling techniques which seek out these patterns. suppose the data is initially unlabeled  a good heuristic algorithm would predominantly request the labels for those patterns which will become support vectors. active selection would be particularly important for practical situations in which the process of labeling data is expensive or the dataset is large and unlabeled. 
+¡¡tong proposed the simple algorithm  which iteratively chooses h unlabeled instances closest to the separating hyperplane to solicit user feedback. based on this algorithm  a first spam filter f can be trained on the labeled email pool l. then the f is applied to the unlabeled e-mail pool u to compute each unlabeled e-mail's distance to the separating hyperplane. the h unlabeled e-mails closest to the hyperplane and relatively apart are chosen as the next batch of samples for conducting pool-queries.  
+¡¡however  the simple algorithm may choose too many similar queries  which impairs the learning performance. we adopted diversity measure presented by brinker to construct batches of new training examples and enforces selected examples to be diverse with respect to their angles. the main idea is to select a collection of emails close to the classification hyperplane  while at the same time maintaining their diversity. the diversity of email is measured by the angles. for example  suppose xi has a normal vector equal to  xi . the angle between two hyperplanes hi and hj  corresponding to the email instances xi and xj   can be written in terms of the kernel operator k: 
+	¦µ xi   ¦µ xj  	k x x  i   j  
+	cos ¡Ï h hi   j    =	=	 	 1  
+	¦µ xi   ¦µ xj  	k x x k x x  i   i  	  i   j  
+¡¡the angle-diversity algorithm starts with an initial hyperplane hi trained by the given labeled email set l. then  for each unlabeled email xi  it computes the distance to the classification hyperplane hi. the angle between the unlabeled xi and the current set s is defined as the maximal angle from xi to any other xj in set s. this angle measures how diverse the resulting s would be  if xi were to be chosen as a sample. algorithm angle-diversity introduces a parameter to balance two components: the distance from emails to the classification hyperplane and the diversity of angles among different emails. incorporating the trade-off factor  the final score for the unlabeled xi can be written as 
+k x x  i   j  
+	¦Ë  f x  i   + 1 ¦Ë     max  	 1  
+	xj¡Ês	k x x k x x  i   i  	  j   j  
+¡¡where function f computes the distance to the hyperplane  function k is the kernel operator  and s is the training set. after that  the algorithm selects as the sample the unlabeled email that enjoys the smallest score in u. the algorithm repeats the above steps h times to select h emails. in practice  the complete method uses a weighted sum of diversity and hyperplane distance  controlled by a parameter ¦Ë  where ¦Ë= 1 is the equivalent of focusing solely on diversity and ¦Ë= 1 is the same as simple. we determined that ¦Ë= 1 worked well for our experiments. 
+1 online learning for spam filtering 
+online learning is an important domain in machine learning with interesting theoretical properties and practical applications. online learning is performed in a sequence of trials. at trial t the algorithm first receives an instance xt ¡Ê rn and is required to predict the label associated with that instance. after the online learning algorithm has predicted the label  the true label is revealed and the algorithm pays a unit cost if its prediction is wrong. the ultimate goal of the algorithm is to minimize the total number of prediction mistakes it makes along its run. to achieve this goal  the algorithm may update its prediction mechanism after each trial so as to be more accurate in later trials. 
+¡¡in this paper  we assume that the prediction of the algorithm at each trial is determined by a svms classifier. usually in svms only a small portion of samples have non-zero  ¦Á i coefficients  whose corresponding xi  support vectors  and yi fully define the decision function. therefore  the sv set can fully describe the classification characteristics of the entire training set. because the training process of svm involves solving a quadratic programming problem  the computational complexity of training process is much higher than a linear complexity. hence  if we train the svm on the sv set instead of the whole training set  the training time can be reduced greatly without much loss of the classification precision. this is the main idea of online learning algorithm. 
+¡¡given that only a small fraction of training emails end up as support vectors  the support vector algorithm is able to summarize the data space in a very concise manner. the training would use only the historical sv samples and the incremental training samples in re-training. all non-sv samples are discarded after previous training. figure 1 shows the incremental training procedure.  
+
+ 	figure 1. the incremental training procedure
+¡¡let us call the training email set as tr  so we trained an initial spam filter on tr. then we took the support vectors chosen from tr  called sv1  and classify the instances x1 in trial sequence. after querying the true label of xi  we add xi to sv1 if the filter's prediction is wrong. again we ran the svm training algorithm on sv1 + x1. now the svs chosen from the training of sv1 + x1 were taken  let us call these sv1. again the training and testing were done. this incremental step was repeated until all the trials are used. the algorithm can be illustrated in algorithm 1 as follows. 
+
+online svm spam filter: 
+1  initialization 
+seed svm classifier with a few examples of each class  spam and ham  
+train an initial svm filters  
+1  online learning 
+- classify xi  
+- query the true label of xi  
+- if the filter's prediction is wrong  retrain svm filters based on svi + xi 
+1  finishing 
+     repeat until xn is finished 
+
+¡¡the model obtained by this method should be the same or similar to what would have been obtained using all the data together to train. the reason for this is that the svms algorithm will preserve the essential class boundary information seen so far in a very compact form as support vectors  which would contribute appropriately to deriving the new concept in the next iteration. 
+1. evaluations and analysis 
+1 experiment setting 
+in this section  we report the test results on four email datasets provided by trec 1 spam track. the basic statistics for all four datasets are given in table 1.  
+ 	table 1. basic statistics for the evaluation datasets 
+  ham spam total public corpora trec1p/full 1 1 1 trec1c/full 1 1 1 private corporax1 1 1 1 b1 1 1 1 the experiment is evaluated by a number of criteria that were used for the official evaluation: 
+  hm%: ham misclassification rate  the fraction of ham messages labeled as spam. 
+  sm%: spam misclassification rate  the fraction of spam messages labeled as ham. 
+  1-roca: area above the receiver operating characteristic  roc  curve. 
+  lam%: logistic average misclassification percentage defined as  lam% = logit-1 logit hm% /1 + logit sm% /1   where logit x  = log x/ 1-x   and logit-1 x  = ex/ 1+ex . 
+¡¡the spam track includes two approaches to measuring the filter's learning curve:  1  piecewise approximation and logistic regression are used to model hm% and sm% as a function of the number of messages processed;  1  cumulative  1-roca % is given as a function of the number of messages processed. 
+1 results 
+1.1 experiment i: the impact of active learning method 
+the first experiment was designed to find whether the active learning strategy perform similarly on two-class spam filtering task with multivariate performance measures like 1-roca in mind. to this end  the spam filter is first requested to select a sequence of messages from the first 1% of the corpus as  teach me  examples. that is  the filter is trained on the correct classification for these  and only these examples. secondly  from time to time  after 1  1  1  etc.  teach me  examples  the filter is asked to classify the remaining 1% of the corpus  one-at-a-time  in order. the performance of active selection  al  and random adding training examples  rl  are compared. 
+
+figure 1. roc curves for al  left  and rl  right  filters on the trec1p corpus. 
+
+figure 1. roc curves for al  left  and rl  right  filters on the trec1c corpus. 
+¡¡the graphs in figure 1 illustrate the performance of our active and random learning method on trec1p and trec1c respectively. we can make two useful observations when putting the results together  figures 1 to 1 . the first thing we notice with the number of training examples increasing we observed higher generalization accuracy for the active learning strategy and the random strategy in all our experiments. this corresponds to the intuition that the more training examples  the more prediction power a classifier can produce. the second thing is that active selection can minimize the number of labeled examples that are necessary to learn a classification function at a certain accuracy level  especially when there are comparatively few support vectors to find. in figure 1  there are altogether 1 examples to be learned. the al filter performance promotes very fast that the al.1 achieves the comparable performance with al.1. while the rl filter works best until the rl.1 finished. in figure 1  same trend is still obviously. there are altogether 1 examples to be learned. the best performance obtained at al1 and rl.1 respectively. since the difference in performance is much stable between different datasets as seen in the graphs  we may conclude that the random selection cannot provide the same level of spam detection provided by the active learning filters. 
+1.1 experiment ii: the impact of online learning method 
+this experiment run in a controlled environment simulating personal spam filter use to verify the online learning performance on the official corpus. the system was first presented a sequence of messages  one message at a time  and was required to return a  spamminess  score  a real number representing the estimated likelihood that the message is spam . after that the correct classification was presented. two kinds of online learning strategy are tested respectively  the ideal and delayed user feedback. in ideal user feedback  the filter retrains the model immediately after each classification. and in the delayed feedback  the filter will not be retained immediately. that is random-sized sequences of email messages will be classified without any intervening  train  commands and the corresponding  train  commands for these messages will follow  with no intervening  classify  commands. the length of the sequences will be randomly generated with an exponential distribution.  
+¡¡a summary of the results achieved with ideal user feedback  ideal  against delayed user feedback  delayed  learning algorithm data on the official corpus is listed in the table 1. overall  the ideal system outperformed the other system on most of the evaluation corpora in the 1-roca criterion. however  the tradeoff between ham misclassification and spam misclassification varies considerably for different datasets. table 1. misclassification summary 
+ hm% sm% lam% 1-roca ideal delayed ideal delayedideal delayedideal delayed trec1p 1 
+ 1-1  1 
+ 1-1  1 
+ 1-1 1 
+ 1-1 1 
+ 1-1 1 
+ 1 -1 1 
+ 1 - 1  1 
+ 1 - 1 trec1c 1 
+ 1-1  1 
+ 1-1  1 
+ 1-1 1 
+ 1-1 1 
+ 1 -1 1 
+ 1 -1 1 
+ 1 - 1  1 
+ 1 - 1 x1 1 
+ 1-1  1 
+ 1-1  1 
+ 1-1 1 
+ 1-1 1 
+ 1 -1 1 
+ 1 -1 1 
+ 1 - 1  1 
+ 1 - 1 b1 1 
+ 1-1  1 
+ 1-1  1 
+ 1-1 1 
+ 1-1 1 
+ 1 -1 1 
+ 1 -1 1 
+ 1 - 1  1 
+ 1 - 1 ¡¡a comparison with the statistics in table 1 reveals that our online system disproportionately favored classification into the class that contains more training examples. the online system did not vary the filtering threshold dynamically  but rather kept it fixed at a spamminess score. the results indicate that adjusting the threshold with respect to the number of ham and spam training examples or  alternatively  with respect to previous performance statistics  would be beneficial.  
+
+figure 1. roc curves  left  and learning curves  right  for ideal and delayed filters on trec1p corpus.
+
+figure 1. roc curves  left  and learning curves  right  for ideal and delayed filters on trec1c corpus.
+¡¡the roc and roc learning curves for the ideal and delay on the trec1p and trec1c result are depicted in figure 1. the left figures depicts the roc curve of the ideal and delay system  it provide a convenient graphical display of the trade-off between true and false positive classification rates for spam filtering task. we can interpret this curve as a comparison of the ideal filter performance across the entire range of class distributions and error costs. the performance improves the further the curve is near to the upper left corner of the plot. the left figures show that the ideal system dominates the other curve over most regions. the right graph shows how the area above the roc curve changes with an increasing number of examples. the performance improves the further the curve is near to the lower left corner of the plot. note that the 1-roca statistic is plotted in log-scale. all filters learn fast at the start  but performance levels off at around 1 messages. this behavior may be attributed to the implicit bias in the learning algorithms  data or concept drift. it remains to be seen whether a more refined model pruning strategy would help the filter to continue improving beyond this mark. 
+1. conclusions 
+our system reached the anticipated goal in the trec evaluation. the trec results confirmed our intuition that active and online learning offer a number of advantages over random selection and delay-retraining spam filtering methods. by using active learning algorithm  the spam filter can faster attain a level of generalization accuracy in terms of the number of labeled examples. also  the online learning algorithm  whereby only subsets of the data are to be considered at any one time and results subsequently combined  can make the retraining process much faster and avoid the much storage cost. thus the filter algorithm can be scaled up to handle extremely large data sets.  
+¡¡this active and online spam filter achieved the best ranking filter overall in the 1-roca statistic for most of the datasets in the official evaluation. despite the encouraging results at trec  we believe there is much room for improvement in our system. to most users spam is a nuisance  while the loss of legitimate email is much more serious  so the filter should define an optimal threshold to one that rejects a maximum amount of spam while passing all legitimate emails. in future work  we intend to employ a suitable mechanism for dynamically adapting the filtering threshold. and while traditional svms only use the error rate  not the application specific performance measure like roc-area  as the performance measure to optimize model  it is likely to produce suboptimal results. an interesting avenue for future research would be to employ a strategy which would directly optimize svms for 1-roca measure that promotes spam filter performance.  acknowledgements 
+this research was supported by national natural science foundation of china  1  1  and key project of chinese ministry of education & microsoft asia research centre  1 . 

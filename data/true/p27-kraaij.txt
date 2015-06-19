@@ -1,0 +1,184 @@
+an important class of searches on the world-wide-web has the goal to find an entry page  homepage  of an organisation. entry page search is quite different from ad hoc search. indeed a plain ad hoc system performs disappointingly. we explored three non-content features of web pages: page length  number of incoming links and url form. especially the url form proved to be a good predictor. using url form priors we found over 1% of all entry pages at rank 1  and up to 1% in the top 1. non-content features can easily be embedded in a language model framework as a prior probability.
+categories and subject descriptors
+h.1  information storage and retrieval : information search and retrieval
+general terms
+experimentation
+keywords
+entry page search  prior probabilities  links  urls  language models  parameter estimation
+1. introduction
+　entry page searching is different from general information searching  not only because entry pages differ from other web documents  but also because the goals of the tasks are different. in a general  ad hoc search task as defined for trec  1  1  1   the goal is to find as many relevant documents as possible. the entry page  ep  task is concerned with finding the central page of an organisation  which functions as a portal for the information1. since ep search has the goal to retrieve just one document  an ir system should probably be more optimised for high precision than for high recall. search engine users typically prefer to find an ep in the first screen
+
+ entry pages for individual persons are usually referred to as homepages.
+permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. to copy otherwise  to republish  to post on servers or to redistribute to lists  requires prior specific permission and/or a fee.
+sigir'1  august 1  1  tampere  finland.
+copyright 1 acm 1-1/1 ...$1.
+of results. since queries are usually very short  finding an ep with a high initial precision is quite difficult. this paper explores ways to enhance ir systems designed for the ad hoc task by taking advantage of document features  which are usually ignored for the ad hoc task  since they were not effective. our experiments for the ep task at trec-1 have shown that link structure  urls and anchor texts are useful sources of information for locating entry pages.
+　experiments of other groups confirmed the effectiveness of these features  1  1  1  1  1  1 . in this paper we show how knowledge about the relationship between the non-content features of a webpage an its likelihood of being an ep can easily be incorporated in a retrieval model based on statisticallanguage models. in section 1 we discuss related work on tuning retrieval models to a specific task and other work on the use of information sources other than the document content. section 1 discusses the basic language modelling approach and how priors can be used in this model. in section 1 we discuss different sources of prior knowledge that can be used in an ep searching task. we describe our evaluation methodology in section 1 and discuss our experiments and present results in section 1. we conclude with a discussion of these results and a summary of our main conclusions.
+1. context and related work
+　in this section we will give argue that it is common practice to tailor ir methods to a specific search task  or even to a certain test collection  to optimize performance. it is important though  to use principled methods instead of ad hoc solutions.
+1 tuning ir systems
+　the use of proper term statistics is of the utmost importance for the quality of retrieval results on the ad hoc search task. all main ir models based on relevance ranking exploit these statistics and are based on at least two ingredients: the frequency of a term in a document and the distribution of a term in the document collection. ir models typically have evolved in close relationship with the availability of test collections. the older test collections were
+based on abstracts  so it was safe to assume that documents had about the same length. since test collections are based on full text  this assumption does not hold anymore  and ir models have been refined to include a component which models the document length influence. early attempts to combine the three main ingredients of an ir system were rather ad hoc and were not based on formal models. for example  salton and buckley  evaluated many combinations of term frequency statistics  document frequency statistics and document length normalisation without an explicit model for the relationship between these factors. the combine and test strategy was pursued further by zobel and moffat . they tested 1 different term weighting strategies based on different similarity functions  length normalisation strategies  document term weighting etc. on 1 different query collections. they concluded that their exhaustive test strategy  1 weeks of computation time  had not resulted in any conclusive results that held across test collections. instead of trying many ad hoc algorithms  robertson and walker  experimented with simple approximations of the 1-poisson model1. the okapi formula is an approximation of a theoretically justified model  integrating the three components. the okapi formula includes tuning parameters that determine e.g. the influence of the term frequency or the influence of the document length normalisation. the parameters can be used to tune a system to the retrieval task and test collection at hand.
+　based on the success of robertson and walker  singhal et al.  showed that for the ad hoc search task  there is a correlation between the document length and the a-priori probability of relevance. the document length is a good example of information about a document that is not directly related to its contents  but might still be related to the possible relevance of the document: if we build a rather silly system that returns the longest document for any user query  then we actually might do better than returning a random document from the collection.
+1 non-content features of web pages
+　an important source of prior knowledge for web based information retrieval is the hyperlink structure. the idea behind most link structure analysis is that if there exists a link from document to document   this probably means that document and are on the same topic  topic locality assumption  and that the author of document recommends document  recommendation assumption . two of the most widely known and used algorithms for link structure analysis are pagerank  and hits . both methods base there calculations on the assumption that a page to which many documents link is highly recommended and therefore an authority. the authoritativeness of a document is even higher if the documents that link to it are some sort of authorities themselves. hits and pagerank  or variants of those  are reported to be successful in numerous studies of retrieval quality  1  1  1  1  1   however when measuring relevance only  without taking quality or authoritativeness into account  hits and pagerank based methods have not been able to improve retrieval effectiveness for ad hoc search tasks  1  1  1  1  1 .
+　davison  shows that the topic locality assumption holds: when pages are linked  they are likely to contain related content. this means that documents that are linked to relevant documents are potentially relevant themselves. however  exploitation of this idea by spreading retrieval scores over links has not proven successful in a general information retrieval task yet  1  1 . on the other hand  the trec-1 evaluation showed that link structure analysis does improve content only results in an entry page search task  1  1 .
+　another source of prior knowledge in web based retrieval is the url. we are not aware of any studies in which url knowledge was used for an ad hoc search. however  the trec-1 evaluation showed that the fact that entry pages tend to have shorter urls than other documents can be successfully exploited by a ranking algorithm. 1  1  1  1  1 .
+1 priors in lm based ir
+　prior knowledge can be used in a standard way in the language modelling approach to information retrieval. the language mod-
+
+ however  the motivation to extend the original probabilistic model  with within-document term frequency and document length normalisation was probably based on empirical observations. elling approach uses simple document-based unigram language models for document ranking . early trec ad hoc experiments by hiemstra and kraaij  show that indeed the document length serves as a helpful prior for the ad hoc task  especially for short queries. miller et al.  combined information in their document priors  including document length  source and average word length. in this paper we adapt the standard language modelling approach to the entry page search by including the prior probabilities in the estimation process. we show that proper use of prior probabilities results improvements of more than 1 % over the base-line language modelling system on the entry page task. although we mainly address entry page searching here  we follow a generic approach. by following the suggested language modelling approach we can quickly adapt our standard retrieval system to other tasks or domains  e.g. automatic summarisation .
+1. language modelling and prior probabilities
+　for all our experiments we used an information retrieval system based on a simple statistical language model . we are interested in the probability that a document is relevant given a query   which can be reformulated as follows using bayes' rule:
+
+the main motivation for applying bayes' rule is that the probabilities on the right-hand side can be estimated more accurately than the probabilities on the left-hand side. for the purpose of document ranking  we can simply ignore since it does not depend on the documents. the probability can be represented by a document-based unigram language model. the standard language modelling approach would model the query as a sequence of query terms   and use a linear combination of a unigram document model and a collection model for smoothing1 as follows:
+ 1 
+the probability measure defines the probability of drawing a term at random from the collection  defines the probability of drawing a term at random from the document and is the interpolation parameter  which is assumed to be some fixed constant. this leaves us with the definition of the prior probability of relevance of a document 1.
+1 estimating priors
+　we distinguish two approaches to estimating the prior: direct estimation of the prior on some training data  and definition of the prior based on some general modelling assumptions.
+　as an example  let's have a look at the assumption that the prior probability of relevance is correlated with the document length on the ad hoc task. figure 1 shows a plot of the probability of relevance against the document length for the ad hoc task of the trec1 web track. to smooth the estimates  we divided the document
+
+ this smoothing technique is also known as jelinek-mercer smoothing
+ relevance is not explicitly encoded in formula  1 . cf.  for a variant formulation of the model that includes relevance as a variable in the model. both models lead to an equivalent term weighting function
+
+figure 1: prior probability of relevance given document length on the ad hoc task
+length  which varies from documents containing only one or two words to documents containing over 1 words  into 1 bins on a logscale. each point on the plot marks the probability of relevance of the documents in one of these bins. the 1 bins and the corresponding probabilities define a discrete probability measure which takes one of 1 different values based on the bin in which falls. as such  it can be used directly in equation 1. alternatively  looking at the plot  one could make the general modelling assumption that the a-priori probability of relevance is taken to be a linear function of the document length  so:
+ 1 
+where is a binary random variable 'relevance'  is the total number of words in document   and is a constant that can be ignored in the ranking formula. the intuition behind this assumption is that longer documents tend to cover more topics and thus have a higher probability of relevance. indeed  the linear relationship between document length and probability of relevance is a reasonable model for different ad hoc test collections . including the prior especially can improve m.a.p. with up to 1 on an absolute scale  depending on the query length.
+1 combining priors
+　what if we have different sources of information that might influence the a-priori probability of relevance  e.g. the length of a web page or its top level domain  the problem can be formalised as follows  we want to estimate:
+ 1 
+in formula  1   is a binary random variable 'relevance'  is a shorthand for   i.e. is a random variable 'document' with as value a vector of document features .
+the problem is that we do not have a closed form solution for the prior and there is a very limited set of training data to estimate the prior for different feature values  so we have to find a smart way to estimate our prior. a possible approach is to apply the naive bayes assumption. consider the naive bayes approach  1  1  to classification:
+	argmax		 1 
+here  represents the class of an instance which is chosen among the set of mutually disjoint classes . the decision rule chooses the for which the numerator is maximal given a certain vector of attributes . especially when there are many features  it is difficult to estimate the probabilities. a common strategy is to assume that the features are conditionally independent:
+  this is the well known naive bayes as-
+sumption. this assumption results in a smaller number of probabilities that have to be estimated. the same estimation problem holds for the denominator  but this term can be ignored for classification tasks  since it is constant across the classes. in our case  there are only 1 different classes  namely relevant documents and irrelevant documents  or entry pages vs. non-entry pages . in addition  we're not only interested in the class with the highest probability  but we want to estimate the exact probability that a document is relevant given several attributes  since we want to use it for ranking. therefore we cannot ignore the denominator since it is different for each attribute vector. so  formula 1 should be used to estimate the priors.
+		 1 
+　indeed  the parameters in this formula are much easier to estimate. as an example  suppose we have three features  with five values each. direct estimation of the probability of relevance would require the estimation of 1 conditional probabilities. in the naive bayes approach  only 1 relative frequencies would have to be computed. an alternative approach could be to reduce the number of parameters in our model  e.g. reducing the number of classes per feature to three  yielding parameters in order to reduce variance.
+　for our experiment with combined priors  we combined two features  url form and #inlinks  each with 1 different feature values. as a simple baseline  we assumed conditional independence of the features given relevance  and approximated formula 1 by replacing the denominator by   obviating the need to build a training set for non entry pages. the approximated formula can be further reduced to:
+		 1 
+which is equivalent to the product of the individual priors and a constant.
+　we contrasted this approximated naive bayes run  with a run where we directly estimated  1   but based on a reduced number of classes. we defined seven disjoint classes in such a way that there were at least 1 positive training examples in each class. this was done by merging several attribute vectors into one class. section 1 describes the procedure in more detail.
+1 combining content models
+　just as we might have different sources of information to estimate prior probabilities  we might as well have different sources of information to estimate content models. as an example  consider the possibility to estimate a document language model on the anchor texts of all hyperlinks pointing to the document. note that the score provided by a query on the anchor texts is not a document prior. the anchor texts and the body texts  'content-only'  provide two very different textual representations of the documents. the ir language models can accommodate several document representations in a straightforward manner  by defining a mixture model. our preferred way of combining two representations would be by the following  revised ranking formula.
+ 1 
+	content	anchor
+so  the combination of the anchor run with the content run would be done on a 'query term by query term' basis  whereas the combination with the document prior is done separately. unfortunately  the current implementation of our retrieval system does not support combining document representations like this. instead  the anchor experiments described in the next sections were done separately from the content runs  their document scores being combined afterwards. in a document summarisation setting we showed the potential of similar mixture models for ranking .
+1. prior probabilities in entry page search
+　in an entry page search task  a user is searching for the main entry page of a specific organisation or group within an organisation. this is the main entry point for information about that group on the www. from here  one can usually navigate to the other web pages of the same group. for example the main entry page of sigir 1 is http://www.sigir1.org.
+　a query in an entry page search task consists of nothing more than the name of the organisation or group whose entry page we're after. in general there are only a few correct answers: the url of the entry page of the requested organisation and perhaps some alternate urls pointing to the same page and a few mirror sites.
+　entry page searching is similar to known item searching. in both types of searches  a user is looking for one specific piece of information. however  in known item search the user has already seen the information needed  whereas in entry page search this is not necessarily the case.
+　since entry page search is a different task than ad hoc search  different prior probabilities might be needed. we investigated which sources of information are useful priors for entry page searching and whether priors are needed at all for such a task.
+　we looked at three different sources of information: i  the length of a document ; ii  the number of links pointing to a document  inlinks  ; iii  the depth of a document's url.
+　features we didn't investigate  but which might be useful for estimating whether a page is an entry page include: the number of occurrences of certain cue words  e.g. 'welcome'  'home'   the number of links in a document  outlinks  and the number of times a page is visited.
+1 document length
+　section 1 showed that document length priors are useful in an ad hoc search task. here we investigate whether the length of a document is also a useful indicator of the probability that a document is an entry page. figure 1 shows a plot of the probability of relevance versus page length  calculated on the training data provided for the entry page search task of trec-1's web track.
+　indeed document length can predict the relevance of a page  since the distribution is not uniform. pages with a medium length  1 words  have a higher probability  with a maximum around 1 words. however  the differences are much less marked as for ad hoc search. although it is clear that the dependence of the probability of relevance on document length is quite different from the ad hoc task  we ran an experiment where we used our best performing ir model for the ad hoc task  language model plus
+
+figure 1: prior probability of relevance given document length on the entry page task  	 
+document length prior as defined in  1   on the ep task  to show that models that perform well on ad hoc do not necessarily perform well on the entry page task.
+1 number of inlinks
+　in a hypertext collection like the www  documents are connected through hyperlinks. a hyperlink is a connection between a source and a target document. our inlinks based prior is based on the observation that entry pages tend to have a higher number of inlinks than other documents  i.e. they are referenced more often . the plot of the probability of being an entry page against the number of inlinks in figure 1 shows this correlation for the training data for the entry page task of trec-1's web track. since the
+
+figure 1: prior probability of relevance given number of inlinks on the entry page task    
+plot suggests a linear relationship  we define the inlink prior as:
+ 1 
+where is a binary random variable 'relevance'  is the count of the number of inlinks in document and is a constant.
+　note that  although we didn't differentiate between links from the same host and links from other hosts  doing so might be interesting. these different types of links have different functions. links from other hosts often imply a form of recommendation  whereas links from the same host mainly serve navigational purposes. however  both types of links probably point more often to entry pages than to other pages. recommendation links usually point to the main entry point of a site and sites are often organised in such a way that each page links to the entry page.
+1 url depth
+　a third source of prior information is the url of a document. a url defines the unique location of a document on the www. it consists of the name of the server  a directory path and a filename. a first observation is that documents that are right at the top level of a specific server  i.e. the documents of which the url is no more than a server name  are often entry pages. also  as we descend deeper into the directory tree  the relative amount of entry pages decreases. thus the probability of being an entry page seems to be inversely related to the depth of the path in the corresponding url. we define four types of urls:
+root: a domain name  optionally followed by 'index.html'
+ e.g. http://www.sigir.org 
+subroot: a domain name  followed by a single directory  optionally followed by 'index.html' name
+ e.g. http://www.sigir.org/sigirlist/ 
+path: a domain name  followed by an arbitrarily deep path  but not ending in a file name other than 'index.html'
+ e.g. http://www.sigir.org/sigirlist/issues/ 
+file: anything ending in a filename other than 'index.html'
+ e.g. http://www.sigir.org/resources.html 
+　analysis of both wt1g  the collection used in trec-1's web track  and the correct answers to the training topics for the track's entry page task  i.e. the correct entry pages   shows that entry pages have a very different distribution over the four url-types
+ cf. table 1 . as suspected  entry pages seem to be mainly of type
+	url type	entry pages	wt1g
+
+root 1  1%  1  1%  subroot 1  1%  1  1%  path 1  1%  1  1%  file 1  1%  1  1% 
+table 1: distributions of entry pages and wt1g over urltypes
+root while most documents in the collection are of type file. for inlinks  we were able to define a model for the prior probability of relevance given the number of inlinks  which is a good approximation of the real data. for the url prior it is less straightforward to define such an analytical model. therefore  we estimated the url based prior directly on the training collection:
+		 1 
+where	is the type of the url of document	 	 
+is the number of documents that is both an entry page and of type and is the number of documents of type . the resulting probabilities for the different url-types are listed in table 1. note that the prior probabilities differ several orders of magnitude; a root page has an almost 1 times larger probability of being an entry page than any other page.
+table 1: prior probabilities for different url-types  estimated on the training data
+1. evaluation
+　we compared the different priors discussed in the previous section using collections and relevance judgements from the entry page finding task of trec-1's web track. the text retrieval conferences  trec   1  1  1   are a series of workshops aimed at largescale testing of retrieval technology. the entry page finding task was designed to evaluate methods for locating entry pages. in this task a search topic consists of a single phrase stating the name of a specific group or organisation  for some examples cf. table 1. a
+worldnet africa
+hunt memorial library
+haas business school
+university of wisconsin lidar group
+table 1: example topics for entry page search task
+system should retrieve the entry page for the group or organisation described in the topic. e.g. when a topic is university of wisconsin lidar group  the entry page for this specific group should be retrieved. retrieving the homepage for the whole university or for a subgroup of the lidar group would be counted incorrect. topics for the entry page finding task were created by randomly selecting a document from the document collection and following links from there until they got to a document they considered to be the homepage of a site that contained the document they started with. this way  1 topics were constructed for this task. in addition a set of 1 topics was provided for training purposes. we used the latter set for making the plots in sections 1 and 1 from which we inferred the document length and inlink priors. the same set was used for estimating the url priors as described in section 1. the experiments reported in the next section are all conducted using the set of 1 test topics.
+　the collection to be searched for this task is the wt1g collection   a 1 gigabytes subset of the vlc1 collection which in turn is a subset of a 1 crawl of the www done by the internet archive 1. wt1g is designed to have a relatively high density of inter-server hyperlinks.
+　for each combination of document prior and language model  we ranked our document collection and returned the top 1 results. runs were evaluated by the mean reciprocal rank  mrr  measure. for each topic the reciprocal value     of the rank     of the highest ranked correct entry page is computed  subsequently these values are averaged. if no correct entry page was found for a specific topic the reciprocal of the rank for this topic is defined 1.
+1. experiments
+　for our experiments we used the ir model described in section 1. the prior probability in our model  was instantiated by one of the priors defined in section 1 or left out  i.e. uniform priors . the language models     were either estimated on
+
+http://www.archive.org
+the document collection  wt1g  or on the collection of anchor based pseudo documents. this anchor-based collection was generated from the original wt1g data by gathering all anchor texts from links pointing to the same document in one pseudo document. this pseudo document was then used as a description of the original document.1. again  we didn't differentiate between links from the same server and links from other servers. documents were preprocessed as follows
+1. remove html comment and script document fragments
+1. remove html markup tags
+1. map html entities to iso-latin1 characters
+1. stop terms
+1. stem terms using the porter algorithm
+table 1 shows the mean reciprocal rank  mrr  for runs on both the web page and the anchor text collection in combination with different priors. both inlinks and url form help to increase search effectiveness  especially the url prior is highly effective. further discussion is deferred until section 1.
+ranking method	content  	 	anchors 	 
+
+11111111table 1: results for different priors
+1 combining content models
+　we combined page content and anchor runs by a linear interpolation of the result files:
+table 1 shows that although the combination strategy is not optimal
+mrr
+
+1	1 1	1 1	1
+	1	1
+table 1: combining web page text and anchor text
+ cf. section 1   combining both content representation is useful. best result is achieved for : mrr=1  anchor text only run: mrr = 1 . we also investigated the effect of priors on these combined runs  table 1 .
+	ranking method	content+anchors  	 
+
+1 1 1
+table 1: results for different priors content+anchor 
+1 combining priors
+　in section 1 we saw that both the number of inlinks and the url can give important information about whether a page is an entry
+
+ the experiments in this paper are based on the csiro anchor collection  1  1   whereas the experiments reported in  are based on an anchor collection we built ourselves
+page or not. the results in table 1 confirm this. a combination of these two sources of information might also be useful. in section 1 we discussed different approaches for combining priors. table 1 shows the results for both combination approaches. all runs are based on the web page corpus and do not regard anchor text. we have argued that the main problem of combining features is that it is difficult to estimate directly  since the training collection is small. a simple approach is to multiply the individual priors  which is an approximation of a model based on the conditional independence assumption. this baseline combination run yielded an mmr value of 1  which is lower than a run based on just the url prior.
+　we conjecture that this disappointing result is due to the fact that there is conditional dependence between the features or that the approximation of the denominator is too crude. we investigated a variant run  without indepence assumptions  where we directly estimated   but based on a model with a reduced number of parameters.
+　for this approach we could not work with formula  1   instead we disretized the #inlinks feature space in four bins on a logscale. subsequently  we defined seven disjoint document classes. table 1 shows their statistics. since there are just a few entry pages in the training set of category non-root  we only divided the root class in four separate bins based on the number of inlinks. from these
+document type	#entry pages	#wt1g
+
+root with 1 inlinks1 1% 1 1% root with 1 inlinks1 1% 1 1% root with 1 inlinks1 1% 1 1% root with 1+ inlinks1 1% 1 1% subroot1 1% 1 1% path1 1% 1 1% file1 1% 1 1% table 1: distribution entry pages and wt1g over different document types
+statistics we computed a combined inlink-url prior  using:
+		 1 
+where is the document type of and is as defined in equation 1.
+　table 1 summarises results for the combination experiments. in addition to the already tabulated single prior results  it shows the result for a run where the inlink prior was estimated on the training data instead of being modeled by formula  1 . the mrr of this run is lower than the run based on the analytical inlink prior  which probably means that the number of bins is too small. the combination runs show a marked difference: the run based on a naive multiplication of priors scores scores worse then the run based on the url prior. however  the combination run which directly estimates   based on seven disjoint classes does improves upon the individual prior runs  so combination of priors performs better than a single prior.
+1. discussion
+　the entry page task is significantly different from the ad hoc task. the main difference is that just one page is relevant  so recall
+enhancement techniques do not play a role  on the contrary  the goal is to boost initial precision. we experimented with contentonly runs  based on either the web page content or its related anchor ranking method	content	description
+
+1
+	1	analytical prior
+	1	1 bins
+1	baseline:	product	of priors  analytical inlink prior 
+	1	direct estimation  1 dis-
+joint classes 
+table 1: combining priors
+text  and with runs which also exploited other page characteristics  like number of links and url form.
+　interestingly  a run based on just the anchor text outperformed the basic content run by far  indicating that anchor text linking to entry pages often contains the name of the organisation's entry page. combining both textual representations by simple interpolation proved effective: mrr = 1  +1% .
+　for content runs  an  exact  match of the query is not sufficiently discriminating to find entry pages  since a lot of web pages will have exact matches. therefore  other features have to be used. we tested three different features: document length  number of inlinks and the url form. a linear document length prior did significantly decrease mrr for the content run  which we had expected  since such a prior did not fit the training data at all. nevertheless it is interesting to see that choosing a wrong prior can harm results. the linear document length prior seems to help the anchor run though  but that is an illusion. the length of an anchor text document consists of a concatenation of the anchor texts of the links pointing to a particular web page. thus  the length of an anchor text 'document' is linearly related to the number of inlinks. indeed  the anchor runs based on an inlinks prior or a document length prior have rather equivalent performance gains. there seems to be an additional gain of the document length prior though; apparently more verbose anchor texts are correlated with entry pages. the best results are achieved by the runs with a url form based prior  the content run with a url prior found over 1% of the entrypages at rank 1  and 1% in the top 1 . surprisingly  the better result was achieved by the url prior run based on the web page text. this can be explained by the fact that this run has a larger recall than the anchor text run. the url prior is a powerful precision enhancing device which combines well with the web page content run  which has good recall. figure 1 illustrates this: while the anchor run has a high initial success rate   of entry pages were found at rank 1; for content   the content run in the end finds more homepages  found in top 1; for anchors .
+　we also investigated whether we could combine url and inlink features. a simple multiplication of priors  assuming conditional and statistical independence  deteriorated results. another strategy  bases on a reduced number of classes  but without any independence assumptions yielded a small gain w.r.t. the url prior run. we think that we could improve upon these results. with more training data we might be able to estimate the joint conditional probabilities of the two features in a more accurate way. the fact that the training data based inlink prior performed worse than the analytical prior  1  indicated that the number of bins is probably too small. the small number of bins might also have contributed to the disappointing results of the combination runs that use the in-
+
+ the corresponding content only run only returned 1% of the entry pages at rank 1  and 1% in the top 1.
+
+figure 1: succes at n for content and anchor runs
+link binning approach. we tested the latter hypothesis  by a further refinement of the url root category in 1 bins  based on #inlinks classes  instead of 1 bins. this resulted in a further improvement  mrr= 1; 1% at 1; 1% in top 1   confirming our hypothesis. we also reran the inlink run based on 1 bins instead of 1 bins: mrr 1  which is even better than the analytical inlink prior. it is thus safe to conclude that the number of classes is critical for the performance of the training data based priors.
+1. conclusions
+　there are several web page features which can help to improve the effectiveness of an entry page retrieval system  i.e. the number of inlinks and the form of the url. we have shown that an ir system based on unigram language models can accommodate these types of information in an almost trivial way  by estimating the posterior probability of a page given its features and using this probability as a prior in the model. the url form feature proved to have the strongest predictive power  yielding over 1% of entry pages at rank 1  and up to 1% in the top 1. initial experiments with combining both features showed a further improvement. the performance of the combined prior model is highly sensitive to the number of model parameters since the training collection was very small  1 topics .
+acknowledgements
+this research was funded by the druid project of the telematics institute  the netherlands. we would like to thank david hawking and nick craswell of csiro  for making their collection of anchor text available.

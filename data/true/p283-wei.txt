@@ -1,0 +1,272 @@
+sentence ranking is the issue of most concern in document summarization. early researchers have presented the mutual reinforcement principle  mr  between sentence and term for simultaneous key phrase and salient sentence extraction in generic single-document summarization. in this work  we extend the mr to the mutual reinforcement chain  mrc  of three different text granularities  i.e.  document  sentence and terms. the aim is to provide a general reinforcement framework and a formal mathematical modeling for the mrc. going one step further  we incorporate the query influence into the mrc to cope with the need for query-oriented multi-document summarization. while the previous summarization approaches often calculate the similarity regardless of the query  we develop a query-sensitive similarity to measure the affinity between the pair of texts. when evaluated on the duc 1 dataset  the experimental results suggest that the proposed query-sensitive mrc  qs-mrc  is a promising approach for summarization. 
+categories and subject descriptors 
+i.1  document and text processing : miscellaneous 
+general terms: algorithms  language 
+keywords 
+mutual reinforcement chain  query-sensitive similarity  queryoriented summarization  ranking algorithms 
+1. introduction 
+the explosion of the www has brought with it a vast hoard of information. it has become virtually impossible for anyone to read and understand large numbers of individual documents that are available. automatic document summarization provides an effective means to manage such an exponentially increased collection of information and to support information seeking and condensing goals.  
+ 
+the main evaluation forum providing benchmarks for researchers working on document summarization   to exchange their ideas and experiences is the document understanding conferences  duc  . the goals of duc are to enable researchers to participate in large-scale experiments upon the standard benchmark and to increase the availability of appropriate evaluation techniques. over the past years  the duc evaluations have evolved gradually from single-document summarization to multi-document summarization and from generic summarization to query-oriented summarization . query-oriented multi-document summarization initiated by the duc in 1 aims to produce a short and concise summary for a cluster of relevant documents according to a given query that describes a user's information need.  
+up to the present  the dominant approaches in document summarization regardless of the nature and the goals of the tasks have still been built upon the sentence extraction framework. under this framework  sentence ranking is the issue of most concern. most previous work in the literature addressed the ranking issue by merely examining characteristic of sentence  such as its content  its grammatical structure  the relationship or association of each other and etc. it is a remarkable advance in our understanding when zha  proposed the following mutual reinforcement  mr  principle: 
+ a term should have a high saliency score if it appears in many sentences with high saliency scores while a sentence should have a high saliency score if it contains many terms with high saliency scores.  
+based on this mr principle  zha developed a generic summarization model by representing the documents as a weighted undirected bipartite text graph and linking a term and sentences containing that term together. as they assembled a cluster of documents to a single larger document  the model in essence is a single-document summarization model. the advantage of this model is that at the end of iterative reinforcement both significant sentences and key phrases could be obtained simultaneously. intuitively  zha's mr principle is sound and applicable. since a document is always structured into meaningful text units such as paragraph  sentence  phrase and word in turn  the affiliation relation 
+
+ 
+permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. to copy otherwise  or republish  to post on servers or to redistribute to lists  requires prior specific permission and/or a fee. 
+sigir'1  july 1  1  singapore. 
+copyright 1 acm 1-1-1/1...$1. 
+ 
+or the affinity relation between sentence and term  i.e.  text of different granularity  can effectively mutually reinforce the importance of each other. this allows for more genuine and reliable judgment.  
+in this study  query-oriented multi-document summarization  a more practical yet challenging task  is of particular interest to us. however  though starting from the mr principle  our goal is not only simply to adapt it to a different summarization task  but also to establish a general framework that can be extensible to other applications  such as document retrieval. to achieve this goal  two issues are essential to us. they are how to introduce the document information and how to incorporate the query information  which can be deemed as the external context outside the documents  in the course of mutual reinforcement. 
+we extend the mr principle to the document  sentence and term mutual reinforcement chain  d-s-t mrc or mrc for short  framework  upon which three interrelated iterative ranking algorithms are developed. although ranking sentences is the primary goal of document summarization  eventually both documents and terms are also ranked and these by-products can be of potential advantage for other text processing purposes. notice that the mrc's capability of exploiting the relation among documents extremely facilitates multi-document summarization which is required to handle the sentences coming either from the same document or from the different documents. to cope with query-oriented summarization  we further advance the mrc to the query-sensitive mrc  qs-mrc . as in previous work  we consider the relevant of a text unit to the query. but different from them  we also count the query impact on the relation of text units. a querysensitive similarity measure is particularly devised for this purpose to judge the affinity of a pair of text units with respect to a given query. we would like to point out that although the mrc and the qs-mrc based ranking algorithms are developed for the application of query-oriented multi-document summarization in this paper  the unified framework is general enough to be applied to the other text ranking tasks. another contribution of this study is trying to provide a formal mathematical modeling for the mrc. 
+the remainder of this paper is organized as follows. section 1 reviews related work. section 1 introduces the mutual reinforcement chain  mrc  framework and explains how the general mrc can be extended to the query-sensitive mrc  qs-mrc . section 1 proposes the query-sensitive similarity measure. section 1 suggests a summarization model based on qs-mrc. section 1 reports experiments and evaluation results. section 1 concludes the paper. 
+1. related work 
+sentence ranking is the issue of most concern under the framework of extractive summarization. traditional feature-based approaches evaluated sentence significance and ranked sentences depending on the features that were designed to characterize the different aspects of the sentences. a variety of statistical and linguistic features such as term frequency  distribution   sentence dependency structure  sentence position and query relevance etc. have been extensively investigated in the past. among them  centroid  and signature term  are most remarkable. the features were often linearly combined and the weights of them were either experimentally tuned or automatically derived by applying a certain learning-based mechanism . 
+newly emerged graph-based approaches like lexrank  and textrank   modeled a document or a set of documents as a weighed text graph. different from feature-based approaches  graph-based approaches took into account global information and recursively calculated sentence significance from the entire text graph rather than only replying on single sentences. these approaches were actually inspired by pagerank   which has been successfully used for ranking web pages in the web graph. the effectiveness of pagerank-like approaches came from the advantage of making use of the link structure information. it further promoted the use of topic-sensitive pagerank   i.e.  an extension of pagerank  for query-oriented summarization .  
+while those pagerank-like approaches normally considered the similarity or the association of the sentences  zha   in contrast  proposed a mutual reinforcement principle that is capable of extracting significant sentences and key phrases at the same time. in his work  a weighted bipartite document graph was built by linking together the sentences in a document and the terms appearing in those sentences. zha argued that a term should have a high salience score if it appears in many sentences with high salience scores while a sentence should have high salience scores if it contains many terms with high salience scores. this mutual reinforcement principle was reduced to a solution for the singular vectors of the transition matrix of the bipartite graph. in fact  as early in 1  the similar idea has been used in hits algorithm  to identify hub and authority web pages in a small subset of the web graph. zha's work was later advanced by wan et al  who additionally calculated the links among the sentences and the links among the terms. zha's and wan's work are the ones most relevant to our studies presented in this paper. but they all concentrated on single-document generic summarization.  
+measuring similarities between two text units such as documents  sentences or terms has been one of the most fundamental issues in information retrieval and other related domains. while a great deal of previous work was found in the literature  few of them addressed the issue of measuring similarity with respect to a particular external context such as a query from a user. tombros and rijsbergen  pioneered the development of query-sensitive similarity functions. they combined the traditional cosine similarity between the pair of documents with the collective similarity of the two documents and the query together  which was defined as the cosine similarity between the centroid of the two documents and the query. zhou and dai  also proposed a query-sensitive similarity measure for content-based image retrieval based on euclidean distance which was widely used in image processing. 
+1. mutual reinforcement chain 
+1 mutual reinforcement chain  mrc  of document  sentence and term 
+without doubt  the most critical issue in document summarization is sentence ranking. however  the sentences could not stand alone in the text without the context. it is an unarguable fact that the text is always organized and structured in a certain way so that the core information would be easily identifiable. in text processing applications  people often work with the text of three different granularities  i.e.  document  d   sentence  s  and term  t . they are actually not independent of each other in delivering meanings. a sentence is the component of a document and meanwhile it is the composition of a set of terms. therefore  the constraints or the influences among documents  sentences and terms could not be ignored in sentence  document  or term  ranking although they have not been well studied before. in this paper we call the reinforcement among d  s and t the external reinforcement.  
+meanwhile  we also consider the internal reinforcement within d  s or t  i.e.  the reinforcement among documents  sentences or terms . in the past  the relations of sentences have been emphasized in graph-based summarization models and their contribution to the performance improvement has been recognized . we put them forward to the relations at the document level as well as at the term level to make a more unified modeling. finally  the external and the internal reinforcements together form a complete document  sentence and term mutual reinforcement chain  d-s-t mrc or mrc for short  framework  as illustrated in figure 1. 
+
+ 
+figure 1. the document  sentence and term mutual reinforcement chain 
+ d-s-t mrc  
+this mrc framework is developed with an attempt to capture the following intuition: 
+1. a document is important if  1  it includes the important sentences;  1  it includes the important terms; and  1  it associates to the other important documents. 
+1. a sentence is important if  1  it appears in the important documents;  1  it includes the important terms; and  1  it associates to the other important sentences. similarly  
+1. a term is important if  1  it appears in the important documents;  1  it appears in the important sentences; and  1  it associates to the other important terms. 
+then  the ranking of documents  sentences and terms can be iteratively derived from the mrc. let rd   rs and rt denote the ranking scores of d  s and t  respectively  the mrc-based ranking can be formulated as follows: 
+  r dk+1  =¦Á1   dd   r dk  + ¦Â1   ds   r   dt   rt k 
+	  k 	 k 	 k    1  
+	 rrd	+ ¦Â1   ss   rs	+¦Ã1   st   rt
+	   k+1 	 k 	 k 	 k 
+	  rt	=¦Á1  td   rd	+ ¦Â1  ts   rs	+¦Ã1  tt   rt
+where dd denotes the d-d affinity matrix  ds denotes the d-s affinity matrix  dt denotes the d-t affinity matrix  and so on. the calculation of the nine matrices in equation  1  will be detailed in 
+ ¦Á1 ¦Â1 ¦Ã1 
+section 1. w =   ¦Á1 ¦Â1 ¦Ã1   is the weight matrix used to 
+¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡  ¦Á1 ¦Â1 ¦Ã1   balance the relative weight among d-s-t in the mrc. equation  1  corresponds to a block matrix  
+ ¦Á1dd ¦Â1ds ¦Ã1dt  
+	 	                                          1  
+m = ¦Á1sd ¦Â1ss ¦Ã1st  
+ 
+  ¦Á1td ¦Â1ts ¦Ã1tt   
+ rd  
+let     r =  rs     then r can be computed as the dominant 
+¡¡¡¡¡¡¡¡  rt    eigenvector of m. 
+m   r =¦Ë  r                                                                  1  
+given that the corresponding graph of m is not bipartite  in order to guarantee a unique r  we must force m stochastic and irreducible . to this end  the necessary matrix transformation must be performed. we can prove that the new transformed m is stochastic and irreducible. 
+to force m stochastic  we must make the nine block matrices in m column stochastic. for the sake of simplicity  let x denote any of the three diagonal block matrices  i.e.  dd  ss  or tt   and y be any of the remaining six block matrices  i.e.  sd  td  ds  ts  or dt  st . we first delete the rows and the columns that contain all zero elements1 in x. note that there are no zero columns in y. let us take sd for example. the affinity of the sentence s and the document d is at least greater than zero  if d contain s. then x and y are both normalized by columns to their column stochastic versions x and 
+
+y . we then replace x and y by x andy in m. let m denote the new matrix  we can prove that: 
+
+lemma 1. m is also column stochastic  if the weight matrix w is column stochastic.  
+
+proof: let a  b and c denote the three block matrices in m for any column under concern  then  
+¡Æi mij =¦Á1¡Æi aij +¦Á1¡Æi bij +¦Á1¡Æicij =¦Á1 +¦Á1 +¦Á1                ¡õ 
+
+next  we manage to make m irreducible. let x denote any of the three new diagonal block matrices in m .as used in pagerank 
+
+calculation  we will make the graph corresponding to x strongly connect by adding links from one node to any other nodes with a  	probability vector p . after such an adjustment  the revised x becomes 
+ 
+x =¦Áx +  1 ¦Á e and e= p¡Á   1¡Ák                             1  
+where 1 ¦Á 1 and ¦Á is usually set to 1 according to pagerank   
+and k is order of x . the probability vector p can be defined in many different ways. a typical definition is to assume a uniform  
+distribution over all elements  i.e.  p =  1k k¡Á1. by doing so  x is both stochastic and irreducible. we finally replace x by x in m   and let m denote the new matrix. we can prove that: 
+lemma 1: m is irreducible. 
+proof: since the three graphs corresponding to the three diagonal block matrices in m are strongly connected  they are irreducible  and the links connected the three graphs are bidirectional  the graph corresponding to m is also obviously strongly connected. thus  
+
+m must be also irreducible.                                               ¡õ 
+now the matrix m is stochastic and irreducible. meanwhile  it is 
+
+easy to check that m 1  1   so m is also primitive. as a result  we can compute the unique dominant eigenvector  with 1 as the eigenvalue  of m . it is well-known that the power method applied 
+
+to m will converge to r.  
+1 query-sensitive mutual reinforcement chain  qs-mrc  
+in the above introduced mrc  the reinforcements of documents  sentences and terms are query-unaware. it means that only the content of the text is concerned. however  for the tasks like queryoriented summarization  how the reinforcement is biased to an external context  such as a user's query  is often of great interest.  
+generally  the query information can be incorporated into the general mrc framework in two alternative ways. the first way is to impose the influence of a user's query on each text unit   document  sentence  or term  such that it works in the internal reinforcement. 
+this somewhat can be viewed as a topic-sensitive pagerank  at each level of text granularity. in the second way  the query effect is modeled in the affinity matrices in both the internal reinforcement and external reinforcement. by doing so  the mrc turns into a query-sensitive mutual reinforcement chain  qs-mrc .  
+with regard to the first way  the key to making ranking biased 
+towards the query rests with the definition of the query-sensitive  	 
+probability vector p. a simple yet effective solution is to define p as 
+   rel oi | q                                                   1  pi =   ¦È if rel oi | q = 1
+where  rel oi | q  denote the relevance of oi to q. it can be calculated by cosine similarity. ¦È is an extremely small real number 
+   
+to avoid zero elements in p. p is further normalized to 1 in order for it to be a probability vector.  
+as for the second way  the remaining problem is how to design a query-sensitive similarity measure so that the query dimension can be taken into consideration when measuring the affinity between the text units  documents  sentences or terms  in the affinity matrices. in the following sections  we will first introduce the query-sensitive similarity and then explain how to apply the qs-mrc to queryoriented multi-document summarization.  
+1. query-sensitive similarity 
+existing similarity measures produce static and constant scores. however  the similarity between a pair of texts may vary with the different contexts involved. now  we consider a more general problem: measuring the similarity between any two text objects oi and o j with respect to the given query q. an object o can be a document  a sentence or a term. we believe that the similarity between oi and o j themselves would be adjusted when q is involved. this is not difficult to understand. similar to the social relationship  when the third party comes in  the connection of the two will undoubtedly change more or less.  
+
+figure 1. illustration of query-sensitive similarity from set overlapping perspective 
+this problem can be explained from the set intersection perspective. as illustrated in figure 1   a  in the left picture corresponds to the similarity between the two objects o1 and o1 regardless of the query. it is what we call query-unaware similarity. but in the right picture  when the query q becomes explicit  it divides the overlapping area of oi and o j into two separated parts  i.e.   b  and 
+ c . we could then deduce that a query-sensitive similarity measure should consist of two parts  i.e.  the query-independent part and the query-dependent part. the query-independent part concerns the dedication of query-unaware similarity  while the query-dependent part further highlights the contribution of the terms in common not only in oi and o j but also in q. formally  the query-sensitive similarity can be formulated as  sim oi  o j | q = f  sim oi  o j |¡Êq   sim oi  o j | q          1  
+let oi ={oi1 oi1 ... oin}   o j ={o j1 o j1 ... o jn} and q ={q1 q1 ... qn} be the three n-dimensional vectors. ¦Ì= max qk   and ¦Ç= min qk   where 1¡Ük¡Ün and qk ¡Ù 1 . we then define the following weight coefficient function  
+ ¦Î qk = 1
+s qk   =    ¦Î+    ¦È1+ q¦Ìk   ¦Ç¦Ç  ¦È1  ¦È1      qk ¡Ù 1                 1  
+	 	 
+where 1 ¦È1 ¦È1  ¦Î 1. qk =1 and qk ¡Ù 1 regards  b  and  c  in 
+figure 1. notice that there is a special case that the above function can not cope with  i.e.  ¦Ì=¦Ç. in this case 
+ ¦Î qk = 1
+s qk   =     ¦Î+    ¦È1 ¦È1     qk ¡Ù 1                                    1  
+then  we define the query-sensitive similarity function as 
+n
+¡¡¡¡¡¡¡¡¡¡¡¡¡Æs qk   oik  o jk sim oi   o j | q = k=1                               1  
+
+when we move from query-unaware similarity sim oi  oj   to querysensitive similarity sim oi oj | q    the range of the adjustment is subject to the certain constraints by equation  1 . 
+proposition 1. the query-sensitive similarity defined by equation  1  ranges from ¦Î sim o1 o1  to  ¦Î+¦È1 sim o1 o1   more precisely from ¦Î  sim o1  o1 +¦È1   sim' o1  o1  to ¦Î  sim o1 o1 + ¦È1  sim' o1 o1  . sim o1 o1  is defined as the cosine similarity between the two corresponding vectors. sim '  o1 o1   is contributed from the query- dependent part. 
+i
+n
+¦Î  ¡Æoik  o jk ¦È1   ¡Æ oik  o jk
+	sim oi   o j | q ¡Ü	k=1	k¡Ênq	 
+=¦Î  sim oi   o j  +¦È1 sim' oi  o j  
+ 
+¡Ü  ¦Î+¦È1   sim oi  o j                                                      ¡õ 
+there are three parameters in proposition 1  i.e.  ¦Î  ¦È1 and ¦È1 . 
+they are all meaningful and can be appropriately determined according to the practical application requirements. ¦Î is the contribution degree of the original query-unaware similarity sim oi oj  in the query-sensitive similarity function. ¦È1 and ¦È1 can be viewed as the lower and upper bounds of the contribution from the query-dependent part. query-sensitive similarity is extremely important for the study of query-oriented summarization. the given query can be treated as the external context that influences or even determines how the summary is produced. 
+1. qs-mrc based query-oriented multi-document summarization  
+1 task definition of duc query-oriented multidocument summarization 
+the query-oriented multi-document summarization task defined in duc evaluations requires generating a concise and well-organized summary for a cluster of the relevant documents according to a given query that simulates a user's information need. the query usually consists of one or more interrogative and/or narrative sentences. here is a query example from the duc 1 document cluster  d1f . 
+ topic  
+ num  d1f  /num  
+ title  world bank criticism and response  /title  
+ narr  
+who has criticized the world bank and what criticisms have they made of world bank policies  activities or personnel. what has the bank done to respond to the criticisms  
+ /narr        
+ granularity  specific  /granularity  
+ /topic                                                                                     d1f  
+according to the task definition  system-generated summaries are strictly limited to 1 words in length.  
+existing query-oriented summarization approaches basically follow the same processes:  1  first calculate the significance of the sentences with reference to the given query with/without using some sorts of sentence relations;  1  then rank the sentences according to certain criteria and measures;  1  finally extract the top-ranked but non-redundant sentences from the original documents to create a summary. under this extractive framework  undoubtedly the two critical processes involved are sentence ranking and sentence selection.  
+1 sentence ranking based on qs-mrc 
+in section 1  we introduce the general mrc and the extended qsmrc frameworks that can prescribe the reinforcement-based procedure for ranking the text of different granularities simultaneously. the frameworks themselves are applicable to document retrieval  sentence retrieval or key word extraction etc. in this section  however  we manage to take the advantage of the qsmrc framework to deal with the sentence ranking problem in the query-oriented multi-document summarization task.  
+to this end  the design of the affinity matrices among the documents  the sentences and the terms in equation  1  is the first of all. in this work  we define the affinity between any two text units as their query-sensitive similarity  as proposed in section 1. the documents  the sentences as well as the queries can be naturally represented by the vectors of the terms. however  this representation does not suit the single terms. we cannot say that it is impossible for two different terms to be relevant to each other. this is because the single terms  or even those short text snippets without any overlapping terms  themselves do not carry sufficient information for measuring the similarity of them.  
+in the past  many researchers have proposed different methods that attempted to capture more context of a single term or a short text snippet  such as the query posed by the user to the search engine that contains only a few words . for example  sahami and heliman  submitted each snippet as a query to the web search engine and created a context vector of the snippet by collecting a number of returned documents that contain the words in the snippet. the context vector created in this way contains the words that tend to occur in context with the snippet. when calculating similarity  they used a context vector as a substitute for snippet. similarly  bollegala et al.  measured similarity between words or entities by making use of the information available on the web such as page counts and text snippets returned  while cilibrasi and vitanyi  on the other side extracted google similarity distance of words and phrases from www using google page counts.  
+the basic idea behind these approaches is try to expand single terms or short text snippets by exploring web resources for more relevant information. the approaches using web context vectors are sound  but they heavily rely on the effectiveness of search engines and most important they are time-consuming. in this work  we utilize a semantic lexical resource wordnet1 that has been widely used in the natural language processing community. wordnet groups terms into sets of synonyms called synsets and provides short  general definitions of them. a term may belong to many different synsets. we use all its descriptions in those synsets to composite the context vector  i.e.  wordnet context vector  of that term. see algorithm 1 below. 
+algorithm 1: getwordnetcontextvector t  
+input: the term t. 
+output: the wordnet context vector c for t. 1: c ¡û{ }; 
+1: get all the set of part-of-speech  pos  for t in wordnet  denoted as 
+pos; 
+1:  for each pos pos in pos 
+1:        get the set of synset for t with pos  denoted as syn; 
+1:        for each synset syn in syn 
+1:               get the gloss of syn  denoted as gloss1; 
+1:               c ¡ûc   gloss ; 
+1:        end; 
+1: end; 1: return c. 
+
+the top 1 terms that are supposed to be close to an example term  policies  in document cluster  d1f  are given below. the similarities calculated by means of wordnet context vector are reasonable. 
+
+cosine similarity between wordnet context vector of term  policies  and top ten close terms  
+policy-based 1 planning 1 advise 1 accountable 1 achievement 1 guidelines 1 persuade 1 responsibility 1 policy-making 1 strategy 1 finally  each element in affinity matrices is defined as the querysensitive similarity between the two text units sim oi  o jq  and it is calculated by equation  1 . q is a query vector  o can be a vector of a document  a sentence or a wordnet context vector of a term. the qs-mrc based ranking algorithm formulated in equation  1  is then implemented using the following iterative procedure. sentences are ranked according to their ranking scores eventually converged in rs . 
+algorithm 1: ranksentence d  s  t  q  
+input: the document set d  the sentence set s  the term set t  and the query q. 
+output: the ranking vectors of rd  rs and rt . 
+1: construct the affinity matrices using the query-sensitive similarity and wordnet context vector; 
+1: transform the nine block matrices to make m stochastic and irreducible as mentioned in section 1; 
+1: choose  randomly  the initial non-negative vectors rd 1    rs 1  and 
+	rt 1    such that rd 1 	=1  rs 1 	=1 and rt 1 	=1; 
+	1	1
+1: i ¡û1    ¡û1; 
+1: repeat 
+1:       r di+1  =¦Á1  dd  r di  +¦Â1  ds  r si  +¦Ã1  dt  rt i ; 
+1:       r si+1  =¦Á1  sd  r di  +¦Â1  ss  r si  +¦Ã1  st  rt i ; 
+1:       rt i+1  =¦Á1  td   r di  +¦Â1  ts   r si  +¦Ã1  tt   rt i  ; 
+	   i+1 	 i  
+1:       	    rd i+1    rd i 1    ; 
+	  ¡û max  rs	  rs 
+    rt i+1    rt i 1    
+ 
+  1  
+1:      i ¡û i + 1; 
+1: until   ¦Æ 1; 
+1: rd ¡û rd i    rs ¡ûrs i  and rt ¡ûrt i  ; 
+1: return. 
+
+1 sentence selection by removing redundancy  
+in multi-document summarization  the number of the documents to be summarized can be very large. this makes information redundancy problem appear to be more serious in multi-document summarization than in single-document summarization. redundancy removal becomes an inevitable process. since our focus in this study is the design of effective  sentence  ranking algorithm  we apply the following straightforward yet effective sentence selection principle. we incrementally add into the summary the highest ranked sentence of concern if it doesn't significantly repeat the information already included in the summary until the word limitation of the summary is reached. 
+algorithm 1: generatesummary s  length  
+input: sentence collection s  ranked in descending order of significance  and length  the given summary length limitation . 
+output: the generated summary ¦° . 
+1: ¦°¡û{}; 
+1: l ¡û length; 
+1: for i ¡û 1 to |s| do 
+1:      threshold¡û max sim si s   s¡Ê¦° ; 
+1:      if threshold  = 1 do 
+1:           ¦°¡û¦°  si ; 
+1:           l ¡ûl -len   si ;  
+1:            if  l = 1  break; 
+1:       end 
+1: end 1: return¦° . 
+
+1. experimental stedies 
+1 experiment set-up 
+experiments are conducted on the duc 1 document clusters. each cluster of documents is accompanied with a query description representing a user's information need. table 1 below shows the basic statistics of the dataset. stop-words in both documents and queries are removed1 and the remaining words are stemmed by porter stemmer1 and considered as terms.  
+table 1. basic statistics of the duc 1 dataset 
+average number of documents per cluster 1 average number of sentences per cluster 1 average number of unique terms per cluster 1 as for the evaluation metric  it is difficult to come up with a universally accepted method to measure the quality of machinegenerated summaries. in this work  rouge1   which has been officially adopted by the duc for automatic evaluations since 1  is used to evaluate the system-generated summaries. 
+in all the following experiments  both text units and queries are represented as the vectors of terms. notice that the term weights are normally measured in summarization models by the tf*idf scheme as in conventional vector space models. however  we argue that it would be more reasonable to use the sentence-level inverse sentence frequency  isf  instead of the document-level idf when dealing with a sentence-level text processing application. this has been verified in our early study. the tf*isf weighting scheme is applied to the wordnet context vectors as well. when a definition 
+word does not appear in a document cluster at all  its isf is approximated by the mean of the isf of the terms that appears in the document cluster. notice that the term itself is also included in its context vector. as for the weight matrix w in the mrc  we set it as 
+  1
+ 
+1
+ 
+  11 1
+11 
+ 
+1
+¡¡  1    based on the hierarchical structure among document-sentence-term. w is also normalized to be column stochastic. ¦È in equation  1  is assigned the 1% of the minimized value of the relevance of the documents  sentences or terms  to the query in a document cluster. the three parameters in query-sensitive similarity measure presented in equation  1  are assigned the values 1 for ¦Î  1 for ¦È1 and 1 for¦È1 . 
+1 evaluation of mutual reinforcement ranking 
+first of all  we would like to see how the proposed qs-mrc based ranking algorithm works for the task of query-oriented multidocument summarization. the first set of experiments is conducted for this purpose. for reference  we also implement another two widely used and well-performed ranking strategies. one is to simply rank the sentences according to their relevance to the query  denoted by qr . the other is the pagerank deduced iterative ranking algorithm  denoted by pr . the damping factor used here is set to 1 as the same used in google's pagerank. to avoid the link-by-chance problem that happens when the two text units share only one or two terms by chance  we do not consider the reinforcement between them if their similarity is below a very small threshold  it is 1 in this work . table 1 below shows the results of average recall scores of rouge-1  rouge-1 and rouge -su1 along with their 1% confidence intervals within square brackets. among them  rouge-1 is the primary duc evaluation criterion. 
+ 
+table 1. qs-mrc and two referenced sentence ranking strategies 
+ rouge-1 rouge-1 rouge-su1 qs-mrc 1 
+ 1  1  1 
+ 1  1  1 
+ 1  1  pr 1 
+ 1  1  1 
+ 1  1  1 
+ 1  1  qr 1 
+ 1  1  1 
+ 1  1  1 
+ 1  1   
+as shown in table 1  both qs-mrc and pr are able to produce much better results than qr which evaluates sentence individually. qs-mrc is above qr by 1% of rouge-1  1% of rouge1  and 1% of rouge-su1. even pr is above qr by 1% of 
+rouge-1  1% of rouge-1  and 1% of rouge-su1. qsmrc further improves pr by increasing 1% of rouge-1  1% of rouge-1  and 1% of rouge-su1. the improvements by involving the mrc are promising.  
+1 evaluation of external and internal reinforcement 
+as mentioned in previous section 1  reinforcement can be categorized as either external or internal  and external reinforcement to sentence can come from document and/or term. the second set of experiments here is to evaluate the functions of the reinforcement in different scopes. in table 1  the mr between document and sentence or between sentence and term are indicated by qs-mr ds or qs-mr st. the same mrc framework is applied to qs-mr ds and qs-mr st. the only difference is that simply the affinity and weight matrices involved are processed in calculation. since we focus on sentence ranking in summarization  the mr between term and document is ignored in the experiments. qs-mr s considers internal reinforcement only. 
+table 1. external and internal reinforcement effects 
+ rouge-1 rouge-1 rouge-su1 qs-mrc 1 
+ 1  1  1 
+ 1  1  1 
+ 1  1 qs-mr ds 1 
+ 1  1  1 
+ 1  1  1 
+ 1  1 qs-mr st 1 
+ 1  1  1 
+ 1  1  1 
+ 1  1 qs-mr s 1 
+ 1  1  1 
+ 1  1  1 
+ 1  1  
+from the results shown in tables 1 and 1  we come up with the following observations. first  it is obvious that all the algorithms  qs-mrc  qs-mr ds  qs-mr st and qs-mr s  that take the mutual reinforcement into consideration are superior to the simple query relevance ranking algorithm  qr . second  the external reinforcement is more useful than internal reinforcement. qs-mrc  qs-mr ds and qs-mr st evidently outperform the qs-mr s. notice that qs-mr s is very similar to pr but it calculates querysensitive similarity while pr calculates normal cosine similarity. the results suggest that external reinforcement is more important than internal reinforcement. third  for sentence ranking  the external reinforcement from document appears more significant than the same from term. qs-mr ds is even comparable to qs-mrc. as recognized by other researchers  how to formulate the effect of a smaller text unit such as a term on the text unit does matter. a more comprehensive study on the term representation is expected in our future work.  
+1 evaluation of query influence 
+afterwards  we evaluate our modeling of query influence. table 1 below gives the rouge results in terms of three different ways to incorporate the query information  i.e.  to calculate text relevance to the query only  mrc qr   query-sensitive reinforcement only  mrc qss  and all of them  qs-mrc . although absolutely the query must be taken into consideration in the query-oriented summarization task  we also present the results of mrc that ignores the query influence for reference.  
+
+ 
+evidently  the query is extremely important. qs-mrc is above mrc by 1% of rouge-1  1% of rouge-1  and 1% of rouge-su1. the difference is significant. meanwhile  mrc qr and mrc qss are also superior to mrc. the reason is intuitive. in query-oriented summarization  users are particularly interested in the information conveyed in the query that reflects their information needs. on the other hand  the improvements from text relevance alone are much better than query-sensitive reinforcement alone. this is reasonable. no matter how important the reinforcement is  it can not supersede the essential nature of text materials. even so  the improvement of mrc qss over mrc is still very competing especially in rouge-1  i.e.  1%. these improvements are meaningful  especially when they are compared with the improvements among duc 1 participating systems as we will show later. thus it is easy to conclude that the query-sensitive similarity is a direction worth further extensive study. more important  it can be applied in many applications other than queryoriented summarization. 
+1 comparison with duc systems 
+thirty-one systems have been submitted to duc for evaluation in 1. table 1 compares the qs-mrc with them. to provide a global picture  we present the following representative rouge results of  1  the worst-performed human summary  i.e.  h   which reflects the margin between the machine-generated summaries and the human summaries;  1  the top five and worst participating systems according to rouge-1;  1  the average rouge scores  i.e.  avg ; and  1  the nist baseline which simply selects the first sentences in the documents. we can then easily locate the positions of the proposed models among them. notice that the rouge-1 scores are not officially released by duc. 
+
+ 
+
+ 
+ 
+ 
+
+table 1. system comparison 
+ rouge-1 rouge-1 rouge-su1 h - 1 1 .... qs-mrc 1 1 1 ... s1 - 1 1 s1 - 1 1 s1 - 1 1 s1 - 1 1 s1 - 1 1 ... s1 - 1 1 avg  1 1 nist baseline - 1 1  
+it clearly shows in table 1 that qs-mrc outperforms the firstranked system  i.e.  s1 . it is above s1 by 1% of rouge-1 and 1% of rouge-su1. these are definitely exciting achievements since the best system  i.e.  s1  is only 1% above the second-best system  i.e.  s1  on rouge-1 and 1% on rouge-su1. 
+1. conclution 
+in this paper  we propose a mutual reinforcement chain framework  mrc and qs-mrc . based on it  we develop an interactively reinforced ranking algorithm for the application of query-oriented multi-document summarization. the main contributions of this work are three-fold. first  we extend the mutual reinforcement principle between two objects to the mutual reinforcement chain  mrc  among three  or more than  objects and provide a formal mathematical modeling for the mrc. second  we design a querysensitive similarity measure and incorporate it into the mrc  i.e.  the qs-mrc. last but not least  we exploit the effectiveness of qsmrc for sentence ranking in query-oriented multi-document summarization. the work suggests that it is worth further studying on more appropriate and mathematical sound query-sensitive similarity measures and more accurate term context representation.  
+1. acknowledgments 
+the work described in this paper was supported by the grants from the rgc of hk   project no. polyu1e and polyu1e   the grant from the nsf of china  project no. 1   and the internal grant from the hong kong polytechnic university  project no. a-pa1l . 

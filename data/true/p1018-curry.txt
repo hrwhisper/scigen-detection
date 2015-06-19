@@ -1,0 +1,119 @@
+an important problem in data mining is detecting changes in large data sets. although there are a variety of change detection algorithms that have been developed  in practice it can be a problem to scale these algorithms to large data sets due to the heterogeneity of the data. in this paper  we describe a case study involving payment card data in which we built and monitored a separate change detection model for each cell in a multi-dimensional data cube. we describe a system that has been in operation for the past two years that builds and monitors over 1 separate baseline models and the process that is used for generating and investigating alerts using these baselines.
+categories and subject descriptors: g.1  probability and statistics : statistical computing  statistical software; i.1  models : statistical models
+general terms: algorithms
+keywords: baselines  data quality  change detection  cubes of models
+1	introduction
+it is an open and fundamental research problem to detect interesting and actionable changes in large  complex data sets. in this paper  we describe our experiences and the lessons learned over the past three years developing and operating a change detection system designed to identify data quality and interoperability problems for visa international service association   visa  . the change
+
+      *robert grossman is also a faculty member at the university of illinois at chicago. please send correspondence about this paper to him.
+permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. to copy otherwise  to republish  to post on servers or to redistribute to lists  requires prior specific permission and/or a fee. kdd'1 august 1  1  san jose  california  usa.
+copyright 1 acm 1-1-1/1 ...$1
+detection system produces alerts that are further investigated by analysts.
+the problem is difficult because of the following challenges:
+1. visa's data is high volume  heterogeneous and time varying.there are 1 payment transactions per second that must be monitored from millions of merchants located around the world that are processed over a payment network that connect over 1 member banks. there are significantly different patterns across regions  across merchants  during holidays and weekends  and for different types of cardholders. see figure 1 for example.
+1. alerts arising from the change detection system generally require human examination. because of this it is necessary to balance generating a meaningful number of alerts versus generating a manageable number of alerts. if too many alerts are generated  it is not practical to manage them. if too few alerts are generated  they are generally not meaningful.
+in this paper  we describe our experiences using a methodology for addressing these challenges. the methodology we use is to build a very large number of very fine grained baselines  one for each cell in a multi-dimensional data cube. we call this approach change detection using cubes of models or cdcm.
+for example  we built separate baseline models for each different type of merchant  for each different member bank  for each different field value  etc. in total  over 1 different baseline statistical models are monitored each month and used to generate alerts that are then investigated by analysts.
+we believe that this paper makes the following research contributions:
+1. first  we have highlighted an important category of data mining problems that has not received adequate coverage within the data mining community and whose importance will continue to grow over time.
+1. second  we have described our experiences implementing andusing a new change detection algorithm called cdcm that is designed to scale to large  complex data sets by building a separate change detection model for each cell in a data cube.
+section 1 contains some background on payment card transactions. section 1 describes the change detection using cubes of models
+industrial and government track short paper
+
+figure 1. this is an example of one of the measures monitored in this project. this graph shows how the ratio of declined transactions varies for one of the merchant category codes  mcc  monitored. note the daily  weekly and monthly variation in the data. this variation  which is typical of the measures tracked  is one of the reasons detecting changes in this data is challenging. the vertical axis scale has been omitted due to confidentiality reasons.
+ cdcm  algorithm that we introduce. section 1 describes some typical alerts detected by the system we developed and deployed. section 1 describes some of the lessons learned during the first few years of deployment. section 1 describes some related work. section 1 is the summary and conclusion.
+1 background on payment card transactions 1 processing a transaction
+we begin by providing some background on payment card transactions that will make this paper more self-contained. in this section  we define cardholder  merchant  acquiring bank  and issuing bank and describe the major steps involved when using a payment card.
+1. a transaction begins when cardholder purchases an item at a merchant using a payment card. the payment card contains an account number which identifies the cardholder.
+1. the merchant has a relationship with a bank called the acquiring bank  which agrees to process the payment card transactions for the merchant. the acquiring bank provides the merchant with a terminal or other system to accept the transaction and to process it.
+1. the acquiring bank has a relation with a financial paymentsystem  such as those operated by visa and mastercard. the transaction is processed by the acquiring bank and passed to the payment system. for example  visa operates a payment system called visanet.
+1. the payment system processes the transaction and passes thetransaction to the bank  the issuing bank  that issued the payment card to the cardholder. in other words  one of the essential roles of the payment system is to act as a hub or intermediary between the acquirer and the issuer.
+1. the issuing bank processes the transaction and determines ifthere are sufficient funds for the purchase  if the card is valid  etc. if so  the transaction is authorized; the transaction can also be declined  or a message returned asking for additional information. the issuing bank also has a relationship with the cardholder or account holder. for example  with a credit card  the cardholder is periodically billed and with a debit card the appropriate account is debited. for the year ending september 1  1  there were over 1 billion visa cards in circulation.
+1. for each of these cases  the path is then reversed and the transaction is passed from the issuing bank to the payment system  from the payment system to the acquiring bank  and from the acquiring bank to the merchant.
+our problem was to use baselines and change detection algorithms to help detect data and interoperability problems at visa . payment data arrives at visa from millions of merchant locations worldwide. for the year ending september 1  1  total annual global card sales volume was over usd $1 trillion.1 payment data is processed through risk management rules set by over 1 individual member banks  issuing and acquiring banks . these rules determine if a payment authorization request from a merchant either is approved or rejected by the paying bank.
+for this problem  we built separate baselines for a variety of data fields  for each member bank  and for thousands of merchants. overall  over 1 separate baselines are currently used each month to monitor payment card transactions at visa.
+1	baselines for field values
+note: the examples in this section are hypothetical and only used for the purposes of illustrating how to define baselines.
+a payment card transaction typically includes a number of fields  such as information about the point of services  pos  environment  the merchant's type of business and location  the cardholder's identity  the transaction currency  the transaction amount  and bank routing information.
+we begin with an informal description of baselines based upon a simplified example. in this simplified example  assume that one of the fields of interest describes characteristics of the point of service  pos . specifically  we assume that this field can take the following  hypothetical  values: 1  1  1  1  and 1.
+for an observation period of a week  assume that the frequency of these values for a certain acquirer is given by the first table in figure 1. later  during the monitoring  assume that distribution is instead given by the right hand table in this figure. the observed distribution in figure 1 is similar  except the value 1 is six times more likely in the observed distribution compared to the baseline distribution  although in both cases the values 1  1 and 1 still as a whole contribute less than 1% of the distribution.
+the challenge for detecting significant changes is that the distributions depend upon many factors  including the region  the season  the specific merchant  and the specific issuer and acquirer.
+1 change detection using data cubes of models  cdcm 
+in this section  we describe a methodology called change detection using cubes of models or cdcm that is designed to detect changes in large  complex data sets.
+
+value%value%1.11.111.111.111.111.1total1total1figure 1. the distributionon the left is thebaseline distribution. the distribution on the right is the observed distribution. in this example  the value 1 is over 1x more likely in the observed distribution  although the two dominant values 1 and 1 still account for over 1% of the distribution.
+1	change detection models
+change detection models are a standard approach for detecting deviations from baselines .
+we first describe the cumulative sum or cusum change detection algorithm . we assume that we know the mean and variance of a distribution representing normal behavior  as well as the mean and variance of another distribution representing behavior that is not normal.
+more explicitly  assume we have two gaussian distributions with mean ¦Ìi and variance 
+¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡ 1 fi	¡Ì
+	1¦Ð¦Ìi	1¦Òi
+the log odds ratio is then given by
+         f  x  g.
+f1 x 
+and can now define a cusum algorithm as follows :
+z1 = 1.
+zn = max{1 zn 1 +g xn }.
+an alert is issued where the zn exceeds a threshold.
+quite often the statistical distribution of the anomalous distribution is not known. in this case  if the change is reflected in the mean of the observations and the standard deviation is the same pre- and post-change  the generalized likelihood ratio or glr algorithm can be used :
+	gk	1¦Ò1	k  j+1	i=j	 	k   1
+where ¦Ì1 is the mean of the normal distribution and ¦Ò is the standard deviation of the both the normal and abnormal distributions  which are assumed to be gaussian. here k is fixed and determines the size of the window used to compute the score. again  the detection procedure is to announce a change at the first up-crossing of a threshold by the glr score.
+1	cubes of models
+the basic idea of the cdcm algorithm is that for each cell in a multi-dimensional data cube  we estimate a separate change detection model.
+for the purposes here  we can define a data cube as usual  namely a multi-dimensional representation of data in which the cells contain measures  or facts  and the edges represent data dimensions which are used for reporting the data.
+we define a cube of models as a data cube in which each cell is associated with a baseline model.
+1	learning and scoring change detection models
+in our model  we assume that there are a stream of events  which in our case are transactions  and each event can be assigned to one or more cells in cube of models. for example  for each project  each transaction is assigned to the appropriate cell s   as determined by one of six regions  by one of over 1 merchant category codes  mccs   by one of 1 terminal types  etc. we also assume that various derived data attributes are computed from the event data to form feature vectors  which are sometimes called profiles in this context. the profiles contain state information and derived data and are used as inputs to the models as usual.
+estimating baseline models. to learn the baseline models  we take a collection of event data and process it as follows.
+1. first  we assign each event to one or more cells in the datacube as appropriate.
+1. second  we transform and aggregate the events and computethe required profiles for each cell using the event data.
+1. third  for each cell  we use the resulting profiles to estimatethe parameters for the baseline model  and output the baseline model.
+scoring baseline models. to score a stream of event data  we proceed as follows.
+1. first  we retrieve the appropriate xml file describing the segmentation.
+1. next  we assign each event to one or more cells in the datacube as appropriate.
+1. we then access the profile associated with each cell  and update the profiles using the new event.
+1. we then use the profile as the input to the appropriate baselinemodel and compute a score.
+1. next  we process the resulting score using the appropriaterules to determine whether an alert should be produced.
+1. next  we apply xslt transformations to the score to producea report describing the alert.
+1. finally  if an alert is produced  we pass the alert to the requiredapplication or analyst.
+industrial and government track short paper
+
+figure 1. the basic idea with change detection using cubes of models or cdcm is that there is a separate change detection model for each cell in a multi-dimensional data cube. in the work described here we estimated and maintained over 1 different baseline statistical models and monitored them monthly.
+1	some typical alerts
+in this section  we describe some typical alerts that have been generated by the cdcm system we developed. currently  we compute alerts each month and re-estimate baselines several times a year. the system has been in operation for approximately two years.
+it is important to remember when reading the case studies in this section that the issues identified by these alerts represent both a very small fraction of the transactions and a very small fraction of the total purchase dollars.
+1	dimensions of cube
+for the various alerts that we describe below  we used the following dimensions to define a data cube:
+  the geographical region  specifically the us  canada  europe  latin america  asia pacific  middle east/africa  and other.
+  the field value or combination of values being monitored.
+  the time period  for example monthly  weekly  daily  hourly  etc.
+  the type of baseline report  for example a report focused on declines or a report describing the mixture of business for a mechant.
+today  january  1   for each of 1 field values times 1 regions times 1 time period times 1 report types  we estimate a separate baseline  which gives 1 x 1 x 1 x 1 = 1. in addition  for 1 field values times 1 regions times 1 time period times 1 report types  we estimate a separate baseline  which gives an additional 1 x 1 x 1 x 1 = 1 separate baseline models. so in total  we are currently estimating 1  =1 .
+actually  the description above is a simplified version of what actually takes place. for example  the 1 baselines mentioned arise from 1 x 1 = 1 different field values  but the 1 different field values are not spread uniformly across the 1 regions as indicated  although the total is correct.
+we are in the process of doubling the number of field values and increasing the number of time periods  so shortly we will be estimating and monitoring over 1 separate baselines.
+1	incorrect merchant category code
+in this example  an airline was coding some of its transactions using a merchant category code  mcc  b instead of the preferred mcc a  which lowered the approval rate for the transactions. this resulted in a baseline alert that in turn resulted in a manual investigation by an analyst. following this  a conference call was arranged with the individual responsible for the relationship with the bank who was the acquiring bank for the airline. as a result of this call  a fix was installed by the airline. this fix resulted in an annual recoverable costs of over $1.
+1	testing of counterfeit cards
+in this example  the decline rate for a large bank was essentially the same month to month but the baseline model identified a particular category of transactions  specified by a combination of five fields  for which the decline rate sharply peaked in september 1 compared to an earlier baseline period. one way of thinking about this  is that for this bank  most of the 1+ or so baselines were normal for september  but one was not. when investigated  this particular baseline was elevated due to suspected testing of stolen/counterfeit cards to determine whether they were still valid. after several discussions and further investigation  changes were made so that this type of testing was not possible.
+1	incorrect use of merchant city name
+in this example  a european merchant's transactions were coded incorrectly so that the merchant city name field contained incorrect information. this resulted in a lower acceptance rate for the transactions from this merchant. this lower acceptance rate was picked up by a baseline alert that for each acquirer monitored decline levels for each mcc. after an investigation  the merchant corrected the problem.
+1	discussion and lessons learned
+lesson 1. the most important lesson we learned was that thus far it has been more fruitful to examine many individual baseline and change detection models  one for each different segment of the event stream  even if the these models are very simple  than to build a single  relatively complex model and apply it to the entire event stream.
+lesson 1. the time and effort required to get the alert format right is substantial. although it was certainly expected  the business return on the project was dependent to a large degree on the ability to deliver to the analysts information in a format that they could readily use. after quite a bit of experimentation  a report format was developed that reported:
+  what is the issue  this part of the report identifies the relevant business unit and the relevant business issue.   who has the issue  this part of the report identifies the relevant subsystem of visanet  the relevant attribute  and the relevant attribute value.
+  what is the business opportunity  this part of the report identifies the daily business value associated with the issue and the statistical significance of the alert  low  medium high .   what is the business impact  this part of the report describes the business measure as currently measured  the historical measure of the business measure during the baseline period  and the number of transaction affected.
+  the final part of the report contains additional information  such as the alert id  alert creation date  whether the alert is new  and whether the alert is associated with an issue that has been previously identified and now is being monitored for compliance.
+one way to summarize the report is that the items in alerts gradually changed from those items related to the statistical models and how the alerts were generated to items directly related to how the alerts were investigated and how the business impact was estimated. the surprise for us was not that this transition had to be made  but rather the time and effort required to get it right.
+lesson 1. it turned out that some of the most important alerts we found were alerts that had low statistical significance. for each report  we include an estimate of the statistical significance of the alert  low  medium  high and very high  as well as an estimate of the business significance of the alert  in dollars . it turned out that after investigation  the alerts that generated by most dollars saved  were often the alerts with low statistical significance. for this reason  it was usually not a good idea to investigate alerts in the order of most statistically significant to least statistically significant. rather  the analysts used a more complex prioritization that thus far we have not tried to formalize.
+lesson 1. as a result of analysis of an alert  it was sometimes possible to create specialized baselines and reports that would look for similar problems in the future. we quickly learned that even a few specialized reports like this could easily occupy most of our available time. the lesson we learned was that it was important to devote some of our time to looking for new opportunities  think of this as a survey activity   since some of these turned out to be even more important than what we were currently doing.
+1	related work
+there is a large amount of research on change detection algorithms per se. the monograph by basseville and nikiforov  is a good summary of this research field. in particular  the change detection algorithms that we use here  including cusums  generalized likelihood ratios  and related algorithms are covered in this reference.
+the work described in this paper differs from classical change detection and contingency tables in that it uses a separate change detection model for each cell in a cube of models.
+more recently  ben-david  gehrke and kifer  introduced a nonparametric change detection algorithm that is designed for streams. the methods used here are parametric. in contrast to their approach which uses a single change detection model  we build a large number of models in order to handle complex  heterogeneous data  one for each cell in a multi-dimensional data cube.
+the paper by fawcett and provost  has a similar goal - detecting unusual activity in large data sets - but uses a much different approach. their approach is to introduce operating characteristic style measures in order to identify unusual behavior.
+guralnik and srivastava  study event detection in time series data by using a new change detection algorithm they introduce  which involves iteratively deciding whether to split a time series interval to look for further changes.
+in contrast to all these methods  our approach is to use relatively simple classical change detection algorithms  such as cusum and glr  but to build thousands of them  one for each cell in a multidimensional data cube. as far as we are aware of  our paper is also one of the few papers in the data mining literature that presents a case study of change detection involving a system as large and heterogeneous as visanet.
+1	summary and conclusion
+in this paper  we have shared our experiences and some of the lessons learned over the past two years developing and operating a baseline and change detection system for visa. because of the complex and highly heterogeneous nature of visa's transactional data  we did not build a single change detection model  but rather over 1 individual change detection models. indeed we built a separate change detection model for each cell in a multi-dimensional data cube. this is an example of what we have been calling change detection using cubes of models or cdcm.
+overall  the approach seems to work quite well. indeed  substantial business value is being generated using this methodology  and thus far we have not been able to achieve the same performance using a single baseline or change detection model.
+to summarize  we have demonstrated through this case study that change detection using data cubes of models  cdcm  is an effective framework for computing changes on large  complex data sets.

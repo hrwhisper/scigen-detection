@@ -1,0 +1,308 @@
+patterns of contrast are a very important way of comparing multidimensional datasets. such patterns are able to capture regions of high difference between two classes of data  and are useful for human experts and the construction of classifiers. however  mining such patterns is particularly challenging when the number of dimensions is large. this paper describes a new technique for mining several varieties of contrast pattern  based on the use of zerosuppressed binary decision diagrams  zbdds   a powerful data structure for manipulating sparse data. we study the mining of both simple contrast patterns  such as emerging patterns  and more novel and complex contrasts  which we call disjunctive emerging patterns. a performance study demonstrates our zbdd technique is highly scalable  substantially improves on state of the art mining for emerging patterns and can be effective for discovering complex contrasts from datasets with thousands of attributes.
+categories and subject descriptors: h.1  database management : database applications-data mining
+general terms: algorithms  design  performance
+keywords: contrast patterns  disjunctive emerging patterns  zerosuppressed binary decision diagrams
+1. introduction
+¡¡the discovery of distinguishing characteristics and contrasts between classes of data is an important objective in data mining. such patterns are very useful for human experts and can also be used to build powerful classifiers  1  1 . in this paper  we propose a new technique for mining contrast patterns in high dimensional space. it is able to mine both simple contrasts  such as emerging patterns  and also more complex types of contrasts  whose descriptions allow disjunction  as well as conjunction.
+¡¡a novel feature of our contrast mining technique is that it is based on the use of zero-suppressed binary decision diagrams
+permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. to copy otherwise  to republish  to post on servers or to redistribute to lists  requires prior specific permission and/or a fee.
+kdd'1  august 1  1  philadelphia  pennsylvania  usa.
+copyright 1 acm 1-1/1 ...$1.
+ zbdds   as the core data structure. binary decision diagrams  are a graph based data structure which allow efficient representation and manipulation of boolean formulae  and they have proved extremely effective in diverse fields of computer science  such as sat solvers  1  1   vlsi and reliability . zbdds are an important variation of binary decision diagrams and are particularly appropriate for compactly representing sparse data.
+challenges: a key focus of our study is the mining of contrasts for high dimensional data  such as gene expression datasets  where the number of dimensions can be in the thousands and the search space is huge. previous techniques for mining contrasts in such datasets  e.g.  1  1  1   have been unable to handle more than about 1 dimensions. another challenge arises when contrast patterns are allowed to be expressed using disjunction  as well as conjunction. this means the pattern search space is considerably larger and therefore  mining becomes even more challenging.
+contributions: we make several important contributions in the paper.
+  we show zbdds can be employed as a feasible tool for mining contrast patterns  by supplementing them with bit-vectors for support checking and by pushing the support constraints inside the zbdd manipulation routines. this provides an interesting alternative to popular structures such as the frequent pattern tree   whose variants have previously been proposed as an effective contrast mining method  1  1 . furthermore  our approach is quite general  in the sense that it is adaptable to a range of other mining objectives.   we present an algorithm that uses zbdds to mine a wellknown  simple type of contrast pattern  known as the emerging pattern . experimental evaluation shows this technique achieves very large speedups over a state of the art emerging pattern miner  based on pattern trees .   we investigate more complex contrast patterns which generalise emerging patterns  by allowing disjunction as well as conjunction. we call these patterns disjunctive emerging patterns. we establish the formal characteristics of such patterns  show that our zbdd mining technique can be adapted to this more complex scenario  and provide experimental evidence that it can be practically feasible for mining very high dimensional datasets. we are not aware of any other work which is suitable for mining this kind of contrast pattern.
+table 1: example dataset
+positive classnegative classa1a1a1a1a1a1{a b c}{d e f}{g h i}{a b c}{d e f}{g h i}aegafgadibdhbfhbfhcehcegorganisation: an outline of the remainder of this paper is as follows. some basic definitions and terminology are given in section 1. the zbdd method for mining emerging patterns is described in section 1. we show in section 1 how the mining technique generalises to more complex types of emerging patterns  which we call disjunctive emerging patterns. this is followed by a performance analysis in section 1  a discussion in section 1 and a description of related work in section 1.
+1. preliminaries
+¡¡assume we have a dataset d defined upon a set of k attributes  also referred as dimensions  {a1 a1 ... ak}. assume a partition of d into two sets  dp  the positive class  and dn  the negative class . these are the classes that will be contrasted. for every attribute ai  the domain of its values  or items  is denoted by dom ai . we require domains to be discrete  but they may or may not be ordered. let |ai| denote the number of elements in dom ai . let i be the aggregate of the domains across all the attributes  i.e.. an itemset is a subset of i. let p and q be two itemsets. we say p contains q if q is a subset of p  i.e. q   p. the complement of an itemset p  p  is the itemset  i   p . a dataset is a collection of transactions  where each transaction t
+is an itemset and we require t to contain exactly one value from the domain of each attribute. the support of an itemset p in dataset d  support p d   is the fraction of the transactions in d which contain p  1 ¡Ü support p d  ¡Ü 1 . we next recall the definition of emerging patterns  1  a special type of contrast patterns.
+¡¡definition 1. given a positive dataset dp  a negative dataset dn  and support thresholds ¦Á and ¦Â. an emerging pattern  ep  is an itemset p satisfying two support constraints  i  support p dn  ¡Ü ¦Â and ii  support p dp  ¡Ý ¦Á. furthermore  p is a minimal ep if p does not contain any other itemset that satisfies constraints i-ii.
+¡¡e.g. consider table 1 and suppose ¦Á = 1 and ¦Â = 1. the minimal emerging patterns include {a e} {i} {c h}.
+¡¡emerging patterns have proved to be very useful for building accurate classifiers  as well as providing intuitive descriptions of sharp differences between classes of data . they have also been used for bioinformatics applications  such as understanding leukaemia . indeed  their popularity is evidenced by the fact that over 1 papers have so far been published in the area. techniques for finding emerging patterns can be found in  1  1  1  1 .
+1. miningemergingpatternsusing zero-suppressed bdds
+¡¡in this section  we will describe our approach for mining emerging patterns using zero-suppressed binary decision diagrams  zbdds . firstly  we need to present some background material.
+
+1
+ in   emerging patterns were defined using an ¦Á threshold and a minimum growth rate ¦Ñ. we use ¦Á and ¦Â thresholds instead  believing it to be more intuitive.
+
+	 a 	 b 
+figure 1:  a merging rule;  b zero-suppression rule
+1 binary decision diagrams
+¡¡binary decision diagrams  bdds  are canonical directed acyclic graphs which are efficient representations of boolean formulae  and they allow logical operations  and  or  xor  etc.  to be performed in polynomial time with respect to the number of nodes. a zero-suppressed bdd  zbdd  is a special type of bdd  introduced by minato in  for set-manipulation in combinatorial problems. in particular  this structure has been shown to be very efficient for manipulating sets of sparse combinations. zbdds are popular in boolean satisfiability solvers  1  1  and in the field of reliability engineering for fault-tree analysis . however  they have received very little attention in data mining  to be discussed more in section 1 . a survey on zbdd applications can be found in .
+¡¡more formally  a bdd is a canonical directed acyclic graph consisting of one source node  multiple internal nodes  and two sink nodes sink-1 and sink-1. nodes in a bdd are labelled  and they are ordered. an internal node n with a label x  denoted n = node x n1 n1   encodes the boolean formula n =  x ¡Ä n1  ¡Å  x ¡Ä n1 . n1  resp. n1  is called the 1-child  resp. 1-child  of n. the edge connecting a node to its 1-child  resp. 1-child  is called the true-edge  false-edge . in the illustrations shown shortly  the solid lines correspond to true-edges and dotted lines correspond to false-edges. each path from the root node to sink-1  resp. sink-1  gives a true  resp. false  assignment for the boolean formula.
+¡¡two important properties of a bdd which account for the efficiency of its operations include: 1. identical subtrees are shared  1. intermediate results from past computations are stored and can be recalled as needed. moreover  most bdd operations have a polynomial worst-case complexity with respect to the number of nodes. a zbdd is a special type of bdd for set combinatorial problems which employs two reduction rules  see fig.1 : 1. merging rule: equivalent subtrees are shared  to obtain canonicity ; 1. zerosuppression rule: nodes whose true-edge points to these rules allow a high compression of boolean formulae  i.e. for an n-variable formula  the space of possible truth values is 1n  the corresponding  z bdd can have exponentially fewer nodes.
+¡¡we follow the zbdd encodings for representing a collection of itemsets using a strategy similar to work in . an itemset p can be represented by a n-bit binary vector x =  x1 x1 ... xn   where xi = 1 if item i is contained in p. a set s of itemsets can be represented by a characteristic function xs : {1}n ¡ú {1}  where xs p  = 1 if p ¡Ê s and 1 otherwise. in zbdd semantics  a node n =  x n1 n1  represents a set s of itemsets such that s = s1 ¡È  s1 ¡Á {x}   where s1 and s1 are the sets of itemsets encoded by n1 and n1  respectively. an itemset p in s is interpreted as a conjunction of the items contained in p and
+yields a true assignment for the boolean formula encoded by n. a zbdd consisting of only the sink-1 node encodes the empty set      and a zbdd consisting of only the sink-1 node encodes
+
+ a  variable ordering:  b  variable ordering: a   b   c   d   e c   d   a   e   b
+figure	1:	zbdd	representations	of	a	set	of	itemsets
+{{a b c e} {a b d e} {b c d}}
+table 1: primitive operations on zbdds p and q
+1
+getnode x n1 n1 the empty set   
+the set of an empty itemset  { }
+creates node x n1 n1  and applies the
+zbdd reduction ruleschange p x invert all occurrences of item x in pp tz qset-intersection of p and qp sz qset-union of p and qp szmin qminimal  w.r.t inclusion  itemsets of p sz qp szmax qmaximal  w.r.t inclusion  itemsets of p sz qp   q
+notsupset p q subtraction of any itemset in q from p subtraction from p of any itemset which is a superset of an itemset in qcrossprod p q pair-wise intersection of the itemsets in p and
+qdotprod p q pair-wise union of the itemsets in p and q1. {{a b} {b}}szmin{{b d}}
+1. {{a b} {b}}sz	{{b d}}
+1. crossprod 
+1. dotprod {{a b} {a c}} {{b d}} = {{b}}
+= {{a b} {b d}}
+== {{{{ba b d} {d}}} {a b c d}}1.   z   = 1. {{a b} {b}}sz{{b d}} = {{a b} {b} {b d}}
+the set of empty itemsets  { } . basic set operations for zbdds which will be used in our algorithm include set-union  asz b  
+been defined in  1  1  and are polynomial in the number of nodesset-difference  a   b   and set-intersection  atz b . they have in the zbdd. they are listed in table 1.
+¡¡example 1. the possible zbdd encodings for set {{a b c e}  {a b d e} {b c d}} are shown in fig.1. fig.1 a  follows a lexicographic ordering  whilst fig.1 b : c   d   a   e   b. in fig.1 a  
+itemsets {a b d e}e }{. in fig.1 b   itemsetsa b c ea e b}}  and the suffixshare a common prefix{d a e b{b} is shared among} {{c a e ba b} and} a common suffix { share a common suffix { all the itemsets. this set can also be expressed as a dnf formula:
+ a ¡Ä b ¡Ä c ¡Ä e  ¡Å  a ¡Ä b ¡Ä d ¡Ä e  ¡Å  b ¡Ä c ¡Ä d 
+variable ordering: depending on the function being represented  the number of nodes in a zbdd may be highly sensitive to its variable ordering. figure 1 illustrates the different compression that can be achieved by using different variable orderings. the zbdd in figure 1 b  contains only 1 non-sink nodes as opposed to the zbdd using lexicographic ordering which contains 1 nodes. work
+
+   figure 1: example of pattern lattice for i = {a b c d} a bottom-up enumeration begins with the empty set {} and generates the
+shorter itemsetslonger itemsets {{a b ca} {a b} {}a b  etc. as subsequent candidates. a top-down}  etc. as subsequent candidates.a b c d} and generates the enumeration begins with the complete set {
+in  shows that a good variable ordering for compact bdds  and zbdds  has two properties: i. groups of inputs that are closely related should be kept near to each other; ii. inputs that greatly affect the function should be located at higher positions in the structure.
+¡¡a number of works have investigated various variable orderings. one approach is based on heuristics and find the appropriate ordering before the bdd is constructed  1  1  1 . another approach decides an ordering initially  and allows the variables to be permuted during the construction of the bdd . the latter approach is usually more effective than the former but it may be longer to compute. in this paper  we employ heuristics which are based on the frequency of the variables in the input dataset.
+1 zbdd mining algorithm
+¡¡this section describes our algorithm for mining eps. zbdds allow compression of sparse itemsets and they also allow efficient set operations. here we use zbdds for generating pattern candidates  and also for storing the output patterns. this is similar to existing methods which use structures such as fp-trees and pattern trees.
+¡¡the search space of eps is dictated by the contents of the negative dataset and patterns are grown bottom-up in a depth-first fashion. figure 1 shows an example of pattern lattice for a given set of items i = {a b c d}. a bottom-up depth-first enumeration begins with the empty set {}  and the subsequent candidates are the longer itemsets  e.g. {a} {a b}  etc. we will refer to the partially grown patterns as prefixes. the output zbdd stores the minimal eps and it is constructed incrementally. to further optimise the algorithm  a number of pruning strategies are employed.
+early pruning of invalid candidates: in principle  our algorithm could examine a search space covering all possible item combinations. however  this is unnecessary and instead we traverse a search space which avoids generating candidate patterns which could never satisfy the ¦Â constraint. for any given prefix p  candidate   we can partition dn into the set of transactions not containing p  labelled by  and transactions which contain p  labelled by dnp . if p needs growing  then it only needs to be extended by an item which is not from at least one of the transactions in dnp  i.e. from the complement of one of the transactions in dnp  otherwise a non minimal pattern will result . it is therefore profitable for the input zbdd to consist of the complements of the transactions in
+traversing ensures that the candidate generation space is much smaller  which is particularly effective if |dn| is relatively small  as is often the case for biological data.
+algorithm 1 mineep  p  prefix  dp  dn  ¦Á  ¦Â  
+
+call mineep  dn  {}  dp  dn  ¦Á  ¦Â   to begin mining initially.
+
+input: p : a zbdd of the search space which is a projection of dn prefix : prefix of the patterns dp : bitmaps of the positive dataset dn : bitmaps of the negative dataset ¦Á : a min support  wrt. dp  threshold ¦Â : a max support  wrt. dn  threshold
+output: zout : a zbdd representing the set of minimal itemsets p satisfying support p dp  ¡Ý ¦Á and support p dn  ¡Ü ¦Â.
+1: if p is a sink node  then
+1:	// the end of the search space for growing prefix is reached;
+1:	// return prefix as a minimal ep if it passes ¦Â constraint
+1:	if support prefix dn  ¡Ü ¦Â then
+1:	return 1
+1:	else
+1:	return 1 // remove prefix from the output zbdd
+1:	end if
+1: else
+1:	// let p = node x p1 p1 
+1:	// grow prefix with the next item in the search space
+1: prefixnew = prefix ¡È{x} 1: if support prefixnew dp    ¦Á  then
+1:	// ¦Á-constraint pruning: prune prefixnew
+1:	zoutx = 1
+1:	else if support prefixnew dn  ¡Ü ¦Â then
+1:	// ¦Â-constraint pruning: stop growing prefixnew
+1:	zoutx = 1
+1:	else
+1:	// explore supersets of prefixnew from instances which do not
+1:	// contain x
+1:	zoutx = mineep p1 prefixnew dp dn ¦Á ¦Â 
+1:	end if
+1:
+1:	// mine patterns not containing x from the remaining search space
+1:	zoutx = mineep p1sz p1 prefix dp dn ¦Á ¦Â 
+1:
+1:	// non-minimal pattern elimination
+1:	zoutx = notsupset zoutx zoutx 
+1:	zout = getnode x zoutx zoutx 
+1: end if
+
+¦Á constraint pruning: this strategy is based on the well-known anti-monotonicity  or a-priori principle. any prefix which doesn't satisfy the ¦Á constraint should have its supersets pruned. also  as a pre-processing step  any item whose support dp    ¦Á can be deleted from dp and dn.
+¦Â constraint pruning: this strategy is based on the monotonicity of the ¦Â constraint. if a prefix satisfies the ¦Â constraint  it is not extended any further  since a non minimal pattern would result.
+non minimal pattern pruning: due to the recursive decomposition aspect of the algorithm  the generated patterns are locally minimal for each recursion  but they may be non-minimal globally. hence  it is profitable to immediately prune any non-minimal patterns after the completion of each decomposition.
+¡¡our algorithm for finding minimal eps  namely mineep  is shown in algorithm 1  which we will explain line by line. the first input parameter  p  is a zbdd which dictates the remaining candidates. prefix is a partially grown pattern  which satisfies the ¦Á constraint but fails the ¦Â constraint. dp and dn correspond to the bitmaps from the respective datasets  and are used for computing support. note: the bitmap of itemset q in dataset d is denoted
+bitmap q d
+.
+¡¡mining is invoked by calling  and then called upon recursive projections of dn. lines 1 state the terminal condition of the recursion. when it reaches a sink node  it has reached the end of the search space for growing the given prefix. if prefix passes the ¦Â constraint  it is a satisfying minimal ep and the zbdd sink-1 node is returned. otherwise  prefix cannot be part of the output zbdd  so the sink-1 node is returned. the core routines in the algorithm are: 1  compute zoutx  which grows prefix with the next item x found in the candidates; 1  compute zoutx  which contains the patterns not containing x. they will be the two subtrees of the zbdd output  line 1 .
+¡¡before attempting to grow prefix with the next item  x  the algorithm first tests whether the ¦Á and ¦Â prunings can be performed. line 1 prunes prefixnew  = prefix ¡È {x}  and its supersets by the ¦Á-constraint pruning. the support of prefixnew is calculated incrementally using bitmap prefix  which has been computed in the previous recursion  i.e. bitmap prefix ¡È {x}  = bitmap prefix ¡Ébitmap {x} . line 1 uses ¦Â-constraint pruning to stop prefix from being grown. finally  if none of these two cases is applicable  x is appended to the prefix and instances of p which do not contain x are explored  storing the output in zoutx.
+¡¡line 1 computes zoutx from a projection of the database by excluding x. some itemsets in zoutx may be contained by some itemsets in zoutx. the non-minimal patterns are pruned using a primitive zbdd operation notsupset  line 1 .
+optimisations: for the special case where ¦Â = 1  which corresponds to the jumping emerging patterns  the eps must have at least one item in common with each instance in . thus and its projections can sufficiently be represented using their minimal itemsets. this allows the computation of zoutx  line 1  to be optimised by processing  p1 szmin p1  instead. as a result  zoutx only contains patterns which may be non-minimal by the item x. non-minimal pattern elimination  line 1  can thus be computed using  zoutx   zoutx  which is a simpler  thus faster  operation.
+optimal variable ordering: we investigated a number of heuristics for finding the optimal variable ordering for efficient computation of mineep  based on the item frequencies in dp and dn. three alternative strategies were worthy of consideration.
+¡¡the first heuristic places the least frequent item in dp at the top of the zbdd  with subsequent items being ordered by increasing support in dp. this aims to achieve early ¦Á-constraint pruning which reduces the depth of the recursions  and in turn reduces the number of database projections that are constructed.
+¡¡the second heuristic places the least frequent item in dn  i.e. most frequent in  at the top  with other items being ordered by increasing frequency in dn. this can be justified on two levels. firstly  consider line 1 in the algorithm. having a smaller p1 is likely to be advantageous  particularly when the zbdd at that point is large. using the most frequent item in at the top level means that p1 is likely to be small for the early recursive calls. secondly  this heuristic gives higher preference to the ¦Â constraint  in a similar manner to that for the ¦Á constraint in the first heuristic  the aim being to achieve early ¦Â-constraint pruning.
+¡¡the third heuristic clusters items from the same attribute domain because any emerging pattern contains at most one item from any one attribute  allowing early pruning. moreover  this ordering can be combined with the other heuristics by ordering the items within each attribute by increasing support in dp  based on the first heuristic   or by increasing support in in dn  based on the second heuristic . the attributes are then ordered by increasing minimum support of its items.
+
+figure 1: geometric representation of disjunctive eps
+1. disjunctive emerging patterns
+¡¡we now investigate a more general type of contrast patterns  which we will hereafter refer to as a disjunctive emerging patterns.
+¡¡recall that emerging patterns correspond to conjunctions of items that have high support in dp and low support in dn.  e.g. a ¡Ä e was an ep for table 1  given ¦Á = 1 and ¦Â = 1. disjunctive emerging patterns  disjunctive eps  generalise eps by allowing disjunctions as well as conjunctions for pattern descriptions. they essentially correspond to a restricted class of cnf formulae  which use items as variables and are a conjunction of disjunctions  where each disjunction contains only items coming from the same attribute domain. no negation is allowed and there must exist at least one item from each attribute domain in the formula.
+¡¡e.g. given a dataset having three attributes a1 a1 a1  with domains {a1 a1 a1}  {b1 b1 b1}  {c1 c1 c1}. a valid disjunctive ep may be represented by a formula f  where f =  a1 ¡Å a1  ¡Ä  b1 ¡Å b1  ¡Ä  c1 ¡Å c1 ¡Å c1 . without any ambiguity  we can alternately represent f as an itemset {a1 a1 b1 b1 c1 c1 c1}  where it is implicitly understood that conjunctions exist across attributes and disjunctions exist within attributes. henceforth  we will blur the distinction between disjunctive formulae and their itemset representations.
+¡¡given a formula describing a disjunctive emerging pattern  we need to be able to calculate its support.
+¡¡definition 1. let s be a disjunctive emerging pattern. the support of s in a dataset d  support s d   is the number of instances from d which are contained in  the itemset representation of  s.
+¡¡using this revised definition of support  we can define appropriate ¦Á and ¦Â support thresholds for disjunctive eps.
+¡¡definition 1. given dp  dn and support thresholds ¦Á and ¦Â. a disjunctive emerging pattern is an itemset d such that i  d contains at least one item from the domain of every attribute  ii  support d dp  ¡Ý ¦Á  and iii  support d dn  ¡Ü ¦Â. d is said to be maximal if there does not exist another disjunctive emerging pattern d such that.
+¡¡observe that a disjunctive ep corresponds to a region of high contrast  i.e. a subspace which contains at least ¦Á instances from dp and at most ¦Â instances from dn.  see figure 1 for illustration of the geometric representation of itemsets given three attribute domains {a1 a1 a1}  {b1 b1 b1}  {c1 c1 c1} . also  consider again table 1 and suppose ¦Á = 1 and ¦Â = 1. the maximal disjunctive eps include {a c d e f h i} and {a b d e g i}. from a classification perspective  an unknown data instance seems more likely to be from the positive class if is contained in one of these itemsets.
+¡¡it is possible to define variants of disjunctive eps. one important case arises for datasets with ordered domains. and effectively corresponds to disjunctive eps having contiguous ranges on each attribute. suppose an attribute ai has an ordered domain of items. we define a contiguous subset of dom ai  as a collection of items which appear consecutively in the order of dom ai . an itemset is contiguous if it does not contain any non-contiguous subsets from the domain of each attribute. consider again figure 1  s1 is a not contiguous  whilst s1 is contiguous.
+¡¡definition 1. given datasets dp and dn  an itemset s is a maximal contiguous disjunctive emerging pattern if i  s is contiguous  ii  support s dp  ¡Ý ¦Á  iii  support s dn  ¡Ü ¦Â  and iv  there is no proper superset of s satisfying conditions i-iii.
+¡¡compared to disjunctive eps  contiguous disjunctive eps might be considered more meaningful to humans  since their corresponding regions are connected  i.e. do not contain any gaps or holes.
+1 relationships between emerging patterns and disjunctive emerging patterns
+¡¡we now examine the relationship between disjunctive eps and eps in more detail. broadly speaking  disjunctive eps can be viewed as generalisations of eps  allowing more expressive contrasts.
+¡¡theorem 1. let p be an emerging pattern. then p is contained in some disjunctive emerging pattern using the same ¦Á and ¦Â support thresholds.
+¡¡observe that the converse of this theorem does not hold. it is often true that a disjunctive ep does not contain any ep. e.g. there is no ep in table 1 if ¦Á = 1 and ¦Â = 1  yet there exist several disjunctive eps satisfying these constraints.
+¡¡also observe that multiple eps of lower support can be merged together to form a disjunctive emerging pattern. e.g. again looking at table 1  both {a d} and {a e} are eps when ¦Á = 1 and ¦Â = 1. they correspond to the boolean formulae a ¡Ä d and a ¡Ä e  each having support dp  = 1. these two eps can be  unioned  to yield a¡Ä d¡Åe   which is equivalent to the disjunctive ep a¡Ä d¡Å e ¡Ä g¡Åh¡Åi   since g¡Åh¡Åi is trivially true for any transaction   having support dp  = 1 and support dn  = 1.
+¡¡an interesting special case exists when the cardinality of the domain for every attribute is exactly two. in this circumstance  the two types of eps coincide.
+¡¡to summarise  the key differences between emerging patterns and disjunctive emerging patterns are:
+  disjunctive emerging patterns are more expressive. they can capture contrast regions of greater complexity. this makes them more suitable for ordered data  where it is frequently desirable for the contrasts to include disjunctions of items within specific dimensions
+  for given thresholds ¦Á and ¦Â  it is often the case that a dataset may contain many disjunctive emerging patterns but no emerging pattern
+¡¡being more expressive  disjunctive eps are more complex to compute. however  it turns out we can still accomplish this efficiently using a technique similar to the algorithm in section 1.
+1 mining disjunctive eps
+¡¡we now describe how our mineep algorithm can be adapted for mining maximal disjunctive eps. the algorithm is called minedep  shown in algorithm 1 . being similar to mineep  we will only point out their main differences.
+because of the generality of disjunctive eps  they are likely to
+contain many items. our approach for mining disjunctive eps explores the pattern lattice in a depth-first top-down manner  rather than the bottom-up manner that was used for mining eps. a topdown enumeration of the patterns begins with the most general itemset  i.e. containing all the items  and at each step  generate shorter itemsets as candidates  refer to figure 1 for illustration . for efficiency purposes  it is better to work with pattern complements  which are likely to contain fewer items  rather than the patterns themselves. so  candidates are generated by growing prefixes in this complemented pattern space. the initial input zbdd is built from dn. again  this aims to eliminate the generation of invalid candidates  but dn is used here instead of which was used in mineep since the enumeration of the maximal disjunctive eps is proceeding top-down  rather than bottom-up.
+¡¡pruning based on the ¦Á and ¦Â constraints is similar to that used in mineep. support checking  however  must be done using pattern complements and so intersection tests  rather than containment tests are performed on the bitmaps. e.g. if a disjunctive ep p is required to have support p dn  ¡Ü ¦Â  then its complement p must satisfy cover1  p dn  ¡Ý  1   ¦Â . similarly  the ¦Á constraint can be translated to cover p dp  ¡Ü  1   ¦Á .
+¡¡the conditions for ¦Á and ¦Â pruning are also different to that of the previous algorithm. these conditions for ¦Á and ¦Â pruning are inverted from mineep  since maximal  rather than minimal patterns are being computed. more precisely  exploration of the search space stops if one of the following conditions is satisfied:
+1  if
+1   if
+ 1   ¦Â   then do ¦Â constraint pruning  line 1 .
+
+finally  the terminal case tests whether support prefix  ¡Ü ¦Â  i.e. cover prefix dn  ¡Ý  1   ¦Â   line 1 . the algorithm is initialised by passing the negative dataset dn to its first parameter  i.e. minedep dn {} dp dn ¦Á ¦Â .
+¡¡finally  the zbdd variable ordering locates the item which most frequently occurs in dn at the top and items are ordered decreasingly by their frequency in dn thereafter. this is essentially the inverse of the second ordering heuristic that was used for mineep  again due to the top-down nature of the search strategy.
+1 mining g-contiguous disjunctive eps
+¡¡as we have seen  contiguous disjunctive eps are subclass of disjunctive eps. we now define another more general subclass of disjunctive eps  namely g-contiguous disjunctive eps  and describe a technique for mining them.
+¡¡suppose an attribute ai has an ordered domain of items. we define a g-contiguous subset of dom ai  as a collection of items which appear in the same order in dom ai  and the gap between any two consecutive items is not larger than g. an itemset is gcontiguous if it does not contain any non-g-contiguous subsets from the domain of each attribute. furthermore  an itemset p is a maximal g-contiguous disjunctive ep if: i  p is a disjunctive ep  ii  p is g-contiguous  iii  none of its proper supersets satisfies conditions i-ii. when g = 1  p is a contiguous disjunctive ep.
+¡¡we propose a post-processing operation  contigsplit  to derive the maximal g-contiguous disjunctive eps from the disjunctive eps found using minedep. it complements each of the input itemsets and splits it into maximal subsets satisfying the given g and ¦Á constraints  it is guaranteed that they satisfy the ¦Â constraint . the pseudo code is shown in algorithm 1. it begins mining by calling
+
+1
+ cover p d  = the fraction of the transactions in d which contain some item in p; cover p d  = 1   support p d .
+algorithm 1 minedep  p  prefix  dp  dn  ¦Á  ¦Â  
+
+call minedep  dn  {}  dp  dn  ¦Á  ¦Â   to begin mining initially.
+input: p : a zbdd of the search space which is a projection of dn prefix : prefix of the patterns dp : bitmaps of the positive dataset dn : bitmaps of the negative dataset ¦Á : a min support  wrt. dp  threshold ¦Â : a max support  wrt. dn  threshold
+output: zout : a zbdd representing the set of minimal itemsets p satisfying cover p dp  ¡Ü 1   ¦Á and cover p dn  ¡Ý 1   ¦Â.
+1: if p is a zbdd sink node  then
+1:// the end of the search space for growing prefix is reached1:// prefix is a satisfying pattern if it passes ¦Â constraint1: 1:if cover prefix dn  ¡Ý 1   ¦Â then return 1:else1:return 1 // remove prefix from the output zbdd1:end if1: else
+1:// let p = node x p1 p1 1:// grow prefix with the next item in the search space1:
+1:
+1:	new =	x
+// ¦Á constraint pruning: prune prefixnew1:zoutx = 1: 1:else if cover prefixnew dn  ¡Ý 1   ¦Â then
+// ¦Â constraint pruning: stop growing prefixnew1:zoutx = 1:else1:// explore supersets of prefixnew from instances which do not1:// contain x1:zoutx = minedep p1 prefixnew dp dn ¦Á ¦Â 1: 1:end if1:// explore candidates from the remaining search space1: 1:zoutx = minedep p1sz p1 prefix dp dn ¦Á ¦Â 1:// non-minimal patterns eliminationzout	notsupset zout  zout
+1: end if
+
+contigsplit zdep attrdomains g   where zdep is a zbdd of the complement of maximal disjunctive eps  attrdomains is a vector of zbdds  each of which contains the domain items from each attribute  g is the gap size threshold. conceptually  every disjunctive ep has a set of maximal g-contiguous subsets induced in each dimension  computed using a splitcomplement subroutine which we will explain shortly  and these subsets across dimensions are pair-wise unioned using an efficient zbdd operation  dotprod. the ¦Á constraint is pushed inside the routines in a similar manner to that in the minedep algorithm.
+¡¡the subroutine splitcomplement complements a given itemset q with respect to a set of domain items d  and simultaneously splits it into maximal subsets satisfying a g constraint. prefix is the output candidate. two zbdds containing q and d  respectively  are traversed in parallel  and prefix is grown by appending items in d which do not occur in q  line 1 . the parameter gapsize indicates the number of items that have been skipped since the last item that was inserted to prefix  gapsize = 1 when prefix = {} . thus  every sequential item occurring in q increments gapsize by 1  line1 . if gapsize has reached the threshold  then prefix is a maximal g-contiguous subset  and a new empty prefix is grown using the remaining items  line 1 . finally  if there are no items in q  d gives the complement of q
+
+and it is a maximal contiguous subset of q. thus  the union of the respective itemsets d and prefix is returned  line 1 .
+algorithm 1 contigsplit p attrdomains  g 
+
+input: p: a zbdd of the complement of maximal disjunctive eps  attrdomains =  dom1 dom1 ...domk : domi is a zbdd of dom ai   where i ¡Ê  1..k   g: a maximum gap size constraint
+output: zout: maximal g-contiguous disjunctive eps
+1: zout = {} // initialisation 1: for all itemsets p in p do
+1:	// compute projection of p in the domain of each attribute
+1:	for all i in 1 ..k  pi = p ¡É domi
+1:
+1:	// compute split-complement of p in the dimension of each attribute 
+1:	// and conjugate the g-contig. subsets from across dimensions
+1:	prefixes {{}}
+do
+1:	splitsi = splitcomplement pi domi {} 1 
+1:	prefixes = dotprod prefixes splitsi  1:	end for 1:	zout = zoutszmax prefixes
+1: end for 1: return zout
+splitcomplement q  d  prefix  gapsize  =
+input: q: a zbdd containing the complement of the itemset to be split  d: a zbdd containing the domain items  q   d   prefix: a zbdd containing a prefix itemset  gapsize: gap size in prefix 
+
+output: zout : the set of g-contiguous subsets of q  w.r.t. d  which satisfy the g constraint
+1: if  q is a zbdd sink node   then
+
+1:	// q contains an empty itemset; q = d and it has no gap
+1:	zout = dotprod d  prefix 
+1: else
+1: // let q = node x q1 q1   d = node y d1 d1 ; q1 = 1: // and d1 = 1 since each of q and d contains only one itemset
+1:
+
+1:	// append y to prefix if it does not occur in q  i.e. y occurs in q ;
+ 1: // otherwise  increment gapsize  or  if gapsize = g  1: // prefix is fully grown and a new empty prefix is grown.
+1:	if   x has higher index than y   then
+1:	// y is not in q  turn on the bit of y in prefix
+1:	prefixnew = change prefix y 
+1:	zout = splitcomplement q d1 prefixnew 1 
+1: else if  gapsize   g  then zout = splitcomplement q1 d1 prefix gapsize+1  then
+1:	zout = prefix sz splitcomplement q1 d1 {} 1 
+1:	end if
+1: end if
+1: return zout
+
+1. performance study
+¡¡in this section we assess the performance of our techniques for mining emerging patterns and disjunctive emerging patterns.
+¡¡our algorithms were implemented in c++ using the zbdd library functions in the cudd package  and extra library . all experiments were conducted on a ibm eserver pseries 1  eight power1+ 1ghz cpu  1 gb ram  running aix 1l 1 with a cpu-time limit 1 seconds. the ordering used for our zbdd algorithms was decreasing frequency in dn  based on the second heuristic. this section will conclude with a study comparing the performance of mining disjunctive eps using different variable ordering heuristics.
+¡¡we carried out experiments on two gene-expression datasets1  the leukaemia dataset all-aml  previously studied in  and lung cancer. table 1 shows their characteristics. column 1  resp.
+
+1 http://research.i1r.a-star.edu.sg/rp/ table 1: data characteristics
+dataset# trans. in dp# trans.in dn# attr.all-aml1  all 1  aml 1lung cancer1  mesothelioma 1  adca 1column 1  shows the class which was chosen as positive  resp. negative  class and its corresponding number of instances. these datasets were chosen due to their challenging characteristics. as is common for biological data  they contain a huge number of dimensions but only have a few instances. work in  1  1  1  have studied mining minimal emerging patterns for these datasets.
+¡¡both datasets have continuous attribute domains. the values were discretised using an entropy discretisation method  which had the effect of removing some of the attributes. after discretisation  the all-aml dataset is reduced to 1 attributes  lung cancer is reduced to 1 attributes. the discretised attributes are ordered by decreasing entropy value.
+1 ep mining performance
+¡¡we study the scalability of our zbdd technique for mining  minimal  emerging patterns and compare it against a state of the art technique based on a variant of frequent pattern trees   hereafter referred to as pattern-tree ep-miner . the authors of this paper provided us with an implementation of their algorithm. other techniques for mining emerging patterns exist  e.g.  1  1    but have similar  or inferior running behaviour to that of  and so we do not include them in our comparison.
+¡¡the first scenario uses the all-aml data with constraints ¦Á = 1% and ¦Â = 1  and an increasing number of dimensions. looking at figure 1a and figure 1b  the mining time of zbdd ep-miner is substantially faster than pattern-tree ep-miner by a factor of approximately 1 times for between 1 and 1 attributes  the zbdd miner running time is very close to the x-axis in this region . for more than 1 attributes  mining was impossible for the patterntree ep-miner due to memory limits being exceeded  whereas the zbdd ep-miner was able to run effectively for up to 1 attributes. this is in line with previously published results from  1  1   where eps were only mineable for datasets with no more than around 1 attributes. for the lung cancer dataset which appears to be an easier dataset due to the smaller number of patterns  the pattern-tree miner is able to mine eps for a larger number of attributes. the zbdd ep-miner is substantially superior in running time to the pattern-tree miner  giving speedups of over 1 times  and it was able to run effectively for up to 1 attributes.
+1 disjunctive ep mining performance
+¡¡we now study the scalability of our zbdd algorithm for mining  maximal  disjunctive ep. in particular  we focus on its behaviour as we vary number of attributes and the value of ¦Á. no comparison is made against other systems  since we are not aware of any other work that is suitable for mining these patterns.
+varying the number of dimensions. figure 1c and figure 1d show the time for mining maximal disjunctive emerging patterns as the number of attributes is varied for both datasets. support constraints ¦Á = 1% and ¦Â = 1% are used. the number of patterns output is shown in figure 1e and figure 1f. not surprisingly  including more dimensions increases the search space  the size of the output patterns  and also the running time  exponentially.
+¡¡importantly though  the zbdd technique is able to mine this complex kind of patterns even when there are a very large number of attributes. the maximal disjunctive eps for the lung cancer dataset are mined in around 1 seconds using all its attributes  1 attributes . for the all-aml dataset  up to 1 attributes can be handled in around 1 seconds. mining beyond this attribute limit was proved impossible because of memory limits being exceeded  due to the very large number of output patterns.
+¡¡since the output patterns are stored in a zbdd  it is interesting to reflect on the compression being achieved. figure 1g shows the number of zbdd nodes in the output  for the lung cancer data with respect to varying the number of attributes  given ¦Á = 1% and ¦Â = 1%. when there are 1 attributes  the zbdd requires 1 nodes  to store the 1 maximal disjunctive emerging patterns. figure 1h gives a more detailed picture  presenting a histogram of the pattern lengths. we can see that most of the patterns are close to the maximum length of 1 items having an average length of around 1 items.
+varying the support thresholds. figure 1i and figure 1j show the output patterns in all-aml dataset  using 1 items  and in lung cancer dataset  using 1 items  according to an increasing ¦Á constraint  given ¦Â = 1 . we can see that for both datasets  the number of patterns output is highly sensitive to ¦Á up to a certain limit  around 1%   with its sensitivity thereafter decreasing.
+comparative pattern volumes and mining time: finally  we compare the volumes of the different kinds of ep in a given dataset. figure 1k looks at the lung cancer dataset  using 1 items and ¦Â = 1  allowing ¦Á to vary. the figure shows the number of i  minimal emerging patterns  ii  maximal disjunctive emerging patterns  and iii  maximal contiguous disjunctive emerging patterns. for this scenario  it is clear that there exist fewer eps than the disjunctive eps and their contiguous variants. this is expected  since eps are more specific versions of the disjunctive patterns. though it is not shown here  in our experience  it can often be the case that under given support thresholds  a dataset may contain zero eps  but may contain hundreds of  possibly contiguous  disjunctive eps.
+¡¡the corresponding mining times for this dataset is shown in figure 1l. the mining times for mining eps and disjunctive eps lie on the x-axis  and the times for mining contiguous eps are higher due to the postprocessing splitting operation. it can be seen that the splitting time is constant with respect to a varying number of patterns from varying ¦Á. indeed  all the algorithms have a roughly constant time with respect to ¦Á for this scenario.
+1 variable ordering
+¡¡we also study the effect of using various variable orderings in the zbdd for mining disjunctive eps. figures 1m  1n  and 1o show a comparison between the different heuristics we considered. the first heuristic is employed by ordering the variables by decreasing frequency in dp. the second heuristic is employed by ordering the variables by decreasing frequency in dn. lastly  the third heuristic is employed by arranging items from the same attribute close to each other and two-level ordering is used  i.e. items within each attribute are ordered by decreasing support in dn and the attributes are ordered by decreasing maximum support of its items.
+¡¡figure 1m shows that employing the second ordering on the zbdds achieves the fastest mining time as it reduces the complexity of the decomposed subtasks. shown in figure 1n  the corresponding input zbdds have similar sizes using either the second or the third ordering  but the mining times for the third ordering grow exponentially as ¦Á decreases. the first ordering produces larger input zbdds  which explains its mining time being the slowest. furthermore  figure 1o shows that the output zbdds are the smallest when the second and the third orderings are used.
+1. discussion
+¡¡the results in the previous section are only a snapshot of the experiments we performed. we also tested our techniques on a number of other biological datasets  with performance being similarly pleasing overall. a general conclusion from our work is that zbdds can be used for very effective mining of both emerging patterns and disjunctive emerging patterns. a natural question to ask is  what advantages does a zbdd technique have over a frequentpattern tree  fp-tree  technique for mining contrasts  here we provide some preliminary observations.
+¡¡both fp-trees and zbddsare tree-like structures for storing transactions using a variable ordering. a structural difference between the two is that zbdds allow sharing of transactions via fan-in  whereas fp-trees do not allow fan in. the use of fan-in allows not only prefix sharing but also suffix sharing  resulting a high compression of both input and output. furthermore  zbdds also allow sharing between all structures throughout mining since it uses a global variable ordering. in particular  it is possible for the input zbdd  the transactions   the input projection in the intermediate mining steps  and the output zbdd  to share subtrees even though each of them represents different kinds of data! this provision of increased opportunities for sharing and compression is particularly important for high dimensional datasets  where the number of candidates can be very large and mining practicality may be dependent on memory consumption considerations.
+¡¡another significance of our technique is in the recursive decompositions. when a zbdd is recursively decomposed  its decompositions are able to share substructures with one another. a shared structure is constructed only once and results from past manipulations are re-used as needed. this is different from fp-trees  whose recursive decompositions  conditional fp-trees  are created afresh and do not share with one another.
+¡¡a final important aspect of zbdd is the existence of polynomial time operations  such as set  minimal/maximal  union  set difference  etc  especially when there is a large amount of sharing within the structure. one implication of this is an efficient removal of non-maximal patterns. considerable work has gone into developing efficient library implementations of these and our algorithms make considerable use of them. it is an open question as to whether provably efficient counterpart operations exist for fp-trees.
+1. related work
+¡¡we have already referred to the general work in the area of zbdd in section 1. however  we are only aware of one paper  where zbdd is used for pattern mining. they propose a method for finding frequent patterns. their approach is different from ours in the sense that they explicitly store the support information by constructing multiple shared-zbdds which groups itemsets based on their  binary-encoded  supports. it enumerates every pattern occurring at least once in the dataset  regardless of the input threshold value ¦Á supplied by the user  making it inefficient for high values of ¦Á or for mining in high dimensional data since millions of patterns may exist. on the other hand  our proposal stores the input transactions in a single zbdd  reducing its overall memory consumption  and pushes constraints deep inside the zbddoperations. additionally  we use a secondary data structure such as bitmaps for counting support  instead of storing support information inside the zbdd.
+¡¡emerging patterns were introduced in   and have been successfully used for constructing highly accurate classifiers . in particular  work in  have proposed a strong ep-based classifier using an ¦Á support constraint and a minimum growth rate constraint. moreover  emerging patterns have also been used for pre-
+¡¡
+	 1	 1 1 1 1
+num of attributes
+ a  comparison between mining time for finding minimal eps using pattern-tree and zbdd w.r.t num. of attr.  all-aml dataset  ¦Á = 1%  ¦Â = 1 
+	 1	 1 1 1 1
+number of attributes
+ e  num. of maximal disj. eps w.r.t num. of attr.  all-aml dataset  ¦Á = 1%  ¦Â = 1% 
+
+ 1
+ 1 1 1 1 1 1 1 1 1
+minsup in positive class
+ i  num. of maximal disj. eps w.r.t minimum support in dp  allaml dataset  1 items; max support in dn = 1% 
+ 1
+	 1 1 1 1 1 1 1 1	 1
+minsup in positive class
+ m  comparison between the mining time for mining maximal disj. eps using different variable orderings lung cancer dataset  1 items; ¦Â = 1% 
+ 1 1 1 1 1
+num of attributes
+ b  comparison between mining time for finding minimal eps using pattern-tree and zbdd w.r.t num. of attr.  lung cancer dataset  ¦Á = 1%  ¦Â = 1 
+ f  num. of maximal disj. eps w.r.t num. of attr.  lung cancer dataset
+ ¦Á = 1%  ¦Â = 1% 
+
+ 1
+ 1 1 1 1 1 1 1 1
+minsup in positive class
+ j  num. of maximal disj. eps w.r.t minimum support in dp  lung cancer dataset  1 items; max supp in dn = 1% 
+
+ 1
+	 1 1 1 1 1 1 1 1	 1
+minsup in positive class
+ n  comparison between the number of nodes in the zbdd input for mining disj. eps using different variable orderings; lung cancer dataset  1 items; ¦Â = 1% 
+	 1	 1 1 1 1
+number of attributes
+ c  mining time for mining maximal disj. eps  sec.  w.r.t num. of attr.  all-aml dataset  ¦Á = 1%  ¦Â = 1% 
+ g  num. of nodes in the zbdd output of maximal disj. eps w.r.t. num. of attr.  lung cancer dataset  ¦Á
+= 1%  ¦Â = 1% 
+ k  comparison between the number of minimal eps  maximal disj. eps  and maximal contig. disj. eps w.r.t minimum support in dp  lung cancer dataset  1 items; ¦Â = 1 
+
+	 1 1 1 1 1 1 1 1	 1
+minsup in positive class
+ o  comparison between the number of nodes in the zbdd output of maximal disj. eps using different variable orderings; lung cancer dataset  1 items; ¦Â = 1% 
+ d  mining time for mining maximal disj. eps  sec.  w.r.t num. of attr.  lung cancer dataset  ¦Á =
+1%  ¦Â = 1% 
+
+ 1
+ 1 1 1
+length of patterns
+ h  frequency histogram of maximal disj. eps  lung cancer dataset  1 items; ¦Á = 1%  ¦Â = 1% 
+ l  comparison between the mining time for mining minimal eps  maximal disj. eps  and maximal contig. disj. eps using zbdd w.r.t minimum support in dp  lung cancer dataset  1 items; ¦Â = 1 
+¡¡
+figure 1: performance results
+¡¡
+dicting the likelihood of diseases such as leukaemia  using gene expression data . a recent method for mining emerging patterns with zero support in the negative dataset appears in   based on modifications to fp-tree . fp-trees have also been used as the basis for mining contrasts given other types of constraints  such as risk and odds ratio . connections between the computation of certain kinds of emerging patterns and hypergraph transversals are identified in .
+¡¡emerging patterns are closely related to association rules with large confidence  and also to work on detecting group differences . quantitative association rules  aim to find contiguous regions containing a minimum number of points. moreover  contiguous disjunctive emerging patterns are similar to quantitative association rules having high confidence and a single item consequent. another related notion is version spaces  1  1   which correspond to emerging patterns with constraints ¦Á = 1 and ¦Â = 1. a disjunctive version space  is a disjunction of version spaces  as opposed to the disjunctive emerging patterns presented here  which are a conjunction of disjunctions on attribute values. several papers have examined the computation of empty regions or 'holes' in datasets  1  1 . a contiguous disjunctive emerging pattern with ¦Â = 1 corresponds to a hole in dn.
+¡¡recent work have examined mining of closed patterns from high dimensional datasets using row  instead of column  item   enumeration  1  1  1 . the emphasis on closed patterns  as opposed to minimal patterns means this is not directly applicable for finding minimal contrasts. however  alternative variants of emerging patterns based on closure properties can certainly be defined  e.g. see . in contrast to the row enumeration work  our paper seeks to investigate the limits of column-wise mining and indeed our results showed that column-wise mining of contrasts in high dimensional datasets is feasible using zbdds.
+1. conclusions and future work
+¡¡in this paper  we have developed efficient algorithms for mining contrast patterns in high dimensional data. we presented an algorithm based on the use of zero suppressed bdd as a data structure and demonstrated how mining constraints could be integrated with the standard zbdd library routines. our experimental results showed the technique scales well for a number of high dimensional biological datasets and allows the computation of both simple contrasts such as emerging patterns  and also more complex type of contrasts which use both disjunction and conjunction. we showed our method substantially improves on a state of the art ep-mining technique . we are not aware of other work suitable for computing the complex contrasts considered. as future work  we intend to explore the use of zbdds for mining other types of patterns  and also their use in row enumeration mining approaches.
+acknowledgements: we would like to thank rao kotagiri for his comments  and hongjian fan for making the executable of pattern-tree epminer available for us. this work is partially supported by national ict australia. national ict australia is funded by the australian government's backing australia's ability initiative  in part through the australian research council.

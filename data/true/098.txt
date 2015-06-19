@@ -1,0 +1,27 @@
+1. introduction 
+     in this paper  a term is a pair formed by an operator and a list of terms. in other words  no restriction exists on the arity of operators. here are some definitions about ordering on terms. 
+more information can be found in  and . 
+       an ordering on terms is monotonic if for all operators f 
+
+       a monotonic ordering which has the subterm property and the deletion property is a simplification ordering. 
+　　  an ordering is well-founded if there exists no infinite strictly decreasing sequence termination property. however  huet and lankford  showed that the termination problem for rewriting systems is undecidable; therefore no uniform method based  for instance  on orderings can exist. but proving termination of particular rewriting system is an essential problem in many areas where rewriting systems are used. in simplification systems this insures that the process will terminate. in the knuthbendix method  proving termination of the 
+ 1 this work was supported by national science foundation and centre national de la rechmene scicntifique. 
+ system is necessary  to deduce global confluence from local confluence . for example the system  is locally confluent but not globally confluent. if the knuth-bendix algorithm is used to transform a set of rewrite rules into a canonical one  huet  showed that uniform termination ordering is necessary for all rules which appear in the process. several authors propose simplification orderings based on syntactical properties of terms: ordering based on weight by knuth and bendix   recursive path of subterms ordering by plaisted   recursive path ordering by dershowitz   non-ascending property by pettorossi   generalized recursive path ordering by kamin and levy . in this paper a new ordering called the decomposition ordering is defined. its definition is relatively simple  it allows efficient implementation and it has interesting generalizations which are currently being worked upon. as do the other cited orderings  it derives from an ordering on operators. it is based on a decomposition of terms in three parts  on which comparisons are recursively performed. when the basic ordering is total  decomposition ordering is equivalent to the orderings proposed by plaisted and dershowitz. but their respective implementations are quite different. a comparative analysis of these methods is proposed in  for monadic terms. here  only decomposition ordering on terms without variables  on a totally ordered set of operators  is given. such an ordering can be used in simplification systems. 
+1. definition of decomposition ordering 
+     let t f  be the set of terms on the set f of operators. f is assumed to be totally ordered by  the decomposition ordering is denoted 
+
+
+1 
+
+
+1 
+
+the mapping associating a tree with its decomposition term is one-to-one. to compare two decomposition terms  traverse them in prefix order until the first difference appears. this first 
+difference can occur in one of three cases. 
+     1  the operators are different. then the leaser operator belongs to the lesser term. 
+     1  in the traversal  one list finished before the other one. 
+then the shorter list belongs to the lesser term. 
+     1  a subterm with phylum almost j riple corresponds to in one decomposition term and corresponds to a term with a root at in the other one. then bolongs to the lesser term. 
+     the structure presented is voluntarily redundant for pedagogical reasons. it could be encoded by a linear list containing only relevant information. 
+1. conclusion and perspectives 
+　　decomposition ordering gives an easy way to order a pair of terms. it boils down to comparing two decomposition terms using a simple algorithm studied by flajolet and steyaert in their analysis of pattern matching . they consider the catalan statistics where the average performance of the algorithm io determined over the set of all possible shapes of decomposition terms of given sizes. they show that  before termination  this algorithm performs on the average a constant number of tests for that statistics. in  we use a statistics where all terms of t f  are equiprobabie. by elementary methods  we prove that on monadic terms  the algorithm stops after approximately 1 + 1/v   1/nv + c testa when one term has length 1  the other has length n and  the set f has v elements and where e is as n / v 1 . it would be interesting to adapt flajolet and steyaert's method to this more natural statistics. on the other hand we are currently designing an efficient algorithm to build the decomposition term from term on t f . generalizations of decomposition ordering to terms with variables on partially ordered set of operators are possible  but the definitions are more complex  1 . for instance  the concept of  left-weighted  term does not exist anymore and must be extended. 

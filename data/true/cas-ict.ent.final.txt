@@ -1,0 +1,65 @@
+i. introduction
+　expert finding task is one of the two tasks in trec 1 enterprise track. the goal is to find a list of candidates who are experts in the specified topic. our team participated in this task this year. this document is a brief report of our research and experimental results on expert search.
+　this is the second year of this expert finding task. in the first year of this task  most participants use some basic information retrieval models to solve this problem. there are mainly two kinds of approaches: the two-stage model approach of combining relevance and co-occurrence  such as msra1  and the personal description file based approach  such as thuent1.
+　in this year  our team's research and experiments mainly focus on the mailing list corpus and the link relationship amongst the candidates expert and other users. the w1c corpus includes a large archive of the w1c's mailing lists. these lists are email forums for people who want to share information about w1c's research and projects. we can treat these forums as social networks.
+　in our experiments  we find some interesting features of the community structures of these networks: in most of the mailing lists  the candidate experts are not well connected. the social network in these mailing lists can be divided into some communities which includes a few candidate experts and a lot of other users. the candidate experts are mostly in the center of their communities.
+　and also  we use some link analysis approaches to rank the candidates in the social networks. in our experiments  we choose the pagerank algorithm and a revised hits algorithm as link analysis methods. these approaches gives satisfying results in our experiments.
+table i
+w1c collection by scope
+scopecorpus size  gigs docsavdocsize  kb lists111www111esw111other111people111all111
+	fig. 1.	degree distribution of the full mailing list network.
+ii. community structure in the mailing list networks
+　the w1c corpus includes a mailing list archive. as shown in table i  the mailing list content  lists  is the largest portion of the entire corpus. an mailing list  is a special usage of email that allows for distribution of information to many email users. as for w1c  the mailing list is a type of internet forum  in which users and experts can discuss anything within the open group.
+　the lists scope of the corpus includes mails  archive indexes  and other miscellaneous pages. in our research and experiments  we only focused on the mails. after parsing the lists scope  we found a total of 1 mails in 1 lists.
+　the users of the mailing lists forms a social network. in this network  each vertex is a user of the mailing list. if user a posts a mail to the mailing list  and user b replies that mail in the list  we put an edge from b to a. if user b posts a mail to the mailing list with receiver a  we also put an edge from b to a.
+　so we have a social network of the mailing list users. first we focused on the full network of all mailing list users using the w1c mailing list systems. it is shown in figure 1 that this network is scale-free. we try to calculate
+the clustering coefficient of this network. the clustering
+　　　　　　　　　　　　　　. coefficient of this network is c = 1. it is much larger
+than the clustering coefficient of the comparative random
+.
+network where crandom = 1. it is indicated that the mail network is highly clustered.
+　assortative mixing is also an important feature in the complex networks. it is the extend to which nodes connect preferentially to other nodes with similar characteristics. in our research  the nodes of the network can be divided into
+two types: the candidate experts and the none-candidate users.
+.
+so the assortative coefficient of the mail network is r =1. and we can find that candidate experts replies more often than non-candidate users. on average  one candidate expert replies 1 mails in the mailing list systems; and one non-candidate user replies only 1  non-candidate users who never reply one mail in the mailing list system are not counted in .
+　the small assortative coefficient shows that this network is not very strongly assortative by the candidate/non-candidate partition. it implies that in this mailing list network  a candidate expert communicates more often with non-candidate users than with other candidate experts.
+　this phenomena  of relatively small assortative coefficient  can be explained as the usage of the mailing list. as we known  the 1 candidate experts are all active participants in the w1c. generally  they are more familiar with each other than with other non-candidate users. as for them  the w1c mailing list system is an open environment to communicate and discuss problems with other people outside the w1c organization. if one candidate expert want to discuss with another candidate expert  he  or she  may prefer personal mail to public mailing list. as for non-candidate users  usually they use the mailing list system to get some help from the experts. so they often have more discussion with candidate experts than with noncandidate users. as a result  the mail network is relatively disassortative by the separation of candidate experts and nonecandidate users.
+　this phenomena also implies that when the network is divided into communities  the candidate experts will be sparsely placed in many communities. many networks  it is found  are inhomogeneous  consisting not of an undifferentiated mass of vertices  but of distinct groups. within these groups there are many edges between vertices  but between groups there are fewer edges  producing a structure which is called the community. in our research  we use a fast community detection algorithm by aaron clauset to detection the densely linked community in the mailing list network.
+
+fig. 1. the mail network in the www-annotation w1.org mail list  only the largest connected component . square nodes denote for candidate experts. different colors imply the community structure in this network.
+　in order to take a closer view of the mailing list network  we choose the network in one relatively small mailing list. figure 1 show the structure of the network in the wwwannotation w1.org mailing list. the community detection algorithm divides the network into 1 communities  each denoted by different colors. the 1 candidate experts  square nodes  in the network are sparsely placed in 1 communities. the largest community  of color blue  contains 1 candidate experts.
+　most candidate experts in this network are in the center of the network. table ii show the top 1 closeness centrality score of the network in www-annotation w1.org. there are 1 candidate experts in table ii. in fact  we can find it easily that the other 1 non-candidate users in table ii are all experts in the given field  annotation service  even they are not in the candidate list.
+　experiments on the networks of other mailing lists also show similar results.
+　so we can conclude from our experiments that: 1. the network in the mailing list is disassortative by the separation of candidate experts and non-candidate users; 1. candidate experts do not gather into some densely linked groups  or cluster  in the mailing list network. they can be separated to some communities with other non-candidate users. 1. candidate experts are more likely to be in the center of the mailing list network. they often have a larger closeness centrality score.
+　these conclusions will be helpful to the problem of expert finding.
+table ii
+top 1 closeness centrality score in the network of the mailing list www-annotation w1.org.
+user id or mail addresscloseness centralitymarja w1.org1candidate-1.1candidate-1.1matthew mjwilson.demon.co.uk1candidate-1.1candidate-1.1candidate-1.1candidate-1.1julieg weborganic.com1ping lfw.org1iii. social network link analysis in the mailing
+list network
+　as we can see from the trec 1 proceedings  most group use an information retrieval model combining the relevance of documents and the co-occurrence of experts to solve the expert finding problem.
+　our approach this year is totally different from this information retrieval model. first  we do a query in our document search engine on the w1c corpus only mails content scope . it returns a list of relevant mails. we can extract the send/receive and reply relationships between all senders and receivers of the relevant mails. so we get a social network of the users discussing the given topic. using link analysis and social network methods  we can get a ranked list of the users and candidate experts on the given topic.
+　as a result from our analysis in section ii  we can conclude that most candidate experts are in the center of the networks. so we first try to use the closeness centrality score to rank the candidate experts. but this method does not give a satisfying result. we also try the betweenness centrality score to rank users and it fails again. these two methods can find out the top ranked candidate experts nicely  but often miss the other candidates.
+　then we try to use other link analysis methods instead. the most well-known link analysis application is the web link analysis. and the most popular methods for web link analysis are pagerank by page and brin  and hits by kleinberg. we try these two methods in our experiments.
+　the pagerank and hits algorithms are all for web link analysis. they all assume that the link between web pages implies some functional meaning. as for our application  we also assumed that: if user a post a mail to user b or reply a mail posted by b while the mail is relevant to topic q  user b
+　will recommend user a as an expert in the topic q; so we can add a link from b to a. this assumption is quite reasonable for w1c mailing list network considering the result in section ii: the candidate experts reply more mails than non-candidate users; the candidate experts send / reply mails more often to
+hits vs. two-stage model
+
+two-stage model
+hits algorithmfig. 1. map comparison between the two stage model and the hits algorithm.
+non-candidate users than to candidate experts.
+　we apply the pagerank algorithm to rank the users in the mail network. we also use a revised hits algorithm to get a run result in our experiments. as a comparative group  we also set up a two-stage model combining relevance and cooccurrence. the hits algorithm gives an relatively smaller average precision to the two-stage model as we can see from figure 1.
+　but the two algorithms both failed to provide a satisfying result. an main reason is supposed to be the difference between the structure of the web and the mail network. in the assumption of the pagerank algorithm  the link from page a to page b is actively chose by a; but in the mail networks  the link from user a to user b is added when b answers a. it is different from the recommendation relationship implied by the web links. in kleinberg's assumption in hits algorithm  the web is supposed to have a hub-authority structure. but as for the mail network  one can hardly find such a hub-authority structure. if user want some help  they can directly connect to the experts. the proxy nodes as the hub in the web  can not be found in mail networks.
+iv. submitted runs
+　in this years  we submitted 1 runs for the expert search track. the 1 runs are as follows:
+  ictcsxrun1: this run use a simple two-stage model combining relevance and co-occurrence. only lists and www scope of the corpus is used. this run is used as a comparative run. this run get the best map and bpref score in our 1 runs.
+  ictcsxrun1: this run is a tune of the ictc-
+sxrun1. a clustering-based re-ranking is used.
+  ictcsxrun1: based on the relevant document list provided by ictcsxrun1 mails only   we can construct a mail network of the users and candidate experts. this
+table iii
+submitted run results.
+run idmapbprefp 1ictcsxrun1.1.1.1ictcsxrun1.1.1.1ictcsxrun1.1.1.1ictcsxrun1.1.1.1ictcsxrun1.1.1.1best11-median11-worst11-run uses the pagerank algorithm to rank the candidate experts.
+  ictcsxrun1: based on the top result of the ictcsxrun1 as the root set  we use the hits algorithm to re-rank the candidate experts.
+  ictcsxrun1: this is a trial run. we use the result from ictcsxrun1 and ictcsxrun1  and make a linear combination to get a new result.
+　table iii presents the performance achieved by our submitted runs  along with that of the participants.
+v. conclusion
+　in our submitted runs  the two link analysis algorithms did not give satisfying results. but our experimental analysis about the community structure of the social network in the mailing list can give us a lot of helpful information to solve the expert finding problem in our future research.

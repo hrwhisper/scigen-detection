@@ -1,0 +1,54 @@
+the national science foundation  u.s.a  project # due1  aims to provide online educational materials for courses in information technology  it  and computer science  cs  areas at the 1-year and 1-year college level. 
+keywords 
+www-based education  online education  www-based course curricula and courseware  online degree programs in it area. 
+1. introduction 
+the national science foundation  nsf  project on course  curriculum and lab improvement and educational material development  nsf ccli-emd project   # due-1 is to helping increase the pool of well-educated and highly skilled information technology  it  workers.  
+the project addresses the severe current national shortage in the it workforce  the lack of about 1 it workers in 1  that is  unfortunately  projected to persist well into the 1st century  the projected lack is about 1 million it workers in 1   1 1 1 . the aforementioned project is hosted by bradley university  il  u.s.a.  and  particularly  by the nsf bradley center on web-based education at bradley university. 
+1. project goal and objectives 
+the proposed nsf ccli-emd project has two goals:  
+1  accelerating the rate of graduation of information engineering 
+technology  iet  students through the active use of innovative oem and teaching and learning technology other than 
+classroom-based training  cbt   namely web-based training  wbt   that can be delivered into the workplace and the home at any time. in other words  the traditional  teaching-by-telling  mode of iet education will be complemented  not displaced  by an innovative active  learning-by-doing  online model of iet education.  in this paper  the term  online  implies both webbased synchronous and asynchronous types of communication/learning . 
+1  expanding the impact of iet education on various groups of population such as traditional high schools/college/university students and non-traditional students and learners at centers of distance learning  weekend schools  summer institutes  adult vocational centers  career development centers  etc. 
+ 
+given the broad goal of the this project  the specific aims of the nsf-ccli-emd project are to:  
+1  develop online educational materials for twelve  1  iet undergraduate courses  provide wide  beta -testing of developed oem  organize and store iet oem in form of  iet courseware cube . 
+1  use actively innovative cost-effective and time-effective web-based learning and teaching technologies  and  active learning  paradigm of education that are ideally match goals and objectives of iet education of a broad range of traditional and non-traditional groups of students and learners. 
+1  design and develop a specialized  online iet courseware  web server and web page  available 1/1  that will store the developed undergraduate iet oem and disseminate projectrelated information nationwide and worldwide. 
+1  create a solid foundation for at least two associate of applied science  aas  and one bachelor of science  bs  online degree programs in iet area. 
+1  establish iet  k-1/it industry  consortia with more than 1 project partners -- representatives from various u.s. community colleges  universities  it companies/businesses  and professional associations/ societies  and city school districts. establish articulation agreements between participating educational institutions. establish coop/internship opportunities and vendor-specific certificate programs for iet  online  students and graduates of online programs.  
+1  create a project advisory board   about 1 experts  to ensure top quality of project activities and products. 
+1  produce iet oem of high quality by using a variety of effective evaluation procedures. provide various forms of formative and summative discussion and evaluation of all project activities and products.  
+1  disseminate project products nationwide by means of various aggressive dissemination procedures with special attention to free distribution of project products to a  historically black and hispanic educational institutions  b    tech prep consortia in all 1 states  and c  k-1 institutions in rural areas  of the u.s.  
+1  provide constant active training of faculty and teachers focused on design   development and implementation of oem  the web-based innovative teaching and learning technologies and techniques  and state-of-the-art web-based instructional  wbi  tools. 
+1  provide sustainability of project activities by self-sustained distribution of project products by means of 1  production and commercial distribution of  cd roms with iet oem  and 1  pre-paid services of the project dedicated web.  
+1. project targeted audience  
+project products are primarily aimed at various groups on students and life-long mature learners in the united states  especially individuals such as:  
+1  students of traditional k-1 institutions who find the online learning a convenience;  
+1  adult students who travel a great deal  or have strong commitments for family and/or businesses  and therefore cannot attend weekly on-campus classes;  
+1  students who must transfer to another city/state before completing their degree;  
+1  adult students at military bases far from u.s. traditional educational institutions;  1  students in rural areas of the u.s.;  
+1  disabled students who have no opportunity to attend classes and lab sessions at colleges/universities;  
+1  potential international students with internet connectivity anywhere in the world that are willing to take online courses at us k-1 institutions with no visits or minimal numbers of visits to the united states. 
+ 
+1. project expected outcomes 
+the primary outcomes of the proposed project are expected to be:  
+1  a set of cd-roms that will contain oem for twelve  1  iet undergraduate courses. each course will have three  1  levels of learning such as introductory  intermediate  and advanced levels. 
+1  a project  online iet courseware  web server and web page; it is expected that eventually this server will contain oem for forty-eight  1  courses of four  1  it employment tracks. 
+1  three  at least  pilot online undergraduate iet programs in participating institutions; several other colleges - project partners  are expected to start  their activities on establishment of their own online programs in it by completion of this project or even before. 
+ 
+1  project-related articles  papers  presentations  surveys  databases of student  faq  and evaluation/testing materials. 1  a large number of faculty who will be re-trained in wbt area; 
+1  a designed  developed  and tested  easy-to-replicate  nationwide model of the iet. 
+ 
+1. conclusion 
+the proposed nsf -ccli-emd project # due 1: 
+1  addresses severe national needs in it workforce  and is aimed on massive production of a well-trained and  highly-skilled it workforce nationwide using innovative web-based teaching and learning technologies  
+1  is focused on development  widespread site testing and careful evaluation of iet oem and efforts to promote their effective implementation in k-1 u.s. institutions  
+1  has a series of twelve  1  undergraduate advanced  iet courses as a scope   
+1  is expected to produce innovative iet oem of a top quality and significance appropriate for national distribution  adaptation  and implementation  
+1  cuts across academic disciplinary boundaries by developing 
+iet oem for three levels of learning  specifically a  
+introductory level  b  intermediate level  and c  advanced level  that may be used by students from various major areas and with different levels and types of background  in the iet area. 
+1. acknowledgments 
+this project has been made possible by the grant due-1 from the national science foundation  u.s.a. .   
+the author of this paper would like to thank dr. claire etaugh and dr. jim miller  for their strong support for this project. 

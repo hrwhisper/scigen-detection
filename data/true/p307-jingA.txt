@@ -1,0 +1,19 @@
+in this paper  we cast the image-ranking problem into the task of identifying  authority  nodes on an inferred visual similarity graph and propose an algorithm to analyze the visual link structure that can be created among a group of images. through an iterative procedure based on the pagerank computation  a numerical weight is assigned to each image; this measures its relative importance to the other images being considered. the incorporation of visual signals in this process differs from the majority of largescale commercial-search engines in use today. commercial search-engines often solely rely on the text clues of the pages in which images are embedded to rank images  and often entirely ignore the content of the images themselves as a ranking signal. to quantify the performance of our approach in a real-world system  we conducted a series of experiments based on the task of retrieving images for 1 of the most popular products queries. our experimental results show significant improvement  in terms of user satisfaction and relevancy  in comparison to the most recent google image search results.
+categories and subject descriptors
+h.1  information systems : information search and retrieval; i.1  computing methodologies : image processing and computer vision
+general terms
+algorithms
+keywords
+pagerank  graph algorithms  visual similarity
+1.	introduction
+¡¡although image search has become a popular feature in many search engines  including yahoo  msn  google  etc.  the majority of image searches use little  if any  image information to rank the images. instead  commonly only the text on the pages in which the image is embedded  text in the body of the page  anchor-text  image name  etc  is used. there are three reasons for this: first  text-based search of web pages is a well studied problem that has achieved a
+copyright is held by the international world wide web conference committee  iw1 . distribution of these papers is limited to classroom use  and personal use by others.
+www 1  april 1  1  beijing  china.
+acm 1-1-1/1.
+
+ a  eiffel tower
+
+ b  mcdonalds.ps
+figure 1: the query for  eiffel tower returns good results on google. however  the query for mcdonalds  returns mixed results.
+great amount of real-world success. second  a fundamental task of image analysis is yet largely an unsolved problem: human recognizable objects are usually not automatically detectable in images. although certain tasks  such as finding faces   and highly textured objects like cd covers   have been successfully addressed  the problem of general object detection and recognition remains open. few objects other than those mentioned above can be reliably detected in the majority of images. third  even for the tasks that are successfully addressed  the processing required can be quite expensive in comparison to analyzing the text of a web-page. not only do the signal-processing algorithms add an additional level of complexity  but the rapidly increasing average size of images makes the simple task of transferring and analyzing large volumes of data difficult and computationally expensive.
+¡¡the problem of answering a query without image processing is that it can often yield results that are inconsistent in terms of quality. for example  the query  eiffel tower  submitted to image search on google.com  with strict adult content filtering turned on   returns good results as shown in figure 1 a . however  the query for mcdonalds returns mixed results as shown in figure 1 b ; the typical expected yellow  m  logo is not seen as the main component of an image until results 1 and 1.

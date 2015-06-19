@@ -1,0 +1,53 @@
+form mapping is the key problem that needs to be solved in order to get access to the hidden web. currently available solutions for fully automatic mapping are not ready for commercial meta-search engines  which still have to rely on hand crafted code and are hard to maintain. we believe that a thorough formal description of the problem with semantic web technologies provides a promising perspective to develop a new class of vertical search engines that is more robust and easier to maintain than existing solutions.
+　in this paper  instead of trying to tackle the mapping problem  we model the interaction necessary to fill out a web form. first  during a user-assisted phase  the connection from the visible elements on the form to the domain concepts is established. then  with help from background knowledge about the possible interaction steps  a plan for filling out the form is derived.
+categories and subject descriptors: h.1  information storage and retrieval : systems and software general terms: algorithms  design  experimentation.
+keywords: hidden web  web data extraction  web form mapping.
+1. introduction
+　in the scientific community a number of approaches towards meta-search have been proposed  . most of them  however  focus on deep web query probing and general information retrieval from documents accessible only via form submission.
+　the metamorph project aims to generate maintainable vertical deep web search engines. although nlp tools  query submission  result aggregation and ranking are also part of the system  we concentrate on the aspect of form interaction modelling in this paper. we favor a semi-automatic system where a human user can leverage his strengths in capturing meaning in natural texts. to support this notion  we have created a tagging tool that allows a service designer to annotate form elements with domain concepts; general html concepts are recognized automatically.
+　we will now discuss the actual form modeling that builds upon this tagging phase.
+
+ 
+ this research is supported in part by the austrian forschungsforderungsgesellschaft ffg under project grant 1.：
+copyright is held by the author/owner s .
+www 1  april 1  1  beijing  china. acm 1-1-1/1.
+
+figure 1: query mapping via ontology
+1. modeling form interaction
+　the principle of our approach is outlined in figure 1. arbitrary web forms and meta-queries are represented in the metamorph rdf/owl ontology  which consists of three representational parts  a schema for queries  and a set of rules that connecting all of these. the mapping from the query to local forms can be derived by reasoning and rule application within the ontology.
+　each search form on a website has its own idiosyncratic way to represent a search request. to capture the specific semantics for such a form  the metamorph ontology must be able to faithfully represent three aspects:
+  form: the technical details how the local search form is constructed  which html input elements were used in which combination and their positions on their source page for future reference.
+  domain: a domain model rich enough to annotate each semantic reference in the local search form.
+  action: each html form element has an intrinsic action associated with it; a button can be clicked  a string value can be fed into a text field  see table 1. 
+　from the association of form elements with domain concepts  performed in the tagging stage   we can assign a purpose to the action associated with the element. if we know that an option o inside a select box refers to some specific domain individual i  the action on clicking on o has the well defined meaning  or  purpose   of submitting that specific value i to the local search request. having these teleological facts in place  the mapping of queries to local forms is derived easily. we use rdf/owl models to formalize the
+1
+pick x select option x in a choice fieldclick x click on element xenter s x enter string s into textfield xwww 1 / poster paper	april 1  1 ， beijing  chinatable 1: user interaction primitives
+metamorph ontology  enhanced by rules as provided in the jena toolkit.
+　example: suppose there is an select box containing month names. during tagging  the relation from the pure text strings to the  month  concept has been established. thus the interaction semantics for each option can be formalized:
+pick o1  achieves fillin monthjanuary  pick o1  achieves fillin monthfebruary  ... pick o1  achieves fillin monthjune 
+　a query posed to the metamorph system can now be interpreted as a request to fill in certain data. for example  a query for the month june can be translated into a simple sparql query:
+ action achieves fillin monthjune  which will be answered by the appropriate action: pick o1 
+　but we can take this translation a step further. with the semantic information gathered in our entangled ontologies  we can actually devise a plan for mapping the query schema. this plan can then be further translated into any traditional programming language and executed independently of the resource-intensive reasoning framework.
+　suppose a very simple global request for filling out a date consisting only of the three parameters; day  month and year. from our domain ontology we know that each parameter can have one of a finite number of values:
+day == oneof day1  day1  ...  day1 
+month == oneof january  february  ...  december  year == oneof 1  1  ...  1 
+　because our knowledge base is saturated with the interaction rules for any value:
+pick d1  achieves fillin day1  pick d1  achieves fillin day1  ...
+we can write down a plan that can deal with any instance
+of a global request in a straightforward manner:
+if  day == day1  pick d1  if  day == day1  pick d1  ...
+if  month == january  pick m1  if  month == february  pick m1  ... if  year == 1  pick y1 
+　note that this script does not refer any more to any internal ontology details. it is purely end-to-end from the global search parameters to the interaction language. for quick evaluation  we experimented in implementing these scripts in javascript using the chickenfoot primitives to execute the user interactions. due to the simple nature of these plans  both translations are straightforward.
+the derivation of these plans follows a simple algorithm:
+if c parameterof globalrequest
+and x instanceof c
+and pick o  achieves fillin x 
+=  assert  if  c==x  pick o  
+　in a similar manner  we address cases where many-toone and one-to-many relations or value transformations are required for expressing the mapping from form elements to domain concepts.
+1. implementation and validation
+　we verified the validity of our methodology by implementing the form modeling approach as part of an interactive and semi-automatic tagging system. flight search forms from the air travel domain were tagged interactively and semiautomatically using the lixto visual developer  with the domain and html concepts of the metamorph ontology. we could verify that our methodology was complete enough to cover all of the 1 search forms we evaluated.
+　we also found that our declarative approach significantly reduced the time to add new websites to a meta-search system compared to the traditional method of manual wrapper generation. since query plans are completely independent from the ontology at run-time  we found that the execution time needed to run queries and the robustness against layout changes was perfectly acceptable.
+1. conclusion
+　the main advantage of our declarative approach is that it modularizes the work needed to create and maintain metasearch applications into different levels: the addition of new web search forms requires just the tagging of form elements with ontology concepts and can be performed by a service designer. the skills of a trained ontology engineer are only needed to adjust the domain subontology when setting up a completely new search domain.
+　our approach gives the ontology engineer and service designer a number of possibilities to efficiently create and maintain a vertical search scenario. although we are currently incorporating more automatic mechanisms based on machine learning techniques into the tagging process  we do not envision a fully automated approach in the spirit of deep web query probing. instead  skilled service designers will finetune their applications to reach a robustness and reliability that is far above that of any automatic system.
+　as a next step  we plan to broaden our test scenarios by expanding them to other meta-search domains such as hotel search. we will also put more emphasis on dealing with dynamical forms and online applications.

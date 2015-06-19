@@ -1,0 +1,45 @@
+this paper proposes the an.p1p architecture to facilitate efficient peer-to-peer content delivery with heterogeneous presentation requirements. in general  the an.p1p enables a peer to deliver the original content objects and an associated workflow to other peers. the workflow is composed of content adaptation tasks. hence  the recipient can reuse the original object to generate appropriate presentations for other peers. 
+categories and subject descriptors 
+c.1  computer communication networks : local and wide area networks - internet; i.1  simulation and modeling : applications 
+general terms 
+design  performance  experimentation 
+keywords 
+application networking  peer-to-peer content distribution 
+1. introduction 
+　　in recent years  peer-to-peer systems witness more heterogeneous service requirements due to the emergence of diverse user devices. however  conventional peer-to-peer file sharing applications cannot effectively deal with these requirements due to the lack of system support for content adaptation. for instance  a piece of high quality media content shared by a desktop peer can not be easily rendered on a smart phone peer because of its limited processing capability. 
+　　a suggested solution is to allow the home peer  which publishes the content  to adapt the content presentation before it is sent to the requesting peer. the retrieved object presentation will be shared by the peer. however  the main drawback of this method is that the fully adapted presentation has significantly reduced reusability for other peers with different presentation requirements. 
+　　in particular  the reduction of peer sharing benefit could cause longer query forwarding path or even the query failure. in addition  on the proximity aware routing substrates  the prolonged query path implies longer transmission distance for the response object. 
+　　this paper proposes the architecture of application networking on peer-to-peer  an.p1p  to facilitate efficient peerto-peer file sharing for heterogeneous presentation requirements. the key idea of this study came from the observation that despite of the heterogeneous requirements for content presentations  the processes to generate the presentations are homogeneous. it means that different presentations are generated from the same original object and the uniform adaptation workflow. hence  if we allow the peers to deliver the original object and an associated content adaptation workflow  the recipient peers would be able to reuse the object to generate the appropriate presentations. 
+1. architecture 
+　　the architecture of the an.p1p platform is shown in figure 1. any peer can install the platform on top of its peer-to-peer routing substrate. the an.p1p proc. is the central process of the an.p1p platform; the an.p1p storage is used to store and manage the original content authored on this peer; the an.p1p cache is used to cache the retrieved object replicas and the associated workflow; and the anlet pool is used to store mobile applications  each of which performs a particular content adaptation task. in an.p1p platform  we defined a standard mobile application interface  anlet. applications that implement this interface can be loaded dynamically by the an.p1p peers. 
+
+ 
+　　the general operations of the an.p1p network are illustrated in figure 1. 
+
+figure 1 general operations of an.p1p 
+　　
+ 
+copyright is held by the author/owner s . 
+www 1  may 1  1  chiba  japan. acm 1-1/1. 
+ 
+ 
+1　　to publish a piece of content  the content provider inserts the original object and an associated workflow to the home peer. the workflow is composed by multiple content adaptation tasks  each of which needs to be instantiated with a particular anlet. the workflow also provides the urls from which the relevant anlets can be retrieved. 
+　　upon receiving a query for the content  the home peer will generate the appropriate content presentation according to the requesting peer's presentation profile carried in the query message. the generated presentation is sent directly to the requesting peer within a response message. in addition  the home peer can select an intermediate peer to replicate the original object and the associated workflow. the replication message will be cached by the selected peer. 
+　　when this intermediate peer receives a new query for the same content  it can retrieve the object from the local cache. according the url supplied by the associated workflow  the peer downloads the anlets to instantiate the workflow tasks. then the peer inputs the object to the workflow to generate the content presentation for the new requesting peer. finally  the downloaded anlets will be stored in the application pool for later reuse. 
+　　therefore  the original content object and the workflow can be populated within the network to serve peers with various presentation requirements. 
+　　theoretically  the an.p1p platform is not mandatory to be installed on each peer. when an an.p1p peer delivers object to an ordinary peer  it sends an appropriate content presentation as if the an.p1p mechanism was transparent to the peer. in contrast  when an an.p1p peer replicates to another an.p1p peer  it can send the original object and the associated workflow. we believe this back compatibility feature could facilitate the adoption of an.p1p mechanism into existed peer-to-peer networks. 
+1. performance 
+　　an an.p1p prototype has been implemented based on the pastry structured substrate . we verify the effectiveness of the an.p1p using an emulated p1p-drm service . it supplies copyrighted media contents to peers on the pc  the pda or the smart phone. 
+　　when authoring a piece of content  the content provider first secures the original media object using an encryption key. then the content provider encapsulates the secured object and an associated p1p-drm workflow in a xml container  which is published on its home peer and any peer can download it freely. to render the content  the client's media player needs to retrieve a license that supplies the key to disclose the secured object. 
+　　the p1p-drm workflow is composed by two anlets. each of them contains the key to decrypt the associated object  transform it  and write it back securely using the key. the first anlet can trim the original media object to a thinner version according to the type of the recipient device. in particular  the peers resided on pc can render the full quality media content  while the peers on pda or the smart phone can only render partial quality content. the second anlet inserts the watermark into the response media object. it uses the certificate of the requesting peer to generate the watermark. hence  the recipient of the media content can be traced using its embedded watermark. any unauthorized broadcasting of this content will be detected by scanning its embedded watermark. 
+　　we simulate a plain peer-to-peer network by restricting both anlets to the home peer of each content. in this case  all queries need to be forwarded to the home peer of the requested content  because the watermarked content is not authorized to be sent to other peers. however  in the an.p1p network  we allow the original object and associated workflow to be replicated to the pc and the pda based peers. by executing the anlets  these peers can adapt the media quality and generate the correct watermark to other peers. 
+　　we measure the performance of the two methods above in a network of 1 peers and 1 published media contents. the user requests follow the zipf-like distribution with λ=1. the simulation results are given in figure 1 and 1 respectively. 
+　　figure 1 presents the average query hops under different peer cache size. the result shows that the an.p1p method can help to reduce the average query hops due to the reuse of original object replicas. in contrast  the plain peer-to-peer method cannot benefit from peer sharing because the final response objects have little reusability. 
+
+figure 1 average query hops 
+ 
+　　figure 1 shows the multiplication of the size of response object and the corresponding distance between the source and the target peer. the figure shows that the an.p1p method significantly outperforms the plain method. when the peer cache size reaches 1mb  the size*dist value of the an.p1p method is only 1% to that of the plain method. this implies the an.p1p can help to reduce the user perceived latency of downloading the objects. 
+
+figure 1 response cost 
+ 
+　　in summary  the simulation results show that the an.p1p method can effectively improve the overall system performance due to the reuse of original objects and the associated content adaptation workflow. 

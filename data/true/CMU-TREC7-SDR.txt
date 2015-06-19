@@ -1,0 +1,86 @@
+we describe our submission to the trec-1 spoken document retrieval  sdr  track and the speech recognition and information retrieval engines. we present sdr evaluation results and a brief analysis. a few developments are also described in greater detail including:
+  a new  probabilistic retrieval engine based on language models.
+  a new  tfidf-based weighting function that incorporates word error probability.
+  the use of a simple confidence estimate for word probability based on speech recognition lattices.
+although improvements over a development test set were promising  the new techniques failed to yield significant gains in the evaluation test set.
+1. the sdr data and task
+the entire set of speech data for the 1 trec-1 spoken document retrieval track consisted of  1 hours of broadcast news  approximately 1 for training and 1 for testing. the data had been segmented into stories and manually transcribed. in the test set  there were three  versions  of the data available: a manually generated transcript  speech recognition transcripts based on ibm and cmu recognizers  and the raw audio data  to be transcribed by our own recognizer.
+the entire training set was used  to train acoustic models for the speech recognition system. the remainder was held out as unseen test data. there were about  1 stories in the training data set and 1 in the test set. to develop and debug the system  the trec-1 evaluation set was used in a known-item retrieval system -- where every query has only one document assigned as relevant.
+in our experiments on the evaluation test set  the average precision of the retrieval for each of the relevant documents was used to judge the quality of the retrieval. however  since relevance judgements were not available for the development test set  we used the average inverse rank from last year's evaluation to judge retrieval quality.
+1. system overview
+in this section we give a system description of the actual cmu trec-1 sdr submission. the speech recognition system is outlined as well as a fully automatic information retrieval weighting scheme suitable for retrieving documents imperfectly transcribed by automatic speech recognition.
+the speech recognition component
+the sphinx-iii speech recognition system used for this evaluation was configured similarly to that used in the 1 trec-1 sdr evaluation   although several changes have been made since then. sphinx-iii is a large vocabulary  speaker independent  fully continuous hidden markov model speech recognizer with separately trained acoustic  language and lexical models.
+for the current evaluation a gender-independent hmm with 1 senonically-tied states and 1 diagonal-covariance gaussian mixtures was trained on the trec-1 sdr training set.
+the decoder used a katz-smoothed trigram language model trained on the 1 broadcast news language modeling  bn lm  corpus and the ldc-provided supplemental newswire  nw  data from 1. this is a fairly standard language model  much like those that have been used in the darpa speech recognition community for the past several years. the lexicon was chosen from the most common words in this corpus. for this evaluation  the vocabulary was comprised of the most frequent 1k  words in the bn lm + nw corpora.
+the information retrieval component
+both documents and queries were processed using the same conditioning tools  namely noise filtering  stopword removal  and term stemming:
+  noise filtering: the goal of noise filtering was simply to remove non-alphabet ascii characters  punctuation  and other junk considered irrelevant to ir. all punctuation was removed except for spelled-letter words  e.g.  c.m.u   and the use of the apostrophe for contractions  e.g.  can't.  any changes in case were removed.
+  stopword removal: a set of 1 stopwords was compiled from a combination of the smart ir engine and several selected by hand based on document frequency. these words were removed entirely.
+  term mappings: a set of 1 mappings was used to map words with irregular word endings that were not properly covered by an implementation of the porter algorithm. an on-line houghton-mifflin dictionary was used for this lookup of irregular words and their roots.
+an example of this mapping is appendices¡úappendix
+  term stemming: an implementation of the porter algorithm was applied to map words to their common root.
+for this evaluation  we had two different relevance weighting schemes using entirely different approaches. the first was a vector-space model built on the lnu weighting scheme   whereas the second used a language model approach to estimate likelihoods.
+1. word probability in the relevance equation: mutual information
+some combination of the two factors frequency and selectivity that is used to evaluate the relevance of documents to queries. many retrieval engines use derivatives of salton's vector space model  specifically a measure commonly known as tfidf  term frequency by  log  inverse document frequency. 
+given a set of m documents  a word wi   and a specific document dm   the idf is defined as:
+idfi ¡Ô   log    {  m s.t.m wi ¡Ê dm}    
+although it is obvious that the idf provides some measure of term selectivity  it is important  for its application in this paper  to derive a theoretical basis for its use. if documents and queries are regarded from a probabilistic point of view  the significance of idf is readily apparent and motivates the proper use of word probabilities derived from the speech recognition.
+let documents and queries be defined as mappings of words into probabilities:
+d : wi ¡ú p wi  
+q : wi ¡ú p wi  
+the space of distinct documents is defined as:
+d ¡Ô{d1 d1 l  dm }
+the a-priori  probabilities of document relevance are equal:
+p dm = 1m
+the probability of a document  given a particular word is:
+p dm | wi  = p wi | dm  pp  dwmi   
+and by simple expansion:
+p dm | wi  = p wi | dm  p dm    wi | dm¡ä p dm¡ä 
+consider the information content of word wi to be the mutual information between the document set and the word:
+i d;wi  ¡Ô h d   h d | wi  
+expanding  using the definition of entropy:
+	m	m
+i d;wi  =   ¡Æ p dm  log1 p dm  + ¡Æ p dmwi  log1 p dm wi  
+	m=1	m=1
+the relevance of query q to document dm in space d is defined as the expected value of this information content:
+rel q dmd  =¡Æn e{i d;wi q dm  }
+i=i
+=¡Æn p wiq  dm   i d;wi  
+i=1
+assuming documents and queries to be independent:
+n
+rel q  dmd  =¡Æ p wi q p wi dm  i d;wi             1 
+i=1
+if  following the usual practice  documents and queries map words to indicator functions  boolean :
+n
+	i d;wi  = log1 m    	 wi dm  = idf wid 
+=1
+and the relevance function reduces to the familiar:
+n
+rel q dmd  =¡Æ 1 wi dm  1 wi q idf wi d 
+i=1
+where the indicator functions are the tf values. by this logic  it is seen that the idf can be supported as a meaningful derivative of information content. in addition  the more general form in equation 1 can be used when word probabilities are available.
+1. estimating word probability from recognition lattices
+in the course of decoding the incoming speech signal into a word string  the sphinx iii recognizer produces a lattice of words representing the many competing hypotheses. each hypothesized word in the lattice has a starting time  an ending time  a link to possible following words  and model probabilities for the word. after producing this lattice  the recognizer selects the most probable path after weighing evidence from the different modeling sources available. the best path  also called the top-1 hypothesis  is generated as the output of the recognizer.
+although the lattice is available  only the best path has typically been used for the purpose of information retrieval. although the lattice does not contain all possible word sequences  it is a far more detailed representation of what may have been said than can be given in a single transcription. one serendipitous benefit of the lattice is that the presence of a large number of options at any moment in time may indicate an uncertainty in word recognition. this is valuable  since it should be beneficial to predict which words in the top-1 hypothesis are incorrect  and discount them during information retrieval.
+one way of measuring the number of competing hypotheses for a specific node in a lattice is the following:
+  count the time span  in frames  of the node: n
+  count the number of frames contained in other nodes that occur simultaneously with this node  partially or completely : m
+  the lattice occupation density  lod  is n/ n+m .
+in the example shown in figure 1  the recognition system is less certain about the presence of  today  than  news  because the latter word has no competing hypotheses.
+
+figure 1: a simple lattice. numbers show the
+lattice occupation density  lod  values for the various nodes
+the trec-1 training corpus was used to build a probability model by analyzing the lattices created during recognition. the lod values for each word in the top-1 hypotheses were collected  and the word errors tallied. in figure 1  the probability that a hypothesized word occurred in the reference transcript is compared with its lod value from the lattice. from these measurements of the training set  a parameterized model of word probability was derived. the model adopted for this paper was a best fitting exponential of the form:
+p w | lod ¡Ö1   1lod
+
+lattice occupation density
+figure 1: using lod to predict word probability in the top-1 hypothesis. for example  hypothesized words with an lod of 1 appeared in the reference text approximately 1% of time.
+performance of mutual-information metric on development test set
+as can be seen in table 1  using error prediction in conjunction with the mutual information metric can reduce the average inverse rank difference between reference texts and the top1 hypotheses by 1%.
+transcription sourceaverage inverse ranklnulnu+mutual
+inf.ref1top1.1.1table 1: performance of the mutual information metric on the development test set.
+values are average inverse ranks for the different transcription sources.
+1. finding the best ir lattice path
+although improving the word error rate of the transcription is the primary goal for speech recognition tasks  in the case of indexing and searching audio material  some consideration for the application of the transcription should be made.  since many types of  errors  in transcription are benign  for example a substitution of one stop-word for another  it is apparent that reducing the word error rate blindly does not necessarily result in improved retrieval performance.

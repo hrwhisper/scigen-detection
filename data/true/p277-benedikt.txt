@@ -1,0 +1,207 @@
+we propose a framework for integrating data from multiple relational sources into an xml document that both conforms to a given dtd and satisfies predefined xml constraints. the framework is based on a specification language  aig  that extends a dtd by  1  associating element types with semantic attributes  inherited and synthesized  inspired by the corresponding notions from attribute grammars    1  computing these attributes via parameterized sql queries over multiple data sources  and  1  incorporating xml keys and inclusion constraints. the novelty of aig consists in semantic attributes and their dependency relations for controlling context-dependent  dtd-directed construction of xml documents  as well as for checking xml constraints in parallel with document-generation. we also present cost-based optimization techniques for efficiently evaluating aigs  including algorithms for merging queries and for scheduling queries on multiple data sources. this provides a new grammar-based approach for data integration under both syntactic and semantic constraints.
+1.	introduction
+﹛data exchange applications frequently require enterprises to integrate data from different relational sources for export as an xml document. the integrated xml document is typically required to conform to a predefined  schema . typically a schema consists of two parts: a type specification and a set of integrity constraints  e.g.  a specification in xml schema ; thus  the integrated data should both conform to the type and satisfies the constraints. here we consider dtds for xml types  and keys and inclusion constraints  a generalization of foreign keys  for xml constraints  which represent the schema features most common in current practice.
+example 1: let us consider data exchange between an insurance company and a hospital. the hospital maintains four relational databases: one containing patient information  one indicating whether a treatment is covered by an insurance policy  one storing billing information  and one describing treatment procedures - a treatment may require a
+
+ work done while the author was with bell labs.
+permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. to copy otherwise  to republish  to post on servers or to redistribute to lists  requires prior specific permission and/or a fee.
+sigmod 1  june 1  1  san diego  ca.
+copyright 1 acm 1-1-x/1 ...$1.
+procedure consisting of other treatments. the databases are specified by the following schemas  with keys underlined :
+db1: patient information patient ssn  pname  policy   visitinfo ssn  trid  date 
+db1: insurance coverage cover policy  trid 
+
+db1: billing information billing trid  price 
+db1: treatment procedure hierarchy treatment trid  tname  	procedure trid1  trid1 
+the hospital sends a daily report to the insurance company that includes information on patients and their treatments for that day. the insurance company requires the report to be in an xml format conforming to a fixed dtd d  here we omit the definition of elements whose type is pcdata :
+ !element report  patient*  
+ !element patient  ssn  pname  treatments  bill  
+ !element treatments  treatment*  
+ !element treatment  trid  tname  procedure  
+ !element procedure  treatment*  
+ !element bill	 item*  
+ !element item	 trid  price  
+an xml report conforming to d is depicted in fig. 1. it contains information from the database db1 about patients treated on the day. for each patient  the treatments subtree describes the treatments covered by the patient's insurance policy as well as the procedure hierarchy of each of these treatment  using the data in db1 db1 and db1; the bill subtree collects the price for each treatment appearing in the treatments subtree  using db1  for the reference of the insurance company.
+﹛observe the following. first  the integration requires multisource queries  i.e.  queries on multiple databases. for example  to find the treatments of a patient covered by insurance  one needs a query on both db1 and db1. second  treatment is defined recursively  i.e.  in terms of itself. thus  a treatment subtree may have an unbounded depth that cannot be determined at compile-time but is rather data-driven  i.e.  determined by the data in db1.
+third  the construction of the bill subtree of a patient is context-dependent: it is determined by the trids collected in the treatments subtree of the patient. in fact in many xml-based information integration tasks the natural flow of tree construction is not strictly top-down  but may rather require pushing information calculated during construction of one part of the tree over to another part. the arrows in fig. 1 indicate the information flow for this example.
+
+figure 1: example of xml report
+﹛furthermore  the insurance company imposes the following constraints on the xml reports:
+key: patient  item.trid ↙ item 
+ic: patient  treatment.trid   item.trid 
+the first constraint asserts that in each subtree rooted at a patient  trid is a key of item elements: for any two items  if their trid subelements have the same value  then the two must be the same element. that is  each treatment is charged only once for each patient. the second one is an inclusion constraint; it states that under each patient  for any treatment element there must be an item such that the values of their trid subelements are equal. this specifies an inter-database constraint: each treatment in db1 must have a corresponding price entry in db1.  
+﹛one goal of this work is to develop a language with which  given a collection r of relational databases  sources   a dtd d and a set 曳 of xml constraints  one can specify an integration  mapping  考 such that 考 r  is an xml document that both conforms to d and satisfies 曳. furthermore  the language should be capable of specifying integration tasks commonly found in practice  such as those involving recursive dtds  multi-source queries and the context-dependent constructions illustrated by the example.
+﹛to this end we propose a formalism  called attribute integration grammar  aig   to specify data integration in xml. an aig consists of two parts: a grammar and a set 曳 of xml constraints. inspired by attribute grammars   the grammar extends a dtd d by associating semantic attributes and semantic rules with element types. the semantic attributes  which can be either synthesized  evaluated bottom-up  or inherited  evaluated top-down   are used to pass data and control during aig evaluation. the semantic rules compute the values of the attributes by extracting data from databases via multi-source sql queries. a query for computing an attribute may take other attributes as parameters. this introduces a dependency relation on attributes  and thus the power to specify sophisticated control flow within the aig evaluation as well as context-dependent construction of elements. the constraints 曳 are compiled into relations on synthesized attributes and their satisfaction checking is embedded into the attribute evaluation. as a result  the xml document is constructed via a controlled derivation from the grammar and constraints  and is thus guaranteed to both conform to d and satisfy 曳.
+﹛as an example  fig. 1 gives an aig  考1  specifying the data integration described in example 1. we defer the explanation of 考1 to section 1 where we formally define aigs. based on aigs  we develop a middleware system to integrate relational data. the system implements a variety of optimization techniques to evaluate aigs efficiently. at compile time  it converts xml constraints into relations on synthesized attributes  reduces attribute dependencies to a minimum  and rewrites multi-source queries into singlesource ones while remaining in the aig framework. at run time  using basic database statistics  it generates execution plans that involve scheduling and merging single-source queries to maximize parallelism among underlying relational engines and to reduce response time.
+contributions. we propose a grammar-based approach to integrating relational data in xml under syntactic and semantic constraints.
+  we introduce a specification language aig  which provides a systematic method for supporting dtd conformant and context-dependent integration.
+  we show that xml constraints can be captured in the same framework via constraint compilation.
+  we show how to support multi-source queries within our specification and optimization framework.   we adapt query scheduling and merging techniques for efficiently evaluating aigs.
+related work. little previous work has addressed the issue of dtd conformance and constraint satisfaction for xml-based data integration. clio  derives schema and data mappings from inter-schema constraints; it is unclear how it can ensure dtd conformance automatically. results on the existence of mappings satisfying those constraints are explored in ; this is inspired by clio  but deals only with the relational setting. mix  addresses dtd checking/inference for xml integration  but the inference process is expensive  and does not provide any guidance for how to define a mapping that type checks ; moreover  it does not consider constraints. xml publishing systems such as silkroute  and xperanto  consider only a single relational source and do not take dtds and constraints into account. earlier rule-based systems  1  1  1  rely on object identifiers to model recursive data structures; it is unclear how they can handle recursive dtds and contextdependent integration of multiple databases. data integration mappings can be specified in turing complete transformation languages such as xquery  and xslt ; but optimization for these languages still remains to be explored  and their complexity makes it desirable to work within a more limited formalism. our contribution is complementary to work on schema mapping  see  for a survey   which focuses on schema translation rather than providing support for explicit specification and evaluation of data integration. closest to our work is   which presents a formalism for publishing relational data in xml with respect to a fixed dtd. aigs extends the formalism of  in several nontrivial aspects. first  aigs support multiple data sources. second  aigs support both synthesized and inherited attributes; this introduces the expressive power necessary for dealing
+
+semantic attributes:
+inh report  =  date 
+inh patient  =  date  ssn  pname  policy 
+inh treatments  =  date  ssn  policy 
+syn treatments  = syn treatment 
+                 = syn procedure  =  set trids   inh treatment  =  trid  tname 
+inh procedure  =  trid 
+inh bill  =  set trids  
+inh item  =  trid  price 
+inh ssn  = inh pname  = inh trid  = inh price 
+= inh tname  = inh s  = syn trid  =  val 
+semantic rules: report ↙ patient*
+inh patient .date = inh report .date
+inh patient . ssn pname policy  ↘ q1 inh report   where q1 v :
+select p.ssn  p.pname  p.policy from	db1:patient p  db1:visitinfo i where	p.ssn = i.ssn and i.date = v.date
+patient ↙ ssn  pname  treatments  bill
+inh ssn .val = inh patient .ssn 
+inh pname .val = inh patient .pname 
+inh treatments  = inh patient  date ssn policy 
+inh bill .trids = syn treatments .trids
+/* the treatments subtree of a patient */ treatments ↙ treatment*
+inh treatment . trid tname  ↘ q1 inh treatments   where q1 v :
+select t.trid  t.tname
+	from	db1:visitinfo i  db1:cover c 
+       db1:treatment t where i.ssn = v.ssn and i.date = v.date and
+t.trid = i.trid and c.trid = i.trid and c.policy = v.policy
+syn treatments .trids = syn treatment .trids
+treatment ↙ trid  tname  procedure
+inh trid .val = inh treatment .trid
+inh tname .val = inh treatment .tname
+inh procedure .trid = inh treatment .trid
+syn treatment .trids = syn procedure .trids ﹍ {syn trid .val}
+procedure ↙ treatment*
+inh treatment . trid  tname  ↘ q1 inh procedure   syn procedure .trids = treatment .trids where q1 v :
+select p.trid1  t.tname
+from db1:procedure p  db1:treatment t where p.trid1 = v.trid and t.trid = p.trid1
+trid ↙ s
+syn trid .val = inh trid .val inh s .val = inh trid .val
+/* the bill subtree of a patient */ bill ↙ item*:
+inh item . trid  price  ↘ q1 inh bill .trids  where q1 v  :
+select trid  price from	db1:billing where trid in v
+item ↙ trid  price:
+inh trid .val = inh item .trid 
+inh price .val = inh item .tname
+xml constraints:
+patient  item.trid ↙ item  patient  treatment.trid   item.trid with xml constraints and context-dependent informationpassing during document generation. third  aig incorporates into the integration process xml constraints on the target document  which are not considered in . due to the increased expressiveness  the evaluation of aigs demands techniques far beyond those reported in : it requires the analysis of inter-query dependencies  constraint compilation  rewriting of multi-source queries into singlesource ones  grouping and scheduling of queries based on the data sources; the top-down evaluation strategy of  no longer works in this context.
+organization. section 1 reviews dtds and xml constraints. section 1 defines aigs  followed by static analyses of aigs in section 1. section 1 presents evaluation techniques for aigs. section 1 presents experimental results; and section 1 identifies future research topics.
+	1.	schema specification
+﹛schema specifications for xml data normally make use of dtds and xml constraints.
+dtds. a dtd  document type definition   can be represented as a tuple d =  ele  p  r   where ele is a finite set of element types; r is a distinguished type in ele  called the root type; p defines the element types: for each a in ele  p a  is a regular expression and a ↙ p a  is called the production of a. to simplify the discussion we consider p a  of the form:
+	汐	::= s 
+where s denotes the string  pcdata  type    is the empty word  b is a type in ele  referred to as a subelement type of a   and  +       and     denote disjunction  concatenation and the kleene star  respectively  here we use  +  instead of  |  to avoid confusion .
+﹛recall that an xml document  tree  t conforms to a dtd d if the following conditions are met:  1  there is a
+﹛unique node  the root  in t labeled with r;  1  each node in t is labeled either with an ele type a  called an a element  or with s  called a text node;  1  each a element has a list of children of elements and text nodes such that they are ordered and their labels are in the regular language defined by p a ; and  1  each text node carries a string value  pcdata  and is a leaf of the tree.
+﹛the simplification of the p a 's above does not lose generality because of the following facts  which are straightforward to verify:  1  by introducing entities   macros of a regular expression   a dtd d1 with general regular expressions can be converted to d1 of the form given above in linear time; and  1  any xml document conforming to d1 can be converted to one conforming to d1 in linear time  by eliminating entities   and vice versa  by labeling entities .
+﹛to avoid overloading the notions used in aigs  we do not consider dtd attributes in this paper; but it is trivial to extend our framework to incorporate them.
+xml constraints. we consider xml keys and inclusion constraints of   defined in the presence of a dtd d as follows:
+﹛﹛﹛ 1  key: c a.l ↙ a   where c a and l are element types such that in d  l is a unique string-subelement type of a  i.e.  p l  = s and l is unique in p a . an xml tree t satisfies the key iff in any subtree tc of t rooted at a c element  for figure 1: example aig 考1
+
+any two a elements x y in tc  if the string values of their l subelements are equal  then x and y are the same node. that is  the l-subelement value of an a element a uniquely identifies a among all the a elements in tc. we say that l is a key of a elements relative to c elements.
+﹛﹛﹛ 1  inclusion constraint  ic : c b.lb   a.la   where c a b la and lb are element types of d such that la and lb are of string type in p a  and p b   respectively. an xml tree t satisfies the ic iff in any subtree tc of t rooted at a c element  for any b element b there exists an a element a in tc such that the value of any lb subelement of b equals the value of an la subelement of a.
+﹛we have seen xml keys and inclusion constraints in example 1. a cursory examination of existing xml specifications reveals that most xml constraints are of this form. in particular  foreign keys are supported: a foreign key is a pair consisting of a key c a.la ↙ a  and an ic c b.lb   a.la . to simplify the discussion we consider xml constraints defined with single subelement. the same framework can be used to handle constraints in xml schema .
+1.	attribute integration grammars
+this section defines the syntax and semantics of aigs.
+1	definition of aigs
+definition 1: given a dtd d =  ele p r   a set 曳 of xml constraints and a collection r of relational schemas  an attribute integration grammar  aig  考 from r to d  denoted by 考 : r ↙ d  is defined to be a triple of:
+1. attributes: two disjoint tuples of attributes are associated with each a ﹋ ele﹍{s}  called the inherited and synthesized attributes of a and denoted by inh a  and syn a   respectively. we use inh a .x  resp. syn a .y  to denote a member of inh a   resp. syn a  .
+each attribute member has either a tuple type  tuple of strings   a1 ... ak  where the ai's are distinct names  or a set type set a1 ... ak  denoting a set of tuples with components ai's.
+1. rules: a set of semantic rules  rule p   is associated with each production p = a ↙ 汐 in p. in rule p    1  there is a rule for computing the values of syn a  by combining the values of syn bi  for each bi in 汐. and  1  for each element type b that occurs in 汐  there is a rule for computing inh b  by means of an sql query on multi-databases of r and using inh a  and syn bi  as parameters. here bi's are the element types other than b mentioned in 汐.
+the dependency relation of p is the transitive closure of the following relation: for any  depends on b iff inh b  is defined using syn . the dependency relation is said to be acyclic iff for any b in 汐   b b  is not in the dependency relation.
+1. constraints: xml keys and inclusion constraints of 曳 are specified.
+the aig requires that the dependency relation of every pro-
+duction of d is acyclic.	 
+﹛as an example  fig. 1 gives an aig 考1. observe that the dependency relations of all the productions of 考1 are acyclic. in particular  although inh bill  is defined using syn treatments  in the production for patient  the dependency relation is not cyclic since inh treatments  is not defined using syn bill  directly or indirectly.
+﹛roughly speaking  given a database instance i of r  an aig extracts data from i using the sql queries in the rules for inherited attributes  constructs an xml tree with the data directed by the productions of its dtd  and checks whether the xml tree satisfies its constraints. the synthesized attributes collect data computed at each stage and pass it to sql queries as parameters such that the xml tree can be constructed in a context-dependent and datadriven way. the dependency relations specify an ordering on the data and control flow  which are acyclic to assure that the computation can be carried out. the inherited attribute inh r  of the root  referred to as the attribute of the aig  is a global parameter that enables us to compute different xml trees for different input values. thus an aig is a mapping: it takes i and inh r  as parameters  integrates the data of i following d  and produces an xml tree that both conforms to d and satisfies 曳. for example  given a date and db1 db1 db1 and db1 described in example 1  the aig 考1 generates an xml report for the particular date by integrating the relational data.
+﹛we next define in detail the semantic rules in an aig 考 : r ↙ d. consider a production p = a ↙ 汐 in d with element types b1 ... bn in 汐. we use the notation
+  to denote the vector containing all the synthesized attributes syn bi   and   to denote the vector of all except syn bi  for fixed i. we use two types of functions g and f for computing the synthesized attribute syn a  and the inherited attributes inh bi   respectively:
+
+where x x1 ... xm are members of syn bj  for some in the second case  and inh a    .  and {.} construct a tuple and a set of tuples  respectively; ﹍ denotes set union  x builds a set by collecting all the tuples in x  and q is an multi-source sql query over databases of r  which treats members of inh a  and syn bj  as parameters  a temporary relation is created in the database if some member is a set . type compatibility is required: the type of syn a  must match that of g  i.e.  if syn a  is of a tuple type  a1 ... ak  then g must be defined using  .  and returns tuples of arity k  and if syn a  is of type set a1 ...ak  then g is defined using and returns a set of tuples of arity k. similarly for inh bi  and f; in particular  inh bi  is of a set type iff f is defined with a query. it is easy to verify that type compatibility can be checked statically in linear time. also note that while inh bi  can be defined with queries to extract data from the underlying databases  syn a  uses simple tuple and set constructors to combine data computed previously.
+﹛more specifically  with these functions we describe rule p  associated with each production p = a ↙ 汐.
+ 1  if 汐 is s then rule p  is defined as
+	syn a  = g inh a   	inh s  = f inh a   
+where f g are as defined above such that f must return a tuple of a single member  i.e.  a string  which is treated as the pcdata. this is one of the two cases where syn a  can be defined using inh a . an example of rules of this form is the one for trid ↙ s in the aig 考1.
+ 1  if 汐 is b1 ... bn  then   consists of
+syn
+inh b1  = f1 inh a  syn b1  
+...
+﹛﹛﹛﹛﹛﹛﹛inh where g fi are as defined above    is a list of syn bj 's  which does not include syn bi   and   is a list of all syn bj 's. this is the only case where the inherited attribute of bi can be defined with synthesized attributes of bi's siblings. for an example see the rules for the patient production in 考1.
+ 1  if 汐 is b1 + ... + bn then rule p  is defined as:
+syn a  = case qc inh a   of
+	1: g1 syn b1  ; ...;	n: gn syn bn  
+ inh b1   ...  inh bn   = case qc inh a   of
+﹛﹛﹛﹛﹛﹛﹛1: f1 inh a  ; ...; n: fn inh a   where qc is a query that returns a value in  1 n   referred to as the condition query of the rule  and fj gi are as above. if qc inh a   = i  then syn a  and inh bi  are computed with gi syn bi   and fi inh a    respectively  otherwise they are assigned with null  or empty set depending on their types . these capture the semantics of the nondeterministic production in a data-driven fashion.
+ 1  if 汐 is b   then rule p  is defined as follows:
+	syn syn b  	inh b  ↘ q inh a   
+where q is a query. the rule for syn a  collects all the synthesized attributes of its children into a set. the rule for inh b  introduces an iteration  which creates a b child for each tuple in the output of q inh a   such that the child carries the tuple as the value of its inherited attribute. see the rules for the treatments production for an example.
+  then rule p  is defined by
+﹛﹛﹛﹛﹛﹛﹛﹛﹛syn a  = g inh a    where g is as defined above. this is the other case where syn a  can be defined using inh a .
+﹛several subtleties are worth mentioning. first  we restrict data sources to be relational just to simplify the discussion. the same framework can be extended to integrate objectoriented  xml and other formats of data  by expressing queries in  e.g.  oql  or fragments of xquery . second  aigs are not a mild variation of attribute grammars  see  e.g.    or their typical applications ; they are quite different in semantic definitions and evaluation strategies.
+1	conceptual evaluation
+﹛we next give the semantics of an aig 考 by presenting a conceptual evaluation strategy. here we focus on dtddirected integration  deferring the discussion of the support for constraints and multi-source queries to sections 1 and 1. optimization techniques for efficient evaluation of aigs will be discussed in section 1.
+﹛given database instances i of the schema r and a value v of the attribute inh r  of the aig  考 is evaluated depthfirst  directed by its dtd and controlled by its dependency relation  using a stack. the root node r is first created and pushed onto the stack. for each node lv at the top of the stack  we compute the inherited attribute value !a of lv  find the production p = a ↙ p a  in the dtd for the element type a of lv  and evaluate rule p  using !a as follows:
+ 1  if p = a ↙ s  recall syn a  = g inh a   and inh s  = f inh a  . a text node is created as the only child of lv with f !a  as its pcdata. then  g !a  is computed as the synthesized attribute of lv.
+  recall syn	   and
+inh bi  = fi inh a  syn bi  . we create a node tagged with bi for each i ﹋  1 n . these nodes are treated as the children of lv  in the order specified by the production. since the dependency relation of p is acyclic  there is a topological order on b1 ... bk such that each bi needs only the synthesized attributes of those preceding it in the order to compute its inherited attribute  while the first one needs inh a  only. we push these nodes onto the stack in reversetopological order  and proceed to evaluate them substituting !a for inh a . after all these nodes are evaluated and popped off the stack  we compute syn a  of lv using the function g and the synthesized attributes of these nodes.
+ 1  if p = a ↙ b1+...+bk  we first evaluate the condition query  which takes inh a   i.e.  !a  as a parameter. based on its value  a particular bi is selected and the function for computing inh bi  is evaluated  a function depending on !a only. a single bi node is created as the only child of the node lv  and pushed onto the stack. we then proceed to evaluate the node. after the node is popped off the stack  syn a  is computed by applying gi to !a and syn bi .
+ 1  if p = a ↙ b   recall inh b  ↘ q inh a   and syn a  =  syn b . we first compute inh b . if inh b  is empty  then lv has no children and syn a  is empty; otherwise m nodes tagged with b are created as the children of lv  such that each b node carries a tuple from the set inh b  as its inherited attribute. the newly-created nodes are pushed onto the stack and evaluated in the same way. after all these nodes have been evaluated and popped off the stack  we compute syn a  of lv by collecting the synthesized attributes of these nodes into a set.
+  recall syn a  = g inh a  . we simply compute g !a  as the synthesized attribute of lv.
+after syn a  of lv is computed  we pop lv off the stack  and proceed to evaluate other nodes until no more nodes are in the stack. at the end of the evaluation  an xml tree is created  denoted by 考 i v .
+﹛the following should be remarked. first  each node is visited only twice: it is created and pushed onto the stack  and popped off the stack after its subtree is created and evaluated; it will not be on the stack afterward. thus the evaluation takes one-sweep: it proceeds depth-first  following an order controlled by the dependency relations instead of left-right or right-left derivation. at each node  its inherited attribute is evaluated first  then its subtree  and finally  its synthesized attributes. second  the evaluation is datadriven: the choice of a production in the nondeterministic case and the expansion of the xml tree in the recursive case are determined by queries on the underlying relational data. third  context-dependent construction of xml trees is supported: synthesized attributes allow us to control the derivation of a subtree with data from other subtrees. finally  each step of the evaluation expands the tree strictly following the dtd d. it is easy to show that if the aig evaluation terminates  then it generates an xml tree that conforms to d. this yields a systematic method for dtddirected integration.
+example 1: consider again the aig 考1 of fig. 1. given databases db1 db1 db1 db1 described in example 1  and a value v of of inh report .date  the evaluation of 考1 generates an xml tree t of the form depicted in fig 1 as follows. it first creates the root of t  tagged with report. following the rules for the report production  it computes inh patient  by extracting data from db1 via query q1 v   which treats v as a constant. for each tuple in the output of q1 v   it creates a patient element as a child of report  carrying the tuple as the value of its inherited attribute. for each patient node pt  it creates ssn  pname  treatments and bill subelements. the first two have their s subelements carrying the corresponding pcdata from the inh patient  value. now the dependency relation of the patient production decides that the bill subtree cannot be constructed before the treatments subtree. thus it first evaluates the treatments child of pt by computing   which is a multi-source query over three databases: db1 db1 and db1. again for each tuple in the output of  it creates a treatment subelement. the subtree rooted at each treatment node is generated similarly  using the rules for the treatment and procedure productions. observe that treatment is recursively defined; thus  its subtree is expanded until it reaches treatment nodes whose procedures do not consist of other treatments  i.e.  when q1 returns the empty set over db1 at procedure nodes. that is  aigs handle recursion in a data-driven fashion. at this point syn procedure  syn treatment  and syn treatments  are computed bottom-up by collecting trids from their children's synthesized attributes. observe that the value vs of syn treatments  cannot be computed before the construction of the treatments subtree is completed since the subtree has an unbounded depth. next  vs is passed to the bill child of the patient node pt  and the evaluation proceeds to generate the bill subtree using the data in db1 and vs as inh bill . the integration is completed when all the patient subtrees are generated.  
+1	constraint compilation
+﹛an aig is pre-processed so that  1  enforcement of its xml constraints is done in parallel with document generation  and  1  multi-source queries are rewritten into singlesource ones to be executed directly by underlying relational engines. the output of this step produces a specialized aig  an aig that may have extra semantic rules and internal computation states. the generation of specialized aigs is automatic: no user intervention is needed.
+﹛we now describe how to pre-process constraints in an aig 考 to get a specialized aig 考. the aig 考 extends 考 with additional synthesized attributes  semantic rules and a guard construct. the synthesized attributes may have a bag type  set with duplicates   along with bag union operators    analogous to set operators    . a guard captures a constraint with a boolean condition on these attributes: if the condition holds then the evaluation proceeds  otherwise it aborts  i.e.  it is terminated without success. the preprocessing step  referred to as constraint compilation  does the following:
+semantic attributes:
+syn patient  = syn bill  = ... =
+﹛﹛﹛﹛ bag b  set s1  set s1   ...  semantic rules:
+patient ↙ ssn  pname  treatments  bill
+syn patient .b = synsyn pname .b
+	  syn treatments 	syn bill .b
+syn patient .s1 = syn ssn .s1 ﹍ syn pname .s1
+               ﹍ syn treatments .s1 ﹍ syn bill .s1 syn patient .s1 = ...
+guard: unique syn patient .b  guard: subset syn patient .s1  syn patient .s1 
+treatments ↙ treatment*
+ inh treatments .b = treatment .b inh treatments 	syn treatment .s1 inh treatments .s1 = ... item ↙ trid  tname
+syn item .b = syn trid .val
+syn item .s1 = { }
+syn item .s1 = syn trid .val
+. . .figure 1: constraint compilation in
+ 1  for each key k : c a.l ↙ a   create an additional member of type bag lk  in syn x  for every element type x. add semantic rules such that  i  syn a .lk is given the value of the l subelement of a elements   ii  for any x not equal to a  syn x .lk collects syn a .lk's below it in its subtree  excluding the l subelement value of x; and  iii  add a guard unique syn c .lk  for the context type c  which returns true iff syn c .lk contains no duplicates  i.e.  the values of all the l subelements of a elements are unique within each c subtree. this automatically generates code in 考 for checking the key.
+ 1  inclusion constraint c b.lb   a.la  is treated similarly: create two additional members la lb of set type in syn x  and add associated rules using set operators. for the type c  a guard subset syn c .la  syn c .lb  returns true iff syn c .la is contained in syn c .lb  i.e.  the inclusion relation holds within each c subtree.
+﹛the evaluation of the aig is aborted iff any of these guards is evaluated to false  i.e.  any constraint is violated. for example  the constraints of the aig 考1 are compiled into synthesized attributes and rules shown in fig. 1.
+﹛several remarks are worth mentioning. first  the semantic rules associated with constraints can be simplified statically. for example  the rule for syn patient .b in fig. 1 can be rewritten to syn patient .b = syn bill .b. these rules need not be necessarily evaluated bottom-up: the relation on attributes imposed by constraints can be used to optimize the evaluation. indeed  if at some point during generation  a bag-valued attribute  key  is found to have duplicates  evaluation is aborted immediately. similarly  an inclusion constraint c b.lb   a.la  suggests that b.lb is passed to the rules for a such that one can check whether there is a value of b.lb that is not in a.la during the computation of a.la  and vice versa. this avoids unnecessary computation. constraint repairing  can be incorporated into the framework  but to simplify the discussion  we focus on constraint checking in this paper.
+1	multi-source query decomposition
+﹛we next show how to decompose multi-source sql queries by introducing internal states into specialized aigs.
+semantic attributes:
+inh st  =  date  ssn  policy 
+inh st1  =  set trid  policy  
+inh st1  = syn st1  =  set trid  
+﹛syn st  = syn st1  =  set trid  tname    ... semantic rules:
+treatments ↙ st  treatment* inh st  = q1 inh treatments   
+inh treatment . trid tname  ↘ syn st   ...
+where q1 v :
+select i.trid  v.policy from	db1:visitinfo i
+where i.ssn = v.ssn and i.date = v.date
+st ↙ st   st
+inh	 	inh
+syn st  = syn st1  where	:
+select c.trid
+ from	db1:cover c  v1 t1 where c.trid = t1.trid and c.policy = t1.policy where	:
+select t.trid  t.tname from db1:treatment t  v1 t1 where t.trid = t1.trid
+
+syn st1  = inh st1 	/* similarly for st1 */
+. . .figure 1: multi-source query decomposition in
+﹛recall that the query q1 in the aig 考1 is defined on multiple databases: db1 db1 and db1  which may have different systems and may even reside in different sites. it is desirable to shift work from the middleware to the source relational engine as much as possible; thus one wants to rewrite the query into sub-queries such that each of them can be sent to and executed at the underlying relational system. for this reason a specialized aig supports a set of states  st  to supplement the set ele in the dtd. a state in st behaves like a type in ele: it has associated attributes and semantic rules  which are evaluated in the same way. the difference is that after the integration process terminates the nodes labeled with states in st are removed from the resulting xml tree t. that is  these st nodes only serve for computation purpose. as an example  fig. 1 shows how the specialized aig  rewrites q1 by means of internal states st st1 and st1.
+﹛a specialized aig can be viewed as a two-way tree automaton  that can issue queries. it should be mentioned that multi-source query decomposition is conducted automatically. a left-deep query plan tree is first generated by means of an underlying relational optimizer  under the assumption that all the data lie on the same source. internal states are introduced to represent the output of each node in the plan tree. the parent-child relationship follows the tree structure of the plan  the inherited attribute and semantic rule for a given state correspond to the output attributes and operator of the associated node in the query plan.
+1.	static analyses of aigs
+﹛an advantage of using a limited specification language is the ability to infer powerful static guarantees  and perform advanced program analyses. in contrast  expressive languages such as xquery and xslt can not allow such analyses: indeed xquery and xslt are turing-complete  and hence termination issues and output guarantees are out of reach. since a key goal of integrating data towards a target xml dtd is to ensure conformance of the output to a standard interface  static correctness assurance should be a central design goal.
+﹛the following results give a sample of the correctness checks that can be done statically on aigs:
+  given an aig 考 without constraints and defined with conjunctive queries  one can decide whether 考 will necessarily terminate on all instances.
+  given an aig 考 as above  one can decide whether 考 will terminate on some instances.
+  given an aig 考 as above and an element type e in the dtd of 考  one can decide whether e can be reached  and whether e must be reached on any instance.
+all of the above are proved by symbolic execution of 考  tracking along each path the conjunctive queries that are guaranteed to hold down that path. one can show that even in the case of recursive dtds  one need only simulate execution down to a fixed depth to detect non-termination. of course  some limits of static analysis follow from the corresponding limits on relational queries:   the above problems are undecidable for aigs defined with arbitrary sql queries  even when the underlying dtd is non-recursive.
+  it is undecidable whether an aig with inclusion and key constraints necessarily terminates  on some instance  even when the underlying dtd is non-recursive and the queries involved are conjunctive.
+﹛the first result follows directly from the undecidability of equivalence problem for sql  while the second result makes use of undecidability results for the consistency of dtds and  relative unary  xml constraints .
+﹛the restricted form of aigs also allows certain kinds of optimizations to be done easily at compile time. an example is copy elimination. a semantic rule in a  specialized  aig is classified as a copy rule  csr  if its righthand side makes use only of functions of the form; it is referred to as a query rule  qsr  otherwise. for example  the semantic rule  inh treatments .trids =  syn treatment .trids  is a csr. a copy chain is a maximal sequence of dependent

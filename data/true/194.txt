@@ -1,0 +1,50 @@
+ 
+in this paper  we present a state-machine based workflow system  named flexflow  which formally describes business processes with state charts. the flexflow system uses these descriptions to directly control the execution of the applications. we give a description of the flexflow process model and the underlying flexflow engine  and explain how flexflow can be used in commercial platforms for b1b e-commerce. 
+ 
+keywords: interactive applications  e-business systems  workflow management  business process management  e-commerce platforms. 
+ 
+1. introduction  
+the implementation of an e-commerce platform at a company often requires a customization of processes  such as an order process or a request for quotes  to the existing environment of that company. workflow technology is prevalent for the modeling  analysis and execution of business processes .  
+　in most current e-commerce systems  the steps of a business process  or the actions a system takes in response to user actions in such a process  are not made explicit  but are buried in a software code for both the dynamic pages and the application server. this makes the modification of implemented business processes extremely difficult and fragile. for example  to change the ordering of the process steps requires substantial rewriting of the software for the application and the web pages for the user interface. for e-commerce platforms made to be used by different companies  this presents a big problem as most companies' business processes differ from those of other companies to a small or large extent. thus  deploying such e-commerce platforms at each different company incurs a large overhead in terms of time and money required to rewrite the business processes . often  this overhead actually forces companies to adjust their business processes to conform to an e-commerce system instead of modifying the system to match their preferred processes. 
+　in this paper  we show how to employ the formal method of state charts  for the specification of processes for e-commerce platforms. by using state charts as our specification method  we are able to model business processes which can be automatically executed by a workflow engine. our contribution is the introduction of process state diagrams  which use the state starts notation for modeling business processes. furthermore  we introduce the flexflow system  which supports the formal specification of process state diagrams  including the simulation and execution of processes modeled with these diagrams.   
+
+figure 1: flexflow - lifecycle of a business process 
+1.  flexflow - overview 
+figure 1 shows the lifecycle of business processes in the flexflow system. a visual modeling tool is used to design new and modify existing business processes. the visual modeling tool generates from the process state diagrams an xml representation. the xml is compiled and loaded into the flexflow system database. in this database  flexflow also tracks each instance of a business process running at a given time in the business system including the current state. the flexflow engine uses the database to control both the execution of the business process and the user interface.  
+1. the flexflow process model 
+flexflow models e-commerce business processes as unified modeling language  uml  state diagrams   which are an adaptation of harel's statecharts . uml uses state diagrams to describe the behavior of objects  whereas  flexflow uses them to describe processes. we adopt the uml state diagram notation for the flexflow.  
+ 
+
+　uml state diagrams are directed graphs with nodes called states and the directed edges between them called transitions  see figure 1 . a transition represents a change of the process state  connecting a source state with a target state. a transition corresponds to an action taken in response to an event.  the transitions have guards specifying under what conditions the transition can be traversed. only one transition out of a state is taken in response to an event. 
+　flexflow adds three key features beyond uml: 1  the concept of roles  1  the coordination of interactions of multiple parties  and 1  the ability to allow different organizations to use different versions of the business process. 
+
+figure 1: simple flexflow state diagram for bilateral negotiation
+for flexflow  events are incoming messages and actions correspond to task logic being executed at the application server. 
+　figure 1 shows a flexflow modeling of a simple negotiation between a buyer and a seller .  the top right transition shows that on the event  offer   the action  recordoffer  is taken. the engine checks the guard specifying that the user making the offer is the  buyer . as the action for the other  offer  transitions is also  recordoffer  we do not show it here for the sake of simplicity.  there is no action corresponding to the  accept  or  reject  events. on entry to the final state  deal  a  recorddeal  action is taken.  
+1. flexflow process execution 
+the flexflow system has an engine to manage the execution of business processes. when an event arrives  an event dispatcher figures out to which business process instances the event applies and invokes the engine for each. 
+the engine processes the event based on the instance's current state and business process.  
+1. event creation 
+events can be created in the following two ways  both shown in figure 1 : 
+  interaction controllers handle external interactions with different types of clients including web browsers  mobile devices  and message queues.  for example  a buyer requests on a web form for an rfq to be closed. this http request is received by the interaction controller which converts it into an event. 
+  internal system actions can trigger events. for example  the  rfq close  action might create a  close quote  event for the responses to that for that rfq.  
+1. the flexflow event handler 
+all events arrive first at the flexflow event handler  see figure 1 . events triggered by interaction controllers get routed to the flexflow engine. events triggered by existing process instances are routed to all process instances listening for it. for example  all the quotes listening to their parent rfq need to process events coming from the rfq. to determine which instances are listeners  the router reads a flow instance event registry where quote process instances are registered to listen to the rfq process to which they belong. the flexflow event handler will duplicate the event for all the listeners  routing each to the flex flow engine. 
+1. the flexflow engine 
+the flexflow engine receives targeted events from the event handler and executes the necessary actions. figure 1 shows how the engine interacts with the other parts of the system for event processing. 
+
+figure 1: flexflow event handler and engine 
+when receiving an event  the flexflow engine takes the following steps  as shown in figure 1 :  
+1. the incoming event is retrieved with its context including marshaling incoming parameters and deriving user and role information. 
+1. the engine either retrieves the existing targeted instance or creates an instance of the new specified process putting it in the start state. the engine registers the instance for events from those instances from which it needs to know outgoing messages such as a quote with its parent rfq. 
+1. the engine looks for a transition that 1  exits the current state of the instance  1  has an event matching the event being processed  and 1  has guards which can be satisfied; the engine calls the guard evaluation to check. 
+1. if no transitions were found in the previous step  then the engine returns control to the caller with a count of the number of transitions traversed and the list of the next available events. when appropriate  the caller will treat no transitions traversed as an error. 
+1. if the engine has come this far without returning  it has a transition that can be traversed. the first step is to execute the exit action on the current state if there is one. 
+1. the engine executes the action on the found transition.  
+1. the engine looks for an entry action on the transition's target state. if one exists  the engine executes it.  
+1. the engine updates the instance's current state to the transition's target state. 
+1. in order to process any automatic  null event  transitions exiting the new current state of the instance  the engine then sets the incoming event to null and returns to step 1. 
+
+figure 1: flow chart showing engine execution of an incoming event note that if any of the actions  exit  transition  or entry  fail to complete successfully  the engine returns control to the caller with the reason for failure. the flexflow engine processes all actions from one event within a single transaction scope. in other words  the system is left with either the effect of all the actions executed  or none. if any action fails  the whole transaction is aborted and the effects of the previous actions whose execution was initially or subsequently caused by the incoming event are rolled back. only when all the actions succeed is the transaction committed. this prevents the process instance from ending up in an  unnatural  state. 
+1. conclusions 
+web-applications are difficult to build with traditional workflow management systems. in this paper  we presented an approach for managing web-based business processes. we proposed a state machine based model for the specification of business processes and have shown the flexflow system which supports the modeling  simulation and execution of process state machines. we have deployed two generations of the flexflow system in commercial b1b e-commerce systems  first in ibm's websphere commerce suite marketplace edition  r   wcs mpe   and then in ibm's websphere commerce business edition  r   wcs be .  additional problems we want to consider in the future include the management of hierarchical states as well as the concurrent execution of flexflow processes.  

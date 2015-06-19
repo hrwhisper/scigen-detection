@@ -1,0 +1,56 @@
+we describe some computational experiments carried out with variants of the  pagerank  model due to page et al.  with particular reference to the small and large scale structure of the web.
+keywords
+world wide web  pagerank  linear algebra  sparse matrices  bowtie theory
+1	introduction
+this poster summarizes the results of three sets of experiments carried out with  pagerank  computation. the first set examines the convergence of the standard method  and relates it to the smaller scale structure of the web. the second examines an alternative approach to computing pagerank which gives much faster convergence  at the cost of an additional sort. the third topic is the exploitation of the larger scale structure of the web to partition the computation
+1	mathematical formulation
+we treat the html  points-to  relation on web pages as a directed graph   where the set of vertices consists of the pages  and the set of directed edges   which exist iff page has a hyperlink to page . in practice this graph is usually pruned to remove self-loops and other forms of  spam . for convenience  we define as the out-degree of page  the number of hyperlinks on page  . we also define a strongly connected component of to be a subset of the vertices such that for all pairs of pages   there exists a directed path from to . finally  we will refer to a largest strongly connected component of a graph as the scc.
+   pagerank is a static ranking of web pages   used at the core of the google search engine  http://www.google.com . in  ideal  form page is assigned rank as a function of the rank of the pages which point to it:
+		 1 
+this recursive definition gives each page a fraction of the rank of each page pointing to it-inversely weighted by the number of links out of that page. we may write this in matrix form as:
+ 1 
+where	if	and zero otherwise.
+   in practice many pages have no in-links and the eigenvector of  1  is mostly zero. to get around this difficulty  we may use an  actual model :
+		 1 
+or in matrix terms: 1 where	is the vector of all 1's  andis a parameter. if we scaleso thatthis is equivalent to:		 1 
+unless stated otherwise we use a value of for   but others report using a value of . this modification clearly overcomes the problem of identically zero pagerank-we may think of  1  as  seeding  each page with a rank of .
+
+figure 1.
+convergence of host graph vs web graph
+1	poweriteration and convergence
+power iteration is the most straightforward technique for computing the principal eigenvector of a matrix. elementary theory tells us that as is reduced from 1 the gap between the principal and second eigenvalue will increase  and power iteration will converge more quickly. this is commonly observed. what is not commonly observed is that convergence may depend on the structure of the graph. we can naturally partition the graph into links inside web sites  and links across web sites. we consider the convergence of power iteration on the host graph  in which each vertex corresponds to an entire web site. any edge between pages in different sites is represented as an edge between the corresponding site vertices in the host graph. we consider two variants: in the first we allow multiple edges between sites if multiple pages on one site contained links to the same destination site. in the second  we collapse all such hyperlinks into a single edge. figure 1 shows the convergence of power iteration for these two variants of the hostgraph against the convergence for the entire scc for the stanford webbase graph.
+   note that the normalized error measures  residuals  in figure 1 are plotted in log scale. clearly  residuals are orders of magnitude smaller for the host graph than in the whole scc. furthermore  we were able to compute numerically the second eigenvalue of the host graph  which is 1. thus  the eigenvalue gap is larger than 1%  implying quite rapid convergence.
+on the other hand  the eigenvalue gap for the scc was too small for us to complete computation of the second eigenvalue in reasonable time.
+   we conclude that connectivity between web sites is strong and robust. however  once we shift from the granularity of the host graph back to the granularity of the web graph itself  the complex structure within individual sites causes convergence to suffer.
+1	eigensystems or equations 
+instead of computing an eigenvector from  1   we now consider the completely equivalent problem of solving the set of equations  1   which we can write more conventionally as:
+ 1 
+the simplest iterative method-jacobi iteration-for solving  1   requiring us to compute at iteration
+		 1 
+turns out to produce the same sequence of as power iteration carried out on  1 . the next step is to use the gauss-seidel iteration:
+			 1 
+which uses the most recent values wherever possible. in figure 1 we plot the convergence of the two methods using the sample scc of the previous section. in this experiment we first computed the eigenvector  for   by other means to full single precision accuracy. we then ran the power iteration and gauss-seidel methods  at each step computing the 1-norm of the deviation of the current iterate from the known solution.
+
+figure 1.
+logarithmic convergence of pagerank for power iteration and gauss-seidel with
+   the gauss-seidel method clearly converges much faster than the power/jacobi methods. the only caveat is that gausssiedel requires us to sort by row  while power/jacobi can use it in any order. experiments indicate that the improved convergence more than makes up for the sort. whole classes of iterative methods remain untried for this problem.
+1	large scale structure of the web and its implications
+so far we have considered only small-scale structure of the web graph and its associated matrices. when we consider the large-scale structure of the web  the arguments for using an equation-solving approach become even stronger. as is now well known  the graph structure of the web may be characterized by the  bow tie  of figure 1  see broder et al 
+
+figure 1.
+bowtie structure of the web
+   ignoring the disconnected components  which can be dealt with separately  it is easy to see that this structure corresponds to a special case of a  block upper triangular  permutation of our coefficient matrix:
+ 1 
+	...	...
+and indeed we may view the bow tie as a visual model which captures some  but by no means all  of the structure which can be extracted from the matrix .
+   the structure  1   where each diagonal block is irreducible   may be extracted by depth first search  dfs . the largest diagonal block corresponds to the scc  and this is the only really efficient way that we know of to find it. we may therefore consider the finding of the entire detailed block structure  1   a linear complexity process  equivalent to the work involved in just the first step of finding the scc for the bow tie.
+	when an equation solving method is used we may conformably partition	with the matrix so that
+and equation  1  can be solved via a sequence of smaller problems of the general form:
+		 1 
+for	.
+strong component sizenumber of this size1 111 1 - 11 1 - 11 1 - 11 1 - 11 - 111 1table 1.
+size and number of strong components
+   generally speaking  we expect the solution of these subproblems to take fewer iterations individually than is required for the huge matrix   leading to less total arithmetic. the other payoff  perhaps the payoff  is in reduced i/o.
+   when we solve the sequence of sets of equations  1  we expect the largest of the subproblems to be of the order of the scc  and many of the matrices may now be able to fit in memory. to illustrate this  we show in table 1 the size of the strong components for the web graph of an experimental  and incomplete  crawl of the ibm intranet  with 1 1 pages and 1 1 links. we see that there is a rapid drop-off in size from the largest scc of about 1 million pages to many much smaller components. this suggests a strategy of aggregating adjacent components  i.e. diagonal blocks in  1   to produce many submatrices which fit in main memory-perhaps for all but the largest scc. in this situation the total amount of buffering  i/o  required is considerably reduced.
+1	conclusion
+our limited experiments suggest that pagerank computation can be significantly speeded up. we await the results of larger crawls being carried out by our colleagues to test the methods we have discussed here on a full web scale.

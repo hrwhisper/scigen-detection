@@ -1,0 +1,84 @@
+ 
+this paper describes a novel search engine  withair that provides contents retrieval for i-mode  the most popular cell-phone service in 
+japan. withair allows users to complete typical search tasks with 1 keystrokes on average through keyword/purpose-predictive navigation. these two forms of navigation simplify  respectively  keyword input and search result output. withair has been used to search 1 million i-mode pages collected by document-type-based focused crawlers that can distinguish between i-mode pages and web pages with a precision of 1%. additionally  withair offers fresh and exhaustive searching of 1 regional information pages extracted from 1 million i-mode pages with a precision of 1%.  
+  
+keywords 
+ 
+mobile search engine  input support  focused crawler  regional information search 
+ 
+1. introduction 
+ 
+　as the popularity of mobile devices such as cell-phones has grown  i-mode has become one of the most successful cell-phone services in the world.  figure 1 shows the growth in the number of i-mode users and sites .  first introduced in japan in february 1 by ntt docomo  i-mode now has more than 1 million subscribers. currently  there are over 1 i-mode sites  and the i-mode traffic is over 1 million page views per day. this growth has led to demands for a better i-mode search engine. in this paper  we describe a mobile search engine  withair  developed based on four design concepts:  a  simplifying keyword input to reduce the cost of key operation   b  simplifying search result output to help users find relevant pages easily   c  crawling i-mode pages automatically to constantly update and expand search results  and  d  offering regional information searching to help users find information on  for example  hotels or restaurants  while they are out.  
+1
+1
+1
+1
+1
+1
+1
+1
+ 
+figure 1: increasing i-mode subscribers and sites  
+ 
+1. system overview 
+ 
+  withair has four important features based on the design concepts. 
+ 
+ 1  keyword predictive navigation reduces the operation cost of entering search keywords 
+ 
+the input method is a major issue for cell-phone device users. inputting keywords consisting of alphabetical and japanese characters with an alphanumeric keypad is very troublesome. the keyword predictive navigation of withair helps users input frequently used keywords taken from the query history. 
+ 
+ 1  purpose-predictive navigation reduces the trial-and-error inherent in browsing search results 
+ 
+the i-mode screen size does not permit the display of search results with detailed information like urls or captions. to address this problem  the purpose-predictive navigation  of withair shows search results according to several typical search purposes of the user by anticipating from the input keyword. since the search purposes can be expressed in one or two words  users can find relevant pages at a glance. this alternative form of navigation guides users quickly and accurately on a small screen. 
+ 
+ 1  focused crawling i-mode pages based on document-type classification 
+ 
+i-mode pages are written in the compact hypertext markup language  chtml   1  which is a subset of the hypertext markup language  html  used for typical web pages. the hypertext transfer protocol  http  is used to exchange i-mode page files as well as web pages. therefore  general web crawlers tend to collect both i-mode and web pages. we used document-type classification  to selectively crawl i-mode pages because it can distinguish i-mode pages from web pages by scoring structural characteristics like chtml tags  urls  page size  and so on. for example  a page gains points if its url contains /i/ or /i mode/  while a page loses points if it contains tags unsupported by chtml  such as  frame . higher scoring pages are more likely to be i-mode pages. 
+ 
+ 1  regional information classification of i-mode pages 
+ 
+people on the go often have a great need for regional information regarding hotels  restaurants  and so on. withair offers regional information searching by classifying i-mode pages according to the place names they contain  including addresses  zip codes  phone numbers  or train/subway station names . a page that contains more place-names related to a particular region is considered more likely to contain information related to that region. 
+ 
+　figure 1 shows snapshots of the withair display for two sample scenarios that demonstrate the information discovery tasks that can be done using our system.  though the output of withair is in japanese  those snapshots are written in english for illustrative purposes.  one scenario is getting music information through a keyword search  and the other is getting travel information for tokyo through a regional information search. 
+ 
+　imagine a user who has a general interest in music  and wants to enter a keyword  music  for the search. the user can use keyword predictive navigation  feature  1   by clicking the  keywordnavi  link in the top page of withair  fig. 1 a  . when character classes 
+ mno  tuv  are designated  the five highest frequency keywords that start with  mno  tuv  are listed  e.g.   ntt    ntt docomo   
+ music    ntt east  and  ntv  in fig. 1 b  . the user can search with the keyword  music  by clicking the listed keyword  music . 
+purpose-predictive navigation  feature  1   then anticipates the intrinsic purpose of the user from statistical analysis of the keyword 
+ music  and words that co-occur in the query history  and returns several sets of purpose and relevant sites related to the keyword  music   e.g.  in fig. 1 c    cd shop  is purpose anticipated from the keyword  music  and  music navi  is a cd shop site . below the purpose-predictive navigation results  there are results of a keyword search. whole pages in the result are designed for i-mode  so the user can smoothly browse these pages  feature  1  . 
+ 
+　our next scenario is a visitor to tokyo who wants travel information. the user can use regional information search  feature  1   by clicking the  regional info  link in the top page  fig. 1 a  . all the user has to do is to select a regional directory  fig. 1 d  . withair then returns a selection of i-mode pages related to tokyo  fig. 1 e  .  note that purpose predictive navigation is also available.  if the user is looking for a hotel to stay at  he would chose the second page in the regional info results which is titled  tokyo  - hotel guide . 
+ 
+ 
+
+retrieval 
+figure 1: screen-shots of withair. the user can use keyword predictive navigation by clicking the keywordnavi link on the top page  a . if there is a keyword that the user wants to use from among the five highest frequency keywords on page  b   the user can search with that keyword by clicking it. when the user clicks the keyword music  withair displays purpose-predictive navigation and keyword search results for music as page  c . the user can also search for regional information by clicking the regional info link on page  a . after a region is selected on page  d   i-mode pages related to that region are listed as page  e .  
+1. evaluation 
+ 
+we measured the precision and recall of the i-mode focused crawler and regional information classification  and evaluated the user 
+friendliness compared to conventional search engines.  
+  
+1 accuracy of focused crawler and regional information classification 
+ 
+　tables 1 and 1 show  respectively  the accuracy of the i-mode focused crawler and the regional information classification. about 1 million pages were collected and classified as i-mode pages by the crawler  and about 1 of these were classified as containing regional information. the precision of the focused crawler was measured as the ratio of actual i-mode pages  1 pages  to the total number of sampled pages classified as i-mode pages  1 pages  by the crawler. since we cannot know how many i-mode pages are actually existing in the web  we measured the recall of the focused crawler virtually as the ratio of pages classified as i-mode pages  1 pages  to the total number of actual i-mode pages sampled  1 pages . the precision and recall of regional information classification were calculated in the same way as those of the focused crawler.  
+  
+table 1: performance of i-mode focused crawler 
+gathered i-mode pages precision recall 1 1 1%  1  1%  1  table 1: performance of regional information extractor classified pages precision recall 1 1%  1  1%  1    
+1 user friendliness 
+ 
+　　we counted the minimum keystrokes needed to accomplish a typical search task  e.g.   find a hotel room in osaka    find a bullet-train timetable   as the user friendliness index. figure 1 compares our results for withair with those when using other i-mode search engines such as yahoo! mobile  and google for i-mode .  
+
+average of minimum keystrokes
+ 
+figure 1: comparison of minimum keystrokes 
+ 
+　　as shown  a keyword search on withair took from one-ninth to one-fifth as many keystrokes as with the other keyword search engines. this reduction is due to both the keyword predictive navigation  which reduces the keyword-entering cost  and the purpose-predictive navigation  which reduces the results-browsing cost.  note  however  that users unfamiliar with the structure of the given category usually need to use more than the minimum keystrokes.  we therefore concluded that a keyword search on withair is currently the most user-friendly. 
+ 
+ 
+1. conclusion 
+   
+we have developed and implemented the withair i-mode search engine whose i-mode page focused crawler could collect 1 million i-mode pages with a precision of 1%  and whose regional information extractor could extract 1 regional information pages from i-mode pages with a precision of 1%. the keyword search on withair allows users to accomplish typical tasks with the fewest possible keystrokes.  
+ 
+  withair was implemented in the i-mode search service of biglobe   a major internet service provider in japan  on 1th july 1. in the future  we will continue to evaluate the online performance of withair through actual test cases based on user feedback and access logs to improve the withair system and data processing. 
+  

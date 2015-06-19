@@ -1,0 +1,72 @@
+being able to determine the provenience of statements is a fundamental step in any sw trust modeling. we propose a methodology that allows signing of small groups of rdf statements. groups of statements signed with this methodology can be safely inserted into any existing triple store without the loss of provenance information since only standard rdf semantics and constructs are used. this methodology has been  implemented and is both available as open source library and deployed in a sw p1p project.
+categories and subject descriptors
+h.1  information systems : logical design 
+general terms
+algorithms  performance  design  security  theory
+keywords
+rdf  digital signature  semantic web  trust.
+1. the problem
+authorship authentication and signing of rdf graphs is still in its infancy. the most relevant work is certainly  by j. carroll which illustrates a nondeterministic  but relatively simple and efficient  procedure for providing a  canonical serialization  for  entire  rdf graphs. the canonical serialization is needed to digitally sign rdf as the same graph could be serialized in a very large number of model equivalent ways. the same author then argues that a mechanism for trust is  naming  graphs ; the two things when combined would work by associating a graph with its signature  which would remain external to the graph. this is similar to what has been informally proposed for signing foaf files . in this work we present a methodology to attach digital signatures closer to the individual statement and using only the standard rdf semantic .  
+this brings the following advantages:  
+  triples all lie in the same model  i.e. computational space  so that they can all be conveniently considered at the same time when performing a query
+  no need for special  non standardized  implementations  named graphs  quadruples 
+  a graph can safely be split into minimal subsets of statements that nevertheless conserve the ability to verify the digital signature.
+1.definitions and properties
+let's first define what is the minimum  standalone  fragment of an rdf model. as blank nodes are not addressable from outside a graph  they must always be considered together with all surrounding statements  i.e. stored and transfered together. this is of course unless they have an ifp  inverse functional property   which effectively makes them as addressable as uri nodes. we will here give a formal definition of msg  minimum selfcontained graph  and will prove some simple properties laying the base for msg signing.
+definition 1. given an rdf statement s  the minimum selfcontained graph  msg  containing that statement  written msg  s   is the set of rdf statements comprised of the following:
+   1.the statement in question;
+   1.recursively  for all the blank nodes involved by statements included in the description so far  the msg of all the statements involving such blank nodes;
+this definition recursively build the msg from a particular starting statement; we now show however that the choice of the starting statement is arbitrary and this leads to an unique decomposition of the an rdf graph into msgs.
+proposition 1. the msg of a ground statement is the statement itself.
+theorem 1.  if s and t are distinct statements and t belong to msg  s   then msg t  = msg s .
+proof. if t belong to msg s   then  by the recursive definition  all statements in msg t  belong to msg s   so msg t  is a subset of msg s . we will now show that msg s  is a subset of msg t   thus proving the theorem. if t is a ground statement  msg t  = t != s  so t is not a ground statement. if s involves one of the blank nodes of t  then s belong to msg t  and msg s  is a subset of msg t . recursively  if s involves one of the blank nodes of msg  t   msg s  is a subset of msg t . if s does not involves any of the blank nodes of msg t   then msg s  and msg t  must be disjoint  which is against the original hypothesis. 
+theorem 1. each statement belong to one and only one msg. proof. is it straightforward to see that a statement belongs at least to a msg  as the definition gives also an algorithm to build it. lets suppose that a statement s belongs both to msg t  and msg u   where t and u are distinct statements. then msg s  = msg t  and msg s  = msg u   so msg t  = msg u   i.e. they are the actually the same msg.
+corollary 1. an rdf model has an unique decomposition in msgs.  
+this is a consequence of the fact that all the black nodes  in the msg definition  are  properly surrounded  by actual uris  or literals . as a consequence  a graph can be properly reconstructed
+
+
+copyright is held by the author/owner s .
+www 1  may 1--1  1  chiba  japan. acm 1-1/1.
+image 1 the msgs composing the rdfn involving a uri. statements outside the circle are not included in the rdfn.
+darker nodes are uris  lighter ones bnodes
+1
+between 1 peers by transferring and merging one or more msg at a time.
+definition 1. the rdf neighborhood  rdfn  of a resource is the graph composed by all the msgs involving  the resource itself. it is straightforward to see that a graph can be transferred by moving the rdfn of all the involved uris. example msgs and rdfn involving a resource are illustrated in image 1. 
+1.signing msgs
+given that an rdf statement belongs to one and only one msg  as previous definitions and properties show  we argue that it is possible to sign an msg attaching the signature information to a
+single  arbitrary triple composing it. 
+the following example shows the signed version of an msg as produced by our implementation. 
+a canonic representation of the graph is obtained implementing the algorithm described in  and is encrypted with a public key. the the digest is represented in rdf as a  literal value. along with the signature the public key to be used for verification is provided by means of a resolvable uri. this indication is itself covered by the signing procedure. 
+ rdf:description rdf:about= http://www.musicbrainz.org artistid=1  
+          mus:is part of rdf:nodeid= 1 / 
+ /rdf:description 
+ rdf:description rdf:nodeid= 1  
+          mus:plays rdf:nodeid= 1 / 
+          rdf:type http://dbin.org/music#band / 
+ /rdf:description 
+ rdf:description rdf:nodeid= 1  
+          rdf:type http://dbin.org/music#song / 
+          mus:file urn:md1....1 / 
+ /rdf:description 
+ rdf:description rdf:nodeid= sign 1  
+          rdf:subject rdf:resource= http://www.musicbrainz.org artistid=1  / 
+          rdf:predicate rdf:resource= http://dbin.org/music#is part of / 
+          rdf:object rdf:nodeid= 1 / 
+          dbin:pgpcertificate rdf:resource:
+ http://public.dbin.org/cont/1.asc   
+          dbin:base1sigvalue  mcwopx...a1xcb1w==  /dbin:base1sigvalue 
+          rdf:type rdf:resource=
+ http://www.w1.org/1/1-rdf-syntax-ns#statement / 
+ /rdf:description 
+as shown in the example  by  attach  we mean using a reification procedure. using the same procedure more signatures can be attached to the same msg either independently or  layered  thus providing a mechanism for countersigning. 
+given the msg properties  this  information patch  can be merged into any existing rdf graph and the signature properties will be retained  checking the signature on any statement can be performed computing the msg it belongs to  which will contain no triples from the pre-existing model  and to check if any of the statements carry a msg signature on it.  
+1.supporting information revision in highly replicated p1p environments
+other than authenticating provenience  this methodology has been successfully used to allow remote db updates in our rdfgrowth p1p semantic web model . 
+in rdfgrowth  peers synchronize the rdfn about uris they're interested in with those coming from other peer in a fully monotonic model ever growing knowledge . in this architecture 
+msgs produced by some are then passed and replicated by others many times so the only connection between those who produced the information and the consumer is the digital signature attached using the methodology here presented. 
+this not only supports trust at the client level by individually filtering msgs from untrusted sources  but also allows a peer to issue  patches  that modify or cancel msgs that he previously authored. in short  once a msg has been signed  the hash can be used as a ifp  that is  as a unique way to identify the msg itself. this in turn can be used in a subsequent msg to indicate the one that it substitutes. given that the authorship of this subsequent msg can be verified to be identical to that of the original one  the client can safely perform the information update  no matter where it received the update patch from. 
+1.notes and conclusions
+the rdfn definition is similar to the concise bound description  cbd  as used in the uriqua semantic web agent model   albeit more extended than the one that was available at the time when msgs where first introduced in the rdfgrowth p1p algorithm. recent modifications of the cbd have also addressed the case where ifp are used on blank nodes and include reifications.  the methodology presented here can be extended to encompass all this cases  although details cannot be included here. since this methodology uses reifications as a way to attach the signature to the msgs  it is subject to all the shortcomings of this standard rdf construct. in particular  care should be used when using this proposed method in owl full reasoners as the owl:sameas property might cause substitutions inside msgs. given the digital signatures however  this change would immediately be detected and proper measures could be taken. reification has also been often accused of being inefficient  that is  of causing  triple bloat . while this method does in fact see a consistent increase of triples when applied to very small msgs  as in the previous example   this side effect becomes negligible as the msg size grows  as only one statement needs reification.
+this methodology has been implemented and is available as os java library. this library is also deployed in the sw p1p application dbin  www.dbin.org  where it provides the foundations for a  provenience based trust model as well as the knowledge update mechanisms as specified above. 
+1.acknowledgments
+our gratitude goes to mauro mazzieri for the theorem formalization and  to fabio panaioli for the implementation. we also thank johan johansson and oreste signore for the general support. 

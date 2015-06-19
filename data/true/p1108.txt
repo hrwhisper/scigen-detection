@@ -1,0 +1,47 @@
+automatically classifying the web directories is an effective way to manage web information. however  our experiments showed that the state-of-the-art text classification technologies could not lead to acceptable performance in this task. due to our analysis  the main problem is the lack of effective training data in rare categories of web directories. to tackle this problem  we proposed a novel technology named site abstraction to synthesize new training examples from the website of the existing training document. the main idea is to propagate features through parentchild relationship in the sitemap tree. experiments showed that our method significantly improved the classification performance.  
+categories and subject descriptors 
+h.1.m  information system applications : miscellaneous; i.1  pattern recognition : applications - text processing.  
+general terms keywords 
+performance  design  experimentation  verification. 
+text classification  site abstraction  web directory  hierarchical classification  support vector machines  svm . 
+1. introduction 
+with the explosive growth of the web  it becomes more and more difficult to manage the web information. in early stage  people manually categorized web pages into web directories such as yahoo! directory  http://dir.yahoo.com/  and open directory project  odp  http://dmoz.org/ . however  manually labeling is time-consuming and labor-expensive  which makes it not scalable with respect to the high growing speed of the web. therefore  automated text categorization  tc  technologies were adopted in many previous works to categorize web pages . however  these works were more of demonstrations than solutions because the sampling strategies used in them  only top few levels or selective common categories  could not well reflect the characteristics of web directories. to tackle this problem  in this paper  we propose to use a specific subset of yahoo! directory named merg which has very similar statistics to the full set for the experimental study. merg consists of five sub trees  namely 
+ news 	and 	media   	 entertainment   	 reference   
+ 
+copyright is held by the author/owner s . 
+www 1  may 1  1  chiba  japan. acm 1-1/1. 
+*the works of hao wan and tao qin were performed at microsoft 
+research asia 
+ government  and  regional . it contains totally 1 categories and 1 documents which are organized into a 1level hierarchy. some comparisons between merg and yahoo! directory are shown as below. 
+ 
+ a  yahoo! directory                  b  merg 
+figure 1. category distributions over levels. 
+
+		.	..	...	....		.	..	...
+	+ %! % 	+ %! % 	 
+        a  yahoo! directory                  b  merg figure 1.  power law distributions of the category size. 
+over the merg data set  we ran hierarchical svm classification with similar settings to  and . the corresponding results were shown in figure 1 a . from this figure  we can see that the classification performance was disappointing: macro-f1 of 1 and micro-f1 of 1  see the performance for the lowest level  which corresponds to the classification of the full set of merg  are not acceptable for real-world classification applications. to find out why hierarchical svm performed so poor  we listed the classification performance with respect to category size  the number of positive examples in the training set  in figure 1 b .  
+ 
+ a                                                            b  
+figure 1. performance of hierarchical svm classification over 
+1merg. 
+from this figure we can see that the classification performance decreased with the decreasing category size. that is  the data sparseness problem in rare categories might be the major reason for the overall poor classification performance. this motivates us to investigate how to expand the training set in order to improve the classification performance. as a result  we propose a novel method named site abstraction which utilizes the structure of the website to synthesize new training examples. 
+1. site abstraction 
+due to our observation  almost all the labeled documents in web directories are entry pages  denoted by e  of websites  denoted by s . in conventional web directory classification works   only the entry page e was used as training document. however  it is easy to understand that other pages in s-{e} are also relevant to the category label. therefore  we propose to utilize the information embedded in s-{e} to synthesize some new training documents for training set expansion. as a demonstration of this idea  we develop a mechanism named site abstraction to propagate the features  terms  of those pages in the lower levels of the sitemap tree to their ancestors. 
+	 	f pk  	child pk  =¦µ
+	 f p   +¦Á	k
+	f* pk   =       	k pk+1¡Êcp¡Æhildkchild+1¡Êchild ¡Æppk f   pppkk k+ 1 	 =1 child p  	 	 1  
+	f  k+1 	k ¡Ù¦µ
+¦Ák
+	  	child pk  
+where ¦µ represents the empty set  f is the original feature of page pk  f* is the refined feature after propagation  child pk  denotes the set of child pages of pk  |.| is the number of pages in a set. 
+the above propagation starts from the lowest level in the sitemap tree. when it eventually terminates at the first level  a new training document is synthesized. by including this new document into the training set  we can solve the data sparseness problem to some extent. note that this new page is based on the pages in s{e}  but independent of the entry page e. therefore  it can serve as a good complement to the existing training document e.  
+as for the above propagation process  one may argue that there is possibly the risk of topic drift. we acknowledge this; however since the influences of the lower-level pages are restrained by the weighting factor ¦Á  this risk will not be so high. 
+1. experiments 
+in this section  we tested the effectiveness of our site abstraction technology. for simplicity  we selected those categories with only one positive training example in the original training set for experiments. we totally crawled 1 levels and no more than 1 pages from the website corresponding to the existing positive examples. after that  we used the url information  folder depth  of each crawled page to construct the sitemap tree of a website according to . then we synthesized one more training documents for each category by site abstraction. for comparison  we also implemented some other works targeting training set expansion  i.e. liveclassifier  and document-self expansion    as well as the approach of using all downloaded pages directly as training examples without applying the propagation formula  1   denoted by  site raw  . our experimental results were shown in figure 1. 
+
+ 
+figure 1. classification results over the 1-doc categories. 
+from this figure  we can see that both liveclassifier and document-self extension did not perform as well as expected. they did improve the classification accuracy  but only marginally. an interesting observation is that site raw actually deteriorated the performance  indicating the existence of concept drift. comparatively  site abstraction did improve the classification accuracy significantly. the relative improvement was over 1%. this showed that site abstraction could inhibit the concept drift and construct informative training examples. if looking at the absolute value of the resulting classification performance of site abstraction  we found that although we only added one more training document  the performance over the categories with only one document had been almost as good as over those categories with five or six training documents  see figure 1 b  . this verified from another aspect the effectiveness of site abstraction: one synthesized page is much more than one real page. 
+1. conclusion 
+in this paper  we first conducted experiments to show that the state-of-the-art text classification methods could not well handle web directory classification. then we pointed out that the data sparseness problem in rare categories of web directories is the major reason for the poor classification performance. to tackle this problem  we proposed a novel technology named site abstraction to synthesize new training examples based on the website of the existing training document. the main idea is to propagate features through parent-child relationship in the site structure. experiments showed that our method significantly  relatively 1%  improved the classification performance.  

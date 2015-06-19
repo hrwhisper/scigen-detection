@@ -1,0 +1,87 @@
+in this paper we describe a cross document summarizer xdox designed specifically to summarize large document sets  1 documents and more . such sets of documents are typically obtained from routing or filtering systems run against a continuous stream of data  such as a newswire. xdox works by identifying the most salient themes within the set  at the granularity level that is regulated by the user  and composing an extraction summary  which reflects these main themes. in the current version  xdox is not optimized to produce a summary based on a few unrelated documents; indeed  such summaries are best obtained simply by concatenating summaries of individual documents. we show examples of summaries obtained in our tests as well as from our participation in the first document understanding conference  duc .   
+categories and subject descriptors 
+i.1  artificial intelligence : natural language processing - text analysis.  
+general terms: algorithms  measurement  performance. 
+keywords: summary  clustering  n-grams  multi-document summarization  passage similarity  term weights. 
+1. introduction 
+an automated multi-document summarization system requires techniques different from those necessary to summarize a single document. many newswire articles on the same topic  for example  are likely to contain redundant material. articles may also reveal new developments of events over time  or they may include various information and opinions on an issue or a person.  most current automated systems work by identifying the most important sentences or paragraphs in the set of documents and building a summary with these passages. several systems use carbonell and goldstein's maximal marginal relevance measure   which selects passages based on a combination of relevance and anti-redundancy. columbia's simfinder  uses several 
+ 
+permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. to copy otherwise  or republish  to post on servers or to redistribute to lists  requires prior specific permission and/or a fee. 
+sigir'1  august 1  1  tampere  finland. 
+copyright 1 acm 1-1/1...$1. 
+ 
+varieties of word overlap in addition to other features to determine similarity values between passages in order to form clusters  followed by sentence extraction  centrifuser  or reformulation 
+ multigen  fuf/surge . radev et al's webinessence  clusters documents according to keyword overlap and performs centroid-based sentence extraction. marcu  selects important sentences based on the discourse structure of the text. lin and hovy's neats system  creates a query based on single terms  bigrams and trigrams most characteristic of each document set  finally producing a ranked list of sentences. tno's system  scores sentences by combining a unigram language model approach with a bayesian classifier based on surface features. our xdox system clusters passages based on our unique n-gram scoring methods  and builds an extraction summary by selecting a representative passage from each cluster. 
+1. xdox overview 
+the xdox system  cross document summarizer  is designed to summarize sets of 1 documents that have been retrieved or routed from a text database  the internet  or a news source  according to a query or a user-defined profile. built for information analysts  the system uses clustering techniques to subdivide the documents into meaningful topics and themes  and to separate unrelated material. xdox presents the user with two kinds of overall summary  one with more detail related to the complexity of the document set  and one with fewer details and limited length. in addition  a summary of each topical cluster is available via a graphical user interface. the gui also allows the user to view individual passages or full documents. thus the system answers both the indicative and the exploratory needs of our customers. 
+xdox has been developed over the last 1 years with several intermediate designs considered. an earlier version of the system  produced clusters of documents according to their mutual similarity  which was based primarily on straightforward term overlap between documents. in addition  wordnet lexical database   was used to facilitate the matching of synonyms and other related terms. this early work focused on evaluation of various document clustering techniques  but we found that most known clustering methods could not alone support an effective summarizer. whether or not wordnet is used  the resulting clusters were often of poor quality  formed around common but semantically unimportant terms. 
+our new approach improves the quality of the clusters and the summaries chiefly by implementing concept-based clustering and summarization. instead of clustering entire documents  we cluster passages   or sequences of text  which usually correspond to the natural paragraphs designed by the author or editor  or that may be obtained automatically . our similarity metric is based on n-gram matching rather than just single-term overlap. for example  a word in a sequence of six words  or a 1-gram  receives proportionately more weight than the same word occurring in two distinct three-word sequences  or trigrams   which in turn is weighted more than if it were found in three bigrams  and so on. individual term weights are computed at document level using a variant of pivoted document length normalization metric  and added to n-gram weights. 
+we have found that our new approach produces excellent summaries in most cases. the summaries are based on highquality clusters that form around significant common concepts or themes that occur repeatedly across the set of documents. the paragraph is a useful semantic unit for conceptual clustering  because most writers view a paragraph as a topical unit  and organize their thoughts accordingly. a few examples of themes detected in large document sets are:  lie detector test   a theme occurring in a set of documents on labor relations    south georgia and south sandwich islands   a theme found in a set of documents on falkland oil exploration   and  blood alcohol levels   a theme detected in a set on automobile accidents . 
+1. outline of xdox architecture 
+the xdox system is written in java  except for our single document summarizer  which is written in c++. the system has several distinct modules. their basic tasks  inputs and outputs are shown in figure 1. 
+
+1. text processing 
+as shown above  documents are first chunked into paragraphs  according to existing paragraph boundaries. sgml tags  lists of keywords  author by-lines  news sources  locations  etc.  are all removed. subtitles and one-line paragraphs are merged with the following text. titles of articles are eligible to be clustered  except when they have fewer than three terms.  
+in preparation for comparing n-grams in passages  stopwords are removed and the remaining words are stemmed  using the porter algorithm. each stem is mapped to a unique integer code. all the stemmed words are placed into a simple binary word tree structure  using java's red-black treemap class. the tree contains a node for each stem. the value for each node is an ordered list of occurrences of the stem  including positional information  document  paragraph  location in the paragraph  as well as the code of the following stem. the word tree can be constructed in linear time. 
+1 document-level term weighting 
+we chose a term weighting scheme that uses average term frequency in a document as the normalization factor. in the function 
+	1+ log tf  	  
+1+ log average tf   
+tf t  is the actual frequency of term t in document d. this normalization method has been shown to perform 1% better than maximum term frequency based normalization for 1 trec queries on the entire trec collection . combining this tf factor with the pivoted normalization used in the smart system  we arrive at the weighting strategy: 
+1+ log tf  
+ 1+c log averageaverage l  +tfc  ¡Á l   
+ 1
+where l is the number of unique terms in document d and c is a constant between 1 and 1. this weighting scheme is related to bm1 used in the okapi system   which has been reported to perform consistently better than standard cosine normalization in document retrieval applications. 
+1. passage similarity metric 
+based on n-grams 
+after the text processing module has built the word tree and computed term weights  the passage matching module compares passages and assigns similarity scores to every pair of passages in the document set  not including pairs from the same document . the output is a table of paragraph pairs and their similarity values  represented as a matrix. 
+1 a fast algorithm for matching n-grams 
+in order to compare large numbers of documents efficiently using n-gram matching  we chose to work with a very small subset of all possible substrings in the documents: we look only at n-grams  where n is 1 to 1  that are actually matched somewhere among the passages in the document set. our goal was to minimize the number of comparisons made  and so we construct n-grams on the fly  in a bottom-up manner  from the word tree data structure. the algorithm is as follows: 
+ 	for each document di  d1 to dn-1 :  
+a. get the first word w in the first paragraph. 
+b. from the word tree  get a list a of all instances of w  occurring in documents di+1 to dn. these are matching unigrams. list a becomes the start of a  live n-grams  list that grows and shrinks as matching n-grams are built and removed from the list when completed.  java's 
+arraylist class is handy for this purpose.  
+c. for each word v which follows w in di: 
+1  from the word tree  get a list b of all instances of v in documents di+1 to dn. each v either continues an n-gram  wv  or begins a new unigram. 
+1  taking advantage of the sequential order of both lists  add or insert each v from list b in the proper place in list a. if an n-gram in list a cannot be extended by an occurrence in list b  or if it would create a sequence longer than n  then the n-gram is removed from the list and stored in a matrix structure. 
+invariants: 1  the list of live n-grams  as well as each new list of word occurrences  remains in sequential order  1  the final word of each n-gram in the list is the same  and 1  each finished n-gram is the longest possible n-gram.  
+for example  the list of live n-grams for the passage excerpt p1 below would progress as follows when matched with passages p1:  the numbered words correspond to the intermediate steps in 
+the process. final n-grams are underlined.  
+ 	 	1 	1 	1 	1 	1 
+ 	p1 ... federal reserve chairman alan greenspan said... 
+ 	p1 ... federal reserve board ...greenspan remarked ... 
+ 	p1 ... united states federal reserve chairman alan 
+greenspan is ... 
+ 	p1 ... chairman alan greenspan announced today ... 
+1 federal  p1 ; federal  p1  
+1 federal reserve  p1 ; federal reserve  p1  
+1 federal reserve chairman  p1 ; chairman  p1  
+1 federal reserve chairman alan  p1 ; chairman alan 
+ p1  
+1 greenspan  p1 ; federal reserve chairman alan greenspan  p1 ; chairman alan greenspan  p1  the goal is to find the best matches between any two paragraphs  where  best  is defined as maximum length. for example  the phrase bovine spongiform encephalopathy  bse   when found in two passages  is counted as a 1-gram and not four unigrams  or two bigrams  or any of the other possible combinations for this phrase. sometimes overlaps must be eliminated  as in this example: 
+  p1 terrorist attacks  on  american targets...american targets.  
+ p1 terrorist attacks...terrorist attacks  on  american targets...american targets... attacks. 
+these two sample passages produce only two n-gram matches: a 1-gram: terrorist attacks  on  american targets and a bigram: american targets. 
+the above algorithm may easily be modified for other-size passage matching  sentence matching  or even phrase matching tasks  such as may be required in clustering of dynamic or streaming data  or in question answering. the running time depends on both the total number of terms and the number of distinct terms in the document set. with a smaller ratio of total terms to distinct terms  fewer operations must be performed. the average number of times each term appears in the document set is a = n/m  where n = total number of terms and m = number of distinct terms. the number of operations required is approximately: 
+ 
+                                        m a a  1    
+1
+which gives us a best-case running time of o n   when all terms are distinct  and a worst-case running time of o n1   when all terms are the same. the actual number of operations also depends on factors such as the variation in the number of occurrences of each distinct term  as well as the distribution of terms across the documents. 
+the result of the n-gram matching stage is a matrix structure that contains all the common n-grams shared between each pair of paragraphs. 
+1 passage similarity scores 
+for computing the similarity between any two passages  we use a cosine coefficient function  modified according to n-gram weights. because it would be cumbersome to assign a weight to every n-gram we find  we weight individual terms instead  dividing the n-gram weight among all the terms in the n-gram. the weight of term ti in passage xi is the weight of ti in document x  as described above  plus the n-gram weight. the ngram weight is given as  ni /n1  where ni is the length of the ngram of which term ti is an element  and n is the length of the maximum n-gram. when n is 1  for example  a term that is part of a bigram receives a weight premium of 1 in addition to its document term weight. every term in a matching 1-gram gets an additional 1 weight. the final passage similarity function is as follows: 
+¡Æt xij ¡Á yij
+	sim x i  yi   =	j=1	 
+
+where xij is the weight of term tj in paragraph xi and yij is the weight of term tj in paragraph yi. when the scoring is finished  we have a similarity matrix whose  i j th entry gives the similarity between the ith and jth passages. 
+1. seed-clustering algorithm  
+in order to form seed clusters we apply the well-known completelink algorithm to our similarity matrix . this algorithm becomes computationally expensive when used over large numbers of documents  each of which may have many passages to score. we have found it both practical and effective to run the complete-link only to the point at which we reach a target number of candidate seed clusters. we want a target that will allow the clusters to illustrate a good distribution of sub-themes or concepts in the document set  one that avoids over-generalization on the one hand and too much detail on the other. for most sets of documents  a good target is log1n  where n is the number of documents. initially  each passage is a cluster. we run the algorithm as follows: 
+1. merge the most similar two clusters  clusters i and j . 
+1. update the similarity matrix to reflect the pairwise similarity between the new cluster  ij  and the original clusters. we remove all the entries for i and j and replace them with new ij entries. 
+1. repeat steps 1 and 1 until the target number of seed clusters is reached. 
+we add the restrictions that a seed cluster must contain three or more passages  and that there must be at least two common terms among the first three passages in the cluster. clusters with larger common stem sets are preferred  as well as clusters whose common stem sets do not overlap much with another cluster. after the target is reached  some candidate seed clusters may be weeded out for failing to meet these criteria. 
+by having the system stop after reaching a specified number of clusters  we remove another difficulty inherent in the completelink algorithm: choosing a proper threshold. when this choice is left up to the user  he or she must often make several tries before reaching a reasonable number of clusters. if the threshold is high  too many small clusters are formed around narrow or incidental concepts. if the threshold is too low  the clusters are fewer and larger  and the topics become fuzzy or obscured. 
+however  if the system is set to aim for a target number of candidate seed clusters  it will adapt its performance to the specific makeup of the document set at hand: it will adjust for document sets that happen not to have many subtopics; and it will likewise adjust for document sets that cover a wider range of themes or concepts. 
+1. classification algorithm 
+all remaining passages are classified as satellites around the seed clusters. for this stage we perform m-bin classification  where m is the number of seeds. if a passage has no similarity to any of the seeds  it is placed into a miscellaneous  trash cluster . passages in a cluster are presented in descending order: seed passages come first  in the order in which they were added to the cluster  so that those with the tightest similarity to one another are shown first. next come the satellite passages  ordered according to their degree of similarity with the seed cluster. 
+1. generating 1 kinds of summary 

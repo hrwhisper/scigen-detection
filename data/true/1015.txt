@@ -1,0 +1,32 @@
+we present a new transcoding technique for www navigation on small display devices: hierarchical atomic navigation  hand . unlike previous techniques  hand shows all original information in a comprehensible way  without imposing the use of a specific browser. a navigator page is used to represent original contents in a symbolic way. unreadable elements are replaced by icons. these icons are linked to actual individual contents  as a set of atomic pages. hand pages use standard formats that are supported by any pda browser.
+keywords
+www navigation  pda  mobile communications.
+1. introduction
+in the near future  many www services will be accessed from small display devices. by 1  there will be one billion broadband cell phones and pdas .
+however  there is an important problem to be solved: mobile terminals must have small displays  and most www pages are not designed for them . a trivial  and undesirable  solution is limiting mobile www services to specialized ones like stock quotes  weather forecasts and sports scores.
+this paper presents a new philosophy to improve www navigation on small displays. our system is based on the hand concept: original elements embedded in a www page are identified by means of a reduced page preview  the navigator page  which is generated automatically. unreadable elements are replaced by icons. these icons are linked to actual individual contents  as a set of atomic pages.
+1. related work
+1 clipping
+web clipping  replaces the original page by a  clipped  version for small display devices. first  a page fragmentation process is carried out. then  a human or an automated process sets an importance value for every page fragment. low importance fragments are ignored when display space is limited. as a consequence  this technique produces information loss.
+1 handy-fit-to-screen
+microsoft pocket internet explorer includes the handy-fit-toscreen feature   which resizes www pages to fit into small displays. obviously  many page elements are not properly displayed. to cope with this drawback  pocket internet explorer includes a zoom menu option that displays text in several sizes. this technique avoids information loss. however  it does not work properly on complex pages  and it is only supported by microsoft pocket internet explorer.
+1. hand
+1 overview
+hand divides the original page into zones. these zones are groups of elements included in the original page  e.g. images  text paragraphs  headers  hyperlinks  java applets  forms  etc. . the user may select any zone to be displayed at original scale.
+the main navigator page is a reduced overview of the original page. the navigator page is always displayed on a side frame or pop-up window. it provides access to different atomic readable elements  i.e. elements of the original page   using links to auxiliary or atomic pages  on a second side frame or pop-up window . there are two possible representations in the navigator page for a given element in the original www page:  i  a reduced version of the element  if still readable  or  ii  a representative icon  if it is decided that the reduced element is unreadable.
+a key issue is element dependence. all original elements are ordered in a tree hierarchy  and any element is considered unreadable if all its descendants are unreadable. in the navigator page  the representative icon of an ancestor hides all its descendants  but  if that icon is selected  all descendants are shown on the atomic page.
+note that hand can be considered a sort of visual clipping  which provides a high readability. nevertheless  unlike web clipping techniques  every single information item is kept and the end user is free to decide which elements are shown. also  hand can be used on any pda  regardless of the os and browser used  since both navigator and atomic pages use standard formats.
+1 implementation
+the hand generator receives documents written in any language  and processes them in two stages:
+ 	preprocessing stage. non-xml documents  html 
+tex ...  are converted into xml. all non-xslt tasks are performed at this stage  e.g. computing original image sizes .
+ conversion stage. this stage uses a xslt  interpreter and xslt templates to generate the navigator page and its atomic pages  using the output of the previous stage. for each page  the conversion kernel decides which xslt templates are used. both the page and its xslt templates are processed by the xslt interpreter.
+for non-xml contents  the preprocessing stage generates the input of the conversion stage. however  note that this conversion does not impose constraints on original www contents  this is not the case of wml or c-html .
+1 transformation rules
+the following rules are applied to associate original page elements to their representatives in the navigator page. the xml tree associated to the original page is followed in increasing hierarchical order  ending at the root node. a quantitative analysis determines if an original element is unreadable on a small display  and the corresponding leaf node is marked accordingly. for the sake of clarity  transformation rules can be simplified as follows:
+ 	a node is unreadable if all its descendants are unreadable.
+ 	unreadable nodes are replaced by representative icons.
+
+ 	adjacent icons are substituted by a single icon.
+1 example
+figure 1 shows the original www1 conference page as displayed on a pda screen. figure 1 shows the corresponding navigator page and one of its atomic pages.

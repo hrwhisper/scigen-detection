@@ -1,0 +1,5 @@
+recommender systems are new types of internet-based software tools  designed to help users find their way through today's complex on-line shops and entertainment websites. here we provide an overview of current recommender systems  and then outline a new lifestyle recommender system  which employs techniques such as evolutionary search and a 1d avatar to provide tailored and friendly suggestions for users.
+keywords
+recommender system  avatar  collaborative filtering
+1. introduction
+the rapid expansion of the internet has brought about a new market for trading. electronic commerce or e-commerce has enabled businesses to open up their products and services to a massive client base that was once available only to the largest multinational companies. as the competition between businesses becomes increasingly fierce  consumers are faced with a myriad of choices. although this might seem to be nothing but beneficial to the consumer  the sheer wealth of information relating to the various choices can be overwhelming. one would normally rely on the opinions and advice of friends or family members but unfortunately even they have limited knowledge.

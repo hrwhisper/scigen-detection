@@ -1,0 +1,138 @@
+affordable  fast computers with large memories have lessened the demand for program efficiency  but applications such as browsing and searching very large databases often have ratelimiting constraints and therefore benefit greatly from improvements in efficiency. this paper empirically evaluates several variants of a common k-dimensional tree technique to demonstrate how different algorithm options influence search cost for nearest neighbors.
+categories and subject descriptors
+h.1  information storage and retrieval : information search and retrieval-search process
+general terms
+k-dimensional trees  nearest-neighbor search techniques.
+1. introduction
+the memory and speed of today's computers seem to obviate the need for the peak efficiency that minimal memory and relatively slow speeds used to demand. however  there remain computing scenarios with significant rate-limiting components in which slight efficiency improvements provide significant performance gains.
+two types of searches with such rate-limiting components are browsing and searching very large databases. during browsing  each step of the search requires a human to analyze the state of the search and decide which step to take next  and when searching a very large database  one which cannot fit into main memory   each step in the search may require a disk access. in both examples  each step of the search is costly and should be avoided if possible.
+a common organizational structure used for nearest-neighbor searching is a k-dimensional tree  kd-trees  . kd-trees are designed for efficient nearest-neighbor search. this paper presents an empirical analysis of kd-tree nearest-neighbor searches with respect to several independent variables. our goal is to demonstrate the effect on search cost of various kd-tree construction and search options and to explain the exhibited relationships to enable researchers or automated agents to adapt a kd-tree algorithm to better address their needs.
+the next section provides background information on kd-trees. section 1 presents the algorithmic variants we tested  and section 1 explains the experimental results. the last section describes implications of the results and points to future work.
+1. background
+1 kd-trees
+kd-trees are multi-dimensional binary search trees that organize vectors of numeric data to facilitate nearest-neighbor searches. each internal node of the tree represents a branching decision in terms of a single attribute's value  called a split value. all data with values less than or equal to the split value along that dimension follow one branch and all data with values greater than the split value along that dimension follow the other branch. each leaf is a collection of data items. the number of items in each leaf is bounded by a user-specified threshold.
+kd-trees have been used to assist in such automated learning tasks as clustering  and instance-based learning .
+1 search algorithm
+given a kd-tree constructed over a set of numeric vectors  d  the search for the nearest neighbor of a numeric vector  v  in d proceeds as follows:
+1. starting at the root  use the values in v to follow the branches of the kd-tree to an initial leaf.
+
+permission to make digital or hard copies of part or all of this work or personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. to copy otherwise  to republish  to post on servers  or to redistribute to lists  requires prior specific permission and/or a fee. 
+kdd 1  boston  ma usa 
+ c  acm 1-1-1/1 ...$1 
+1. compute the distance to each data item at the leaf; store the closest item and its distance.
+1. continue searching the tree in a depth-first fashion  using the values in v to determine which branch to search first at each internal node.
+1. whenever a leaf is encountered  compute the distances to each data item at the leaf and update the nearest-neighbor information when needed.
+this algorithm does not address two issues raised by missing values.
+1. how to decide which branch to follow when v has no value for the node's split attribute
+1. how to compute a distance when either v or a data item from d is missing one or more values
+when v is missing a value for a split attribute  there is no obvious advantage to picking one branch over the other. thus  we pick the  less than or equal to  branch first and explore the  greater than  branch later in the depth-first search.
+attributes for which v has no value are considered irrelevant and can be ignored in distance calculations. if  however  v has a value for an attribute and a data item does not  we need to somehow include that attribute in the calculations.
+we address this with a technique employed by aha  for similarity computations during instance-based learning. we assume that the missing value is as distant from the known value in v as possible given the known range for that attribute. assuming that the range exhibited for each attribute in the data set is accurate  this pessimistic approach guarantees that the data item identified as the nearest neighbor is correct even if that item has missing values for relevant attributes.
+the algorithm above assumes interest in the nearest single neighbor. in general  one can search for as many  nearest  neighbors as desired.
+1 search cost
+since we are interested in measuring search efficiency we must quantify search cost. metrics used in previous kd-tree evaluations include search time   number of nodes examined during search   number of distance calculations performed   and the number of dimensional comparisons performed during search .  a dimensional comparison occurs once at each internal node to decide which branch to search first and many times at each leaf during distance calculation. 
+our analysis uses number of nodes and number of dimensional comparisons to evaluate kd-trees along dimensions not explicitly compared in previous work. the number of dimensional comparisons is a true measure of cost under ideal circumstances  but the number of nodes may better reflect disk accesses when data must be stored on secondary memory.
+1 reducing search cost
+the structure of kd-trees can be exploited to improve the search algorithm above. because each split in the kd-tree is based on a single value of a single attribute  each node in the tree covers a hyperrectangular region of the search space. the root covers the entire search space  and the space covered by any other node in the tree is bounded by the hyperplanes defined by the split points in all its ancestor nodes.
+to exploit this property  we must recognize that the search space in which a possible nearest neighbor might be found is always a hypersphere. the radius of this hypersphere is the distance to the current nearest neighbor.  prior to finding a candidate nearest neighbor  the radius of the sphere is 1 .  if multiple nearest neighbors are sought  the radius of the hypersphere is the distance to the farthest item in the set of candidate nearest neighbors. the relationship between the hypersphere of relevant search space and the hyperrectangle covered by a node can be used to prevent unnecessary searching.
+1.1  strong  pruning
+a more complete description of these aspects of kd-trees and kdtree search can be found in friedman  et al.  where they present a search pruning  not tree pruning  technique based on this knowledge. this pruning technique checks to see whether a node needs to be examined. if a node's hyperrectangle does not intersect the hypersphere of relevant search space  then neither that node nor the subtree beneath it can contain any data items closer than the current candidate nearest neighbors s .
+this is  strong  pruning because it only allows searching a node if the hyperrectangle and the hypersphere do indeed overlap. it is performed prior to searching the second child of any node.
+ it is important to note that this and the other pruning techniques that follow involve distance calculations and therefore contribute to the number of dimensions examined during a search. 
+1.1  weak  pruning
+sproull  describes a weaker  heuristic pruning technique. he observed that the strong pruning check is relatively expensive and that it may be approximated by checking if the hypersphere of relevant search space intersects the hyperplane formed by the node's split point.
+when the strong pruning check is true  i.e.  if the node does need to be searched   then the weak check is also true  but the converse is not true. the weak check is less costly to perform but results in more nodes being searched. this is because it does not examine all the bounds on a hyperrectangle; it only examines one hyperplane boundary. bounds from other ancestor nodes might indicate that there is no need to search that space  but this check can not know that. 1.1 stopping search early
+friedman  et al.  also present search pruning technique that determines whether or not the search is completed. this is true if the hyperrectangle of a node that has been completely searched contains the entire hypersphere of relevant search space. then  the search can stop because we are guaranteed to have the correct nearest neighbor s . it is checked prior to backtracking out of each node.
+1.1 reduced distance calculations
+another cost reduction employed by sproull  is to stop distance calculations as soon as possible. for example  if the data vectors are defined using 1 attributes  then normally each distance calculation would require 1 dimensional computations. if  however  after the first two dimensions  the distance is already greater than the distance to the current candidate nearest neighbor  no more useful calculations need to be performed. thus  1 dimensional computations would be eliminated.
+1 construction algorithm
+the basic kd-tree construction algorithm can be described as follows:
+1. select a split point.
+1. partition the data accordingly.
+1. repeat until the size of each node is less than or equal to a user-specified threshold. these nodes are the leaves of the kd-tree.
+various split-point algorithms have been proposed. bentley's  original spilt-point algorithm simply cycled through the attributes. the actual value was randomly selected from the set of values in the subset of items at the node.
+friedman  et al.  showed that splitting on the median of the attribute with the broadest range at each node was an improvement. moore  then argued that the arithmetic mean provided a better split point because it results in hyperrectangle dimensions with more uniform sizes.
+all of the construction techniques above assume no knowledge of the query distribution. talbert and fisher  showed that by starting with a tree built using friedman  et al.'s technique  a more efficient kd-tree could be learned by adapting to the observed queries. also  talbert and fisher  showed that the distribution of the data set itself can be exploited to produce trees that are improvements over friedman  et al.'s.
+in addition to a split-point algorithm  the maximum size of a leaf must be chosen prior to tree construction. furthermore  techniques need to be in place for handling missing values during tree construction and for normalizing the data prior to tree construction. the technique we use to handle partitioning when an element has no value along the split-point attribute is to always place that item down the  less than or equal to  branch. the search algorithm guarantees that if that item is the nearest neighbor  it will be found.
+if the data's attributes use different scales of measurement  it may be necessary to normalize the data because those differences could skew the distance calculations. we normalized our data set by dividing each value along an attribute by that attribute's standard deviation .
+1. algorithms
+kd-tree construction has at least two elements that can vary.
+　　　　1. the split point selection algorithm
+　　　　1. the maximum number of data items in a leaf kd-tree search has at least three variables.
+1. the pruning technique that will be used  if any 
+1. whether or not to check for early completion of the search
+1. whether or not to perform reduced distance calculations
+presumably  the choices made on these options influence the cost of the search. the algorithms in our tests use many different combinations of choices along these axes.
+for tree construction  the leaf sizes we tested are 1  1  1  1  1  and 1  and the split-point algorithms we tried were median  arithmetic mean  harmonic mean  and inner quartile mean of the attribute with the broadest range at each node. we consider more split point algorithms than previous literature because we know that the arithmetic mean is sensitive to outliers  whereas the harmonic and inner quartile mean as less so   and we are interested in the affect outliers have on kd-trees.
+for searching  the pruning techniques we evaluate include no pruning  strong pruning  and weak pruning.  we also consider a  hybrid  pruning method that relies on weak pruning as long as it indicates not to search a node but use strong pruning the verify that the other nodes do indeed need to be searched. furthermore  we evaluate the utility of checking for early search completion and of performing reduced distance calculations.
+collectively  these experiments are intended to provide baselines against which data and query sensitive heuristics can be compared.
+1. experiments
+1 methodology
+for each experiment  we performed a 1-fold cross-validation. we randomly partitioned the data into ten groups and averaged the results of building a kd-tree using each set of nine of the groups and using the tenth group as the set of search vectors.
+we performed 1 tests in which we varied our choices along all of the axes above  leaf size  split point algorithm  pruning technique  trying to stop the search early  and performing reduced distance calculations. the precise variants tests are described below.
+1 nutrition data set
+the nutrition database was derived from the united states department of agriculture's nutrient database for standard reference  and consists of nutritional descriptions of 1 foods. these descriptions are vectors of values describing the content of various nutrients  such as protein  fat  and vitamins. the usda database describes each food in terms of nutrients per 1 grams. for our database  we precomputed the appropriate vectors for the common serving sizes listed in the database. this process resulted in a database with 1 data items.
+1 results
+1.1 split point selection algorithm
+figure 1a shows the average cost in nodes of searching for a single nearest neighbor across all four split point algorithms using the weak pruning technique in trees with a number of different maximum leaf sizes  and figure 1b shows the data for searches using the strong pruning method.  we did not include the graph for the no-pruning option  but its results are similar
+with respect to split point algorithms. 
+	1	1	1	1	1	1
+ a 	leaf size	 b 	leaf size
+figure 1. the arithmetic mean results in the lowest number of nodes examined during search for both weak  a  and strong  b  pruning.
+
+	1	1	1	1	1	1
+ a 	leaf size	 b 	leaf size
+figure 1. curves representing cost in number of single dimension comparisons for both weak pruning  a  and strong pruning  b  show that using the arithmetic mean enables more efficient searches than the other split point algorithms.the differences between the costs at each leaf size are significant at the 1 level by the sign test . of the split point algorithms examined  the mean enables the most efficient search  for this data set at least  across a variety of pruning methods and maximum leaf sizes.
+figure 1 shows that as leaf size increases  cost in nodes decreases and the gap between the split point algorithm closes.
+when we examine cost in dimensions  a more accurate reflection of the true computational cost   we see a different story. figure 1 shows the costs in dimensions for all split point algorithms for searches using both weak and strong pruning techniques in trees with a variety of maximum leaf sizes.
+the ranking of the split point algorithms remains the same and all differences at each leaf size are still significant  but the cost
+
+	1	1	1
+ a  leaf size
+
+	1	1	1
+figure 1. the cost in nodes  a  has an inverse relation to leaf size for all pruning techniques  but the relationship between leaf size and cost in dimensions  b  is dependent on the pruning technique. b  leaf size
+
+gap does not close. in fact  when using weak pruning  the gap increases. the weak technique is more sensitive to inefficiencies in the tree because it prunes less than strong pruning. the rest of the experiments performed only for the mean split-point algorithm. 1.1 leaf size
+we have already mentioned the effect leaf size has on cost in reference to figures 1 and 1  but we will now take a closer look at the role of leaf size in cost. curves shown in figure 1a are taken from figures 1a and 1b. curves shown in figure 1b are taken from figures 1a and 1b. figure 1 shows the cost in nodes and dimensions of search trees built using the arithmetic mean for the split point and having a variety of maximum leaf sizes. all differences at each leaf size for both graphs is significant  in the sense that strong pruning leads to a fewer number of nodes searched in a significant number of folds by the sign test ..
+as would be expected  average cost in nodes decreases with leaf size  and figure 1a shows the sproull's pruning technique results in searching more nodes than friedman  et al.'s. we have not shown the no-pruning option  but the cost in nodes for nopruning gracefully decreases from 1+ nodes at a leaf size of 1 to virtually the same number of nodes as the pruning methods at a leaf size of 1.
+figure 1b shows the average cost in dimensions weak and strong pruning. the strong approach minimizes cost at an intermediate leaf size while weak pruning monotonically increases with leaf size. we have not shown the no-pruning option here either  but its cost starts at approximately 1 and decreases only slightly as leaf size increases.
+to explain the relationship between leaf size and cost in dimensions for searches using strong pruning  we must understand that searching with this method has two different primary costs. it has the expensive distance calculations at the leaves that all kd-tree searches have  but it also has an expensive pruning check. when a tree has many very small leaves  the pruning check has to be performed frequently driving cost up  and when the leaves are significantly larger  the pruning cannot provide a fine-grained search focusing on only the most relevant parts of the search space. between these extremes  there is optimal leaf size at which the pruning checks are not excessive and the leaves cover adequately small portions of the search space.
+weak pruning's monotonic increase is because  unlike the strong technique  its pruning check is inexpensive. thus its relative cost across leaf sizes is influenced primarily by how precise the
+
+leaf size
+figure 1. hybrid pruning results in a lower cost in terms of dimensions than strong pruning alone.
+
+	1	1	1
+ a  leaf size
+
+	1	1	1
+figure 1. the cost of finding the single nearest neighbor and of completing the search for trees build using both the weak and the hybrid techniques in terms of nodes  a  and dimensions  b . b  leaf size
+
+pruning can be. larger leaves result in less pruning precision and higher costs.
+1.1 strong vs. weak pruning
+figure 1b shows the costs in number of dimensional comparisons for weak and strong pruning. we also tested a hybrid pruning approach in which strong pruning was only used when weak pruning indicated that a node needed to be searched. this guarantees the same number of nodes will be searched as when strong pruning is used by itself but should result in a lower cost in dimensions because some nodes will be pruned using the weak method alone.
+we did not include the graph  but the number of nodes searched using the hybrid approach was indeed the same as for strong pruning. in contrast  figure 1  which superimposes the results of the hybrid approach on the curves of figure 1b  shows that hybrid pruning is a modest improvement over strong pruning in terms of the number of dimensions. the differences between the hybrid approach and the strong method are statistically significant.
+ for the rest of our experiments  we use the hybrid approach  rather than strong pruning  in comparisons to weak pruning. 
+another measure of how well a pruning technique works can be seen in the amount of  wasted  search. in kd-trees that would be a measure of how much search had to occur after finding the nearest neighbor. figure 1 show this statistic for cost in nodes and in dimensions for weak and hybrid pruning.
+as in figure 1  looking only at cost in nodes is somewhat deceptive  whereas figure 1b shows that there is considerable cost in terms of dimensional checks expended after finding  what an oracle would know to be  that nearest neighbor.
+1.1 stopping search early
+in our experiments  trying to stop the search early by checking if the hypersphere of relevant search space in completely enclosed within a searched node's hyperrectangle never resulted in any savings in terms of nodes. it did  however  drive up the cost in dimensions.
+one likely reason for this result is the number of missing values in the data sets. this check to stop always fails if there is an
+
+leaf size
+ figure 1. the cost in dimensions of searching with and without reduced distance calculations for both weak and hybrid pruning.
+ancestor with a split-point attribute for which the query has no value.
+1.1 reduced distance calculations
+figure 1 shows the effect of reduced distance calculations on weak and hybrid pruning. lower costs were expected  and the figure shows this was true. the change in shapes of the curves resulting from the reduced calculations indicates that  in such cases  the lower pruning precision caused by large leaves is less costly. we did not include cost in nodes because that is not affected by reduced distance calculations.
+figure 1 shows the change in  wasted  search  in terms of cost in dimensions  when reduced calculations are used. in comparing this to figure 1b we see that gap between the  find  cost and the  finish  cost in greatly reduced especially at large leaf nodes.
+
+leaf size
+   figure 1. the cost of finding the single nearest neighbor and of completing the search for trees build using both the weak and the hybrid techniques in
+terms of nodes  a  and dimensions  b  when reduced distance calculations are used.
+1. conclusion
+the implications of our study are severalfold. in terms of dimensions examined  the weak pruning method seems advantageous  for small leaf sizes. in a situations where we expect human users to be browsing a database  in addition to automated and semiautomated searches   small leaf sizes are desirable so as to limit the amount of undirected browsing of large lists of tuples  which would be required at large leaves.
+in contrast  strong  or hybrid  pruning appears to be preferred in terms of the number of nodes visited  particularly at large leaf sizes. in a large database setting where most of the data must reside on disk  or distributed across machines   different nodes of a kd-tree  or other indexing structure  will likely implicate different disk sectors or machines. we would like to minimize the nodes visited in such a case  because secondary memory or remote-machine accesses will dominate cost. while our node counts combine internal nodes and leaves  results in terms of number of leaves only followed the same trends. this is an important observation  since a real database application might pack many indices  internal nodes  onto one disk sector  but place only one leaf on a disk sector.
+thus  our analysis can inform the development of kd-tree split heuristics and tree  not search  pruning criteria  in the sense of decision tree induction where tree expansion ceases  that are sensitive to the distribution of data and queries. by making split decisions that respect locality desirata for secondary-memory storage or distributed database environments  more informed split and pruning decisions minimize expected search cost.
+our tests show that using reduced distance calculations is better no matter what pruning method is being used  and our experiments indicate that a large amount of search is spent after the nearest neighbor s  has been found. thus  future work might include the development of a heuristic to allow search to stop with an  adequately  near neighborhood even if it is not guaranteed to be the absolute nearest one.
+future work should also include the application of these conclusions into further work on query sensitive kd-tree construction and search approaches. other possible directions include examining the relationship between kd-tree variants the overall performance of larger tasks that have a kd-tree as a component.

@@ -1,0 +1,83 @@
+　　in our system  we make use of chunk information to analyze the question. a multilevel method is fulfilled to retrieve candidate bi-sentences. as to answer selecting  we proposed a voting method. we figure out the performance of each module of our system  and our study shows that 1% information has lost in document retrieval and bi-sentence retrieval. 
+keyword: chunk  bi-sentence  multilevel retrieval  voting 
+1. introduction 
+　　it is the third time we take part in the trec-qa track. we undertook the new main subtask and submitted three runs for evaluation. 
+　　our qa system incorporates several useful tools. the first is lt chunk  which is developed at university of edinburgh. we use lt chunk to get the chunks of each sentence and the pos tags of different words. the second is gate  developed by university of sheffield. we use gate to identify some named entities. 
+　　in our previous qa system  we tried different kinds of elaborate algorithms  but the results were not satisfactory  and we didn't make it clear what is the performance of each step in our system. so we try to figure it out this year  and our study shows: 1% information has lost in document retrieval and bi-sentence retrieval.  
+1. system description  
+　　our system contains four major modules  namely question analyzing module  multilevel bi-sentence retrieval module  entity recognizing module and answer selecting module. however  for those definition questions  the entity recognizing module is unnecessary. the system architecture is represented as below. 
+ 
+　　to answer each question  question analyzing module makes use of nlp techniques to identify the right type of information that the question requires. we select top 1 out of the 1 given relevant documents to find the candidate answer from them. since there exists too much redundant information in these documents  multilevel bi-sentence retrieval module matches the question with the 1 relevant documents at different levels and retrieves some top ranked bi-sentences to find the candidate answer from them. entity recognizing module identities the candidate entities from the selected bi-sentences  and answering selecting module selects the answer in a voting method. 
+1 question analyzing module 
+　　since most of the factoid and list questions ask for named entity  ne  as the response  question analyzing module tries to identify the required ne type during parsing a question.  
+　　some question words can map to the required ne types directly  e.g.  who  person    where  location    how many  number .  
+　　however  for most of the questions whose question word is  which  or  what   we need to find the core noun to help us to identify the required ne type. where core noun is a noun in each question that indicates the answer. for example: 
+ which city is home to superman  
+ which past and present nfl players have the last name of johnson  
+ what type of bee drills holes in wood  
+the core noun of question  is  city  since the answer to the question is a city  and the core noun of question  and  is respectively  players  and  bee . we identify the required ne type according to a predefined map lexicon that consists of hundreds of nouns mapping to the ne type that can be recognized later  e.g.  city  city    player  person . we build another abstract noun lexicon that consists of some abstract nouns  e.g.  type    breed .  
+the algorithm to find the core noun is as follows: 
+step 1: take the last noun in the first noun group as core noun; 
+step 1: if the core noun is in abstract noun lexicon  find the last noun in the next noun group as 
+core noun; 
+step 1: if there is no suitable noun that can be found  the core noun is empty. 
+　　because there are some questions whose required ne type cannot be recognized later by entity identifying module  e.g.  bee . we regard these questions as  other ne questions  and keep their core noun for further matching. 
+the question whose core noun is empty is called  miscellaneous question . for example: 
+ how did minnesota get its name   what is tequila made from  
+applying some syntactic patterns to find its answer is a practical method  but in our current qa system we simply answer nil. 
+processing the definition question is rather simple  and we just extract the phrase to be explained. 
+1 multilevel bi-sentence retrieval module 
+　　a bi-sentence is a pair of consecutive sentences  and a phrase is a sequence of keywords or one keyword in a question  where a keyword is a word in the question but not in our stop word list. 
+　　the goal of multilevel bi-sentence retrieval module is to find some top ranked bi-sentences most relevant to a question. according to our training results on trec-1 qa corpus  we select top 1 bi-sentences for the factoid and definition questions and top 1 bi-sentences for the list question. 
+　　we assume: 1  bi-sentences that can match a phrase of a question are more relevant than those only can match separate keywords. 1  bi-sentences that can match a phase of a question in raw form are more relevant than those only can match in stemmed form.  
+　　since the strictly matching will decrease the recall rate of the bi-sentences retrieval  we parse a bi-sentence for several times and match the question at different levels to improve the precision rate without decreasing the recall rate. 
+　　for factoid and list question  our system applies a four-level method to select candidate bi-sentences. at each level  we define two kinds of substrings  compulsory phrase and assistant keyword. compulsory phrase is a phrase set in which each element is obligatory to match bi-sentences. assistant keyword is a keyword set in which each element is optional to match. those words not belong to the compulsory phrase and stop word list are regarded as the elements of the assistant keyword. we compute the weight of a bi-sentence as below: 
+weight  p =β〜count a/ count q+count  p  
+where weight  p means the weight of the bi-sentence  count a means the number of matching assistant keyword between the question and the bi-sentence  count q means the number of keywords in the question  count  p means the number of keywords in the bi-sentence  and β is an experiential parameter. all relevant bi-sentences are ranked by: the bi-sentence selected from the higher level has a higher priority  and in the same level  the bi-sentence with a larger weight has a higher priority. furthermore  the first level is based on raw matching  while the other three levels are based on stemmed matching. 
+　　at the first level  we take the last noun group and the last verb in the last verb group as the compulsory phrase. and those phrases with initial capital on each word are also regarded as the compulsory phrase. at the second level  we move the verb from the compulsory phrase to the assistant keyword because the verb is difficult to match and we don't fulfill any verb expansion. at the third level  we only leave those phrases composed of successive initial capital words as the compulsory phrase. at the last level  the compulsory phrase is empty  all words belong to the assistant keyword  and this is equal to the method in our previous qa system to compute relevance between the question and the candidate bi-sentences. 
+　　for definition question  our system simply takes a two-level method to select a candidate bi-sentence. at the first level  we take the phrase to be explained as the compulsory phrase. a bi-sentence selected not only matches the compulsory phrase but also matches the definition pattern proposed by insightsoft. in the second level  we just regard each keyword in the question as assistant keyword  and then find the most relevant bi-sentence according to the weight. 
+1 entity recognizing module 
+　　we use gate to recognize some types of named entities  such as person  location  country  etc. and we take some new strategies to recognize other types  such as year  color  disease  etc. 
+　　for those questions whose required ne type is identified  we recognize the required ne as our candidate answer. however for those questions whose required ne type cannot be identified  we make use of core noun to construct the possible phrase as the candidate entity by some syntactic rules. 
+1 answer selecting module 
+　　in the top 1 bi-sentences for each factoid question  we may find more than one suitable named entity. how to choose the most suitable ne as the answer in our system is difficult  since the ne type is the only semantic information we used.  
+　　we assume that the answer in the top 1 bi-sentences is most likely to appear several times  so we use a voting method to select the answer. in our experiments on trec-1 qa corpus  the voting method gets an improvement of 1% comparing with the method that simply select the first one as the answer. 
+　　we also study the weighted voting method  where the weight of the candidate answer decreases with the rank of the bi-sentences. according to our experiments on trec-1 qa corpus  the results are similar to the simple voting method. 
+　　for list question  since the answer number of each question is unknown  we choose the entities whose frequencies in voting are beyond a threshold. according to training results on trec-1 qa corpus  our threshold varies from the required ne types. 
+for definition question  we simply choose the first bi-sentence as the answer. 
+1. results 
+　　we don't try radically different methods in our three runs  but instead we simply make little change to get a steady output. table 1 shows our results. in run a  we answer nil for all  other ne question  whose required ne type is highly depended on core noun  and we only take part of the definition patterns into effect. in run b  we use some looser rules to construct the possible ne for  other ne question   while in run c we use some stricter rules. 
+runid factoid  accuracy #correct 
+ #nil  #inexact
+ #unsupported
+ list 
+ave fdefinition 
+ave f final 
+scoreictqa1a 1 1  1 1 1 1 1ictqa1b 1 1  1 1 1 1 1ictqa1c 1 1  1 1 1 1 1table 1 
+1. error analysis 
+　　here we just focus our analysis on factoid questions because it is easier to get a quantitative evaluation at each step than that of the other two types of questions. since we simply answer nil whenever we cannot find an answer  we don't have too many opinions on the nil questions. therefore we only focus our analysis on the question whose answer is not nil. all of the error analysis is studied from the result of run c. 
+1 question analyzing error 
+　　table 1 shows the distribution of the question analysis and the error rate in each question category. 
+question type #total 
+questions #ne 	identified 
+questions/#wrong#other ne 
+questions/#wrong#miscellaneous 
+questions/#wrong factoid 1 1 1 1 list 1 1 1 1 definition 1 / / 1 table 1 
+　　the performance of our question analyzing module is fairly satisfactory  and the overall accuracy of question analysis is 1%. there are two main reasons for the rest 1 questions incorrectly analyzed: 1  1%  1  error is caused by chunk error of lt chunk. 1  1%  1  error is that our question analyzing algorithm cannot cover all questions. 
+1 retrieval error 
+1.1 document retrieval error 
+　　according to the our statistical result  there are 1 out of 1 factoid questions whose answers can be got from the top 1 documents. since there are total 1 questions whose answer is not nil  the maximum accuracy of document retrieval with top 1 documents is 1%. that is  at least 1% of 1 questions cannot be answered correctly in document retrieval process.  
+1.1 bi-sentence retrieval error 
+　　in our statistics  from the top 1 bi-sentences  there are only 1 out of 1 factoid questions can be answered correctly based on the answer and the corresponding document id. so the maximum accuracy of bi-sentence retrieval by our multilevel bi-sentence retrieval module is 1%. also  at least 1% of 1 questions cannot be answered correctly in bi-sentence retrieval process. 
+1 answer error 
+　　there are the two main reasons for the inexact answer error: 1  1%  1  error is caused by the inexact identification of required ne type; 1  1%  1  is caused by the inexact recognizing of ne.  
+　　since we make use of no more semantic information than ne type  we cannot avoid the unsupported answer error.  
+　　according to our manual statistical result listed in table 1  those questions whose required ne type can be identified are easier to answer. 
+question type #not nil questions#correctprecision#inexact #unsupportedne identified question 1 1 1% 1 1 other ne question 1 1 1% 1 1 table 1 
+1. conclusions 
+　　of 1 factoid questions whose answer is not nil  only 1 are correctly answered in our system  so the precision is 1%. the accuracy of document retrieval is 1% and bi-sentence retrieval 1%. the accuracy of question analyzing  ne recognizing and ne selecting adds up to 1%. that is  1% error results from retrieval process including document retrieval and bi-sentence retrieval  while only 1% error results from question analyzing  ne recognizing and ne selecting.  
+　　according to the study above  most information lost during retrieval process. so we hope to focus our further study on seeking better retrieval algorithms  especially bi-sentence retrieval algorithms. 
+ 
+acknowledgements 
+this research is supported by the national high technology research and development program of china 1 program  under contact of 1aa1  the institute youth fund under contact of 1. we give our thanks to all the people who have contributed to this research and development  in particular xueqi cheng  bin wang  dongbo bu  li guo  etc. 
+ 

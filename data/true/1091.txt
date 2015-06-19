@@ -1,0 +1,37 @@
+the virtual school of biodiversity aims to distribute qualityassured  multimedia  teaching materials. this poster highlights one aspect of this initiative  the cross-institutional teaching of a technology-mediated undergraduate course in biodiversity. 
+keywords 
+biodiversity  distributed education  collaborative teaching. 
+1. introduction 
+the virtual school of biodiversity  vsb     is a 
+collaborative partnership between the university of hong kong  hku   the university of nottingham  uon  and the natural history museum  london  under the auspices of universitas 1  u1  . 
+the vsb is a response to two emerging global trends.  
+1  higher education faces challenges related to increasing financial constraints  greater student numbers and competition from non-accredited organisations  and also opportunities resulting from the use of new technologies in teaching  and new global  multi-purpose strategic alliances  such as universitas 1   .  
+1  promoting education  public awareness and training in environmental issues can help redress the problem that biodiversity  a vital resource for all humankind  is being destroyed at unprecedented rates .  
+new technologies allow both trends to be addressed in a synergistic manner. as such  the vsb is a multi-disciplinary  research and development project  which involves: 
+  design of a pedagogically-sound  discipline-independent web-based integrated learning environment  ile ;  
+  delivery of biodiversity-related courseware and resources;  
+  evaluation of student learning styles;  
+  and promotion of good practice in these areas.  
+this poster describes one aspect of the vsb  notably the joint delivery between two tertiary level institutions of a technologymediated module in the discipline of biodiversity. 
+1. collaborative teaching 
+the school of life and environmental sciences  sles  in uon has taught a biodiversity module since 1  with interactive multimedia courseware as the primary teaching medium. this module is now being jointly offered in the sles and the department of ecology & biodiversity  deb  in hku. 
+the module has four primary components:  
+1  core teaching via technology-mediated courseware tutorials;  
+1  an extensive resource base including reading lists and webbased resources;  1  guest seminars and discussions; 1  a group project.  
+the module is student-centred  based on independent learning  helping students to develop an effective and productive selfcentred learning strategy  to develop transferable skills  and to enrich their knowledge of biodiversity. 
+
+figure 1 the scholar's desktop ile 
+courseware tutorials have been commissioned from international experts  independently reviewed and delivered via a hypertext ile developed at uon  called the scholar's desktop  fig. 1 . a 'reflective' learning style is emphasised  with questions and tasks being posed. the current ile is windows-based  but a new web-based environment is being developed using extensible markup language  xml  . 
+support is provided via web-delivered learning support centres  lscs   which have two levels. the top level focuses on general aspects of learning by providing hyper-links to websites offering guidance on study skills  career development and updates of breaking science news. the second level provides support for individual modules  such as biodiversity  fig. 1   and provides an overview of the module  a detailed listing of its aims and learning outcomes  and a resources page including links to relevant web-sites  on-line journals and major reference works. the web offers a large resource of biodiversity-related material  with access to major environmental treatise and conventions  biosystematics databases and on-line scientific journals and news tickers. 
+
+figure 1 the biodiversity module lsc 
+figure 1 students and staff using the biodiversity module 
+assessment is via a mid term multiple choice questionnaire  and deliverables that include the group project report  two essay plans  and a written exam. 
+a programme of independent evaluation has been built into this initiative  in collaboration with experts from the school of education  uon  and the hong kong institute of education  hku . the evaluation aims to analyse and assess the quality of this module as an educational experience for the students  with particular regard to the efficacy of student-centred learning and cross-institutional collaboration. 
+ 
+1. vsb vision 
+this collaboratively taught module augurs well for the potential of this type of approach. this biodiversity module and other similar modules produced by the vsb will be offered more widely  via the web. an expression of interest to teach this module in 1 has already come from the department of biology in the university of oslo.  
+the model described here is of distributed learning via the web  with students and teachers making use of distributed resources. the vsb project aims to build up its network of participating institutions and to further promote this model  offering new resources and teaching tools  particularly to developing countries. this model of distributed learning can also be applied to other academic disciplines. access to these resources can be offered to a wider audience including secondary schools and lifelong learners  using a more distance learning orientated model. 
+1. acknowledgments 
+thanks to all vsb staff and fellows for help in this module  to the vsb chair  prof. i.j. hodgkiss  to drs. r. johnson and r. chan for help with evaluation  and to the academics who wrote the tutorial courseware and participated in the seminars. the vsb project is funded by a hong kong ugc grant  and by the universities of hong kong and nottingham. 
+figure 1 vsb partners 

@@ -1,0 +1,204 @@
+this paper describes xsquirrel  a new xml query language that transforms a document into a sub-document  i.e. a tree where the root-to-leaf paths are a subset of the root-to-leaf paths from the original document.
+¡¡we show that this type of queries is extremely useful for various applications  e.g. web services  and that the currently existing query languages are poorly equipped to express  reason and evaluate such queries. in particular  we emphasize the need to be able to compose such queries. we present the xsquirrel language with its syntax  semantics and two language specific operators  union and composition. for the evaluation of the language  we leverage well established query technologies by translating xsquirrel expressions into xpath programs  xquery queries or xslt stylesheets.
+¡¡we provide some experimental results that compare our various evaluation strategies. we also show the runtime benefits of query composition over sequential evaluation.
+categories and subject descriptors
+h.1  database management : query languages general terms
+algorithms  performance  languages
+keywords
+xsquirrel  xml  sub-document
+1.	introduction
+¡¡let there be no misunderstanding. in this paper  we will try to sell you yet another query language for xml. our language has a catchy name  but more importantly we think it solves a real problem  in the current web services architecture  that is not properly addressed by the existing query languages for xml.
+¡¡xml is about trees  and people are rather familiar with tree structures: genealogical trees  tree hierarchy in file systems or bookmarks  etc. yet  the current query infrastructure for xml does not support a simple operation that consists of taking a document and return a sub-document. as we will show  this is a quite natural operation  that happens to be very useful in a lot of application domains.
+copyright is held by the international world wide web conference committee  iw1 . distribution of these papers is limited to classroom use  and personal use by others.
+www1  may 1  1  chiba  japan.
+acm 1-1/1.
+¡¡but let's start by defining what we mean by sub-document. the notion of a sub-document is a totally natural concept when you think about it. this is nothing more than the counterpart of the result of a select-project  sp  in the relational model.
+¡¡the relational model deals with tables. sp operations remove rows and columns to produce sub-tables. xml deals with documents and we want to remove sub-trees to produce sub-documents.
+¡¡note that sub-documents are not properly captured by existing query languages. xpath consumes a document to produce a node-set. xquery creates new node ids. we will elaborate more in the next section.
+1	the notion of sub-document
+¡¡an xml document is a tree defined by d =  n v ¦Ë  d  where:  i  n is the set of nodes in the document with n1 a designated node which is the document's root;  ii  v   n¡Án is the parent/child relationship between nodes;  iii  ¦Ë is a function that associates each node with a label; and  iv   d is an ordering relation on the nodes of the document.
+a   of an xml docu-
+ment d =  n v ¦Ë  d  is defined as follows:  i  
+have the same root;  ii ;  iii 	;  iv  and  v .
+¡¡another way to look at it is to consider a document as the set of root-to-leaf paths. in the example of fig. 1  the set is:
+{/a/b/c /a/b/d/dd /a/b/d/ee /a/b/f/ff 
+/a/b/f/gg /a/b/h /a/b/d/dd /a/b/d/ee /a/b/d/ii}. a sub-document corresponds exactly to a subset. for our example  the subset is: {/a/b/d/dd /a/b/d/ee /a/b/h /a/b/d/dd  /a/b/d/ee /a/b/d/ii}.
+¡¡yet another way is to say that a sub-document is the original document where some sub-trees  down to the leaves  have been removed.
+1	the use for sub-documents
+¡¡there are many uses for sub-documents. sub-documents can be used to define xml views. sub-documents correspond to join-free queries. this is natural for data integration. for instance  one can define views over xml sources  each view being a sub-document of the actual source. these views can then be joined to produce another document. subdocuments can also be used to define access control over xml data. a sub-document corresponds to the data that can be seen.
+sub-documents are also very useful for data merging and synchronization because the structure of the original document is preserved. algorithms like the deep union  require such information.
+¡¡finally  we think that sub-documents can also be used for distributed query processing of xml data. first  they permit to ship around only the relevant parts of the document. given the verbosity of xml  this can be a huge save in bandwidth-conscious environments. second  they permit to ship enough structure  path to the root  to conduct semijoin  like algorithms over xml. 1 one very concrete application:
+user profile management in gupster
+¡¡we now describe how the notion of sub-document naturally came into play for the privacy conscious management of user profile information.
+¡¡in today's networks  user profile information  e.g. address book  presence  location  calendar  etc.  is scattered all over. various initiatives  1  1  are standardizing xml-based solutions to offer a web service single point of access for this information.
+¡¡the gupster project  1  1  1  1  at bell labs goes in the same direction  with a dual emphasis on integration and access control. in this context  we are looking to:  1  integrate  into a common schema and on a per user basis  xml data coming from various sources;  1  permit users to define access control rules over the integrated data; and  1  let applications query the data while enforcing user privacy. this yields the need for the following concepts:
+  a query  defining what portion of the user profile is requested.
+  a mapping rule  defining where a portion of the user profile is stored  mapping to a data source .
+  an access control rule  defining under what condition a portion of the user profile can be accessed  mapping to boolean function .
+¡¡quite naturally  a portion of the user profile corresponds to a sub-document of the user profile. one question we have to answer is how we can express sub-documents.
+¡¡moreover  for efficiency  we want to avoid to retrieve data that is not needed in the final answer either because it is not part of the query or because it not visible due to access control rules. therefore  we envision the processing of an incoming query q as follows. given a user profile d  a set of mappings {mi}  a set of access control rules {acrj}  we want to compute . or maybe even better  we would like to compute
+this way  instead of having to send the query and apply the access control on the result that is sent back  we send to each source a query compatible with the access control. this is much more efficient.
+the rest of the paper is organized as follows. in section 1  we explain why currently available query languages are not appropriate for this new kind of queries. we then present the language itself  with its syntax  semantics and operators  union and composition . in section 1  we describe various strategies to evaluate xsquirrel queries over xml documents by translating expressions into other query languages: xpath  xquery and xslt. we then present some experimental results that  1  compare the various evaluation strategies and  1  show the benefit of composition operator  for queries and data over some xmark  dataset. some
+
+figure 1: original document d and sub-document d defined by q1 d   grey marking .
+related work is discussed in section 1  before we offer our conclusions and some future work.
+1. a new language  really 
+¡¡in this section we argue that we need a new language because the existing ones do not address the issue of subdocument queries properly. we explain the shortcomings of xpath  xquery and xslt and list some requirements for the design of our new language.
+1 why not xpath 
+¡¡the xpath 1  has been designed mostly as a navigation language that returns a subset of the nodes of a document. for instance  xslt uses xpath heavily to match patterns that need transformation.
+¡¡when applied on a document  xpath returns a nodeset and not a sub-document. from the nodes  it is always possible to reconstruct the document  using the context to find the ancestors of the current node up to the root   but this is not the default behavior and the application using xpath needs to perform this reconstruction. moreover  when the context is lost  e.g. data shipped from a remote site   this information is lost.
+¡¡the main problem with xpath is that the input and the output of the query are not the same domain and therefore queries cannot be composed.
+1 why not xslt 
+¡¡even though xslt has the notion of document built-in in its semantics with templates being applied to the current document  it is a language hard to reason about because of its rule-based nature.
+¡¡moreover  the output of an xslt transformation is not necessarily a document.
+1 why not xquery 
+¡¡xquery  is the general purpose query language for xml. the problem with xquery is three-fold.
+¡¡first  in our setting  this is like a hammer to kill a fly  since sub-document queries are restricted in nature  remember the analogy with select-project in the relational algebra . moreover  xquery does not know about the sub-document semantics.
+¡¡second  xquery processes a document by first deconstructing it into flwr bindings and then reconstructing it. not only does this imply a lot of syntax  it also requires the creation of new node ids. when the sub-document consists of only a few nodes removed from the original document  this is a lot of overhead.
+¡¡third  xquery is so rich and powerful that it is very hard to reason about. xquery is by nature composable. for two queries q1 and q1 over document d  you can always represent the composed query as let $x:=q1 d  return q1 $x . but it might be hard to optimize such an expression.
+1	a new language
+¡¡based on the previous considerations  we decided to go for a new domain specific language that would fit our needs and fulfill the following requirements:
+  built-in sub-document semantics
+  composability of queries
+  expressive enough to be useful
+  simple enough to be reasoned about and optimized
+  concise syntax
+  friendly with other xml languages  e.g. reuse of syntax  translation to other languages for evaluation 
+1.	the xsquirrel language
+¡¡in this section we present the xsquirrel language. it is based on xpath 1 and therefore xsquirrel is rather a family of languages  depending on which fragment of xpath 1 we decide to use.
+¡¡all these languages - of course - share the same semantics but the details of some of the algorithms may be different  depending on the expressive power of the fragment we use. for a detailed study of these issues and a more theoretical presentation of xsquirrel  we refer the reader to .
+¡¡in the rest of the section  we will consider a very limited fragment of xpath1. this is the one we are using in the context of gupster and it has shown so far to be expressive enough for our application domain of privacy conscious integration of xml data.
+1	syntax
+¡¡xsquirrel expressions are built from a finite set of labels  e.g.  tags  names  ¦² of an xml schema s. the fragment of the language that we consider in this paper is syntactically defined as follows:
+
+¡¡where denote the empty path   .  in xpath  and a name in ¦² respectively; ¡È stands for union;  /  stands for xpath concatenation but here is also used as the xpath child axis. q in p q  is called a qualifier and is defined by: q := p | label = v | not q .
+¡¡from xpath 1  we have kept the child and attribute axis and a restricted form of value-based predicates. example we give below some examples of xsquirrel expressions.
+q1 : /a/b/ d ¡È h  q1 : /a/b h / d/dd ¡È f  q1 : /a/ b c  ¡È b h / d/ii ¡È f/ff   q1 : /a/b d/ee / d/dd ¡È h ¡È f 
+¡¡query q1 for instance returns d and h nodes  that are children of b nodes  themselves children of a nodes. along with these nodes  their descendants  and ancestors up to the root node of the document on which q1 is evaluated are returned.
+
+1
+ the reason why we emphasize this point is that some of the results and conclusions we present here might be different for larger fragments of the language that are still under study.
+1	semantics
+¡¡intuitively  the result of the evaluation of an xsquirrel expression q on a document d is document q d   subdocument of d  obtained as follows:
+1. evaluate q using the usual xpath
+1. for each node n obtained from the previous step  get its descendant nodes  and its ancestor nodes up to the root of d
+1. finally  q d  is constructed by removing all nodes of d that are not in the set of nodes from the previous step  note that the resulting document q d  is a subdocument of d .
+example consider the xml document d illustrated in fig. 1  ignore the grey marking for now  and query q1 given in example 1. the result of evaluating q1 over d is sub-document q1 d  where the nodes have been marked in grey. more specifically  this document is defined by the d and h nodes returned when evaluating q1 as an xpath expression on d  their descendants and ancestors up to the root node of d.
+¡¡more formally: the result of evaluating an xsquirrel expression q against a document d n v ¦Ë  d  is a subdocumentis defined as:
+
+where n  d  p denotes the set of nodes returned by evaluating xpath expression p on the node n of document d  n is omitted when it is the root      and    are the xpath axis respectively. and  ii  
+ n1 n1  ¡Ê	| n1 n1 ¡Ê	.
+1	language operators
+¡¡at the level of the language we define two language  i.e. syntactic  operators - union  ¡È  and composition     - such that:  d  q1 ¡È q1  d  = q1 d  ¡È q1 d  and  d  q1  
+q1  d  = q1  q1 d  . here the union of two sub-documents corresponds to the union of their nodes.
+¡¡for lack of space  we only provide the intuition for the algorithms of union and composition. we refer the reader to  for a more formal presentation.
+1.1	union
+¡¡this operator is pretty straightforward. for both xsquirrel expressions  we can naturally derive two sets of xpath expressions by distributing over ¡È. we can then take the union  as sets  of the two  recombine them as an xsquirrel expression and normalize them.
+¡¡we provide an example below. the evaluation of the queries over a document is presented in fig. 1.
+q1: /a/b h / d/dd ¡È f  q1: /a/ b c  ¡È b h / d/ii ¡È f/ff   q1 ¡Èxq q1: /a/ b c  ¡È b h / d/ dd ¡È ii  ¡È f  
+1.1	composition
+¡¡this operator is more complicated because it is not symmetric. we distinguish between the inner  qi  and the outer
+expression  qo .
+
+figure 1: union: q1 d   left   q1 d   middle  and  q1 ¡Èxq q1  d   right .¡¡the core of the composition algorithm must ensure two things. first  that the final expression is as selective as the more selective of the two: /a/b composed with /a/b/c is /a/b/c. second  that the predicates from the outer expression correspond to paths that are defined in the inner expression. this makes perfect sense when you think of the inner query as the one defining an access control view for instance.
+example here is an example.
+qo /a/ b c  ¡È b h / d/ii ¡È f/ff   qi /a/b d/ee / d/dd ¡È h ¡È f 
+qo   qi	/a/b h  d/ee /f/ff
+¡¡we see that node b c  of qo does not appear in the composed query  the path /a/b/c for node b c  is not satisfied by the inner query . node b h  d/ee  is created from nodes b h  and b d/ee  of the outer and inner queries  respectively. node d  and its children  disappears from the resulting query since the outer query  qo  requests ii nodes but the inner query qi returns only dd nodes. finally  node ff requested by the outer query is added below node f  the inner query returns the subtree of f but the outer query requests only its ff sub-nodes . the evaluation of the queries over a document is presented in fig. 1.
+1.	evaluating xsquirrel
+¡¡in section 1  our description of the semantics of the xsquirrel language already implies one way to evaluate expressions using xpath. in this section  we present three evaluations strategies that translate expressions into another query language  mainly xpath  xquery and xslt. we provide in fig. 1 a detailed example of the three translations.
+1	by translating to xpath programs
+¡¡the xsquirrel language is more expressive than the subset of xpath it relies on  because of the union operator and the sub-document semantics. therefore we cannot translate xsquirrel expressions into xpath expressions  but rather into xpath programs. the algorithm is presented below.
+
+algorithm 1: xpath evaluation program
+
+	input	: d  xsq
+1 markednodes := {}
+1 xpathlist := expand xsq  1 foreach e in xpathlist do
+1 nodeset := xpath d  e  1 foreach n in nodeset do 1markednodes += {n}
+1markednodes += descendant-of n  1markednodes += ancestor-of n 
+1 d' := trimnodes d  markednodes 
+output : d
+
+¡¡the intuition is to expand  using the expand function  the xsquirrel expression into a set of xpath expressions  by distributing over the union operator. for each xpath expression  we evaluate the query over the document. we mark the nodes from the result nodeset by putting them in markednodes. for each marked node  we also mark its descendants and its ancestors up to the root. finally  we remove from the original document all the nodes that have not been marked.
+1	by translating to xquery
+¡¡the good news with xquery is that because of the expressive power of the language  we can translate any xsquirrel expression into a single xquery expression. the bad news is that xquery requires to deconstruct the document  by binding to flwr expressions  first and then reconstruct it. xquery can easily take care of the union using nodeset concatenation. we need however to enforce the subdocument semantics. for instance  a/ b ¡È c  cannot be translated as {for $x in a/b return $x  for $x in a/c return $x} because it forces b to appear before c  which is not necessarily the case in the original document. the right way to do it is to iterate over the children  thus preserving the document order  and check the nature of the child  using an if statement and a predicate such as  self::b  or
+ self::c .
+¡¡this is not going to work either because an expression may contain a union of overlapping paths  such as a/  b p1  ¡È b p1  . to avoid some subtrees to be added more than once  we need to make sure that the if statements are exclusive of each other. for our toy example  this leads to:
+for $x in a/* return if $x self::b p1   then $x else if $x self::b p1   not self::b p1    then $x else {}
+¡¡we describe the translation from xsquirrel to xquery using two functions t  for translation  and p  for predicates  defined as follows. for simplicity  we will ignore expressions with attributes.
+¡¡each function is described in terms of production rules that consume the structure of the xsquirrel expression.
+¡¡for the predicate function pred  a step with no children simply returns itself. in the presence of children  the predicate consists of the recursive concatenation  using boolean or  of the predicates of the children. for instance /a p / b ¡È c/d  will return a p  b | c d  .
+pred:
+
+a p 
+¡ú	a p 
+a p / a1 p1  ... ¡È an pn  
+¡ú	a p   pred a1 p1   ... | pred an pn    figure 1: translating xsquirrel to xquery
+
+figure 1: composition: d  left   qi d   middle  and qo  qi d  = qo qi d    right ¡¡the translation function t takes three parameters: the location step of the xsquirrel expression  the current binding  used by the flwr expression  and a list of predicates. the list of predicates is used to ensure that each if statement is exclusive of the others. the xquery generation proceeds as follows:
+  the binding provides the current node to process
+  we check that the node satisfies the current location step by applying the predicate self::pred a p  
+  we make sure that the if case is unique by applying the list of the predicates
+  if the location step has no children  we return the node or nothing
+  if the location step has children  we output the tag name of the current node  we iterate over all its children via a flwr expression and we close the tag name
+t:¡¡¡¡/a/path   $$  {}	t a/path  $x  {}  ¡ú for $x in /* returna p   $x  {p1 ...pm}
+¡ú if $x self::pred a p    not self::p1  ...
+... not self::pm   then $x else {}a p / a1 p1  ... ¡È an pn    $x  {p1 ... pm}
+¡ú if $x self::pred a p / a1 p1  ... ¡È an pn    and $x not self::p1  ... not self::pm   then  a  for $x+1 in $x/* return t a1  $x+1  {}  
+...
+t an  $x+1  {pred a1  ... pred an 1 }  
+ /a  else {}figure 1: translating xsquirrel to xquery
+¡¡the flwr expression generates a new unique binding  noted by $x+1 . for each child  we call t  with the following parameters: the corresponding location step ai  the new binding $x+1 and a new list of predicates. for each child  the list of predicates corresponds to the predicates from the previous children  pred a1   ...  pred an 1  .
+1	by translating to xslt
+¡¡it turns out that xslt is a much more natural language for sub-document queries. the notion of document is somehow built-in in the semantics of the language itself because of its rule/template system.
+¡¡the union operator of xsquirrel can naturally be translated into xslt templates that will be applied following the structure of the document. unlike with xquery  we don't have to worry about deconstructing the document and then reconstructing it by taking good care of the order.
+¡¡the xslt ruleset we generate consists of 1 modes of operations: default  regular and leaf. for default and regular  we define default templates that don't do anything. for leaf  the template calls recursively templates for the content of the subtree.
+¡¡from the navigation step of the xsquirrel expression  we derive a rule that consumes the root  in mode default  and calls a rule for this step.
+¡¡the other rules are derived from the xsquirrel expression as follows  using translation function t' defined in fig. 1. for sake of clarity  we do not show the exact xslt rules being generated but abbreviate them using their key components: for the outer template  its mode and match; for the inner template  its mode and its select  the nodes for which the inner template must be applied .
+¡¡rule 1: for the first navigation step of the xsquirrel expression  we generate a template that consumes the first element in mode default and calls for a template over the same element in mode regular.
+¡¡rule 1: we translate the last location path of an xsquirrel expression  a p   by generating a template that matches the current node and calls for a template over the same node but in mode leaf in order to return as is the entire subtree. rule 1: the last translation rule generates a template that matches the current node with the predicates corresponding to its child nodes  we reuse the pred function we defined for xquery . it calls for a template that matches any of the children. we translate recursively each child element of current location step.
+t':
+1/a/path¡útemplate: mode= default   match= /  apply: mode= regular   select= a  t' a/path 1a p ¡útemplate: mode= regular   match= a p   apply: mode= leaf   select= . 1	a p / a1 p1  ¡È ... ¡È an pn  
+¡ú template: mode= regular   match= pred a p / a1 p1  ¡È...¡È an pn     apply: mode= regular   select= pred a1 p1   |...| pred an pn   
+t' a1 p1  
+...
+t' an pn  figure 1: translating xsquirrel to xslt
+¡¡note: we are aware that we do not provide any formal proof of the correctness of the translations  except for the xpath translation that corresponds exactly to the semantics of the language. this is left for further study. for all the experiments we ran  see next section   we have checked that the results provided are all equivalent. we are aware of some pathological cases of xsquirrel expressions that get improperly translated into xslt because of ambiguities. a proper characterization of such cases is also left for further study.
+1.	experimental results
+¡¡in this section  we want to answer two questions:  1  which is the better way to evaluate xsquirrel expressions;
+ 1  what is the runtime benefit of query composition  if any. 1 comparing the various strategies
+¡¡for this experiment  we consider various queries over some xmark  generated data and compare their execution time in five different configurations:
+  xpath: we use the apache xerces implementation because it offers access to node index information. we use the index value as a way to mark the nodes returned by the evaluation of the xpath expressions. the document is parsed once and built in main memory. the nodes not part of the final result are removed.   xslt  xalan : query translated into xslt and applied using the java jaxp api.
+  xslt  saxon1 : query translated into xslt and applied using the java jaxp api.
+  xquery  saxon1 : query translated into xquery and applied using the java jaxp api.
+  xquery  galax : query translated into xquery and applied using the command-line.
+¡¡we have created five representative queries that demonstrate various features of the language  see fig. 1 .
+¡¡to avoid comparing apples and oranges  we stream the final result into a sax content handler that computes the normalized hash of the result document. this permits to check that  1  all the evaluators provide the exact same result and that  1  all content is accessed  some implementations sometimes perform lazy evaluation . the results are presented in fig. 1.
+¡¡the xpath evaluation should be looked at as the base strategy since it does things in a straightforward and naive manner  with no room for optimization  xpath expressions applied sequentially . also note that xalan and galax are clearly not as competitive as saxon1.
+¡¡overall  both translations to xquery and xslt are better than the naive xpath program. the xquery translation seems to be a bit more efficient  due probably to the built-in optimizations and the deterministic nature of the evaluation. xslt rules can be inherently ambiguous and the engine tries to pick the best match  most restrictive rule . note also that the way we translate into xslt introduces some redundant checks  in the select and in the match  that are probably not optimized  e.g. keep track that the check was successful for a given node .
+¡¡some preliminary experiments  not reported here  with an early native evaluator for xsquirrel show on par performance with xslt and xquery. the skeptical will argue
+that native evaluation does not make sense and that resources should be focused on general purpose query engines. the optimistic will counter argue that being on par with xquery and xslt is a very good start and that with more work  evaluation time should be improved significantly and maybe reach the high-level performance shown by native xpath engines  1  1 .
+1	the benefits of language composition
+¡¡the second thing we want to measure is the benefit  if any  of our language-based composition for our fragment of the language1. using xsquirrel  we can replace the sequential evaluation of two queries with the evaluation of just one. for pairs of queries  we compare the evaluation of the composed query   computed using our algorithm  with the evaluation of the sequential queries. for xslt  we can chain the two transformation using xmlfilters from the jaxp api. note that this does not permit any optimization between the two rulesets. for xquery  we represent the chained queries using the following xquery expression: let d':= q d  return q' d' . the six queries we use for our experiments are detailed in fig. 1. the results are presented below:
+
+figure 1: composed vs sequential evaluation.
+¡¡the first thing to note is that there is no groundbreaking benefit when using composition. depending on the queries and the evaluators  improvements are around 1%. in a web services environment  with millions of queries a day  this makes a nice difference at the end of the day though. composition is a clear winner when the composed query is empty  e.g. q1   a very frequent case when one query is used to define access control view. knowing that the query is empty ahead of time not only saves a lot of processing times  it also saves on communication costs in a distributed environment. both aspects can be extremely valuable.
+1.	related work
+¡¡there is a lot of on-going work in both research and industry community around the already existing query languages  xpath  xquery and xslt . see for instance .
+¡¡the idea of returning subtrees appears in the context of distribution and replication of xml documents in : the fact that a subtree of a node should be returned has to be explicitly defined in the xpath expression and is not inherent in the semantics of the language as for xsquirrel.
+
+1
+ we want to re-emphasize the fact that these results are for the limited fragment of the language. for larger fragments  we expect the benefits to be larger.
+
+figure 1: comparison of the various evaluation strategies.¡¡ follow a similar approach to  where xpath expressions return documents instead of sets of nodes. but the semantics of the language is not defined formally. the idea of having a project operator for xquery was proposed in   but this is an internal algebraic operator. some domain specific languages for xml have been proposed for various contexts such as integration with relational sources     or access control   1  1  .
+¡¡the industry is also pushing for some new languages. in liberty alliance  a data service template  can define its own query language flavor  the suggested ones are sub-set of xpath . in xcap  proposed standard for next generation of telecom application   resources can be accessed using a restricted flavor of xpath.
+¡¡the work on efficient xml processing over streams is also relevant here. our early implementation of a native xsquirrel evaluator is inspired by  1  1   even though the different semantics of xsquirrel does not make these results directly applicable.
+1.	conclusion
+¡¡in this paper  we argue that more and more applications will need to consider sub-document queries  where the result of the query is a sub-document of the original document. synchronization  access control  distributed query processing are such examples.
+¡¡the current query languages for xml do not address this specific issue: xpath returns nodes instead of a subdocument; xslt and xquery are too expressive and it is hard to guarantee statically what will be returned.
+¡¡to address this issue  we introduce the xsquirrel language. following the xpath syntax  xsquirrel offers a subdocument semantics where the result of a query is always a sub-document of the original document  which makes it possible to compose queries. one strength of the language is that queries can be composed at the language level. for two xsquirrel queries q1 and q1  we can syntactically compute q1 q1. thus  instead of evaluating two consecutive queries  we can simply evaluate the composed query. we have shown the runtime benefits of this approach for various queries ran against the xmark dataset.
+¡¡another strength of the language is that it is possible to translate xsquirrel expression into other xml query languages. already existing high-performance query engines can therefore be reused and there is no need to build xsquirrel specific ones. in the paper  we have described the translation algorithms and shown how the translated queries perform on the xmark data set.
+¡¡there is still a lot of work to be done. finding the right expressive power for the language  i.e. which fragment of xpath to choose from  is not easy  and new features added to the language may require to modify the rewriting  translating and evaluating algorithms. we also want to build a high-performance native evaluator that can reach the performance of stream-based xpath evaluators. investigating the benefits of composition for larger fragments of the language is important too.
+¡¡people have and will argue legitimately about the need for yet another xml query language. for our application domain  privacy conscious user profile management   we needed to combine integration and access control of xml profile data and the available query languages were simply not good enough for our needs. we engineered xsquirrel to fill this gap. by making it close to xpath in syntax and by providing translators to xpath  xquery and xslt  xsquirrel can be seen as some kind of syntactic sugar that can be really handy for our application domain. we think that xsquirrel can also be useful in a broader context and we hope that this paper will convince more people to give it a chance.
+acknowledgments: irini fundulaki  michael benedikt  nicola onose  guillaume giraud  nicolas pombourcq  the members of the 1gpp gup working group.

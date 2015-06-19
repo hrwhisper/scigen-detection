@@ -1,0 +1,90 @@
+this paper reports our efforts on developing a language modeling approach to passage question answering. in particular  we address the following two problems:  i  generalized language modeling for question classification;  ii  constrained language modeling for passage retrieval. 
+1 introduction 
+the text retrieval conference  trec  has a question answering  qa  track to support large-scale evaluation for open-domain qa systems  1 . the trec1 qa track consists of two separate tasks  the main task and the passage task. we only participated in the passage task.  
+the passage task of a qa system is to find a small chunk of text that contains the exact-phrase answer of a given question from a large document collection. lin et al.  have showed that users prefer passages over exact-phrase answers in a real-world setting because paragraph-sized chunks provide context. furthermore  exact-phrase answers are too short to make good training data for future research  making passages a better resource. 
+this paper reports our efforts on developing a language modeling approach to passage question answering. in particular  we address the following two problems:  i  generalized language modeling for question classification;  ii  constrained language modeling for passage retrieval.  
+the rest of this paper is organized as follows. in ¡ì1  we give a brief review of the language modeling technique. in ¡ì1  we describe the architecture of our trec1 qa system. in ¡ì1  we describe the question classification module. in ¡ì1  we describe the passage retrieval module. in ¡ì1  we present the evaluation results. in ¡ì1  we make concluding remarks. 
+1 language modeling 
+the language modeling technique is originally motivated by speech recognition  and it has become widely used in many other application areas such as document classification and information retrieval. this section gives a brief review of the language modeling technique. please be referred to  1  1  for more detailed explanation.  
+the goal of language modeling  in general  is to build a language model m l that captures the statistical regularities of natural language l . given a word string s = w w1...wl   m l attempts to predict pr s | m l   = pr  l s   the occurring probability of s in l . 
+the most common language model is the n-gram model. despite of its simplicity  the n-gram model works quite well in practice. applying the chain rule of probability  we get  
+l
+pr  l s  = pr  l w1w ...wl   =¡Çpr  l w w wi | 1... i 1  .  
+i=1
+the n-gram model approximates this probability by assuming that the occurrence of wi only depends on its preceding n 1 words  i.e.   
+pr  l wi | w1...wi 1  = pr  l wi | wi n  +1...wi 1 .  
+a straightforward way to estimate pr  l wi | wi n  +1...wi 1  is to use maximum likelihood estimation given by  
+#l  wi n  +1...wi  
+	pr  l wi | wi n  +1...wi 1  =	    
+#l  wi n  +1...wi 1 
+where # s  denotes the number of occurrences of s in the training data of l . however  maximum likelihood estimation assigns zero probabilities to the n-gram strings that were never witnessed in the training data  which are obviously untrue and cause serious problems. therefore smoothing methods should be used to adjust maximum likelihood estimation to produce more accurate probabilities. one simple but effective smoothing method is to combine the raw model m la  e.g. bigram model  with its background model m lb  e.g.  unigram model  by linear interpolation:  
+¡¡¡¡¡¡¡¡pr  l s  =¦Ëprla   s +   1 ¦Ë prlb s    where 1 ¡Ü ¡Ü¦Ë 1 is a weighting parameter. more powerful smoothing methods include additive smoothing  e.g. laplace smoothing   jelinek-mercer smoothing  katz smoothing  witten-bell smoothing  kneser-ney smoothing  and so on .  
+1 system overview 
+the architecture of our trec1 qa system is shown in figure 1. it consists of two major modules: question classification and passage retrieval. 
+ 
+figure 1. the architecture of our trec 1 qa system. 
+the question classification module identifies each question's preferred answer type using question-class language models  which are learned from thousands of labeled training examples. the language modeling based classification algorithm has many advantages over the popular naive bayes algorithm. to tackle the scarcity of training data  we build question-topic language models on generalized question structures but not specific word sequences. the generalized question structures are derived from the original questions through various lexical  syntactic and semantic generalization rules. 
+the passage retrieval module identifies each question's expected answer context using question-topic language models  which are learned from web search results. given a question  we first get a set of relevant passages from the local document collection. then we search the web  build a question-topic language model and augment it with a set of probabilistic constraints. next we rank the retrieved passages using the question-topic language model. finally  we return the highest ranked passage whose score is above a threshold as the answer. the language modeling based retrieval algorithm implicitly has the power of massive query expansion  which is helpful to overcome the lexical chasm between questions and answers. 
+1 question classification 
+the task of question classification could be automatically accomplished using machine learning methods  1 . here we attempt to apply language modeling to question classification. 
+given a question q = q q1...qk   it is natural to assign it to the question class which has highest posterior probability  i.e.   
+	c* = argmaxc pr c q|	 .  
+the posterior probability pr c |q  can be computed via bayes's rule:  
+pr q | c pr c 
+	pr c |q  =	 ¡Ø pr q |c pr c .  
+pr q 
+the prior probability pr   c can be estimated by the fraction of training questions labeled c . to estimate the probability pr q | c   we build a question-class language model mc for c and then get  
+	pr q | c  = pr q m|	c   = pr  c q  = pr  c q1q ...qk .  
+in our qa system  smoothed bigram models  see ¡ì1  are used to implement question-class language models. 
+the language modeling based classification  lmc  algorithm is very similar to the popular na ve bayes  nb  algorithm . in fact  the lmc algorithm is a straightforward generalization of the nb algorithm: a uniram classifier with laplace smoothing corresponds exactly to the traditional nb classifier. however  the lmc algorithm possesses many advantages over the nb algorithm  including modeling longer context with larger n and applying superior smoothing techniques in the presence of sparse data . 
+note that the power of language modeling is often hurt by the scarcity of training data. applying language modeling to question classification is no exception. to overcome this obstacle  we build question-topic language models on generalized question structures but not specific word sequences. for instance  a 
+question in the form  when was sb. born   always asks for a date no matter who  sb.  is  so if we have a date-class language model that can accurately predict the probability of the generalized question structure  when was  person  born    we are able to ensure correct classification of the question  when was albert einstein born   even though  albert einstein  has never occurred in the training data.  
+the generalized question structures are derived from the original questions through various generalization rules  which may include:  
+  lexical generalization  e.g.  replacing every acronym with  acronym   replacing every number with 
+ number ; 
+  syntactical generalization  e.g.  replacing every quoted-string with  quoted   replacing every clause with  clause ; 
+  semantic generalization  e.g.  replacing every string that is a named entity  like organization  with a tag representing its type  like  organization    replacing every word that belongs to a specific semantic category  like animal  with a tag representing its hypernym  like  animal  . 
+the named entity recognizer is modified from a component of gate   available at http://gate.ac.uk/   and the semantic categories are defined taking advantage of wordnet  available at http://www.cogsci.princeton.edu/~wn/ .  
+1 passage retrieval 
+recently the language modeling technique has been introduced to information retrieval area and shown considerable success in many applications  1 . here we attempt to apply language modeling to passage retrieval in qa scenario.  
+given a question q = q q1...qk   we first get a set of relevant passages from the local document collection  using the mg software   available at http://www.cs.mu.oz.au/mg/ . the passages are defined as halfoverlapped text windows each consisting of a fixed number  1 in our case  of words. every passage is restricted not to cross paragraph boundary. please be referred to  for a recent survey of various kinds of passages. 
+these passages need to be ranked according to their possibilities of containing the right answer. from the language modeling standpoint  effective ranking of passages could be achieved by constructing a questiontopic language model  which represents our expectations about the answer context. the primary difficulty here is the lack of training data.  
+lavrenko and croft  have proposed a wise method called  relevance-based language modeling   that can build a unigram model m r describing a topic in absence of training data. their method is to approximate pr w m| r  by the formula:  
+	pr w q q1 	 ... qk   = pr w q q  1 	 ... qk  	.  
+	pr w m|	r  ¡Ö pr w|q  =	 
+pr q q1 	 ... qk   ¡Æ pr w q q1 	 ... qk   w
+to estimate the joint probability pr   w q q1   ... qk     we assume that there exists a set m of underlying source distributions from which w and q1 q  ... qk could have been sampled independently  then we get 
+	 	k	 
+	pr   w q q1 	 ... qk   = ¡Æ pr md    pr w m|	d  ¡Çpr q mi |	d     . 
+	md¡Êm	 	i=1	 
+thus the probability pr w m|	r   can be computed as  
+	pr w m|	r   = ¡Æ pr w | md  pr md | q q1 	 ... qk  . 
+md¡Êm
+now it becomes obvious that m r is a linear mixture of distributions from m  where each distribution md is  weighted  by its posterior probability of generating the question  pr md | q q1   ... qk .  
+since previous research work has revealed immense benefits of exploiting the web data for qa  1  1   we decide to construct m from the question's relevant web search results. as in   we formulate several queries by rewriting the question q   and submit these queries to a search engine like google 
+ http://www.google.com  to get search results. for each search result d   we build a smoothed unigram model  see ¡ì1  that is to be used as a source distribution m d ¡Êm   so that pr w m| d   = pr  d w  . to make the computation of pr w m| r  tractable  we only use the top-n search results. this simplification is reasonable because the probability pr m | q q1   ... qk   should have near-zero values for all but the top-n search results. in practice  the strict probabilistic interpretation of pr md | q q1   ... qk  could be relaxed and substituted by any heuristic estimate  as long as it is non-negative and sums to 1 . in our qa system  pr md | q q1   ... qk  is substituted by a weight of m d whose value is set according to the precision of its corresponding query . for example  the search results returned by the query  +the louvre museum +is located  would be weighted higher than those returned by the query  louvre . 
+furthermore  we augment the question-topic language model m r with a set of constraints which are expressed as probabilities of various events. the constraints used in our qa system include:  
+
+  answer-type constraints  e.g.  pr a | mr   = 1 that means mr should give zero probability to passages containing no named entity of the desired answer type a ; 
+  answer-context constraints  e.g.  for a question in the form  how did sb. die    we could force pr survive | mr  = 1   pr wreck | mr  = 1   pr kill| mr  = 1   pr suicide | mr  = 1   etc.; or we could interpolate mr with a pre-built model mdie reaso  n which is learned from question-answer pair examples on this topic. 
+after augmenting these constraints  mr is adjusted to meet the requirement ¡Æw pr w m| r   = 1 . in this way  we are able to incorporate some prior knowledge into the question-topic language model.  
+what remains is to use the constructed question-topic language model m r to rank relevant passages. for each passage p   we build a smoothed unigram model  see ¡ì1  m p . as suggested in   we use the kullback-leibler  kl  divergence between passage language model m p and question-topic language model m r to rank passages.  the kl divergence  also known as relative entropy  between m p and m r is defined as: 
+	pr w m|	p  
+	divergence m 	p || mr  =¡Æwpr w m|	p  log pr w m|	r   . 
+passages whose language models have a smaller divergence with the question-topic language model are considered more relevant to the question's topic. the kl divergence yields a reasonable ranking metric  but has problems when straightforwardly used in qa scenario. consider a passage p which is very vague  looks too much like general english   it is unlikely to contain the right answer even if divergence m  p || mr   is small  because it does not describe a specific topic. to avoid such trivial passages  
+we leverage a notion of language model clarity . given a passage language model m p   its clarity is defined as  clarity m  p   = divergence m  p || mg     where mg is the language model of general english estimated from a very large corpus. consequently we rank the relevant passages according to the following score function:  
+score p    = divergence m  p || mr   +clarity m  p    = divergence m  p || mr  + divergence m  p || mg  
+	¡Æw	ppr r w mw m||	pr   +¡Æ pr w m|	p  log pr w m|	p    
+	= 	pr w m|	p  log	w	pr w m|	g  
+¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡pr w m| r   =¡Æwpr w m| p  log pr w m| g   . 
+that is  the degree to which m p is similar to m r   increased to the extent that m p is a clear  focused  model that differs from general english. note that adding clarity has resulted in the denominator that plays a role similar to idf in standard information retrieval . finally  we return the highest ranked passage whose score is above a threshold as the answer. if no such answer could be found  we return 'nil'. 
+massive query expansion is an integral part of the language modeling based retrieval algorithm  because we compute the probability pr w m| r   for every word in the language. this helps our qa system to overcome the lexical chasm between questions and answers. 
+1 evaluation 
+the document set for evaluation is the aquaint collection that consists of 1 1 documents taken from the new york times  the associated press  and the xinhua news agency newswires. the question set for evaluation contains 1 factoid questions that seek short  fact-based answers.  
+a submission for the passage task must contain exactly one answer for each factoid question. an answer is either  nil  or an extracted passage from a document. a passage should be no longer than 1 bytes  and judged either incorrect  does not contain a correct answer   unsupported  contains a correct answer  but the document doesn't say so   or correct. unresponsive passages  a passage that refers to an imitation or copy; a passage that contains multiple instances of the correct semantic category of the answer without actually specifying which is the answer; passages that omit necessary units; etc.  are incorrect. for a question with no correct answer in the document collection  only  nil  answer is correct. the final score for a passage task submission is its accuracy  the fraction of answers judged correct . 
+the official evaluation result of our trec1 qa system is shown in table 1. 
+ 
+# test questions  1 # correct answers  1 # unsupported answers    1 # incorrect answers  	 1 accuracy1 / 1 = 1 precision of recognizing no answer  1 / 1 = 1 recall of recognizing no answer  1 / 1 = 1 table 1. the evaluation result of our trec1 qa system. 
+1 conclusion 
+this paper reports our efforts on developing a language modeling approach to passage question answering.  we want to demonstrate and advocate that language modeling may provide a uniform framework in which qa systems can integrate evidences from multiple knowledge sources to find the right answer.  
+possible future work include: extending this language modeling approach to handle definition questions and list questions; integrating textual patterns  into language models; building language models to exploit structured and semi-structured data  particularly html/xml data on the web.  

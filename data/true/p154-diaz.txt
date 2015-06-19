@@ -1,0 +1,153 @@
+information retrieval algorithms leverage various collection statistics to improve performance. because these statistics are often computed on a relatively small evaluation corpus  we believe using larger  non-evaluation corpora should improve performance. specifically  we advocate incorporating external corpora based on language modeling. we refer to this process as external expansion. when compared to traditional pseudo-relevance feedback techniques  external expansion is more stable across topics and up to 1% more effective in terms of mean average precision. our results show that using a high quality corpus that is comparable to the evaluation corpus can be as  if not more  effective than using the web. our results also show that external expansion outperforms simulated relevance feedback. in addition  we propose a method for predicting the extent to which external expansion will improve retrieval performance. our new measure demonstrates positive correlation with improvements in mean average precision.
+categories and subject descriptors
+h.1  information storage and retrieval : information search and retrieval-relevance feedback  retrieval models
+general terms
+algorithms  experimentation  theory
+keywords
+pseudo-relevance feedback  relevance feedback  language models  relevance models
+1. introduction
+¡¡most information retrieval algorithms leverage collection statistics to improve performance. these statistics can be
+permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. to copy otherwise  to republish  to post on servers or to redistribute to lists  requires prior specific permission and/or a fee.
+sigir'1  august 1  1  seattle  washington  usa.
+copyright 1 acm 1-1/1 ...$1.
+global  as in document frequency  or adaptive as in pseudorelevance feedback. other algorithms use a more complicated analysis such as clustering  latent semantic indexing  or probabilistic aspect models. since these techniques are inherently statistical  we hypothesize that access to more data should improve performance even further.
+¡¡one method of introducing additional data is to gather a larger corpus of documents. we refer to this large  potentiallyunrelated corpus  e.g.  the web  as the external collection; we refer to the evaluation corpus  e.g.  a trec collection  as the target collection. increasing corpus size has improved performance in language tasks such as question-answering  machine translation  cross-lingual information retrieval  and ad hoc information retrieval  1  1  1  1  1  1  1 . this can be seen more generally as the problem of using unlabeled data to improve machine learning algorithms  1  1  1  1 . as a special case of pattern classification  information retrieval has not received a thorough exploration of using external data.
+¡¡we propose incorporating information from external corpora using a language model technique for pseudo-relevance feedback. language modeling provides a theoretically wellmotivated framework for incorporating this information in a relevance model . using this relevance model as an expanded query on the target collection  we demonstrate consistent improvements in performance across a variety of target collections. furthermore  our results show that using a high quality corpus that is comparable to the target corpus can be as  if not more  effective than using the web.
+¡¡we begin by describing our model in section 1. in section 1  we evaluate our model on a variety of topic sets and external corpora. in section 1  we analyze our results in order to explain precisely why and when an external corpus is helpful. we conclude in section 1 by placing our work in the context of related work in information retrieval.
+1. retrieval model
+¡¡in this work we use a language modeling-based approach to retrieval. in order to explore query expansion within this framework  we make use of lavrenko's relevance models  which have been shown to be effective for this task in the past . relevance models are a powerful way to construct a query model from a set of top ranked documents. previous relevance model work has only considered the target collection for expansion. here  we generalize the idea to allow evidence to be incorporated from external collections.
+1 relevance models
+¡¡relevance models provide a framework for estimating a probability distribution  ¦È q  over possible query terms  w  given a short query  q. we take a bayesian approach  and see that:
+z
+	p w|¦È q 	¡Ø	p w|¦Èd p q|¦Èd p ¦Èd 	 1 
+¦Èd
+where ¦Èd is a document language model and p q|¦Èd  is the query likelihood. in order to make evaluation of this expression more feasible  we follow lavrenko  and assume that p ¦Èd  = |r|1 and approximate the integral by a summation over language models of the top ranked documents  denoted by r . under these simplifying assumptions  we get the following query model estimate:
+		 1 
+for every term w in the vocabulary.
+¡¡in some experiments  we compare query expansion to true relevance feedback. the precise formula for this  true relevance model  is 
+		 1 
+where r  is the set of judged relevant documents.
+¡¡in practice  relevance models perform better when combined with the maximum likelihood query estimate  ¦È q. we combine these models by linear interpolation 
+		 1 
+where # w q  is the count of the term w in the query q. therefore  the final expanded query consists of an original query and an expanded query portion  with the terms in the expanded query portion weighted and chosen according to equations 1 or 1. constructing an expanded query in this way is often referred to as rm1. when ¦Ë = 1  retrieval reduces to the query likelihood algorithm which we refer to as ql.
+1 mixture of relevance models
+¡¡to build a query model that combines evidence from one or more collections  we form a mixture of relevance models. this results in modifying equation 1 
+	p w|¦È q 	= xp c p w|¦Èq c 
+c¡Êc
+where c is the set of collections and p w|¦Èq c  is the relevance model computed using collection c  computed using equation 1. in our experiments  c consists of two collections: the target collection and the external collection. the prior on the collection  p c   regulates the weight assigned to evidence from different collections in c.
+¡¡assuming the same properties for p ¦Èd|c  and rc as before  we get the new query model estimate:
+
+collectiondocstermstopicsrel/topictrec1 1 11robust111.1wt1g1 1 11.1table 1: target collection statistics.
+where kc is the normalizing constant for the relevance model estimate using collection c. this final estimate is then interpolated with p w|¦È q  using equation 1.
+¡¡since our set of collections  c  always consists of two collections-a target collection and an external collection- we note that when p c = target  = 1  equation 1 reduces to equation 1. when p c = external  = 1  we estimate ¦È q using only the external corpus; we refer to this algorithm as external expansion or ee. when 1   p c = target    1  we estimate ¦È q using both corpora; we refer to this as a mixture of relevance models or morm.
+1. retrieval experiments
+¡¡this section describes several retrieval and relevance feedback experiments to demonstrating the efficacy of external expansion.
+1 experimental setup
+1.1 target collections
+¡¡we performed all experiments on three data sets. the first data set  trec1  consists of the 1 trec ad hoc topics 1. we used only the news collections on tipster disks 1 and 1 . the second data set  robust  consists of the 1 trec 1 robust topics . these topics are considered to be difficult and have been constructed to focus on topics which systems usually perform poorly on. we used only the news collections on tipster disks 1 and 1. our third data set uses the topics for the wt1g web collection. this collection differs from our other two collections because it consists of web documents instead of news articles.
+1.1 external collections
+¡¡three external collections were considered. the first external collection consists of a union of the gigaword collection  tipster disks 1  1  1  1  and hard 1 ldc collections  which we refer to as bignews. notice that the target collections trec1 and robust are subsets of bignews. our second external collection is the gov1 corpus consisting of a web crawl of the .gov domain. our third external collection is the yahoo web corpus . these collections were selected because of their varied characteristics. we present external collection statistics in table 1.
+¡¡when using the yahoo! api for web expansion  we use the original trec query and make no attempt to reformulate it to include phrases  etc.  as has been done in the past . we are somewhat limited by the fact the api only allows us to retrieve the top 1 results per query. the models described in section 1 do not require modification to work with expansion using the web. all statistics can be computed after downloading the content of the top ranked web pages.
+1.1 training and evaluation
+¡¡to evaluate different expansion techniques  1-fold crossvalidation was performed by randomly partitioning the top-
+collectiondocstermsbignews1 1 1gov1 11 1web1 1-table 1: external collection statistics.
+ics described in section 1.1. for each partition  i  the algorithm is trained on all but that partition and is evaluated using that partition  i. for example  if the training phase considers the topics and judgments in partitions 1  then the testing phase uses the optimal parameters for partitions 1 to perform retrieval using the topics in partition 1. performing this procedure for each of the ten partitions results in 1 ranked lists for trec1 or 1 for robust. evaluation was done using the concatenation of these ranked lists.
+¡¡in order to find the best parameter setting we sweep over values for the number of documents use to construct the relevance model  |r| ¡Ê {1 1}   the number of expansion terms  k ¡Ê {1 1 1}   and the weight given to the original query  ¦Ë ¡Ê {1 1 ... 1} . in addition  when training the morm model  we also sweep over the mixture weights  p c = external  ¡Ê {1 1 ... 1} .
+¡¡we optimize our models using two metrics: arithmetic and geometric mean average precision. arithmetic mean average precision  amap  is well-known and defined as 
+	amap	=
+where ap q  is the average precision for a query in our topic set  q. the geometric mean average precision  gmap  is defined as 
+	gmap	= y ap q 1/|q|
+q¡Êq
+we use gmap because it is more robust to outliers than the arithmetic mean.
+¡¡we run cross-validation once for each of our metrics. results presented for each metric use models optimized for that metric.
+1.1 query formulation
+¡¡for all three data sets  we use only the topic title field as the query. we used the indri retrieval system for both indexing and retrieval . we present target collection and topic statistics in table 1.
+¡¡equation 1 is implemented by creating an indri query of the form:
+#weight  ¦Ë #combine  w1 ...w|q|  
+ 1   ¦Ë  #weight  p e1|¦È q  e1 ... p ek|¦È q  ek    
+where w1 ...w|q| are the original query terms  e1 ...ek are the k terms with highest probability according to p w|¦È q   and ¦Ë is free parameter determining the weight given to the original query.
+1.1 simulated relevance feedback
+¡¡instead of conducting a true user study  we simulated relevance feedback using trec relevance judgments. we selected the top k documents from the target collection query likelihood runs for simulated feedback. we then build a relevance model using the relevant documents in this set  equation 1 . this simulation provides a somewhat more realistic scenario than providing k relevant documents. instead of assuming that the searcher found k relevant documents  we model the scenario where the searcher marks documents from some initial query-based document retrieval.
+¡¡we present results for 1 ¡Ü k ¡Ü 1  with parameter values trained for each k. that is  we perform cross-validation using k = 1 ... 1. this results in 1 evaluation ranked lists using the cross-validation approach described above. we did not remove judged documents from evaluation sets because we were interested in model convergence and comparison to our pseudo-relevance feedback techniques.
+1 ad hoc retrieval
+¡¡results for our ad hoc experiments using both the ee and morm techniques are presented in table 1.
+¡¡from the results  we first observe the consistent improvement achieved by using the bignews and web collections. in only one case does using the web collection hurt performance. this confirms our belief that external corpora improve relevance model estimates. note that in table 1 a   combining information from the external and target collections improves amap. however  when evaluating using gmap  table 1 b    these improvements are not as stable as using only the external collection. the gmap almost always falls off when using combined collection information.
+¡¡next  we see the gov1 collection consistently proves ineffectual. we hypothesize that this deficiency results from the fact that these documents behave quite differently from our two target news collections  trec1 and robust. the benefit of large corpora arise from providing additional data representative of the target collection. it is surprising  then  that gov1 does not improve the performance on the smaller web collection  wt1g. in fact  our other external corpora provide significantly better improvements over gov1 even for this collection. this indicates that there may be some inherent shortcoming with the data in the gov1 collection. the bignews collection  despite being the smallest of our external corpora  provides among the most stable improvements. we alluded to one reason for this superior performance earlier. since two of the target collections primarily consist of news documents  we should expect additional representative news data to improve performance. while certainly valid  this explanation does not explain why the amap of ee on trec1 does not significantly improve with bignews. furthermore  this does not explain the improvements to performance on the wt1g target collection. in section 1  we explore alternative explanations for this improvement in performance.
+ a  arithmetic mean average precision
+	bignews	gov1	web
+	ql	rm1	ee	morm	ee	morm	ee	morm
+trec1.1.1.1.1.1.1.1.1 robust	1	1	1	1	1	1	1	1 wt1g	1	1	1	1	1	1	1	1
+ b  geometric mean average precision
+bignewsgov1webqlrm1	ee	morm	ee	morm	ee	mormtrec1
+robust wt1g1 1
+11 1
+11	11	1
+1	111111	1
+1	11	11	1table 1: ad hoc retrieval results. we break our results down by external collection  bignews  gov1  and web . each of these collections are broken down by runs which solely used the external collection  ee  and those which combined external and target models  morm . darkly-shaded numbers represent significant increases in performance with respect to our baseline  rm1. lightly-shaded numbers represent significant decreases in performance with respect to our baseline  rm1. we use the wilcoxon test of significance with¡¡recall that that the robust collection consists of topics with  on average  fewer relevant documents per topic  table 1 . we speculate that a retrieval system will  therefore  return few topically relevant documents in the initial retrieval for those queries. this would imply that a retrieval system cannot rely on documents in the initial retrieval being good candidates for pseudo-relevance feedback. this is a problem since pseudo-relevance feedback assumes that some part of the top retrieved documents are relevant. when we use a much larger collection  however  this problem is mitigated. if the external collection samples documents according to the same topical distribution as the target  we are likely to p   1.
+see more topical documents in the the initial retrieval from the external collection.
+¡¡in order to explore this issue  we studied the case of bignews  where our external corpus is a superset of the target collection. for each topic  we issued a query to the bignews corpus and retrieved the top 1 documents. this is the set rbignews in equation 1. we then computed the fraction of documents in this set which were also in the target collection. we refer to this fraction as the coverage 
+|rbignews ¡É cc|
+	coverage q c 	=		 1 
+|rbignews|
+where c is either trec1 or robust and cc is the set of documents in the target collection  c. we hypothesize that on average  the coverage of topics in trec1 is higher than the coverage of topics in robust. the implication here is that  for trec1  both ee and rm1 are using the same or very similar sets of documents  i.e.  rtrec1 ¡Ö rbignews .
+¡¡for each target collection  we binned topics according to their coverage. the histogram in figure 1 confirms our suspicions. the robust topic set contains almost twice as large a proportion of topics with coverage less than 1. the histogram for trec1 is also much flatter  indicating that these topics are better represented in the trec1 collection. nevertheless  the majority of topics even for trec1 have coverage less than 1.
+1 relevance feedback
+¡¡we present our simulated relevance feedback results in figure 1. this figure shows performance after k documents judged. for reference  we draw lines representing rm1 and bignews-ee depicting performance without user feedback.
+¡¡we begin by observing that both of our pseudo-relevance feedback techniques outperform receiving feedback on at least the top 1 documents when evaluating using amap. in fact  external expansion is comparable to getting feedback on the top 1 documents.
+¡¡one criticism of pseudo-relevance feedback is that it tends to improve easy queries while hurting poorly-performing queries. in figure 1 b   we demonstrate the stability of external expansion performance using gmap. here  target pseudorelevance feedback performance approximates getting feedback on the top document. external expansion  however  is comparable to feedback on the top 1 documents for trec1 and the top 1 documents for robust.
+1. discussion
+1 concept density
+¡¡in this section we aim to develop a deeper understanding of why expansion using an external corpus sometimes helps and other times yields little or no improvement over expansion using the target corpus. an external corpus is likely to be a better source of expansion terms if it has better topic coverage over the target corpus. although other factors may play a role  we feel this is one of the most important factors.
+1.1 overview
+¡¡most topics consist of one or more key concepts  where a concept can be a single term or a phrase. for example  in the query teaching disabled children  there are two distinct concepts  teaching and disabled children. a corpus with good coverage of these two concepts is likely to be a good source of expansion terms.
+¡¡rather than try to automatically detect meaningful concepts within a query  we take a naive approach like those taken by  and . we use the same concepts as used in   which consist of single term  ordered window  and unordered window concepts. in order to prevent a combinatorial explosion of concepts  we only consider concepts consisting of five or fewer terms. further details are omitted for the sake of space. however  we provide an example to illustrate the idea. for the example query above  the following concepts are generated:
+teaching#uw1 teaching children disabled#uw1 disabled children children#uw1 teaching disabled #1 disabled children #uw1 teaching disabled children #1 teaching disabled #1 teaching disabled children 	trec1	robust
+
+	1 1 1 1 1 1	1 1 1 1 1 1
+	coverage	coverage
+figure 1: histogram of topic coverage in the target collection. these experiments deal with the special case where the external corpus is a superset of the target corpus. topics with high coverage in the target collection will have good representation in the target collection. documents retrieved from the external corpus should be redundant with those retrieved from the target corpus. topics with low coverage will have poor representation in the target collection. documents retrieved from the external corpus will not bewhere #1 indicates terms must occur as an exact phrase present in the target collection.
+and #uwn indicates terms must occur within a window of n terms in any order.
+¡¡given a concept  we define its concept density to be the proportion of top ranked documents that contain the concept. the density of an entire query is computed by first calculating this value for each concept. then  concepts of the same type  i.e. single term  #1  #uwn  are averaged together. finally  each of the concept type averages are averaged together to give the final concept density for a query. two stages of averaging are done because we do not want to give any single concept type more weight simply because there are more features of that type  as is typically the case for the #uwn concepts.
+¡¡more formally  for some corpus c  the concept density for a query is computed as follows:
+
+where t is the set of single term concepts  o is the set of #1 concepts  u is the set of #uwn concepts  rc is the set of top ranked documents for the query  and ¦Ä f d  is 1 iff concept f is present in document d.
+1.1 analysis
+¡¡we hypothesize that if the concept density in an external corpus is greater than the density in the target corpus  that external expansion will be effective. in order to test this hypothesis  we plot the change in density  external density - target density  versus the change in average precision  external avgp - target avgp  for a given topic set. if our hypothesis holds  then there should exist a positive correlation between the two values. that is  greater external density implies greater improvement from external expansion.
+¡¡figure 1 shows these plots for each of our target corpora. as the graphs indicate  there is a positive correlation between change in density and change in average precision. in fact  each of these correlations are statistically significant according to a one tailed test at significance level 1  which suggests a dependence between the two variables. in fact  even when the data is combined from each collection  this significance exists  r = 1  n = 1 .
+¡¡therefore  concept density plays an important role in determining how effective external expansion will be. given a number of external corpora  it may be possible to use such a technique to automatically detect which corpus is the best to use for expansion. this is beyond the scope of this current work  however  and is potential future work.
+1 collection size
+¡¡in addition to looking at concept density  we also look at how varying the size of the external corpus affects retrieval effectiveness. we use the bignews collection as our external corpus and generate subsets of it by randomly dropping documents during indexing. for each new index  we plot the effectiveness of using that index for external expansion. the resulting plot is given in figure 1.
+¡¡as we see  the effectiveness is almost always increasing as the external collection size grows. as discussed in the previous section  the reason why effectiveness is increasing is ultimately due to an increase in concept density at each point. although not plotted on the graphs  this is indeed the case. as the external collection increases  the concept density increases as well. it appears as though the effectiveness gain from the external collection begins to level off 
+¡¡
+	trec1	robust
+
+	number of feedback documents	number of feedback documents
+ a  arithmetic mean average precision
+	trec1	robust
+
+	number of feedback documents	number of feedback documents
+ b  geometric mean average precision
+figure 1: relevance feedback performance as a function of number of documents judged. pseudo-relevance feedback techniques-which do not use any judgments-are shown for reference. dashed lines represent external expansion  ee  using the bignews corpus. dotted lines represent pseudo-relevance feedback using only the target corpus  rm1 .
+
+	change in density	change in density	change in density
+figure 1: change in density vs change in arithmetic mean average precision on a query-by-query basis. the dashed line is fitted linearly to show the trend. in each case  a statistically significant correlation exists using a one tailed test of significance with p   1.
+	trec1	robust	wt1g
+
+111	1
+size11111	1
+size11111	1
+size11figure 1: change in size vs change in arithmetic mean average precision for the target collection. the ¡Á represents the mean average precision using only the target collection. the horizontal coordinate is the size of the target collection relative to the external collection.
+¡¡
+indicating that the bignews corpus has reached the point of diminishing returns and that increasing its size is unlikely to provide substantial improvements.
+¡¡finally  it is interesting to note where the rm1 mean average precision values lie with regard to this curve. for the trec1 corpus  it is below the curve  whereas for the other two corpora it is above the curve. this further supports our argument that the trec1 corpus itself is a better source of expansion than the bignews corpus and that external expansion is unlikely to yield any significant improvements. however  for the robust and wt1g corpora  the external collection is a better source and will only stop proving useful once the concept density saturates.
+1. related work
+¡¡the idea of using an external data source has been found to be useful in a wide range of applications. in the field of information retrieval  using an external corpus for various kinds of pseudo-relevance feedback has been studied in the past  but never in much detail.
+¡¡a number of groups participating in the trec 1 ad hoc track  which was evaluated on trec volumes 1 and 1  performed query expansion using trec volumes 1 through 1  1  1 . allan et. al.  state that  increasing the size of the database increases the likelihood of finding good expansion concepts   while the rationale walker et. al.  use is similar  explaining that  it is quite clear that 'blind' query modification is beneficial provided that a large enough database is available . the main motivation behind using the larger collection was the size of the collection  rather than the quality. although size may be important  we have also showed that concept density correlates with quality and also plays an important role. this was shown experimentally by the fact bignews is a better source for expansion than gov1  despite it being a much smaller collection. both groups claimed this form of expansion helped  although it is not clear from the results how much of an improvement was achieved over expanding on trec volumes 1 and 1 alone.
+¡¡xu and croft  present local context analysis  lca  results using a larger external corpus. in their experiments  the evaluation corpus is the trec1 documents  and expansion is done  again  using trec volumes 1 through 1. xu and croft recognized that using an external corpus for expansion could help overcome the vocabulary mismatch problem. expansion using the larger corpus yielded a 1% increase in 1-point average precision over expansion using the trec1 corpus.
+¡¡finally  the idea of external expansion  particularly using the web as a source  has been widely used at the trec robust track  1  1  due to the purposefully challenging topics used. the general strategy was to generate one or more web queries for each trec topic  query the web using one of the publicly available commercial web retrieval apis  download a subset of the pages returned  and use the results to generate an expanded query. most of the top groups used this technique  and it proved to be highly effective. our results here show that it is not necessary to use the entire web as a source of expansion terms. instead  using a high quality  high concept density  corpus that is comparable to the evaluation corpus can be as  if not more  effective than using the web. the added benefit of using a smaller corpus than the web is that it allows direct access to the index statistics  which is not possible with the web.
+1. conclusion
+¡¡we have presented a formal method for incorporating external corpus information in a language modeling framework. we also demonstrate the effectiveness of this method using a variety of external corpora. previous work has explored the use of limited-access web-size corpora through search engine apis. our results indicate that  when available  large news collections often perform as well as the web corpora while giving the researcher access to finer-grained collection information.
+¡¡we also demonstrated that external expansion outperforms simulated relevance feedback. we find this result compelling since we can now advocate pseudo-relevance feedback in cases where the cost of a second retrieval is less than the cost to the user to examine the top few documents. our results suggest that external expansion does not suffer from the instability of pseudo-relevance feedback using only the target collection. we would like to extend this analysis to a variety of other metrics which measure performance for interactive retrieval.
+¡¡finally  we have developed a preliminary analysis for determining when and why external expansion succeeds. we propose studying external expansion further by exploring external corpus selection and combination.
+1. acknowledgments
+¡¡this work was supported in part by the center for intelligent information retrieval  in part by nsf grant #cns1   in part by the defense advanced research projects agency  darpa   and in part by nsf grant #iis-1. any opinions  findings and conclusions or recommendations expressed in this material are the authors and do not necessarily reflect those of the sponsor.

@@ -1,0 +1,8 @@
+good cardinality estimates are critical for generating good execution plans during query optimization. complex predicates  correlations between columns  and user-defined functions are extremely hard to handle when using the traditional histogram approach. this demo illustrates the use of sample views for cardinality estimations as prototyped in microsoft sql server. we show the creation of sample views  discuss how they are exploited during query optimization  and explain their potential effect on query plans. in addition  we also show our implementation of maintenance policies using statistical quality control techniques based on query feedback.
+categories and subject descriptors
+h.1  database management : system-query processing
+general terms
+algorithms  performance
+keywords
+query optimization  cardinality estimation  sample views  sequential sampling  statistical quality control
+1. introduction

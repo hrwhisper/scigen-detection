@@ -1,0 +1,103 @@
+we propose to demonstrate sgl  a language and system for writing computer games using data management techniques. we will demonstrate a complete game built using the system  and show how complex game behavior can be expressed in a declarative scripting language. the demo will also illustrate the workflow necessary to modify a game and include a visualization of the relational operations that are executed as the game runs.
+categories and subject descriptors
+d.1  programming languages : language classifications-specialized application languages
+general terms
+languages
+keywords
+games  scripting  aggregates  indexing
+1. introduction
+¡¡computer games are an important and rapidly growing class of applications that require extensive computational resources. in addition to remaking the entertainment industry  games have been used in many applications including military simulations and education . while games have traditionally incorporated research from the graphics community  modern games must solve a wide variety of computational challenges and can leverage results from many other areas of computer science .
+¡¡white et al.  recently described a broad class of games called simulation games that can be optimized using data management techniques. a simulation game is one in which the player has indirect control of some or all of the characters in the game. in this case  the game engine spends a significant amount of time simulating character behavior at each game tick  and this significantly limits the scalability and expressiveness the game. strategy games and  doll house games like the sims are examples of simulation games  whereas as some graphics-driven 1d games are not. to improve the performance of simulation games  white et
+copyright is held by the author/owner s .
+sigmod'1  june 1  1  vancouver  bc  canada. acm 1-1-1/1.
+al. represent objects and characters in the game in a mainmemory relational database and then split up each tick into a sequence of queries followed by a single database update. by leveraging query rewrite and aggregate indexing techniques  they show how to reduce many common computations from o n1  to o nlogdn .
+¡¡we have developed a complete system for expressing games that extends the sgl scripting language from . since much of the industry is accustomed to object-oriented or procedural languages  we have abstracted away much of the relational framework while taking care to ensure that scripts can easily be converted to a multiset relational algebra.
+¡¡in this demonstration  we will show a complete game built using the sgl language as well as a novel workflow for developing data-driven games. in section 1 we will introduce a simple schema definition language and describe the workflow used to design games in our system. in section 1 we will detail the demonstration and describe our interface for visualizing queries.
+1. the sgl system
+¡¡in order to facilitate code reuse  most modern games separate game content from the game engine. game content includes media like art and music  but it also includes character behavior. typically a game designer will write scripts to specify this behavior  which are then compiled and executed by the engine.
+¡¡we have extended the sgl language from  to support user defined aggregation and schemas with multiple tables  while taking special care to ensure that it remains usable by game designers who may not have extensive experience with the relational model.
+¡¡the core of the sgl system is a compiler that will translate sgl scripts into relational algebra and a produce a set of c# classes that can be used for rendering graphics. these classes are largely independent from the sgl scripts  and only need to be recompiled if the graphics changes. we will not discuss the problem of rendering here  except to remark that our system uses a threaded model in which rendering is decoupled from the game simulation.
+¡¡we will defer a complete description of the syntax of sgl until section 1. in the remainder of this section we will describe the workflow that a designer might use to develop games in our system and introduce the schema definition component of sgl.
+
+figure 1: the sgl workflow
+1 the sgl workflow
+¡¡an sgl game consists of four components: i  a schema definition; ii  a set of game scripts; iii  a set of starting conditions; and iv  an interface description. we will consider how a game designer specifies each of these in our system.
+schema definition. the game designer specifies the types of all of the objects and characters in the game by creating classes in a simple data-definition language. these are compiled into the relations that are used at runtime.
+game scripts. all game-specific behavior is included in an sgl script that is executed at every tick. this script can access the attributes specified in the schema and can create temporary attributes for intermediate computations. sgl scripts are compiled with the schema-definition file into an intermediate file containing relational operators that is executed by the runtime system.
+starting conditions. the initial game state is specified in a simple xml file that sets initial values for various objects in the game.
+interface description. finally  the designer needs to specify how the user interacts with the game. the sgl system includes an xml file that specifies what commands are executed by buttons in the gui. figure 1 shows a diagram of this workflow.
+1 the data-definition language
+¡¡the first component of our scripting environment is a data-definition language that allows designers to specify the schema in an object oriented way. each relation is represented as a class  using syntax similar to c++ or java. in figure 1 we give an example of the unit class that is part of our demonstration. the demonstration actually uses a more complex schema than the one presented here  but figure 1 illustrate the salient parts of the data definition language.
+¡¡as in an object-oriented language  every object has fields which correspond to attributes in our relation. every attribute is either a primitive type  currently just a number   a class type  or a set type. class types express relationships between objects  and are represented in the relational schema using foreign keys and join tables. for example  in figure 1  the class fields of unit are those under the heading of state. we see that most of the fields are simple numeric fields. however  one field - squad - is actually a set. semantically  this is because a unit can belong to more than one squad  and so we need to represent this information as a set. in our implementation  the field squad is actually a separate table that must be joined with the unit table. the schema of this table consists of a number  representing the squad identifier  and a foreign key into the unit table. class unit { state:
+number unit id; number player; number command; number pos x  pos y; number health;
+set number  squad;
+effects:
+number move x : avg; number move y : avg; number damage : sum; set number  joined : union; set number  left : union;
+update:
+pos x = pos x + move x; pos y = pos y + move y; squad = squad union joined setminus left; health = health - damage;
+}
+figure 1: an example schema
+¡¡in order to support efficient processing  we add two additional constructs to the data definition language. first  we allow the designer to specify the effects that can be applied to an object. since we use set-at-a-time processing during a tick  there is only a single update phase at the end of every tick. scripts cannot update the game state directly  they can only make assignments to effect attributes. each such assignment occurs in isolation  and is combined into a single effect  which is used to update the state  at the end of the tick. each effect is annotated with a combination operation that specifies how multiple effects should be combined.
+¡¡again  we see an example of this annotation in figure 1. in this case damage should be summed  but that the movement amount should be averaged. the set-valued effects - joined and left - are all unioned. in general  we can use any aggregate function to combine effects  so long as the aggregate is defined on that data type.
+¡¡finally  the designer must provide the update rules that are used to apply effects to the game state. these rules are specified using assignments following the update label. the lvalue of these assignments must be an attribute of the class. in figure 1 we see that we update the health of a unit by subtracting the  combined  damage effect. similarly  we use the joined and left effect sets to update the squads that include the unit.
+1 game scripts
+¡¡sgl is a declarative scripting language that can easily be compiled to a multiset relational algebra. as with the datadefinition language  we have made the syntax as simple and imperative as possible.
+¡¡the syntax includes standard constructs such as assignment using the let keyword  if-else conditionals  and common arithmetic operations. the syntax also includes the me keyword  which refers the object executing the script. it is important to stress that these features are ultimately compiled to relational operations. for instance  let simply adds a temporary column to a relation or creates a temporary join table  depending upon the data type being created.
+¡¡every expression in sgl is either numerical or set-valued. numerical expressions represent  possibly temporary  attributes of some relation  whereas set-valued expressions represent one or more tuples. sgl uses a familiar dot notation for projections. for instance  u.health returns the health of the units tuple u. by referring to an entire table instead of a single tuple  e.g. class instance  can also use this syntax to access an entire column; for example  units.health would return the set of all health values for all units.
+¡¡to support selections  we introduce the all-where construct. this returns the set of tuples satisfying a particular expression. for instance  the query
+all  u in units where u.health   1 
+returns the set of all units with health greater than 1. we can also apply aggregates to these selections  or to any setvalued expression. for example  min units.health  will return the smallest health of any unit.
+¡¡the sgl language can also support more complex aggregate expressions involving group-by clauses. to present this to designers in an object-oriented fashion  we have the over-each control structure. this is a loop-like structure that allows the script to evaluate expressions over the elements of set. for example  the expression
+over u in unit {
+let u.maxsquad = max squad ;
+}
+let allmax = max unit.maxsquad ;
+uses an over-each expression to determine the maximum squad identifier for each unit. though over-each looks like like iteration  the statements in the body of this controlstructure are actually computed in parallel and combined using the ¨’ operator described in .
+1 the xml files
+¡¡as explained in section 1  the game designer also needs to present two sets of xml files. of these  the starting configuration is the most self-explanatory. this xml file defines the initial tables for each of the game objects defined in the data-definition language. for each object in the game  this xml file needs to specify a value for every attribute under the state heading.
+¡¡the second xml file  the interface description  is much more subtle. for the most part it specifies obvious user interface elements like the location and size of buttons  or the icon on a button. however  it also contains specific logic for controlling the game script. to understand this game-specific logic  we first need to understand how the user interface typically works in simulation games.
+¡¡in simulation games we control the game objects indirectly through commands. these commands are parameters that that influence the behavior of the object in the game script. for example  in figure 1  we have implemented commands as a simple state attribute in the unit data type. to determine its next action  a unit uses if-then statements to pick the correct behavior for that command.
+¡¡the value of this command attribute is determined by the player's interaction with the game. while playing the game  a player uses a bounding box to select the units to control  and then issues the command by either pressing a button or
+
+figure 1: the knights and archers game
+a special key-combination. this  therefore  is the purpose of the interface description xml file. in addition to user interface elements  the interface description specifies how a button or key-combination changes the state of the currently selected game objects.
+1. demonstration features
+¡¡our demonstration contains three major components:  i  a fully functional game;  ii  an interface for visualizing query execution at the relational algebra level; and  iii  a demonstration of modifying an sgl script and changing the game behavior.
+1 an sgl game
+¡¡we have implemented a modified version of the knights and archers game described in  using microsoft's xna framework. this is an extension to c# that includes basic functionality for rendering graphics and handling user input. the game is squad-based  and users will be able to group units together and direct them to attack other squads. additionally  the interface will include command buttons that can be used to perform more complex behaviors. figure 1 shows the user interface of the game.
+¡¡we have implemented all of the behavior in this game using the sgl language  and we will demonstrate a number of specific queries to show how complex actions can be expressed in our system. for example  the following fragment is used to direct a unit to move away from the centroid of all enemy units  i.e. those units controlled by a different player .
+let enemies =  all u in units where u.player != me.player ;
+let centroid x = avg enemies.x pos ; let centroid y = avg enemies.y pos ;
+let me.move x =  me.pos x - cosest.pos x /norm; let me.move y =  me.pos y - closest.pos y /norm;
+¡¡here me is a special keyword refering to the unit executing the script  and norm is shorthand for sqrt move x1+move y1 . this query first selects all units controlled by a different player and computes their centroid using the avg aggregate. it then directs me to move along a vector in the opposite direction using an effect assignment. note that if there were multiple statements assigning a value to an effect like
+
+figure 1: the query visualization tool
+me.move x  then the values would be combined using the appropriate aggregate  avg in this case .
+¡¡we will demonstrate the results of this query in two different ways. first  we will compile our game script into the bag algebra using the script compiler  as shown in figure 1. we will display the bag algebra side-by-side with the game script and compare how they each express this same query. then  we will run the game with this script and show how this behavior appears on the screen. we will use the starting configuration file to populate the game with several enemies arranged in a crowd  and show that friendly units use this query to run away from the center of this crowd.
+1 visualizing queries
+¡¡looking at the bag algebra file is one way to understand how our game scripts are processed using relational operators. however  ideally we would like to see how a query plan corresponds to specific actions on screen. for that purpose we have created a query visualization tool that will allow users to see the relational operators as they are being executed in the game.
+¡¡to understand how the query visualizer works  recall that a traditional query plan is a pipeline through which the tuples of our relations pass. in our game  the tuples are units  which are displayed onscreen as character avatars. thus  to visualize our query pipeline  we need only show the relational operator currently being executed  and highlight the characters that are being processed by that operator.
+¡¡figure 1 shows this visualization interface for a simple query. we display the current relational operator in the box  while we highlight the subjects of this relational operator on screen. in order to better see this  our gui has an option to enable  step mode.  in step mode  gameplay slows down and its speed can be controlled by the user. in addition to visualizing the query pipeline  this feature can help the game designer debug and optimize the game scripts.
+1 modifying scripts
+¡¡in order to demonstrate the workflow necessary to develop a game using sgl  we will show how to modify a script to change the game semantics. first  we will demonstrate how to add new behavior to the game by adding the following script  which finds the enemy unit closest to me  and directs me to move toward that unit.
+over each u in unit {
+if  x.player != me.player  {
+let u.rel dist = sqrt  me.pos x-u.pos x  1
++ me.pos y-u.pos y  1 ;
+}
+}
+let closest = oneof all x in units where x.rel dist == min units.rel dist  ;
+let me.move x =  closest.pos x - me.pos x /norm; let me.move y =  closest.pos y - me.pos y /norm;
+¡¡this script uses the over-each control structure to compute the distance from the unit to each of its neighboring enemies. it then uses a min aggregate to find the distance to the nearest enemy unit. finally  it uses the all-where operator to choose only those enemies that are the minimum distance away  and then uses oneof to pick nondeterministically among them.
+¡¡given this new behavior  we will also demonstrate how to incorporate it into the user interface of the game. as described in section 1  we use xml files to specify how a command button affects the behavior of a unit within a game script. as part of this demonstration  we will show how to modify the interface description xml file to produce a button that  when pushed  instructs a selected unit to move towards the nearest enemy unit.
+1 modifying the schema
+¡¡to make more complex changes  designers may also need to modify the game schema. as part of our demonstration  we will add the attribute num arrows to the schema shown in figure 1. we will also add the num fired effect and an update rule that decrements num arrows whenever the unit fires an arrow. note that these changes do not require changing any of the graphics in game  so the engine does not need to be recompiled. using these new attributes  we can demonstrate the following script  which directs an archer to fire at the nearest enemy if he or she has enough arrows or run away if not.
+if  me.num arrows   1  {
+me.num fired = 1;
+closest.damage =  arrow damage ;
+} else {
+   let me.move x =  closest.pos x-me.pos x /norm; let me.move y =  closest.pos y-me.pos y /norm; }
+¡¡as before  we will also show how to modify the interface description xml file to produce a button that commands a selected unit to perform the above behavior.
+1. conclusions
+¡¡sgl is an expressive scripting language for developing data-driven games. by allowing designers to modify the schema  scripts and preference files  we have developed a system in which it is easy to change gameplay without altering the core engine. in addition  we have shown that game development can derive significant benefits from database techniques  and we have just scratched the surface of what we can do with this approach .
+¡¡acknowledgments. this research is based upon work supported by the national science foundation under grant iis-1  by the air force under grant afosr fa1-1  by a grant from microsoft corporation  and by a faculty development grant from the new york state foundation for science  technology  and innovation. any opinions  findings  and conclusions or recommendations expressed in this material are those of the authors and do not necessarily reflect the views of the sponsors.

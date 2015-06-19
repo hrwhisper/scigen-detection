@@ -1,0 +1,191 @@
+in a federated digital library system  it is too expensive to query every accessible library. resource selection is the task to decide to which libraries a query should be routed. most existing resource selection algorithms compute a library ranking in a heuristic way. in contrast  the decision-theoretic framework  dtf  follows a different approach on a better theoretic foundation: it computes a selection which minimises the overall costs  e.g. retrieval quality  time  money  of the distributed retrieval. for estimating retrieval quality the recall-precision function is proposed. in this paper  we introduce two new methods: the first one computes the empirical distribution of the probabilities of relevance from a small library sample  and assumes it to be representative for the whole library. the second method assumes that the indexing weights follow a normal distribution  leading to a normal distribution for the document scores. furthermore  we present the first evaluation of dtf by comparing this theoretical approach with the heuristical stateof-the-art system cori; here we find that dtf outperforms cori in most cases.
+categories and subject descriptors
+h.1  content analysis and indexing ; h.1  information storage and retrieval : information search and retrieval-retrieval models  selection process
+general terms
+theory  experimentation
+keywords
+resource selection  decision-theoretic framework  formal models  normal distribution  evaluation
+1. introduction
+　today  there are thousands of digital libraries  dls  in the world  most of them accessible through the www. for an information
+permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. to copy otherwise  to republish  to post on servers or to redistribute to lists  requires prior specific permission and/or a fee.
+sigir'1  july 1-august 1  1  toronto  canada.
+copyright 1 acm 1-1/1 ...$1.
+need  a decision must be made which libraries should be searched. this problem is called  library selection    collection selection    database selection  or  resource selection . we use the latter term throughout this paper.
+　the simplest solution for the resource selection problem is that the user selects the libraries to search  e.g.  from a list with all connected libraries . but in practice  a user has only limited knowledge about the content of the huge number of libraries available. thus  the resulting selection quality is poor.
+　recently several automatic selection methods have been proposed  see section 1 . in general they compute a ranking of libraries  based on similarities between the library and the query   and retrieve a constant number of documents from the top-ranked libraries.
+　these current resource selection approaches  including the stateof-the-art system cori   have a good retrieval quality but a poor theoretical foundation. in contrast  the decision-theoretic framework  dtf  for resource selection described in  follows a theoretically founded approach: every possible selection has assigned costs  including different selection criteria like retrieval quality  time or money   and the task is to find the selection with minimum costs. thus  the system computes a clear cutoff for the number of libraries queried  and the number of documents which should be retrieved from each of these libraries.
+　a user can specify the importance of the different cost sources by parameters. e.g.  one user might prefer high quality results and is willing to spend time and money for this  whereas another user might prefer results without paying for them. thus  a user can define her own retrieval policy.
+　similar to the probability ranking principle  dtf only characterises optimum results  but no algorithm for estimating costs. here we introduce methods for estimating costs based on the most crucial cost source  retrieval quality. we start with a probabilistic retrieval model: we use probabilistic indexing weights  the document score is the probability that the document implies the query  and we estimate the probability that the document is relevant to a user.
+　in the following  we investigate three different  theoretically motivated methods for predicting retrieval quality  i.e.  the number of relevant libraries in the result set :
+1. the first method  the original one in   estimates the totalnumber of relevant documents in a library  and uses a recallprecision function for estimating the number of relevant documents in the result set.
+1. the second  new method estimates the distribution of theprobabilities of relevance by simulating retrieval on a small sample.
+1. the third  also new  method aims at estimating the distribution of the probabilities of relevance from the distribution of the indexing weights. in particular  we assume a normal distribution for modelling the indexing weights.
+　the decision-theoretic framework has a sound theoretical foundation  but no-one ever evaluated its effectiveness. thus  in this paper we also present the first evaluation of dtf. we compare the three different dtf methods with the best performing heuristical approach cori  using the huge trec-1 collection  split in 1 libraries . as cori always selects a constant number of libraries and dtf does not  we also modified the latter for finding the optimum selection under the condition that always the same number of libraries are selected as for cori  which  of course  leads to increased costs  and  potentially  to a reduced retrieval quality .
+　the rest of this paper is organised as follows. first  we describe some other resource selection algorithms  in particular cori  which will be used as a baseline in our experiments . then  we describe the decision-theoretic framework. in section 1  we propose two new methods for predicting retrieval quality. in section 1  we evaluate all three methods on a large test-bed and compare them with cori.
+1. related work
+　in contrast to the decision-theoretic framework  dtf  considered in this paper  most of the other selection algorithms compute a score for every library. then  the top-ranked documents of the top-ranked libraries are retrieved and merged in a data fusion step.
+　the gloss system  is based on the vector space model and - thus - does not refer to the concept of relevance. for each library  a goodness measure is computed which is the sum of all scores  in the experiments reported  smart scores  of all documents in this library w.r.t. the current query. libraries are ranked according to the goodness values.
+　the state-of-the-art system cori  uses the inquery retrieval system which is based on inference networks. the resource selection task is reduced to a document retrieval task  where a  document  is the concatenation of all documents of one library. the indexing weighting scheme is quite similar to dtf's one  but applied to libraries instead of documents. thus  term frequencies are replaced by document frequencies  and document frequencies by collection frequencies. cori also covers the data fusion problem  where the library score is used to normalise the document score. experiments showed that cori outperforms gloss .
+　other recent resource selection approaches are language models   slightly better than cori  and the cue validity variance model  cvv    slightly worse than cori .
+　query-based sampling is a technique for deriving statistical resource descriptions  e.g. average indexing weights  document frequencies  automatically in non-co-operating environments .  random  subsequent queries are submitted to the library  and the retrieved documents are collected. with reasonably low costs  i.e.  number of queries   an accurate resource description can be constructed from samples of e.g. 1 documents. although originally developed for cori  it can be used for several other resource selection approaches  gloss  language models  dtf  but not for cvv
+ .
+　very recently  the problem of estimating the number of documents in a library has been investigated. a sample-resample algorithm is proposed in . single-term queries  created from the library sample  are sent to the library  obtaining the number of matches  i.e. the document frequency of that term. assuming that the document frequencies in the sample and the library are the same  the library size has to be be estimated. the estimation can be improved by repeating this process.
+1. decision-theoreticframework
+　this section describes the decision-theoretic framework  dtf  for resource selection . this model will be extended in section 1.
+1 cost-based resource selection
+the basic assumption is that we can assign specific retrieval costs
+ci si q  to each digital library dli when si documents are retrieved for query q. the term  costs  is used in a broad way and also includes other cost factors  beside money  like time and quality as discussed below.
+　if the user specifies  together with her query  the total number n of documents which should be retrieved  the task then is to compute
+an optimum solution  i.e. a vector t with  n which minimises the overall costs:
+m
+	mci si q .	 1 
+for ci si q   costs from different sources should be considered:
+effectiveness: probably most important  a user is interested in getting many relevant documents. thus we assign user-specific costsc+ for viewing a relevant document and costsc   c+ for viewing an irrelevant document. if ri si q  denotes the number of relevant documents in the result set when si documents are retrieved from library dli for query q  we obtain the cost function
+	cirel si q  := ri si q ，c++ si  ri si q  ，c .	 1 
+time: this includes computation time at the library site and communication time for delivering the result documents over the network. these costs can easily be approximated by measuring the response time for several queries. in most cases  a simple affine linear cost function is sufficient.
+money: some dls charge for their usage  and monetary costs often are very important for a user. these costs have to be specified manually. in most cases  the cost function is purely linear  per-document-charges .
+　by summing up the costs from different sources  we arrive at an overall cost function ci si q  with user-defined cost parameters c+  c   ct  for time  and cm  money . thus  a user can specify her very own selection policy  e.g. cheap and fast results with a potentially smaller number of relevant documents . but as we do not know the actual costs  particularly the number of relevant documents  in advance  we switch to expected costs eci si q   for relevancy costs  using the expected number e ri si q   of relevant documents .
+　the task then is to minimise the expected overall costs  thus we have to replace formula 1 by
+m
+	em.	 1 
+　in function 1  the expected costs eci si q  are increasing with the number si of documents retrieved. thus  the algorithm presented in  can be used for computing an optimum solution.
+1 estimating retrieval quality
+　resource selection accuracy in this model heavily depends on good estimations of the number of relevant documents e ri si q   in the result set of size si. in this subsection we describe the estimation described in   called  dtf-rp  in the remainder of this paper . two other methods will be presented in section 1. evaluation results of all three methods are depicted in section 1.
+　all three methods follow risjbergen's  paradigm of ir as uncertain inference  a generalisation of the logical view on databases. in uncertain inference  ir means estimating the probability pr q ○ d  that the document d logically implies the query q  where both d and q are logical formulae  set of terms with query term weights pr q ○ t  and indexing term weights pr t ○ d   respectively .
+　if we assume disjointness of query terms  we can apply the widely used linear retrieval function  for computing the probability of inference:
+	prpr t ○ d  .	 1 
+　we can map these probabilities of inference onto probabilities of relevance with a linear mapping function 
+	f :  1  ★  1   f x  := pr rel|q ○ d ，x	 1 
+with the document- and query-independent constant pr rel|q ○ d . let μt denote the average indexing weight of term t in the collection. then  the expected number e rel|q dli  of relevant documents in dli can be computed as:
+	e relq d 	 1 
+	μt.	 1 
+　the library size |dli| can be set manually  or can be estimated with sampling-resampling .
+assuming a linearly decreasing recall-precision function
+           pi :  	 1  with	expected	precision	e ri si q  /si	and	expected	recall e ri si q  /e rel|q dli   we can estimate the number of relevant documents when retrieving si documents:
+	e ri si q   := pi1，e rel|q dli ，s .	 1 
+es
+1. newmethodsforestimatingretrieval quality
+　in this section we propose two new methods for estimating retrieval quality  i.e. the expected number e ri si q   of relevant documents in the first si documents of a result set for all queries q.
+1 simulated retrieval on sample
+　query-based sampling is used by cori  to approximate statistical resource descriptions like average term frequencies avgtft and inverse document frequencies dft  and by dtf-rp it is used to approximate average indexing weights μt.
+　as the sample has to be acquired anyway for resource selection  it can also be indexed completely  i.e. all document-term pairs together with the indexing weights are stored in the resource description . in the resource selection phase of method  dtf-sample   retrieval is simulated with query q on this small sample  e.g. 1 documents   obtaining a probability of relevance pr rel|q d  for each sample document. this results in the empirical  discrete density p of the corresponding distribution.
+
+figure 1: density of probabilities of relevance and computation of e r s q  
+　figure 1 shows how we can estimate the number of relevant documents in the result set of s documents. the grey area  the area below the graph from a to 1  denotes the fraction s/|dl| of the documents in the library which are retrieved. thus  we have to find a point a （  1   the smallest probability of relevance among the s retrieved documents  such that
+	s .	 1 
+　with this point a  the expected number of relevant documents in the result set can be computed as the expectation of the probabilities of relevance in this area:
+ex dx.
+　this approach can be improved by using a logistic mapping function instead of a linear one :
+	f : .	 1 
+　furthermore  early experiments showed that in most cases normalising the scores  with the maximum score in that dl  i.e. the score of the top-ranked document  yields a better performance:
+pr rel .
+1 modelling indexing weights by a normal distribution
+　like the previous methods  we try to estimate the distribution of the probabilities of relevance pr rel|q d . instead of a purely empirical approach  as before   here we develop a new theoretic model for the relationship between the desired distribution and the distribution of the indexing weights.
+our algorithm  dtf-normal  has four steps:
+1. modelling the distribution of the indexing weights pr t ○ d   for a term t .
+1. computing-based on the indexing weight distribution-thedistribution for the probabilities of inference pr q ○ d   also called  scores  .
+1. deriving-based on the score distribution and the mappingfunction f-the distribution of the probabilities of relevance pr rel|q d .
+1. estimating the number of relevant documents in the result set as in dtf-sample .
+　in the first step we want to approximate the empirical  discrete distribution of the indexing weights in the collection by a simple  continuous distribution. it should be possible to express the density by a closed formula to ease computation of the score distribution.
+　we observed from early experiments that the indexing weight distribution can be approximated best by a normal distribution
+	p	 1 
+which is defined by two parameters  the expectation μ and the variance σ.
+　one example is displayed in figure 1. here  we left out a huge peak at zero for improved readability  corresponding to the large amount of documents which do not contain the term. thus  the expectation of the indexing weights is close to zero  and the normal distribution density is positive also for negative values  although of course there are no negative indexing weights. we disregard this head of the distribution  as we are mainly interested in the high indexing weights  the tail of the distribution .
+　to derive the document score distribution in step 1  we can view the indexing weights of term t in all documents in a library as a random variable xt. then  the distribution of the scores of all documents in a library is modelled by the random variable
+l
+	x :xti	 1 
+with the l query terms ti and weights ai := pr q ○ t . as xt follow a normal distribution  the linear combination x is also distributed normally  and the parameters can be computed efficiently:
+ll
+	μ = ‘ ai.	 1 
+i=1
+　our assumption of normally distributed indexing weights and document scores contrasts the work presented in   where document scores are fitted using a normal distribution for the scores of the relevant documents and an exponential distribution for the nonrelevant documents. about 1 relevant documents are required to compute the parameters  but in practice  libraries hardly ever contain that many relevant documents at all. thus  we restrict our work to the case of a normal distribution. our experiments support this
+
+figure 1: indexing weight distribution  normal distribution fit
+
+figure 1: score distribution  normal distribution fit
+assumption  see figure 1 : a normal distribution is a good approximation for the tail of score distribution; however we believe that this approximations still can be improved.
+　as for dtf-sample  using a logistic mapping function and normalising scores improves retrieval quality. note that even with this modification  the normal distribution for the probabilities of inference pr q ○ d  is still valid.
+1. evaluation
+　this section describes our detailed evaluation of the decisiontheoretic framework and its comparison with cori.
+1 experimental setup
+　we used the trec-1 test bed with the cmu 1 library split . the libraries are of roughly the same size  about 1 megabytes   but vary in the number of documents they contain. the documents inside a library are from the same source and the same time-frame. we took a constant number of 1 documents for each library. table 1 depicts the summarised statistics for this 1 library test-bed.
+ a  complete libraries
+minimumaveragemaximumdocuments1 1 1bytes1 1 11 1 b  library samples
+minimumaveragemaximumdocuments11bytes11 1 1table 1: summarised statistics for the 1 collection test-bed
+　we used the same document indexing terms and query terms for both cori and the three dtf variants:
+1. the document index only contains the  text  sections of the documents.
+1. queries are based on trec topics 1 and 1  respectively. we use three different sets of queries:
+short queries: only  title  field  between 1 and 1 terms  average 1   similar to those submitted to a web search engine.
+mid-length queries: only  description  field  between 1 and 1 terms  average 1   may be used by advanced searchers.
+long queries: all fields  between 1 and 1 terms  average 1   common in trec-based evaluations.
+　for both documents and queries  terms are stemmed  using the porter stemmer   and trec stop words are removed.
+　the relevance judgements are the standard trec relevance judgements   documents with no judgement are treated as irrelevant.
+　the standard weighting schemes for documents and queries are used for the cori experiments.
+　for the dtf experiments  a modified bm1 weighting scheme  is employed for documents:
+	tf t d 	log numdldf t 
+	p t ○ d  := tf t d +1+1， avgdldl d  ， log|dl| .	 1 
+here  tf t d  is the term frequency  number of times term t occurs in document d   dl d  denotes the document length  number of terms in document d   avgdl the average document length  numdl the sample or library size  number of documents   |dl| the library size   and df t  the document frequency  number of documents containing term t .
+　we modified the standard bm1 formula by the normalisation component 1/log|dl| to ensure that indexing weights are always in the closed interval  1   and can thus be regarded as a probability.
+　the resulting indexing weights are rather small; but this can be compensated by the linear factor pr rel|q ○ d  of the linear mapping function 1 and the linear factor b1 of the logistic mapping function 1.
+normalised tf values are used as query term weights:
+	p q ○ t  := tf t q  .	 1 
+ql q 
+here  tf t q  denotes the term frequency  number of times a term t number of terms in queryoccurs in query q   and qlq  .q  := ‘t（q tf t q  is the query length
+　for the dtf experiments we used the same indexing and retrieval methods for the 1 libraries as we use for the resource selection index. we always requested 1 documents. for cori  we used two different variants:
+cori-all: resource selection  retrieval on the selected libraries and merging the results are all performed by cori. for each of the 1 libraries we built another index using the inquery retrieval engine .
+cori-rs: resource selection is performed by cori  but retrieval and result fusion  sorting w.r.t. the probabilities of relevance  is done with library implementations used by dtf.
+in both cases the 1 top-ranked libraries are selected  and 1 documents are retrieved from each  resulting in 1 documents all together as for dtf .
+　with cori-rs we can separate the effect of resource selection from the effects of different retrieval and result merging methods.
+　these experiments are run with the lemur toolkit implementation of cori.1
+dtf-rp  dtf-sample and dtf-normal all require a learning phase:
+
+figure 1: recall-precision graph for optimum experiments  long queries
+1. dtf-rp uses the starting point p1 of the recall-precision function and the linear parameter pr rel|q ○ d  of the mapping function.
+1. dtf-sample and dtf-normal need the two parameters b1 b1 of the logistic mapping function.
+　the parameters are learned using a cross-evaluation strategy: parameters are learned on trec topics 1 and evaluated on topics 1  and vice versa. we used the gnuplot1 implementation of the nonlinear least-squares  nlls  marquardt-levenberg algorithm  and the relevance judgements as probabilities of relevance for learning the parameters. as we don't have relevance judgements for all documents in practice  we only considered the 1 top-ranked documents.
+1 optimum retrieval quality experiments
+　this first set of experiments is conducted to check the retrieval quality of dtf in contrast to cori  the state-of-the-art representative of the current resource ranking systems. for optimum retrieval quality the dtf cost function only contains costs for retrieval quality  c+ = 1 and c  = 1   and the algorithms computes an optimum solution with a variable number of selected dls  in contrast to cori which always selects a fixed number of libraries .
+　for dtf  we learned parameters separately for short  mid-length and long queries  and applied them on the same query type  see section 1 for an evaluation of the sensitivity of the learned parameters w.r.t. query length .
+　the results are depicted in table 1. for all query types  short  mid-length and long queries   dtf-rp and dtf-normal perform about the same  dtf-sample performs bad all the time . compared to cori  the quality is better for mid-length and long queries  for short queries  only in some ranks . the improvement is maximal for mid-length queries  and competitive for short queries typically for the web. for long queries  well-known from former cori evaluations    the improvement is better than for short queries but worse than for mid-length queries.
+　the recall-precision graph for long queries is depicted in figure 1; the graphs for the mid-length and the long queries are about the same and were left out due to space limitations. for long queries one can see that dtf-rp performs best  followed  in this order  by dtf-normal  cori-all  cori-rs and dtf-sample.
+　as cori-all outperforms cori-rs  the improvement of retrieval quality is only due to the resource selection method of dtf.
+　
+ a  learned/evaluated on short queries
+cori-allcori-rsdtf-rpdtf-sampledtf-normal1.1 / +1%1 / -1%1 / -1%1 / -1%1 / -1%1.1 / +1%1 / -1%1 / +1%1 / -1%1 / -1%1.1 / +1%1 / -1%1 / +1%1 / -1%1 / -1%1.1 / +1%1 / -1%1 / +1%1 / -1%1 / +1%1.1 / +1%1 / -1%1 / -1%1 / -1%1 / +1%avg.1 / +1%1 / -1%1 / +1%1 / -1%1 / +1% b  learned/evaluated on mid queriescori-allcori-rsdtf-rpdtf-sampledtf-normal1.1 / +1%1 / -1%1 / +1%1 / +1%1 / +1%1.1 / +1%1 / -1%1 / +1%1 / -1%1 / +1%1.1 / +1%1 / -1%1 / +1%1 / -1%1 / +1%1.1 / +1%1 / -1%1 / +1%1 / -1%1 / +1%1.1 / +1%1 / -1%1 / +1%1 / -1%1 / +1%avg.1 / +1%1 / -1%1 / +1%1 / -1%1 / +1% c  learned/evaluated on long queriescori-allcori-rsdtf-rpdtf-sampledtf-normal1.1 / +1%1 / -1%1 / +1%1 / -1%1 / +1%1.1 / +1%1 / -1%1 / +1%1 / -1%1 / +1%1.1 / +1%1 / -1%1 / +1%1 / -1%1 / +1%1.1 / +1%1 / -1%1 / +1%1 / -1%1 / +1%1.1 / +1%1 / -1%1 / +1%1 / -1%1 / +1%avg.1 / +1%1 / -1%1 / +1%1 / -1%1 / +1%table 1: precision in top ranks and average precision  optimum retrieval quality experiments
+ a  learned/evaluated on short queries
+cori-allcori-rsdtf-rpdtf-sampledtf-normal1.1 / +1%1 / -1%1 / -1%1 / -1%1 / -1%1.1 / +1%1 / -1%1 / -1%1 / -1%1 / -1%1.1 / +1%1 / -1%1 / -1%1 / -1%1 / -1%1.1 / +1%1 / -1%1 / -1%1 / -1%1 / -1%1.1 / +1%1 / -1%1 / -1%1 / -1%1 / -1%avg.1 / +1%1 / -1%1 / -1%1 / -1%1 / -1% b  learned/evaluated on mid queriescori-allcori-rsdtf-rpdtf-sampledtf-normal1.1 / +1%1 / -1%1 / +1%1 / +1%1 / +1%1.1 / +1%1 / -1%1 / +1%1 / +1%1 / +1%1.1 / +1%1 / -1%1 / +1%1 / -1%1 / +1%1.1 / +1%1 / -1%1 / +1%1 / -1%1 / +1%1.1 / +1%1 / -1%1 / -1%1 / -1%1 / +1%avg.1 / +1%1 / -1%1 / -1%1 / -1%1 / -1% c  learned/evaluated on long queriescori-allcori-rsdtf-rpdtf-sampledtf-normal1.1 / +1%1 / -1%1 / -1%1 / -1%1 / -1%1.1 / +1%1 / -1%1 / -1%1 / -1%1 / -1%1.1 / +1%1 / -1%1 / -1%1 / -1%1 / -1%1.1 / +1%1 / -1%1 / -1%1 / -1%1 / -1%1.1 / +1%1 / -1%1 / -1%1 / -1%1 / -1%avg.1 / +1%1 / -1%1 / -1%1 / -1%1 / -1%table 1: precision in top ranks and average precision  fixed number of selected dls  1 libraries   a  learned/evaluated on short queries
+cori-all	cori-rs	dtf-rp	dtf-sampledtf-normal11 / 1	1 / 1	1 / 1	1 / 11 / 111 / 1	1 / 1	1 / 1	1 / 11 / 111 / 1	1 / 1	1 / 1	1 / 11 / 1 b  learned/evaluated on mid queriescori-all	cori-rs	dtf-rp	dtf-sampledtf-normal11 / 1	1 / 1	1 / 1	1 / 11 / 111 / 1	1 / 1	1 / 1	1 / 11 / 111 / 1	1 / 1	1 / 1	1 / 11 / 1 c  learned/evaluated on long queriescori-all	cori-rs	dtf-rp	dtf-sampledtf-normal11 / 1	1 / 1	1 / 1	1 / 11 / 111 / 1	1 / 1	1 / 1	1 / 11 / 111 / 1	1 / 1	1 / 1	1 / 11 / 1table 1: actual costs and number of libraries selected  averaged over all 1 topics 
+　
+1 fixed number of selected dls
+　one of the differences between cori and dtf is that cori always selects a fixed number of libraries  1 in our experiments  whereas that number varies in dtf.
+　as we are interested in the effect of this difference  we modified the selection algorithm to perform an optimum selection under the condition that it always selects 1 libraries. still the algorithm does not always select 1 documents per library  but in total 1 documents are retrieved from 1 libraries  as in cori .
+　the experimental results are presented in table 1. still dtf-rp and dtf-normal are very close together; both have about the same performance as cori-all for mid-length queries only. however  for short and long queries all three dtf methods perform worse than cori.
+1 sensitivity to query length
+　in the experiments presented so far we applied the parameters on the same query type we used for learning these parameters. the same will be done in practice.
+　however it is interesting how retrieval quality changes when we use different query types for learning and evaluation  of course  this only affects the dtf variants .
+　due to space limitations we only discuss some qualitative results:
+short queries: retrieval quality remains quite stable when we use short  mid-length or long queries for learning.
+mid-length queries: quality significantly drops when we learn with short or long queries instead of mid-length queries.
+long queries: using short queries for learning leads  not surprisingly  to a dramatic loss of precision in the top ranks  for all dtf variants with dtf-normal being the best dtf variant . mid-length queries for learning lead to a better quality than learning with long queries for all three dtf variants for the top 1 ranks and a slightly worse quality for lower ranks and in average.
+　concluding  the results depend on the query types for learning and evaluation  and parameters should be learned for queries which have about the same length as real queries have.
+1 additional costs
+　so far we only considered retrieval quality as cost factor. this is suitable for obtaining optimum retrieval quality but does not use the full strength of the decision-theoretic framework.
+　now we use a modified cost function including other costs  linear in the number of documents retrieved  besides retrieval quality:
+	ci si q  = c1+si  r si q .	 1 
+thus  each selected library produces costs c1  so total costs increase with the number of selected libraries  and the number of selected libraries can be decreased by increasing c1. on the other hand  selecting more libraries can increase retrieval performance  thus decreasing the total costs.
+　actual total costs  averaged over all 1 topics  and the average number of libraries selected can be found in table 1.
+　here costs for all three dtf variants are close together  dtfsample performs slightly worse than the other two methods. with c1 = 1  dtf-sample always selects the smallest number of libraries  and has highest costs   as it estimates a worse retrieval quality compared to the other methods. dtf-normal selects more libraries than the other variants  also having smaller costs . with fixed costs c1   1  slightly less libraries are selected by dtf-sample  with increased costs ; for the other variants  the number of selected libraries decreases dramatically  but both methods still produce lower costs than dtf-sample.
+　compared with cori  costs for dtf-rp and dtf-normal are smaller than costs for cori in most cases  even if they select less libraries than cori  for higher fixed costs c1 .
+　concluding  our best-performing variants dtf-rp and dtf-normal also produce lower costs than dtf-sample and the two cori variants.
+1. conclusion and outlook
+　in this paper  we extended the decision-theoretic framework described in . it has a better theoretic foundation  selection with minimum costs  than traditional resource ranking algorithms  considers additional cost sources like time and money  and computes the number of digital libraries to be queried as well as the number of documents which should be retrieved from each of these libraries. in contrast  other heuristic methods compute a ranking of digital libraries  and additional heuristics are needed for determining the number of libraries and the number of documents to be retrieved.
+　we introduced two new methods for predicting retrieval quality as the expected number of relevant documents in the library  using the distribution of the probabilities of relevance in a small sample as representative for the whole library  dtf-sample   and modelling the indexing weights with a normal distribution  leading to a normal distribution also for the document scores  the theoretically motivated method dtf-normal .
+　furthermore we evaluated these two methods for estimating retrieval quality together with the original one  dtf-rp  on a large test-bed. we also compared the quality with cori  the best performing heuristic resource selection approach.
+　these experiments show that dtf-rp and dtf-normal perform about the same  with dtf-normal being slightly better than dtfrp   and that the quality is competitive with cori. however  quality for all dtf variants drop below cori when we fix the number of selected libraries  as cori does . further experiments point out that parameters should be learned on the queries whose length is comparable to the length of queries later issued to the system. the results of our experiments can be attributed to parameter learning phase as it allows dtf to adopt to the libraries.
+　we computed actual retrieval costs with different additional fixed costs. the results are inconsistent: in some cases  costs seem higher for cori than for dtf-rp and dtf-normal  in other cases it is the other way round.
+　concluding  in this paper we propose a class of resource selection algorithms whose performance is competitive with cori. the major advantage is that they have a better theoretic foundation and integrate other cost sources besides retrieval quality.
+　in the future  we will improve the estimation of retrieval quality. in particular  we will continue studying the relationship between score pr q ○ d  and probability of relevance pr rel|q d   and will investigate how the approximation of the indexing weights with a normal distribution can be improved. the major problem is that the normal distribution is a good approximation for the mid-range document scores  but for the highest scores  in which we are mainly interested  the approximation error has to be reduced.
+　another interesting research direction will be to investigate the distribution of indexing values for other media types  e.g.  images  facts like dates or names .
+　furthermore  we plan to consider library overlaps as a fourth source  as described briefly in  . once we have a good estimator for the number of duplicate documents  we can easily integrate this into our cost model.
+1. acknowledgements
+　this work is supported by the eu commission under grant ist-1  mind . part of this work was performed while both authors where affiliated at the university of dortmund. we wish to thank paul ogilvie and luo si from cmu for their assistance with and a bug-fix for their lemur toolkit.

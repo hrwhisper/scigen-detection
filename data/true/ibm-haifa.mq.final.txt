@@ -1,0 +1,135 @@
+lucene is an increasingly popular open source search library. however  our experiments of search quality for trec data and evaluations for out-of-the-box lucene indicated inferior quality comparing to other systems participating in trec. in this work we investigate the differences in measured search quality between lucene and juru  our home-brewed search engine  and show how lucene scoring can be modified to improve its measured search quality for trec.
+　our scoring modifications to lucene were trained over the 1 topics of the tera-byte tracks. evaluations of these modifications with the new - sample based - 1-million queries track measures - neu-map and -map - indicate the robustness of the scoring modifications: modified lucene performs well when compared to stock lucene and when compared to other systems that participated in the 1-million queries track this year  both for the training set of 1 queries and for the new measures. as such  this also supports the robustness of the new measures tested in this track. this work reports our experiments and results and describes the modifications involved - namely normalizing term frequencies  different choice of document length normalization  phrase expansion and proximity scoring.
+1.	introduction
+　our experiments this year for the trec 1-million queries track focused on the scoring function of lucene  an apache open-source search engine . we used our home-brewed search engine  juru   to compare with lucene on the 1k track's queries over the gov1 collection.
+　lucene1 is an open-source library for full-text indexing and searching in java. the default scoring function of lucene implements the cosine similarity function  while search terms are weighted by the tf-idf weighting mechanism. equation 1 describes the default lucene score for a document d with respect to a query q:
+	score d q  = x tf t d  ， idf t  ，	 1 
+t（q
+boost t d  ， norm d 
+where
+  tf t d  is the term frequency factor for the term t in
+
+the document d  computed as pfreq t d .
+  idf t  is the inverse document frequency of the term  computed as 1 + log.
+  boost t.field d  is the boost of the field of t in d  as set during indexing.
+  norm d  is the normalization value  given the number of terms within the document.
+　for more details on lucene scoring see the official lucene scoring1 document.
+　our main goal in this work was to experiment with the scoring mechanism of lucene in order to bring it to the same level as the state-of-the-art ranking formulas such as okapi  and the smart scoring model . in order to study the scoring model of lucene in full details we ran juru and lucene over the 1 topics of the tera-byte tracks  and over the 1k queries of the 1-million queries track of this year. we then modified lucene's scoring function to include better document length normalization  and a better term-weight setting according to the smart model. equation 1 describes the term frequency  tf  and the normalization scheme used by juru  based on smart scoring mechanism  that we followed to modify lucene scoring model.
+
+　as we later describe  we were able to get better results with a simpler length normalization function that is available within lucene  though not as the default length normalization.
+　for both juru and lucene we used the same html parser to extract content of the web documents of the gov1 collection. in addition  for both systems the same anchor text extraction process took place. anchors data was used for two purposes: 1  set a document static score according to the number of in-links pointing to it. 1  enrich the document content with the anchor text associated with its in-links.
+　last  for both lucene and juru we used a similar query parsing mechanism  which included stop-word removal  synonym expansion and phrase expansion.
+　in the following we describe these processes in full details and the results both for the 1 topics of the terabyte tracks  and for the 1k queries of the 1-million queries track.
+1.	anchor text extraction
+　extracting anchor text is a necessary task for indexing web collections: adding text surrounding a link to the indexed document representing the linked page. with inverted indexes it is often inefficient to update a document once it was indexed. in lucene  for example  updating an indexed document involves removing that document from the index and then  re  adding the updated document. therefore  anchor extraction is done prior to indexing  as a global computation step. still  for large collections  this is a nontrivial task. while this is not a new problem  describing a timely extraction method may be useful for other researchers.
+1	extraction method
+　our gov1 input is a hierarchical directory structure of about 1 compressed files  each containing multiple documents  or pages   altogether about 1 1 documents. our output is a similar directory structure  with one compressed anchors text file for each original pages text file. within the file  anchors texts are ordered the same as pages texts  allowing indexing the entire collection in a single combined scan of the two directories. we now describe the extraction steps.
+   two types of result lines: page lines and anchor lines.i  hash by url: input pages are parsed  emitting
+result lines are hashed into separate files by url  and so for each page  all anchor lines referencing it are written to the same file as its single page line.
+   page line with all anchors that reference that page.ii  sort lines by url: this groups together every
+note that sort complexity is relative to the files size  and hence can be controlled by the hash function used.
+   of page lines  data is saved in new files  creating aiii  directory structure: using the file path info directory structure identical to that of the input.
+   numbers of page lines. this will allow to index pagesiv  documents order: sort each file by document with their anchors.
+　note that the extraction speed relies on serial io in the splitting steps  i    iii   and on sorting files that are not too large in steps  ii    iv .
+1	gov1 anchors statistics
+　creating the anchors data for gov1 took about 1 hours on a 1-way linux. step  i  above ran in 1 parallel threads and took most of the time: 1 hours. the total size of the anchors data is about 1 gb.
+　we now list some interesting statistics on the anchors data:
+  there are about 1 million anchors for about 1 mil-lion pages  an average of about 1 anchors per page.
+  maximum number of anchors of a single page is1 1 - that many .gov pages are referencing the page www.usgs.gov.
+  1% of the pages have no anchors at all.
+  1% of the pages have 1 to 1 anchors.
+  1% of the pages have 1 to 1 anchors.
+  1 pages have more than 1 anchors.
+　obviously  for pages with many anchors only part of the anchors data was indexed.
+1	static scoring by link information
+　the links into a page may indicate how authoritative that page is. we employed a simplistic approach of only counting the number of such in-links  and using that counter to boost up candidate documents  so that if two candidate pages agree on all quality measures  the page with more incoming links would be ranked higher.
+　static score  ss  values are linearly combined with textual scores. equation 1 shows the static score computation for a document d linked by in d  other pages.
+	 	 1 
+　it is interesting to note that our experiments showed conflicting effects of this static scoring: while ss greatly improves juru's quality results  ss have no effect with lucene. to this moment we do not understand the reason for this difference of behavior. therefore  our submissions include static scoring by in-links count for juru but not for lucene.
+1.	query parsing
+　we used a similar query parsing process for both search engines. the terms extracted from the query include single query words  stemmed by the porter stemmer which pass the stop-word filtering process  lexical affinities  phrases and synonyms.
+1	lexical affinities
+　lexical affinities  las  represent the correlation between words co-occurring in a document. las are identified by looking at pairs of words found in close proximity to each other. it has been described elsewhere  how las improve precision of search by disambiguating terms.
+　during query evaluation  the query profile is constructed to include the query's lexical affinities in addition to its individual terms. this is achieved by identifying all pairs of words found close to each other in a window of some predefined small size  the sliding window is only defined within a sentence . for each la= t1 t1   juru creates a pseudo posting list by finding all documents in which these terms appear close to each other. this is done by merging the posting lists of t1 and t1. if such a document is found  it is added to the posting list of the la with all the relevant occurrence information. after creating the posting list  the new la is treated by the retrieval algorithm as any other term in the query profile.
+　in order to add lexical affinities into lucene scoring we used lucene's spannearquery which matches spans of the query terms which are within a given window in the text.
+1	phrase expansion
+　the query is also expanded to include the query text as a phrase. for example  the query 'u.s. oil industry history' is expanded to 'u.s. oil industry history.  u.s. oil industry history  '. the idea is that documents containing the query as a phrase should be biased compared to other documents. the posting list of the query phrase is created by merging the postings of all terms  considering only documents containing the query terms in adjacent offsets and in the right order. similarly to la weight which specifies the relative weight between an la term and simple keyword term  a phrase weight specifies the relative weight of a phrase term. phrases are simulated by lucene using the phrasequery class.
+1	synonym expansion
+　the 1k queries for the 1-million queries track track are strongly related to the .gov domain hence many abbreviations are found in the query list. for example  the u.s. states are usually referred by abbreviations  e.g.  ny  for newyork   ca  or  cal  for california . however  in many cases relevant documents refer to the full proper-name rather than its acronym. thus  looking only for documents containing the original query terms will fail to retrieve those relevant documents.
+　we therefore used a synonym table for common abbreviations in the .gov domain to expand the query. given a query term with an existing synonym in the table  expansion is done by adding the original query phrase while replacing the original term with its synonym. for example  the query  ca veterans  is expanded to  ca veterans. california veterans .
+　it is however interesting to note that the evaluations of our lucene submissions indicated no measurable improvements due to this synonym expansion.
+1	lucene query example
+　to demonstrate our choice of query parsing  for the original topic -  u.s. oil industry history   the following lucene query was created:
+oil industri histori
+  spannear  oil  industri   1  false  spannear  oil  histori   1  false  spannear  industri  histori   1  false 
+  1
+ oil industri histori ~1.1
+　the result lucene query illustrates some aspects of our choice of query parsing:    u.s.  is considered a stop word and was removed from the query text.
+  only stemmed forms of words are used.
+  default query operator is or.
+  words found in a document up to 1 positions apart form a lexical affinity.  1 in this example because of the stopped word.    lexical affinity matches are boosted 1 times more than single word matches.
+  phrase matches are counted slightly less than single word matches.
+  phrases allow fuzziness when words were stopped.
+　for more information see the lucene query syntax1 document.
+1.	lucene score modification
+　our trec quality measures for the gov1 collection revealed that the default scoring1 of lucene is inferior to that of juru.  detailed run results are given in section 1. 
+　we were able to improve lucene's scoring by changing the scoring in two areas: document length normalization and term frequency  tf  normalization.
+　lucene's default length normalization1 is given in equation 1  where l is the number of words in the document.
+		 1 
+　the rational behind this formula is to prevent very long documents from  taking over  just because they contain many terms  possibly many times. however a negative side effect of this normalization is that long documents are  punished  too much  while short documents are preferred too much. the first two modifications below remedy this further.
+1	sweet spot similarity
+　here we used the document length normalization of  sweet spot similarity 1. this alternative similarity function is available as a lucene's  contrib  package. its normalization value is given in equation 1  where l is the number of document words.
+	  =	 1 
+we used steepness = 1  min = 1  and max =
+1. this computes to a constant norm for all lengths in the  min max  range  the  sweet spot    and smaller norm values for lengths out of this range. documents shorter or longer than the sweet spot range are  punished .
+1	pivoted length normalization
+　our pivoted document length normalization follows the approach of   as depicted in equation 1  where u is the number of unique words in the document and pivot is the average of u over all documents.
+
+for lucene we used slope = 1.
+
+http://lucene.apache.org/java/1 1/queryparsersyntax.html http://lucene.apache.org/java/1 1/scoring.html http://lucene.apache.org/java/1 1/api/org/apache/lucene/search/defaultsimilarity.html http://lucene.apache.org/java/1 1/api/org/apache/lucene/misc/sweetspotsimilarity.html
+1	term frequency  tf  normalization
+the tf-idf formula used in lucene computes tf t in d 
+
+as pfreq t d  where freq t d  is the frequency of t in d  and avgfreq d  is the average of freq t d  over all terms t of document d. we modified this to take into account the average term frequency in d  similar to juru  as shown in formula 1.
+		 1 
+　this distinguishes between terms that highly represent a document  to terms that are part of duplicated text. in addition  the logarithmic formula has much smaller variation than lucene's original square root based formula  and hence the effect of freq t d  on the final score is smaller.
+1	query fewer fields
+　throughout our experiments we saw that splitting the document text into separate fields  such as title  abstract  body  anchor  and then  or  querying all these fields performs poorer than querying a single  combined field. we have not fully investigated the causes for this  but we suspect that this too is due to poor length normalization  especially in the presence of very short fields.
+　our recommendation therefore is to refrain from splitting the document text into fields in those cases that all the fields are actually searched at the same time.
+　while splitting into fields allows easy boosting of certain fields at search time  a better alternative is to boost the terms themselves  either statically by duplicating them at indexing time  or perhaps even better dynamically at search time  e.g. by using term payload values  a new lucene feature. in this work we took the first  more static approach.
+1.	query log analysis
+　this year's task resembled a real search environment mainly because it provided us with a substantial query log. the log itself provides a glimpse into what it is that users of the .gov domain actually want to find. this is important since log analysis has become one of the better ways to improve search quality and performance.
+　for example  for our index we created a stopword list from the most frequent terms appearing in the queries  crossed with their frequency in the collection. the most obvious characteristic of the flavor of the queries is the term state which is ranked as the 1th most frequent query term with 1 mentions  and similarly it is mentioned 1 1 times in the collection. this demonstrates the bias of both the collection and the queries to content pertaining to state affairs. also in the queries are over 1 queries containing us  u.s  usa  or the phrase  united states  and nearly 1 queries containing the term federal. the fact is that the underlying assumption in most of the queries in the log is that the requested information describes us government content. this may sound obvious since it is after all the gov1 collection  however  it also means that queries that contain the terms us  federal  and state actually restrict the results much more than required in a collection dedicated to exactly that content. so removing those terms from the queries makes much sense. we experimented with the removal of those terms and found that the improvement over the test queries is substantial.
+termfrequency in query logfrequency in indexof1originally stoppedin1originally stoppedand1originally stoppedfor1originally stoppedthe1originally stoppedstate1to1originally stoppeda1originally stoppedcounty1california1tax1new1on1originally stoppeddepartment1what1how1originally stoppedfederal1health1city1is1originally stoppednational1court1york1school1with1originally stopped
+table 1: most frequent terms in the query log.
+　the log information allowed us to stop general terms along with collection-specific terms such as us  state  united states  and federal.
+　another problem that arose from using such a diverse log was that we were able to detect over 1 queries which contained abbreviations marked by a dot  such as fed.  gov.  dept.  st. and so on. we have also found numbers such as in street addresses or date of birth that were sometimes provided in numbers and sometimes in words. many of the queries also contained abbreviations for state names which is the acceptable written form for referring to states in the us.
+　for this purpose we prepared a list of synonyms to expand the queries to contain all the possible forms of the terms. for example for a query  orange county ca  our system produced two queries  orange county ca  and  orange county california  which were submitted as a single query combined of both strings. overall we used a list of about 1 such synonyms which consisted of state abbreviations  e.g. ri  rhode island   common federal authorities' abbreviations  e.g. fbi  fda  etc.   and translation of numbers to words  e.g. 1  one  1  two  etc. .
+　although we are aware of the many queries in different languages appearing in the log  mainly in spanish  we chose to ignore cross-language techniques and submit them as they are. another aspect we did not cover and that could possible have made a difference is the processing of over 1 queries that appeared in a wh question format of some sort. we speculate that analyzing the syntax of those queries could have made a good filtering mechanism that may have improved our results.
+variations of synonym expansion and spell correction  but their results were nearly identical to run 1  and these two runs are therefore not discussed separately in this report. also note that lucene run 1  which was not submitted  outperforms the submitted lucene runs in all measures butfigure 1: -map
+
+figure 1: precision cut-offs 1  1  1
+　run 1  the only juru run  was used as a target. all the other runs - 1 to 1 - used lucene.
+　runs 1  juru  and 1  lucene  - marked with ' * ' - are the only runs in this table that were submitted to the 1 million queries track. two more lucene runs were submitted  with neu-map.
+　run 1 is the default - out-of-the-box lucene. this run was used as a base line for improving lucene quality measures. comparing run 1 with run 1 shows that lucene's default behavior does not perform very well  with map of 1 comparing to juru's map of 1.
+　runs 1  1  1 add proximity  la   phrase  and both proximity and phrase  on top of the default lucene1. the results for run 1 reveals that adding both proximity and phrase to the query evaluation is beneficial  and we therefore pick this configuration as the base for the rest of the evaluation  and name it as lucene1. note then that runs 1 to 1 are marked as lucene1 as well  indicating proximity and phrase in all of them.
+　lucene's sweet spot similarity run performs much better than the default lucene behavior  bringing map from 1 in run 1 to 1 in run 1. note that the only change here is a different document length normalization. replacing the document length normalization with a pivoted length one in run 1 improves map further to 1.
+
+runmap-mapneu-mapp 1p 1p 1-map
+recomputedsec/q1. juru  * 11111111. lucene1 base111111111. lucene1 la111111111. lucene1 phrase111111111. lucene1 la + phrase111111111. lucene1 pivot length norm11111. lucene1 sweet spot similarity111111111. lucene1 tf avg norm111111111. lucene1 pivot + tf avg norm	 * 11111111. lucene1 sweet spot + tf avg norm11111111
+table 1: search quality comparison.　run 1 is definitely the best run: combining the document length normalization of lucene's sweet spot similarity with normalizing the tf by the average term frequency in a document. this combination brings lucene's map to 1  and even outperforms juru for the p 1  p 1  and p 1 measures.
+　the 1-million queries track measures of -map and neumap introduced in the 1-million queries track support the improvements to lucene scoring: runs 1 and 1 are the best lucene runs in these measures as well  with a slight disagreement in the neu-map measure that prefers run 1.
+　figures 1 and 1 show that the improvements of stock lucene are consistent for all three measures: map  -map and neu-map. figure 1 demonstrates similar consistency for precision cut-offs at 1  1 and 1.
+　since most of the runs analyzed here were not submitted  we applied the supplied expert utility to generated a new expert.rels file  using all our runs. as result  the evaluate program that computes -map was able to take into account any new documents retrieved by the new runs  however  this ignored any information provided by any other run. note: it is not that new unjudged documents were treated as relevant  but the probabilities that a non-judged document retrieved by the new runs is relevant were computed more accurately this way.
+　column -map1 in table 1 show this re-computation of -map  and  together with figure 1  we can see that the improvements to lucene search quality are consistent with previous results  and run 1 is the best lucene run.
+　finally  we measured the search time penalty for the quality improvements. this is depicted in column sec/q of table 1 as well as figure 1. we can see that the search time grew by a factor of almost 1. this is a significant cost  that surely some applications would not be able to afford. however it should be noticed that in this work we focused on search quality and so better search time is left for future work.
+1.	summary
+　we started by measuring lucene's out of the box search quality for trec data and found that it is significantly inferior to other search engines that participate in trec  and in particular comparing to our search engine juru.
+　we were able to improve lucene's search quality as measured for trec data by  1  adding phrase expansion and proximity scoring to the query   1  better choice of document length normalization  and  1  normalizing tf values by document's average term frequency. we also would like to note the high performance of improved lucene over the new query set - lucene three submitted runs were ranked first according to the neu measure and in places 1  after the juru run  according to emap.
+　the improvements that were trained on the 1 terabyte queries of previous years were shown consistent with the 1 judged queries of the 1-million queries track  and with the new sampling measures -map and neu-map.
+　application developers using lucene can easily adopt the document length normalization part of our work  simply by a different similarity choice. phrase expansion of the query as well as proximity scoring should be also relatively easy to add. however for applying the tf normalization some changes in lucene code would be required.
+　additional considerations that search application developers should take into account are the search time cost  and whether the improvements demonstrated here are also relevant for the domain of the specific search application.
+1.	acknowledgments
+　we would like to thank ian soboroff and ben carterette for sharing their insights in discussions about how the results - all the results and ours - can be interpreted for the writing of this report.
+　also thanks to nadav har'el for helpful discussions on anchor text extraction  and for his code to add proximity scoring to lucene.

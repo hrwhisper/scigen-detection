@@ -1,0 +1,84 @@
+in several organizations  it has become increasingly popular to document and log the steps that makeup a typical business process. in some situations  a normative workflow model of such processes is developed  and it becomes important to know if such a model is actually being followed by analyzing the available activity logs. in other scenarios  no model is available and  with the purpose of evaluating cases or creating new production policies  one is interested in learning a workflow representation of such activities. in either case  machine learning tools that can mine workflow models are of great interest and still relatively unexplored. we present here a probabilistic workflow model and a corresponding learning algorithm that runs in polynomial time. we illustrate the algorithm on example data derived from a real world workflow.
+categories and subject descriptors
+g.1  mathematics of computing : probability and statistics
+general terms
+algorithms
+keywords
+workflow mining  graphical models  causal models
+1.	motivation
+　most large social organizations are complex systems. every day they perform various types of processes  such as assembling a car  designing and implementing software  organizing a conference  and so on. a process is a set of tasks to be
+ this work was carried out while on internship at clairvoyance corporation
+permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. to copy otherwise  to republish  to post on servers or to redistribute to lists  requires prior specific permission and/or a fee.
+kdd'1  august 1  1  chicago  illinois  usa.
+copyright 1 acm 1-1-x/1 ...$1.
+accomplished  where every task might have pre-requisites within the process that have to be fulfilled before execution.
+　for instance  implementing a database query system should not be performed before the necessary data structures are designed. one should not add the doors to a car before the seats are in place. that is  some tasks are essentially sequential. but it is fair to say that building the speakers of a car bears no implication on the manufacturing of the tires  and vice-versa  i.e.  some tasks can be executed in parallel. moreover  there are tasks that are mutually exclusive: for instance  one has to decide if a given share of coffee harvest is to be exported  or sent to the internal market. some tasks might also be executed in cycles.
+　to analyze productivity  identify outliers  cut unnecessary expenses  and design other production policies  models of work are important  i.e.  abstract representations of typical process instances modeling the causal and probabilistic dependencies among tasks. such models are based on the concepts of sequential  parallel  iterative  cyclic  and mutually exclusive tasks and are used to evaluate costs  monitor processes  and predict the effect of new policies . for these reasons  empirically building process models from data is of great interest. such a problem has been called process mining  or simply workflow mining  1  1  1   because the usual representation of work processes is workflow graphs.
+　in this paper  we describe a probabilistic model for workflow graphs  and algorithms for learning such graphs from data. the setup is similar to other graphical models. in section 1  we introduce a formal description of workflow graphs and the associated generative models. section 1 describes a data mining algorithm for learning the structure of workflow graphs from data. an empirical study is given in section 1. related work is discussed in section 1.
+1.	approach
+　in this section  we first give a description of the family of graphs that are allowed in our framework. this is followed by a probabilistic parameterization of such graphs. we then describe the role of temporal information in our approach  followed by our treatment of hidden variables and noise. we conclude this section with a concept  called faithfulness  that links empirically observable constraints to graphs.
+1	workflow graphs
+　for simplicity  in this paper we will work with acyclic graphs only. a future extension of this work will cover the cyclic case.
+　in a typical process  each task t has pre-requisites  a set of other tasks whose execution will determine the probability of t being executed. a workflow graph g is a directed acyclic graph  dag  where each task is a node  and the parents of a node are its direct pre-requisites. that is  the decision to execute t does not depend on any  other  task in g given its parents.
+　motivated by other workflow representations  see  for a review  which are used to model a large variety of real-world processes  we adopt a constrained dag representation. let a and/or workflow graph  ao graph  be a constrained type of dag  with any node being in one of the following classes:
+  split node  a node with multiple children;
+  join node  a node with multiple parents;
+  simple node  a node with no more than one parent and no more than one child;
+　we require that an ao graph must have exactly one node that has no parents  a start node  and exactly one node that has no children  an end node . informally  split nodes are meant to represent the points where choices are made  i.e.  where one among mutually exclusive tasks will be chosen  or where multiple parallel threads of tasks will be spawned. as a counterpart  join nodes are meant to represent points of synchronization. that is  a join node is a task j that  before allowing the execution of any of its children  waits for the completion of all active threads that have j as an endpoint. this particular property is very specific to workflow graphs  which we call synchronization property.
+　however  not any split-join pattern is permitted. every split node t has also to obey the following constraints in an ao graph:
+  there must be a node that is a descendant of all children of t. the end node obviously is one such node. among all such nodes  we assume there is a unique minimal one that is not a descendant of any other such node. there may also be a node that is a descendant of more than one  but not all children of t. we call such a node a partial join for t;
+  let s1 and s1 be any two directed chains from t to a node v that only intersect at t and v . then all nodes in g that are descendants of nodes in s1 “s1 {t} are either ancestors of v   or descendants of v .
+　this property is desirable in order to give join nodes the semantics of real synchronization tasks  i.e.  join nodes as tasks that finalize threads started by the most recent split node. it essentially enforces nesting of threads. a case where this assumption is not respected is illustrated by figure 1.
+　these constraints are the most characteristic constraints of workflow graphs adopted in the literature  and provide distinctive features to be explored by workflow mining algorithms.
+1 a parametric model of workflow graphs
+　each task t is an event. it either happens or it does not happen. by an abuse of notation  we will use the same symbols to represent binary random variables and task events 
+
+figure 1: this construction is not allowed because t1 creates another thread that is not nested between the split point that generated {t1 t1} and its synchronization point t1.
+where t = 1 represents the event  t happened . we define a parametric model for a dag by the conditional probability of each node given its parents  i.e. by assuming the markov condition  spirtes et al.  1 . there is  however  a special logical constraint in workflow graphs.
+　let an or-split be a split node that forces a unique choice of task to be executed among its children  i.e.  all of its children are mutually exclusive. any other type of split node is called an and-split1. children of or-splits will have a special parameterization.
+　let pat represent the parents of task t in an ao graph g. by another abuse of notation  let pat also be a random variable representing the joint state of the parents of a task t  i.e.  pat = j is a particular combination of binary assignments to the elements of pat. in particular  pat = 1 represents the event where all parents of t are assigned the value 1. the basic parametetrization is as follows:
+  if t is not a child of an or-split  p t = 1|pat = j  = Θtj   1 for j   1  and p t = 1|pat = 1  = 1.
+  if t is a child of an or-split  then by assumption pat has an unique element v . let choice v   be an auxiliary multinomial random variable in {1 ... c}  where c is the number of children of v . each choice    random variable has its own multinomial distribution  where the domain of this function is the set of orsplits of g. finally  define t as being the ith child of pat. then p t = 1|pat = 1 choice pat  = i  = Θt   1  and 1  otherwise;
+　the requirement that p t = 1|pat = 1  = 1 encodes the modeling assumption that a necessary condition for a task to be executed is that at least one of its parents is executed. we call this property backward determinism  typically present in real-world processes 1. also important  backward determinism will allow us to design an algorithm to learn workflow graphs in polynomial time.
+1	temporal information
+　we assume that the data available for our learning algorithm is a workflow log . a workflow log consists of records
+
+of which tasks were performed for which process instances at which starting time. for example  the following log
+workflowlog = { car1 buildchassis  1am  
+ car1 builddoors  1am    car1 addseats  1am  
+ car1 build doors  1am }
+contains information concerning two instances  car1 and car1  going through a series of tasks  buildchassis  build doors  addseats  starting at differente times.
+　workflow logs are by-products of workflow management systems . we assume that our data are workflow logs.
+1	hidden variables and noise
+　we allow the possibility that non-simple nodes can be hidden variables  i.e.  split or join nodes might not be recorded at all in the log . however  for identification purposes  we make the following assumptions:
+1. no hidden and-split is a child of a hidden and-split  and no hidden or-split is a child of a hidden or-split; 1. no hidden task is both a split and join node;
+1. no hidden join is followed by a simple task and no hidden or-split follows a simple task  where there are no hidden partial joins;
+　these assumptions do not restrict the ability of the ao graphs to represent any combination of sequential  parallel or exclusive patterns that appear in practice. mathematically  however  they assure that any ao graph can be distinguished from any other ao graph given enough data  as it will be explained in section 1. furthermore  we allow the possibility of measurement error. for each task t that is measurable  we account for the possibility that t is not recorded in a particular instance even though t happened. that is  let tm be a binary variable such that tm = 1 if task t is recorded to happen. then we have the following measurement model:
+  p tm = 1|t = 1  = ηtm   1
+  p tm = 1|t = 1  = 1
+　note that we assume measurement error happens only in one direction. although that might not be the case in every application  this greatly simplifies our problem  and will allow us to learn the structure of workflow graphs without fitting latent variable models.
+　in this sense  every task is hidden. however  in this paper  the name  hidden task  will be applied only to tasks that cannot be measured at all. the description of a workflow model as a specialized hidden markov model will be treated in section 1. notice also that for every or-split t in g  choice t  is a hidden variable  and will not be explicitly represented in ao graphs  unlike hidden splits and joins.
+　to identify hidden and-splits  we need to assume that the immediate observable descendants of a hidden andsplit t  i.e.  those that do not have an observable proper ancestor that is a descendant of t  should not be tied by any temporal constraint  i.e.  given observable descendants t1 and t1  the probability that t1 is executed  starts  before t1 is positive.
+　we assume that there is also a fixed measurement noise for the temporal ordering information. for each pair of tasks t1 t1  there is some probability   that t1 is recorded before t1 even though in the true workflow graph t1 is an ancestor of t1. we will assume that the noise level is the same for each pair.
+1	structural independence
+　the markov condition gives us a way of parameterizing a probabilistic model as a ao graph. if one is interested in calculating the effect of a new policy that changes the probability distribution of some specific set of tasks  then the causal markov condition needs to be assumed .
+　if one is interested in a learning algorithm that will recover the right structure  at least asymptotically  we have to have some extra assumptions linking the probabilistic distribution of the tasks to the corresponding graphical structure. for the general case of learning the structure of dags  a sufficient condition for consistent learning is the faithfulness condition. this condition states that a conditional independence statement holds in the probability distribution if and only if it is entailed in the respective dag by d-separation
+.
+　we want a similar assumption  because observed conditional independencies can provide information about the workflow graph underlying the data  but only if conditional independencies are a result of the workflow structure  i.e.  if they are entailed by the workflow graph . we cannot just assume faithfulness to d-separation: due to backward determinism  a chain such as t1 ★ t1 ★ t1 encodes that t1 is independent of t1 given t1 = 1  because if t1 happened  then by assumption t1 happened  which means that t1 does not add any information concerning the distribution of t1   but t1 is not d-separated from t1 given t1.
+　instead  we assume a variation of faithfulness. first  two definitions: an augmented ao graph is a modification of a ao graph g such that  for each or-split t we introduce a new node  choice t   as a child of t  and make every original child of t a child of choice t  only. we denote the augmented version of g by augmented g . also  given augmented g   we say that task a is a sure-ancestor of task b if for every ancestor c of b  c is an ancestor of a and a d-separates c and b  or a is an ancestor of c. we then assume that ti is independent of tj given a set of tasks t if and only if either of the following situations hold in the workflow graph g associating such tasks:
+  ti and tj are d-separated given t in augmented g ;
+  ti and tj are d-separated given a sure-ancestor of some tk （ t such that tk = 1;
+  ti  or tj  is a sure-ancestor of some tk （ t such that tk = 1;
+　the idea embedded in faithfulness is that conditional independences should be given by the graphical structure  not by the particular choice of parameters defining the probability of a task being accomplished. sure-ancestry entails independencies because in an ao graph g  if a is a sureancestor of b  then p a = 1|b = 1  = 1 in any probability model parameterized by g.
+1.	learning ao graphs
+　assume for now we have an ordering oracle o for a workflow graph g such that o t1 t1  returns true  false or exclusive as follows:
+  if t1 and t1 are immediate observable descendants of an and-split  then o t1 t1  = o t1 t1  = true;
+  if t1 is an ancestor of t1  then o t1 t1  = true;
+  if o t1 t1  = true  then t1 is not an ancestor of t1;
+  o t1 t1  = exclusive if and only if t1 and t1 are mutually exclusive;
+　notice that according to this oracle it is possible to have o t1 t1  = true even though t1 is not an ancestor of t1  as long as t1 is not an ancestor of t1.
+　analogously  assume for now we have an independence oracle i for a workflow graph g such that i ti tj tk  is true if and only if ti and tj are independent given tk = 1. the motivation for defining such oracles is given by the following theorem:
+　theorem 1. let g1 and g1 be two ao graphs with respective ordering and independence oracles {o1 i1} and {o1  i1} over a same set of observable tasks t. if o1 and o1  and i1 and i1 agree on all queries concerning members of t  then g1 = g1 up to a renaming of the hidden tasks.
+　the proof of this theorem is given in appendix a. in simple terms  given certain partial information of ordering and conditional independences among the observable tasks  one is able to uniquely recover the proper ao graph.
+1	main algorithm
+　with these oracles  we claim that the algorithm learnorderedworkflow  given in figure 1  will return the correct workflow structure.

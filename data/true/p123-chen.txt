@@ -1,0 +1,242 @@
+a good distance metric is crucial for many data mining tasks. to learn a metric in the unsupervised setting  most metric learning algorithms project observed data to a lowdimensional manifold  where geometric relationships such as pairwise distances are preserved. it can be extended to the nonlinear case by applying the kernel trick  which embeds the data into a feature space by specifying the kernel function that computes the dot products between data points in the feature space. in this paper  we propose a novel unsupervised nonlinear adaptive metric learning algorithm  called naml  which performs clustering and distance metric learning simultaneously. naml first maps the data to a high-dimensional space through a kernel function; then applies a linear projection to find a low-dimensional manifold where the separability of the data is maximized; and finally performs clustering in the low-dimensional space. the performance of naml depends on the selection of the kernel function and the projection. we show that the joint kernel learning  dimensionality reduction  and clustering can be formulated as a trace maximization problem  which can be solved via an iterative procedure in the em framework. experimental results demonstrated the efficacy of the proposed algorithm.
+categories and subject descriptors
+h.1  database management : database applications data mining
+general terms
+algorithms
+keywords
+clustering  distance metric  kernel  convex programming
+
+ the first two authors contribute equally to the paper.
+permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. to copy otherwise  to republish  to post on servers or to redistribute to lists  requires prior specific permission and/or a fee.
+kdd'1  august 1  1  san jose  california  usa.
+copyright 1 acm 1-1-1/1 ...$1.
+1. introduction
+¡¡good distance metrics are crucial to many areas in data mining  such as clustering  classification  regression  and semi-supervised learning. in distance metric learning  the goal is to achieve better compactness  reduced dimensionality  and separability  inter-cluster distance  on the data  in comparison with usual distance metrics  such as euclidean distance. with a good distance metric  the construction of the learning models becomes easier and the accuracy of the learning models usually improves . based on the availability of the constraint information  class label   distance metric learning algorithms fall into two categories: supervised distance metric learning  1  1  1  1  and unsupervised distance metric learning  1  1  1  1  1 .
+¡¡the performance of unsupervised learning algorithms  such as k-means is largely dependent on the pairwise similarity  which is commonly determined via a pre-specified distance metric. however  learning a good distance metric in the unsupervised setting is challenging due to the absence of any prior knowledge on the data. in this paper  we focus on the problem of unsupervised distance metric learning for clustering. without any constraint or class label information  most unsupervised metric learning algorithms apply the projection method such that geometric relationships  such as the pairwise distances are preserved in a low-dimensional manifold. commonly used projection  dimensionality reduction  methods include the principle component analysis  pca    locally linear embedding  lle    laplacian eigenmap   and isomap . unsupervised learning algorithms  such as k-means can then be applied in the dimensionality-reduced space  avoiding the curse of dimensionality.
+¡¡in unsupervised learning  the goal is to find a collection of clusters in the data  which achieves the maximum intercluster separability. traditionally  dimensionality reduction and clustering are applied in two separate steps. if distance metric learning  via dimensionality reduction  and clustering can be performed together  the cluster separability in the data can be better maximized in the dimensionality-reduced space. in this paper  we propose a novel algorithm for nonlinear adaptive distance metric learning  called naml for simultaneous distance metric learning and clustering. naml first maps the data to a high-dimensional space through a kernel function; next applies a linear projection to find a low-dimensional manifold; and then perform clustering in the low-dimensional space. the performance of naml depends on the selection of the kernel function and the projection. the key idea of naml is to integrate kernel learning  dimensionality reduction  and clustering in a joint framework so that the separability of the data is maximized in the low-dimensional space.
+¡¡one aspect of naml shares the same goal of supervised metric learning approaches  which try to adjust the distance among the instances to improve the separability of the data. for example  in  1  1   the distance metric adjusts the geometry of data  so that the distance between data points from the same class under the metric is small. the metric improves the separability of the data and enhances the performance of classifiers  such as k-nearest-neighbor  k-nn . in  1  1  1   a linear projection is performed to learn the distance metric for clustering  which assumes linear separability of the data as in  1  1 . however  many real-world applications may involve data with nonlinear and complex patterns. kernel methods  1  1  have been commonly used to deal with this problem. they work by embedding the input data into a high-dimensional feature space through the so-called kernel function. the key to the success of kernel methods is that the embedding into a feature space can be uniquely determined by specifying the kernel function that computes the dot products between data points in the feature space. one of the central issues in kernel methods is the selection  learning  of a good kernel function. the problem of kernel learning has been an active area of recent research  1  1  1  1  1  1  1  1  1  1 . the novel aspect of the proposed approach in comparison with these approaches is that naml does not use any class label. in   generalized maximum margin clustering was proposed for simultaneous kernel learning and clustering  which was formulated as a semidefinite program  sdp . besides its high computational cost of solving a sdp problem  the proposed formulation in  is restricted to the two-cluster problems only.
+¡¡we show in this paper that the simultaneous kernel learning  dimensionality reduction  and clustering in naml can be formulated as a trace maximization problem  which can be solved by an iterative algorithm based on the em framework. in particular  we show that both dimensionality reduction and clustering can be solved by spectral anslysis  while the kernel learning can be formulated as a quadratically constrained quadratic programming  qcqp  problem  which can be solved more efficiently than sdp. we evaluate the proposed algorithm using benchmark data sets  and the experimental results show the effectiveness of the proposed algorithm.
+¡¡the remainder of the paper is organized as follows. we introduce the formulation of distance metric learning for the linear case in section 1. the formulation is then extended to the nonlinear case in section 1. experimental results are presented in section 1. this paper concludes with discussion and future work in section 1.
+¡¡for convenience  we present in table 1 the important notations used in the rest of this paper.
+1. adaptive distance metric learning: the linear case
+¡¡in this section  we present the linear adaptive distance metric learning algorithm from   which will then be extended to the nonlinear case in the next section.
+¡¡assume we are given a data set of zero mean  which consists of n samples   where xi ¡Ê irm. denote
+x =  x1 x1 ¡¤¡¤¡¤  xn  as the data matrix. consider the protable 1: important notations used in the paper.
+notationdescriptionnumber of samples
+number of features  dimensions  number of clusters data matrix of size m by n
+reduced dimensionality transformation in the linear case covariance matrix of data in x mean of the data in x the i-th cluster in x size of the i-th cluster ci mean of i-th cluster ci regularization parameter
+cluster indicator matrix of size n by k kernel function
+kernel gram matrix of size n by n transformation in the nonlinear case
+laplacian matrix of size n by njection of the data via a linear transformation w ¡Ê rm¡Ál. thus  each xi in the m-dimensional space is mapped to a vector  xi in the l-dimensional space as follows:
+	xi ¡Ê rm ¡ú x i = wtxi ¡Ê rl  l   m .	 1 
+it has been shown  1  1  that for most high-dimensional data sets  almost all low dimensional projections are nearly normal. that is  for large m the projected data is expected to be nearly normal. in this case  a good distance measure is the well-known mahalanobis distance measure defined as follows:
+
+	dm x i x j  =	 x i   x j ts  1 x i   x j  
+where s  is the covariance matrix defined as follows:
+n
+	 	1	t 1 s = 	 x i   ¦Ì   x i   ¦Ì    	 1  n
+i=1
+and  	is the mean of	. it follows that
+n
+n
+i=1	i  	i  	s  = 1	wt x	¦Ì  x	¦Ì tw = wtsw 	 1 
+whereis the mean of {xi}ni=1  and
+n
+	1	t
+s = 	 xi   ¦Ì  xi   ¦Ì 	 1  n
+i=1
+is the class covariance matrix of the original data in x. for high-dimensional data  the estimation of the covariance matrix in eq.  1  is often not reliable. thus  the regularization technique  is applied to improve the estimation as follows:
+n
+	1	t
+s = 	 xi   ¦Ì  xi   ¦Ì 	+ ¦Ëim 	 1  n
+i=1
+where im is the identity matrix of size m and ¦Ë   1 is a regularization parameter.
+¡¡under this new distance measure  k-means clustering can be applied to assign the data into k disjoint clusters  {c1 c1 ¡¤¡¤¡¤  ck}  which minimize the following sum of squared error  sse :
+k
+	sse {cj}kj=1  =	dm x i ¦Ìj 1 	 1 
+j=1 x i¡Êcj
+where the mahalanobis distance dm ¡¤ ¡¤  is defined as in eq.  1   and ¦Ìj is the mean of the j-th cluster cj.
+¡¡as the summation of all pair-wise distances is a constant for a fixed w. the minimization of the sse is equivalent to the maximization of sum of squared intra-cluster error  ssie  defined as follows:
+	ssie  	 1 
+where nj is the sample size of the j-th cluster cj  ¦Ìj is the mean of the j-th cluster cj  and  ¦Ì is the global mean as defined above. ssie can be expressed in a compact matrix form as follows. let f ¡Ê rn¡Ák be the cluster indicator matrix defined as follows:
+	f = {fi j}n¡Ák  where fi j =	1	otherwiseif xi ¡Ê cj	.	 1 
+the weighted cluster indicator matrix l =  l1 l1 ¡¤¡¤¡¤  lk  is defined as  1  1 :
+	l = f ftf  1 	 1 
+where the i-th column of l is given by
+ni
+		1
+	li =  1 ... 1 ... 1 ... 1 t/ni1.	 1 
+with the weighted cluster indicator matrix l  the sum of squared intra-cluster error  ssie  can be expressed as:
+ssie {cj}kj=1 =trace ltxtws  1wtxl
+=trace ltxtw wtsw  1wtxl .
+the joint metric learning and clustering problem can be formulated as follows :
+	max trace ltxtw wtsw  1wtxl .	 1 
+w l
+the optimization problem in eq.  1  maximizes the intercluster distance under the mahalanobis distance measure determined by the transformation w. thus  it computes the distance metric and performs the clustering simultaneously.
+1. adaptive distance metric learning: the nonlinear case
+¡¡in this section  we first review the basics of kernel methods. we then present the nonlinear formulation of the adaptive metric learning algorithm from the last section using the kernel trick.
+¡¡kernel methods  1  1  work by mapping the data into a high-dimensional hilbert space  feature space  f equipped with an inner product through a nonlinear mapping ¦Õk as:
+¦Õk : irm ¡ú f.
+the nonlinear mapping can be implicitly specified by a symmetric kernel function k  which computes the inner product of the images of each data pair in the feature space  that is
+k xi xj  =  ¦Õk xi    ¦Õk xj   
+where xi xj ¡Ê irm are training data points. a kernel function k satisfies the finitely positive semidefinite property: for any x1 ¡¤¡¤¡¤  xn ¡Ê irm  the so-called kernel gram matrix g  defined as gij = k xi xj   is symmetric and positive semidefinite.
+¡¡the adaptive metric learning problem in eq.  1  can be extended to the nonlinear case using the kernel trick. denote ¦Õk x  as the data matrix in the feature space. for a given kernel function k  the nonlinear adaptive metric learning problem can be formulated as the following trace maximization problem:
+ max trace lt¦Õk x twk wktskwk  1wkt¦Õk x l   wk l where wk is the transformation in the feature space. assume the data in the feature space has been centered  i.e. 
+¡¡  = 1. otherwise the kernel centering technique in  can be used. thus the covariance matrix sk can be expressed as
+	sk = ¦Õk x ¦Õk x t.	 1 
+it follows from the representer theorem  that the optimal transformation wk is in the span of the images of the data points in the feature space. that is 
+	wk = ¦Õk x q 	 1 
+for some matrix q ¡Ê irn¡Ál. thus  the objective function for naml can be rewritten as
+max trace	ltgq qt gg + ¦Ëg q  1 qtgl	 	 1 
+q l
+where g = ¦Õk x t¦Õk x  is the kernel matrix. here we assume that the matrix gg+¦Ëg is nonsingular  and we can use pseudo-inverse  to deal with the singular case.
+¡¡in essence  naml maps the data into a high-dimensional feature space through a nonlinear mapping  where linear projection and clustering are performed to maximize the cluster separability. the representation of the data in the feature space is determined by the nonlinear mapping  which can be implicitly specified by a kernel matrix. the performance of naml is dependent on the choice of the kernel matrix. we propose to learn an appropriate kernel matrix for naml in a joint framework  which leads to the following joint trace optimization problem:
+	t	t	 1	t
+	max trace	l gq q  gg + ¦Ëg q	q gl	 	 1 
+   q l g where the kernel matrix g is restricted to be a convex combination of a given set of p kernel matrices  defined as
+	p	p
+g ¡Ê g =	¦Èigi	¦Èitrace gi  = 1 ¦Èi ¡Ý 1  i	.  1  i=1	i=1
+the formulation in eq.  1  performs kernel learning  dimensionality reduction  and clustering simultaneously. however  the joint optimization problem is highly nonlinear and difficult to solve. one key observation is that if two of the three components l  g  and q are fixed  the optimization problem is easy to solve. this enables us to solve the problem in the em framework  in which we update l  g  and q iteratively to find a local solution.
+1 the computation of l for given q and g
+¡¡for a given matrix q and a given kernel matrix g  computing the optimal l in eq.  1  is equivalent to solving the following trace maximization problem:
+	max trace ltgl    	 1 
+l
+where g  is defined as
+	g  = g q qt gg + ¦Ëg q  1 qtg.	 1 
+recall that the entries of the i-th column of the weighted cluster indicator matrix l are either 1 or 1/¡Ìni as defined in eq.  1 . it follows that ltl = ik  i.e.  the columns of l are orthonormal. we apply the spectral relaxation technique  for the computation of the optimal l  which is given by the eigenvectors of g  as follows:
+¡¡theorem 1.  ky fan  let g  be a symmetric matrix with eigenvalues ¦Ë1 ¡Ý ¦Ë1 ¡Ý ¡¤¡¤¡¤ ¡Ý ¦Ën  and the corresponding eigenvectors u =  u1 ¡¤¡¤¡¤  un . then
+ trace ltgl   .
+moreover  the optimal l  is given by l  =  u1 ¡¤¡¤¡¤  uk  p  for an arbitrary orthogonal matrix p ¡Ê irk¡Ák.
+in the implementation  we choose the first k eigenvectors of g  corresponding the largest k eigenvalues  where k is the number of clusters. for simplicity  we set p to be the identity matrix. note that we compute the trace value of the matrix ltgl  in each iteration as the measure of convergence. when the relative change of the trace value is smaller than a pre-specified threshold   the iterative process stops.
+1 the computation of q for given l and g
+¡¡for a given kernel matrix g and a given relaxed weighted cluster indicator matrix l  the trace maximization problem in eq.  1  is equivalent to the maximization of the following objective function:
+	f1 g q  = trace	qtsk1q	qtsk1q
+where the matrices sk1 and sk1 are defined as. 1 sk1 = gllt g  sk1 = gg + ¦Ëg. 1  1
+the optimal q  which maximizes f1 g q  in eq.  1  is given by solving an eigenvalue problem associated with sk1 and sk1  as summarized below:
+¡¡theorem 1. let sk1 and sk1 be defined in eq.  1   and v =  v1 ¡¤¡¤¡¤  vq  be the matrix consisting of the first q eigenvectors of sk+1sk1 corresponding to the largest q eigenvalues  where q = rank sk1 . let q  ¡Ô argmaxqf1 g q . then q  = v .
+¡¡proof. let g = u¦²ut be the singular value decomposition  svd   of g  where u ¡Ê irn¡Án is orthogonal and ¦² = diag ¦²t 1  ¡Ê irn¡Án is diagonal  ¦²t ¡Ê irt¡Át is diagonal with positive diagonal entries  and t = rank g . let u1 ¡Ê irn¡Át consist of the first t columns of u. then
+	g = u¦²ut = udiag ¦².	 1 
+denote  and let p = m¦²pnt be the svd of p  where m and n are orthogonal and ¦²p
+is diagonal with rank ¦²p  = rank sk1  = q. let z be a nonsingular matrix defined as
+		 	 1 
+where in t is the identity matrix of size n   t. it follows that
+
+where ¦² =  ¦²  p 1 ¡Ê irt¡Át is diagonal with the diagonal entries sorted in non-increasing order. it is clear that the optimal q   which maximizes f1 g q   consists of the first q columns of z. it can be verified that the first q columns of z gives v =  v1 ¡¤¡¤¡¤  vq  which consists of the first q eigenvectors of sk+1sk1 corresponding to the largest q eigenvalues. this completes the proof of the theorem. 
+it is worth noting that the above trace maximization problem is similar to the well-known linear discriminant analysis  lda  . however  they are fundamentally different  as sk1 is different from the so-called between-class scatter matrix in lda  due to the spectral relaxation in l.
+1 the computation of g for given q and l
+¡¡given q and l  the optimal g can be computed by maximizing f1 g q  in eq.  1   where the kernel matrix g is restricted to be a convex combination of a set of prespecified kernel matrices as in eq.  1 . one key observation for the computation of the optimal g is that the q matrix in f1 g q  can be replaced by its optimal value q  given in theorem 1. this significantly simplifies the derivation. denote
+	.	 1 
+it follows from theorem 1 that
+ 	=	trace ¦²  = 	trace  sk1 +sk1
+=traceltg gg + ¦Ëg +gl=traceltu	 it + ¦Ë¦² t 1  1
+1 1utl. 1 
+since it + ¦Ë¦² t 1  1 +  it + ¦Ë1¦²t  1 = it  and
+  
+we have
+  = trace ltl   trace 
+thus  the optimal g   which maximizes   is given by minimizing the following objective function:
+	f1 g  = trace  .	 1 
+the minimization of f1 g  can be solved by gradient descent methods . however  the computation of its gradient is expensive for each iteration. following the recent work in   we can show that this minimization problem can be formulated as a quadratically constrained quadratic programming  qcqp  problem as follows:
+¡¡theorem 1. given a set of p centered kernel matrices g1 ¡¤¡¤¡¤  gp as defined in eq.  1   the minimization of f1 g  defined above can be formulated as a qcqp problem as follows:
+
+where l =  l1 ¡¤¡¤¡¤  lk  and ri = trace gi .
+the coefficient ¦Èi for the i-th kernel gi is given by the dual variable corresponding to the i-th constraint in eq.  1  divided by ri. note that the general-purpose optimization software packages like mosek  also report the dual variables by solving the dual problem.
+1 the main algorithm
+¡¡based on the discussion described above  we propose to develop an iterative algorithm  called naml  for nonlinear adaptive metric learning. the pseudo-code of the naml algorithm is given as below.
+
+algorithm : naml
+input:
+output: g  l and q
+1. randomly choose one kernel matrix g from {ki}pi=1;
+1. compute the initial cluster indicatior matrix l by applying kernel k-means on the initial kernel g;
+1. while relative change of the trace valuedo
+1. update q as in section 1;
+1. update g as in section 1;
+1. update l as in section 1;
+1. compute the trace of ltgl 	as in eq.  1 ;
+1. end
+1. return g  l and q;
+
+¡¡the final clustering result is obtained by applying kmeans on the relaxed cluster indicator matrix l. the convergence of the naml algorithm is guaranteed  as summarized in the following theorem:
+¡¡theorem 1. algorithm naml converges in a finite number of steps.
+¡¡proof. the naml algorithm updates g  q  and l iteratively  by maximizing the same objective function  i.e.  trace ltgl   . as the objective value is non-decreasing and is bounded from above by a finite number  the algorithm converges in a finite number of steps. 
+in the implementation  we set for checking the convergence. we observe from our experiments that the naml algorithm typically converges within 1 to 1 iterations. the time complexity of the naml algorithm is dominated by the qcqp problem in theorem 1  whose worst-case complexity is o pk1 .
+1 connection to regularized spectral clustering
+¡¡in this subsection  we show the close connection between the proposed formulation and regularized spectral clustering . from eq.  1   the eigenvectors of g corresponding to the zero eigenvalues can be removed without affecting the value of the objective function. in the following discussions  we assume that g is nonsingular. it follows from eq.  1  that
+	  = trace lt i + ¦Ëg 1  1 l .	 1 
+next  we consider a specific choice of g by setting g = l 1  where l is the laplacian matrix  defined as follows. let w ¡Ê rn¡Án be a symmetric similarity matrix  and d ¡Ê rn¡Án be a diagonal matrix with. the laplacian
+l is defined as 
+	l = d   w.	 1 
+the centering of the kernel matrix  which is equivalent to the data centering step in naml  is not required when g = l 1. it is based on the fact that the inverse of the laplacian matrix is already centered  as summarized in the following proposition:
+¡¡proposition 1. let l be the laplacian matrix defined above. then the inverse of laplacian  denoted as l 1  has zero row and column means. in other words  let en be the vector of all ones of size n  then etnl 1en = 1.
+¡¡proof. since l is symmetric and positive semidefinite  let l = un¦²nunt be svd of l  where un is orthogonal and ¦²n has nonnegative diagonal entries. it follows that
+	etnlen = etnden   etnwen = 1.	 1 
+thus  etnun¦²nunten = etnlen = 1  and etnun = 1. it follows that etnl 1en = etnun¦² n1unten = 1. this completes the proof of the proposition. 
+we have assumed that l is nonsingular in the above derivation. for singular l  we can use its pseudo-inverse and the result in the proposition above still holds. with this particular choice of g  the objective function in eq.  1  becomes:
+	f l  = trace lt i + ¦Ël  1l  	 1 
+which corresponds to clustering with a regularized laplacian matrix .
+1. experiment
+¡¡we now empirically evaluate the performance of the naml algorithm in comparison with representative algorithms  and conduct a sensitivity study to evaluate its various components  such as the effect of the regularization parameter ¦Ë  and the input kernels. these studies will help us better understand the proposed algorithm  and delineate new challenges and research issues.
+1 experiment setup
+¡¡to evaluate the performance of naml  we use the kmeans algorithm as the baseline for comparison. we also compare the proposed algorithm with three representative unsupervised distance metric learning algorithms: principle component analysis  pca   local linear embedding  lle   and laplacian eigenmap  leigs . the matlab implementations of these algorithms are obtained from corresponding authors' websites respectively. naml is also implemented in the matlab environment and we solve the qcqp problem using mosek . all experiments were conducted on a pentium iv 1g pc with 1gb ram.
+¡¡we test the distance metric learning algorithms and kmeans on eight benchmark data sets. they are six uci data sets : iris  lymph  promoter  satimage  solar  wine  and two image data sets: ar1 and orl1. since mosek gives memory overflow error when the number of instances is large  for the satimage data set  we randomly sample 1 instances from each class. the information on the eight test data sets is summarized in table 1.
+table 1: summary of the benchmark data sets.
+
+data set	dimension	instance	classiris	1	1lymph	1	1promoter	1	1satimage	1	1solar	1	1wine	1	1ar1p	1	1orl1p	1	1
+¡¡we compare the performance of the algorithms as follows. for each data set  we first run k-means and record its clustering results as a baseline. to make the results of different distance metric learning algorithms comparable  the clustering result of k-means is used to construct c  the set of k initial centroids  for later experiments. here k is the number of clusters of the data. we apply pca  lle  and leigs on each data set to learn distance metrics  which are used by k-means to learn clusters with the initial centroid set c. their clustering results are recorded. we also run naml with c and record its clustering results. this process is repeated for 1 times with different initial centriods for each data set.
+1.1 performance measures
+¡¡as we have the label information of all eight benchmark data sets  the clustering results are evaluated by comparing the obtained label of each data point with the ground truth. we use two standard measurements: the accuracy  acc  and the normalized mutual information  mi  measures defined as below. given a data point xi  let ci and yi be the obtained cluster indicator and the true class label from the data  respectively. the accuracy measure is defined as:
+	acc = map ci   	 1 
+where
+	 .	 1 
+
+1
+http://rvl1.ecn.purdue.edu/¡«aleix/face db.html.	data
+set is subsampled down to the size of 1 ¡Á 1 = 1.
+1 http://www.uk.research.att.com/facedatabase.html.
+data set is subsampled down to the size of 1¡Á1 = 1 in the equation above  n is the total number of data points and map c  is the permutation mapping function that maps each cluster indicator c to its equivalent class label. the mapping is found by using the kuhn-munkresalgorithm . let c and y be the set of cluster indicators and the set of class labels  respectively. the normalized mutual information is defined as:
+mi   
+ 1 
+where p ci   or p yj   denotes the probability that an instance randomly selected from x belongs to cluster ci  or class yj   p yi cj  denotes the joint probability  and h y    or h c   is the entropy of y  or c .
+¡¡since each algorithm is tested for 1 times on each data set  we obtain 1 performance evaluations from acc and mi measures  respectively. these performance evaluations are averaged and yield 1 final performance evaluations per algorithm on each data set. in the experiment  the reduced dimensionality  l  of pca is selected to retain at least 1% information of the original data  and the reduced dimensionality  l  of naml is set to k. for each data set  we construct 1 rbf kernels for naml.
+1 experimental results
+¡¡table 1 presents the accuracy  acc  and normalized mutual information  mi  results on each data set. the results of naml using 1 different ¦Ë values  1  1  and 1  are shown. naml with ¦Ë = 1 performs the best  including the second best without a significant difference with the best  on 1 data sets in terms of accuracy. on the eight data sets  naml with ¦Ë = 1 performs the best with an average accuracy of 1  which is followed by naml with ¦Ë = 1 with an average accuracy of 1. lle performs the third best and pca is the fourth. similar trends can also be observed in the mi results.
+¡¡experimental results also show that naml does improve the performance of k-means on all eight data sets. for example  on ar1p data  naml with ¦Ë = 1 improves its accuracy from 1 to 1  a 1% improvement. in our experiment  naml converges in less than eight iterations and usually converges in 1 iterations.
+1 sensitivity study
+¡¡in this subsection  we study the effects of various components of naml. more specifically  we study the effect of the input kernels and the regularization parameter ¦Ë.
+1.1 input kernels
+¡¡in table 1  we compare the performance of naml with that of k-means using each of ten input kernels  respectively. thus  we can obtain 1 clustering results from kmeans with respect to 1 kernels  and further calculate max ker  min ker  and ave ker corresponding to the best  worst  and average performance. naml uses the same 1 kernels as its input. we can observe from the table that in most cases  naml performs much better than min ker  k-means
+table 1: comparison of accuracy  acc  and normalized mutual information  mi  on eight benchmark data sets. the numbers behind naml are the ¦Ë values used. for each data set  the first row and the second row list acc  or mi  and p-val  respectively. the p-val of each algorithm is generated by comparing its acc with the highest one. accs in boldface are the highest ones or the second highest without significant difference with the highest one  according to p-val 1.
+
+meas.data set	naml1	naml1naml1k-meanspcalle	leigsiris	1	11111	1acc	-	11111.1lymph	1	1	1	1	1	1	1
+	1	1	-	1	1	1.1promoter	1	1	1	1	1	1	1
+	-	-	-	1	1	1	1satimage	1	1	1	1	1	1	1
+	1	1	-	1	1	1solar 1 1 1 1 1 1 1 - 1 1 1 1 1.1wine	1	1	1	1	1	1	1
+	1	-	-	1	1.1ar1p	1	1	1	1	1	1	1
+	1	-	1	1	1orl1p	1	1	1	1	1	1	1
+	1	1	-	1	1	1	1average	1	1	1	1	1	1	1miiris	1	1	1	1	1	1	1
+	1	-	1	1	1lymph	1	1	1	1	1	1	1
+	1	-	1	1	1	1promoter 1 1 1 1 1 1 1 1 - 1 1 1 1 1satimage	1	1	1	1	1	1	1
+	1	1	-	1	1	1solar 1 1 1 1 1 1 1 - 1 1 1 1 1 1wine	1	1	1	1	1	1	1
+	1	-	-	1	1.1ar1p	1	1	1	1	1	1	1
+	1	1	-	1	1	1orl1p	1	1	1	1	1	1	1
+	1	1	-	1	1	1average	1	1	1	1	1	1	1using the worst kernel  and is comparable to max ker  kmeans using the best kernel . this set of results has its ramifications for unsupervised metric learning. when we do not have the prior knowledge about the kernel quality  kernel parameter ¦Ò is estimated by several domain experts. according to different understandings of the problem  different experts can assign different values for ¦Ò. in this case  naml's capability of combining different perspectives from multiple experts and learning a good metric can be essential for unsupervised learning of nonlinear patterns. figure 1 shows two sample cases that naml converges to a good result  even though the quality of the initial kernel is low.
+1.1 regularization parameter ¦Ë
+¡¡as discussed in section 1  a regularization parameter ¦Ë is introduced to improve the reliability of the estimation of the figure 1: clustering performance improves during the iterative process of naml on ar1p data set: ¦Ë = 1  left plot  and ¦Ë = 1  right plot .
+covariance matrix. the performance of naml is dependent on the value of ¦Ë. in the following experiment  we study the effect of this parameter on the clustering performance of naml. we can observe from table 1 that  in general  the regularization helps to improve the performance of naml.
+table 1: comparison of the performance achieved by naml and k-means using each input kernel on benchmark data sets. in the table  init ker  stands for the average accuracy achieved by k-means on the initial kernel.  max ker    min ker  and  ave ker  stand for the highest  lowest and average accuracy achieved by k-mean on ten input kernels.
+
+meas.data set naml1 	naml1 	naml1 	init ker	max ker	min ker	ave keracciris	1	1	1	1	1	1	1lymph	1	1	1	1	1	1	1promoter	1	1	1	1	1	1	1satimage	1	1	1	1	1	1	1solar	1	1	1	1	1	1	1wine	1	1	1	1	1	1	1ar1p	1	1	1	1	1	1	1orl1p	1	1	1	1	1	1	1	1	1
+miiris	1	1	1	1	1	1	1lymph	1	1	1	1	1	1	1promoter	1	1	1	1	1	1	1satimage	1	1	1	1	1	1	1solar	1	1	1	1	1	1	1wine	1	1	1	1	1	1	1ar1p	1	1	1	1	1	1	1orl1p	1	1	1	1	1	1	1in terms of accuracy  on four of eight data sets  the performance of naml with ¦Ë = 1 is significantly better than that with a very small value of regularization  ¦Ë = 1 . similar improvement can be observed in mi results.
+¡¡to obtain a better understanding of the effect of the regularization parameter  we tried a series of different ¦Ë values ranging from 1 to 1. the acc and mi results using various ¦Ë values are plotted in figure 1. we can observe from the figure that  in general  naml is not very sensitive to the value of ¦Ë  except for the case when ¦Ë is very large    1  or very small    1 . the use of a ¦Ë value in the range of  1  1  is helpful in most cases.
+¡¡we can observe from figure 1 that a small ¦Ë value is less effective than a large ¦Ë value. in most cases  a large ¦Ë value does not significantly degrade the performance  which is not the case when ¦Ë value is very small. further studies show that when ¦Ë is very small  the kernel weights learnt by naml become close to each other; while when ¦Ë is very large  the kernel weight vector becomes sparse  many of them are zero  and only the best kernels or those close to the best ones have non-zero weights. we show in table 1 the weight of each input kernel  when using different ¦Ë values on ar1p data. the result suggests that when ¦Ë is set to 1  the weights of all kernels are not zero; while when ¦Ë is large  the weight vector becomes sparse and only a very small number of kernels has non-zero weights.
+¡¡recall that the optimal combination of kernels is obtained by maximizing trace ltg gg + ¦Ëg +gl . it is clear that when ¦Ë approaches to 1  g gg + ¦Ëg +g approaches to a matrix  which contains 1 as the only nonzero eigenvalue. in this case  the optimization in naml becomes degenerate. on the other hand  when ¦Ë becomes large  the ¦Ëg term in  gg+¦Ëg + dominates. in this case  the optimization problem is reduced to the maximization of trace ltgl   which is essentially equivalent to the selection of a single kernel that maximizes trace ltkl . these explain the behavior of naml for different ¦Ë values in table 1. however  we can also observe from figure 1 and table 1 that naml performs the best when the value of ¦Ë is neither too small nor too large. this is partly due to the complementary information that exists among the given collection of kernels  which may be exploited by naml.
+1. conclusions
+¡¡in this paper  we propose a nonlinear adaptive distance metric learning algorithm  called naml. we show that the joint kernel learning  metric learning  and clustering can be formulated as a trace maximization problem  which can be solved iteratively in an em framework. more specifically  we show that both dimensionality reduction and clustering can be solved by spectral analysis  while the kernel learning can be formulated as a quadratically constrained quadratic programming problem.
+¡¡experimental results on a collection of benchmark data sets demonstrate that naml is effective in learning a good distance metric and improving the clustering performance. in general  approaches based on learning a convex combination of kernels can be applied for heterogeneous data integration from different data sources. we plan to apply the proposed algorithm for clustering from multiple biological data  e.g.  amino acid sequences  hydropathy profiles  and gene expression data. we reveal the close connection between the proposed algorithm and regularized spectral clustering. the selection of a good laplacian matrix  which is determined by several parameters such as the number of nearest neighbors  is one of the key issues in spectral clustering. another line of future work is to study how to combine a set of pre-specified laplacian matrices to achieve better performance in spectral clustering.
+acknowledgments
+this research is sponsored in part by arizona state university and by the national science foundation grant iis1.
+irislymphpromotersatimage	¦Ë	¦Ë	¦Ë	¦Ë
+	solar	wine	ar1p	orl1p
+	¦Ë	¦Ë	¦Ë	¦Ë
+figure 1: acc and mi vs. different ¦Ë values. the x-axis corresponds to different ¦Ë values and the y-axiscorresponds to acc or mi values.

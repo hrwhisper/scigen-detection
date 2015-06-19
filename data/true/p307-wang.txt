@@ -1,0 +1,174 @@
+multi-document summarization aims to create a compressed summary while retaining the main characteristics of the original set of documents. many approaches use statistics and machine learning techniques to extract sentences from documents. in this paper  we propose a new multi-document summarization framework based on sentence-level semantic analysis and symmetric non-negative matrix factorization. we first calculate sentence-sentence similarities using semantic analysis and construct the similarity matrix. then symmetric matrix factorization  which has been shown to be equivalent to normalized spectral clustering  is used to group sentences into clusters. finally  the most informative sentences are selected from each group to form the summary. experimental results on duc1 and duc1 data sets demonstrate the improvement of our proposed framework over the implemented existing summarization systems. a further study on the factors that benefit the high performance is also conducted.
+categories and subject descriptors
+h.1  information storage and retrieval : information search and retrieval-clustering; i.1  artificial intelligence : natural language processing-text clustering
+general terms
+algorithms  experimentation  performance
+keywords
+multi-document summarization  sentence-level semantic analysis  symmetric non-negative matrix factorization
+1. introduction
+¡¡multi-document summarization is the process of generating a generic or topic-focused summary by reducing documents in size while retaining the main characteristics of the
+permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. to copy otherwise  to republish  to post on servers or to redistribute to lists  requires prior specific permission and/or a fee.
+sigir'1  july 1  1  singapore.
+copyright 1 acm 1-1-1/1 ...$1.
+original documents  1  1 . since one of the problems of data overload is caused by the fact that many documents share the same or similar topics  automatic multi-document summarization has attracted much attention in recent years. with the explosive increase of documents on the internet  there are various summarization applications. for example  the informative snippets generation in web search can assist users in further exploring   and in a qestion/answer system  a question-based summary is often required to provide information asked in the question . another example is short summaries for news groups in news services  which can facilitate users to better understand the news articles in the group .
+¡¡the major issues for multi-document summarization are as follows : first of all  the information contained in different documents often overlaps with each other  therefore  it is necessary to find an effective way to merge the documents while recognizing and removing redundancy. in english to avoid repetition  we tend to use different word to describe the same person  the same topic as a story goes on. thus simple word-matching types of similarity such as cosine can not faithfully capture the content similarity. also the sparseness of words between similar concepts make the similarity metric uneven. another issue is identifying important difference between documents and covering the informative content as much as possible . current document summarization methods usually involve natural language processing and machine learning techniques  1  1  1   such as classification  clustering  conditional random fields  crf    etc. section 1 will explicitly discuss these existing methods.
+¡¡in this paper  to address the above two issues  we propose a new framework based on sentence-level semantic analysis  slss  and symmetric non-negative matrix factorization  snmf . since slss can better capture the relationships between sentences in a semantic manner  we use it to construct the sentence similarity matrix. based on the similarity matrix  we perform the proposed snmf algorithm to cluster the sentences. the standard non-negative matrix factorization nmf  deals with a rectangular matrix and is thus not appropriate here. finally we select the most informative sentences in each cluster considering both internal and external information. we conduct experiments on duc1 and duc1 data sets  and the results show the effectiveness of our proposed method. the factors that benefit the high performance are further studied.
+¡¡the rest of the paper is organized as follows. section 1 discusses the related work of current methods in multi-document summarization. our proposed method including slss and snmf algorithm is described in section 1. various experiments are set up and the results are shown in section 1. section 1 concludes.
+1. related work
+¡¡multiple document summarization has been widely studied recently. in general  there are two types of summarization: extractive summarization and abstractive summarization  1  1 . extractive summarization usually ranks the sentences in the documents according to their scores calculated by a set of predefined features  such as term frequencyinverse sentence frequency  tf-isf   1  1   sentence or term position  1  1   and number of keywords . abstractive summarization involves information fusion  sentence compression and reformulation  1  1 . in this paper  we study sentence-based extractive summarization.
+¡¡gong et al.  propose a method using latent semantic analysis  lsa  to select highly ranked sentences for summarization.  proposes a maximal marginal relevance  mmr  method to summarize documents based on the cosine similarity between a query and a sentence and also the sentence and previously selected sentences. mmr method tends to remove redundancy  however the redundancy is controlled by a parameterized model which actually can be automatically learned. other methods include nmf-based topic specific summarization   crf-based summarization   and hidden markov model  hmm  based method . some duc1 and duc1 participants achieve good performance such as language computer corporation  lcc    that proposes a system combining the question-answering and summarization system and using k-nearest neighbor clustering based on cosine similarity for the sentence selection. in addition  some graph-ranking based methods are also proposed  1  1 . most of these methods ignore the dependency syntax in the sentence level and just focus on the keyword co-occurrence. thus the hidden relationships between sentences need to be further discovered. the method proposed in  groups sentences based on the semantic role analysis  however the work does not make full use of clustering algorithms.
+¡¡in our work  we propose a new framework based on sentencelevel semantic analysis  slss  and symmetric non-negative matrix factorization  snmf . slss can better capture the relationships between sentences in a semantic manner and ssnf can factorize the similarity matrix to obtain meaningful groups of sentences. experimental results demonstrate the effectiveness of our proposed framework.
+1. the proposed method
+1 overview
+¡¡figure 1 demonstrates the framework of our proposed approach. given a set of documents which need to be summarized  first of all  we clean these documents by removing formatting characters. in the similarity matrix construction phase  we decompose the set of documents into sentences  and then parse each sentence into frame s  using a semantic role parser. pairwise sentence semantic similarity is calculated based on both the semantic role analysis  and word relation discovery using wordnet . section 1 will describe this phase in detail. once we have the pairwise sentence similarity matrix  we perform the symmetric matrix factorization to group these sentences into clusters in the second phase. full explanations of the proposed snmf algorithm will be presented in section 1. finally  in each cluster  we identify the most semantically important sentence using a measure combining the internal information  e.g.  the computed similarity between sentences  and the external information  e.g.  the given topic information . section 1 will discuss the sentence selection phase in detail. these selected sentences finally form the summary.
+
+figure 1: overview of our proposed method
+1 semantic similarity matrix construction
+¡¡after removing stemming and stopping words  we trunk the documents in the same topic into sentences. simple word-matching types of similarity such as cosine can not faithfully capture the content similarity. also the sparseness of words between similar concepts make the similarity metric uneven. thus  in order to understand the semantic meanings of the sentences  we perform semantic role analysis on them and propose a method to calculate the semantic similarity between any pair of sentences.
+1.1 semantic role parsing
+¡¡a semantic role is  a description of the relationship that a constituent plays with respect to the verb in the sentence  . semantic role analysis plays very important role in semantic understanding. the semantic role labeler we use in this work is based on propbank semantic annotation . the basic idea is that each verb in a sentence is labeled with its propositional arguments  and the labeling for each particular verb is called a frame . therefore  for each sentence  the number of frames generated by the parser equals to the number of verbs in the sentence. there is a set of abstract arguments indicating the semantic role of each term in a frame. for example  arg1 is typically the actor  and arg1 is the thing acted upon. the full representation of the abstract arguments  and an illustrative example are shown in table 1.
+1.1 pairwise semantic similarity calculation
+¡¡given sentence si and sj  now we calculate the similarity between them. suppose si and sj are parsed into frames respectively. for each pair of frames fm ¡Ê si and fn ¡Ê sj  we discover the semantic relations of terms in the same semantic role using wordnet . if two words in the same semantic role are identical or of the semantic relations such
+rel: the verb	arg1: causer of motion
+arg1: thing in motion	arg1: distance moved
+arg1: start point	arg1: end point
+arg1: direction argm-loc: location argm-ext: extent argm-tmp: time
+argm-dis: discourse connectives	argm-pnc: purpose
+argm-adv: general-purpose	argm-mnr: manner
+arbm-neg: negation marker	argm-dir: direction
+argm-mod: modal verb	argm-cau: causeexample:
+sentence: a number of marine plants are harvested commercially in nova scotia.
+label: a|arg1 number|arg1 of|arg1 marine|arg1 plants|arg1 are|- harvested|rel commercially|argm-mnr in|argm-loc nova|argm-loc scotia|argm-loc .|-table 1: representation of arguments and an illustrative example.
+as synonym  hypernym  hyponym  meronym and holonym  the words are considered as  related .
+¡¡let rm and rn be the semantic roles in fm and fn  respectively. assume rm ¡Ü rn. let {r1 r1 ... rk} be the set of k common semantic roles between fm and fn  tm ri  be the term set of fm in role ri  and tn ri  be the term set of fn in role ri. let |tm ri | ¡Ü |tn ri |  then we compute the similarity between tm ri  and tn ri  as:
+		 1 
+where
+	ij	ij
+	1 	else
+then the similarity between fm and fn is
+		 1 
+therefore  the semantic similarity between si and sj can be calculated as follows.
+	sim si sj  =	max	fsim fm fn 	 1 
+fm¡Êsi fn¡Êsj
+¡¡each similarity score is between 1 and 1. thus  we compute pairwise sentence similarity for the given document collection and construct the symmetric semantic similarity matrix for further analysis.
+1 symmetric non-negative matrix factorization  snmf 
+¡¡most document clustering algorithms deal with a rectangular data matrix  e.g.  document-term matrix  sentenceterm matrix  and they are not suitable for clustering pairwise similarity matrix. in our work  we propose the snmf algorithm to conduct the clustering in the second phase. it can be shown that the simple symmetric nonnegative matrix factorization approach is equivalent to normalized spectral clustering.
+1.1 problemformulationandalgorithm procedure
+¡¡given a pairwise similarity matrix w  we want to find h such that
+	min j = ||w   hht||1.	 1 
+¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡h¡Ý1 where the matrix norm ||x||1 = ij xij1 is the frobenius norm. to derive the updating rule for eq. 1  with nonnegative constraints  hij ¡Ý 1  we introduce the lagrangian multipliers ¦Ëij and let l = j + ij ¦Ëijhij. the first order kkt condition for local minima is
+  and ¦Ëijhij = 1  i j.
+note that  hence the kkt condition leads to the fixed point relation:
+	  1wh + 1hhth ijhij = 1	 1 
+using gradient descent method  we have
+		 1 
+setting  we obtain the nmf style multiplicative updating rule for snmf:
+		 1 
+hence  the algorithm procedure for solving snmf is: given an initial guess of h  iteratively update h using eq. 1  until convergence. this gradient descent method will converge to a local minima of the problem.
+1.1 properties of snmf
+¡¡snmf has several nice properties that make it a powerful tool for clustering. first  one of the nice properties of the snmf algorithm is its inherent ability for maintaining the near near-orthogonality of h. note that
+	||hth||1 =	 hth 1st =	 hts ht 1 +	 htt ht 1
+	st	s1=t	t
+minimizing the first term is equivalent to enforcing the orthogonality among hs : htsht ¡Ö 1. on the other hand  since
+w ¡Ö hht 
+¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡k wij =	 hht ij =	|hs|1
+¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡¡ij	ij	s=1 where |h| is the l1 norm of vector h.	hence ||hs|| ¡Ý 1. therefore  we have
+s 1= t
+h
+¡¡the near-orthogonality of columns of h is important for data clustering. an exact orthogonality implies that each row of h can have only one non-zero element  which leads to the hard clustering of data objects  i.e.  each data object belongs to only 1 cluster . on the other hand  a nonorthogonality of h does not have a cluster interpretation. the near-orthogonality conditions of snmf allow for  soft clustering   i.e.  each object can belong fractionally to multiple clusters. this usually leads to clustering performance improvement .
+¡¡another important property is that the simple snmf is equivalent to sophisticated normalized cut spectral clustering. spectral clustering is a principled and effective approach for solving normalized cuts   a np-hard optimization problem. given the adjacent matrix w of a graph  it can be easily seen that the following snmf
+	.	 1 
+where
+w = d 1wd 1  d = diag d1 ¡¤¡¤¡¤  dn   di =	wij.
+j
+is equivalent to normalized cut spectral clustering.
+1.1 discussions and relations
+¡¡it can also be shown that snmf is equivalent to kernel k-means clustering and is a special case of 1-factor nonnegative matrix factorization. these results validate the clustering ability of snmf.
+¡¡kernel k-means clustering: for clustering and classification problems  the solution is represented by k nonnegative cluster membership indicator matrix: h =  h1 ¡¤¡¤¡¤  hk   where
+nk
+	h	 1 
+for example  the nonzero entries of h1 indicate the data points belonging to the first cluster. the objective function of k-means clustering is
+		 1 
+where fk is the cluster centroid of the k-th cluster ck of nk points  i.e.  fk = i¡Êck xi/nk. more generally  the objective function of kernel k-means with mapping xi ¡ú ¦Õ xi  is
+		 1 
+where ¦Õ¡¥k is the centroid in the feature space. using cluster indicators  for k-means and kernel k-means  the clustering problem can be solved via the optimization problem
+	 	 1 
+where h is the cluster indicator and wij = ¦Õ xi t¦Õ xj  is the kernel. for k-means  ¦Õ xi  = xi  wij = xitxj.
+¡¡note that if we impose the orthogonality constraint on h  then
+	j1	=	argmin	||w   hht||1
+hth=i h¡Ý1
+	=	argmin	||w||1   1tr htwh  + ||hth||1
+hth=i h¡Ý1
+	=	arg max	tr htwh 
+hth=i h¡Ý1
+in other words  snmf of w = hht is equivalent to kernel k-means clustering under the orthogonality constraints on h.
+¡¡nonnegative matrix factorization  nmf : snmf can also be viewed as a special case of 1-factor nonnegative matrix factorizations. the 1-factor nonnegative matrix factorization is proposed to simultaneously cluster the rows and the columns of the input data matrix x 
+	x ¡Ö fsgt.	 1 
+note that s provides additional degrees of freedom such that the low-rank matrix representation remains accurate while f gives row clusters and g gives column clusters. this form gives a good framework for simultaneously clustering the rows and columns of x  1  1 . an important special case is that the input x contains a matrix of pairwise similarities:
+x = xt = w. in this case  f = g = h s = i. this reduces to the snmf:
+min kx   hhtk1  s.t. hth = i. h¡Ý1
+1 within-cluster sentence selection
+¡¡after grouping the sentences into clusters by the snmf algorithm  in each cluster  we rank the sentences based on the sentence score calculation as shown in eqs. 1  1  1 . the score of a sentence measures how important a sentence is to be included in the summary.
+score si  = ¦Ëf1 si  +  1   ¦Ë f1 si 
+1 1 1	i	i	j
+n   1
+sj¡Êck sif1 si  = sim si t  1 	f  s   = 	sim s  s  	 1 
+where f1 si  measures the average similarity score between sentence si and all the other sentences in the cluster ck  and n is the number of sentences in ck. f1 si  represents the similarity between sentence si and the given topic t. ¦Ë is the weight parameter.
+1. experiments
+1 data set
+¡¡we use the duc1 and duc1 data sets to test our proposed method empirically  both of which are open benchmark data sets from document understanding conference  duc  for automatic summarization evaluation. each data set consists of 1 topics  and table 1 gives a brief description of the two data sets. the task is to create a summary of no more than 1 words for each topic to answer the information expressed in the topic statement.
+
+number of topics1number of documents relevant to each topic1 ¡« 1data sourcetrecaquaint corpussummary length1 words1 wordstable 1: description of the data sets
+1 implemented summarization systems
+¡¡in order to compare our methods  first of all  we implement four most widely used document summarization baseline systems:
+  leadbase: returns the leading sentences of all the documents for each topic.
+  random: selects sentences randomly for each topic.
+  lsa: conducts latent semantic analysis on terms by sentences matrix as proposed in .
+  nmfbase: performs nmf on terms by sentences ma-
+trix and ranks the sentences by their weighted scores .
+for better evaluating our proposed method  we also implement alternative solutions for each phase of the summarization procedure as listed in table 1.
+phaseproposedalter-alter-methodnative 1native 1similaritysemantickeyword-n/ameasurementsimilaritybased slss similarityclusteringsnmfk-meansnmfalgorithm km within-clustermp = ¦Ëf1 si m1 =m1 =sentence ranking+ 1   ¦Ë f1 si f1 si f1 si table 1: different methods implemented in each phase. remark: si is the ith sentence in the cluster  and the calculation of f1 si  and f1 si  is the same as described in section 1.
+¡¡in table 1  the keyword-based similarity between any pair of sentences is calculated as the cosine similarity. the parameter ¦Ë in mp is set to 1 empirically  and the influence of ¦Ë will be discussed in section 1.1. note that in our experiments  both similarity matrix generation phase and sentence extraction phase use the same type of similarity measurements. thus  we have 1 implemented summarization systems: 1 by varying methods in each phase  and 1 baselines. in section 1  we will compare our proposed method with all the other systems.
+1 evaluation metric
+¡¡we use rouge  toolkit  version 1.1  to measure our proposed method  which is widely applied by duc for performance evaluation. it measures the quality of a summary by counting the unit overlaps between the candidate summary and a set of reference summaries. several automatic evaluation methods are implemented in rouge  such as rouge-n  rouge-l  rouge-w and rougesu. rouge-n is an n-gram recall computed as follows.
+rouge   n =	s¡Ê{ref}	gramn¡Ês countmatch gramn 
+
+s¡Ê{ref} gramn¡Ês count gramn 
+ 1 
+where n is the length of the n-gram  and ref stands for the reference summaries. countmatch gramn  is the maximum number of n-grams co-occuring in a candidatae summary and the reference summaries  and count gramn  is the number of n-grams in the reference summaries. rougel uses the longest common subsequence  lcs  statistics  while rouge-w is based on weighted lcs and rougesu is based on skip-bigram plus unigram. each of these evaluation methods in rouge can generate three scores  recall  precision and f-measure . as we have similar conclusions in terms of any of the three scores  for simplicity  in this paper  we only report the average f-measure scores generated by rouge-1  rouge-1  rouge-l  rougew and rouge-su to compare our proposed method with other implemented systems.
+1 experimental results
+1.1 overall performance comparison
+¡¡first of all  we compare the overall performance between our proposed method  using slss and snmf  and all the other implemented systems. table 1 and table 1 show the rouge evaluation results on duc1 and duc1 data sets respectively. we clearly observe that our proposed method achieves the highest rouge scores and outperforms all the other systems. in section 1.1  1.1 and 1.1  we evaluate each phase of our proposed method and try to analyze all the factors that our method benefits from.
+1.1 evaluation on methods in similarity matrix construction
+¡¡actually  instead of using similarity matrix  many summarization methods directly perform on the terms by sentences matrix  such as the lsa and nmfbase which are implemented as baseline systems in our experiments. in fact  lsa and nmf give continuous solutions to the same k-means clustering problem . their difference is the constraints: lsa relaxes the non-negativity of h  while nmf relaxes the orthogonality of h. in nmfbase or lsa  we treat sentence as vectors and clustering them using cosine similarity metric  since each document is normalized to 1  |d1   d1 = 1   1cos d1 d1  . from table 1 and 1  we can see the results of lsa and nmfbase are similar and all of these methods are not satisfactory. this indicates that simple word-matching types of similarity such as cosine can not faithfully capture the content similarity.
+¡¡therefore  we further analyze the sentence-level text and generate pairwise sentence similarity. in the experiments  we compare the proposed sentence-level semantic similarity with the traditional keyword-based similarity calculation. in order to better understand the results  we use figure 1 and 1 to visually illustrate the comparison. due to space limit  we only show rouge-1 results in these figures.
+
+figure 1: methods comparison in similarity matrix construction phase using rouge-1 on duc1
+data set
+
+systemsrouge-1rouge-1rouge-lrouge-wrouge-suaverage-human11111duc1 average11111leadbase11111random11111nmfbase11111lsa11111km + m1  keyword 11111km + m1  keyword 11111km + mp  keyword 11111km + m1  slss 11111km + m1  slss 11111km + mp  slss 11111nmf + m1  keyword 11111nmf + m1  keyword 11111nmf + mp  keyword 11111nmf + m1  slss 11111nmf + m1  slss 11111nmf + mp  slss 11111snmf + m1  keyword 11111snmf + m1  keyword 11111snmf + mp  keyword 11111snmf + m1  slss 11111snmf + m1  slss 11111snmf + mp  slss 11111table 1:	overall performance comparison on duc1 using rouge evaluation methods.	remark:
+ average-human  is the average results of summaries constructed by human summarizers and  duc1 average  lists the average results of the 1 participating teams. the system names are the combinations of the methods used in each phase. for example  km +m1  keyword  represents that keyword-based similarity  k-means clustering and m1 ranking measurement are used. candidate methods for each phase are listed in table 1.
+systemsrouge-1rouge-1rouge-lrouge-wrouge-suaverage-human11111duc1 average11111leadbase11111random11111nmfbase11111lsa11111km + m1  keyword 11111km + m1  keyword 11111km + mp  keyword 11111km + m1  slss 11111km + m1  slss 11111km + mp  slss 11111nmf + m1  keyword 11111nmf + m1  keyword 11111nmf + mp  keyword 11111nmf + m1  slss 11111nmf + m1  slss 11111nmf + mp  slss 11111snmf + m1  keyword 11111snmf + m1  keyword 11111snmf + mp  keyword 11111snmf + m1  slss 11111snmf + m1  slss 11111snmf + mp  slss 11111table 1: overall performance comparison on duc1 using rouge evaluation methods.
+
+
+figure 1: methods comparison in similarity matrix construction phase using rouge-1 on duc1 data set
+¡¡the results clearly show that no matter which methods are used in other phases  slss outperforms keyword-based similarity. this is due to the fact that slss better captures the semantic relationships between sentences.
+1.1 evaluation on different clustering algorithms
+¡¡now we compare different clustering algorithms in figure 1 and 1. we observe that our proposed snmf algorithm achieves the best results. k-means and nmf methods are generally designed to deal with a rectangular data matrix and they are not suitable for clustering the similarity matrix. our snmf method  which has been shown to be equivalent normalized spectral clustering  can generate more meaningful clustering results based on the input similarity matrix.
+
+figure 1:	different clustering algorithms using
+rouge-1 on duc1 data set
+1.1 discussion on parameter ¦Ë
+¡¡figure 1 and figure 1 demonstrate the influence of the weight parameter ¦Ë in the within-cluster sentence selection phase. when ¦Ë = 1  it is actually method m1   only internal information counts  i.e. the similarity between sentences. and ¦Ë = 1 represents that only the similarity between the sentence and the given topic is considered  method m1 . we
+
+figure 1: different clustering algorithms using rouge-1 on duc1 data set
+
+figure 1: study of weight parameter ¦Ë using rouge-1 on duc1 data set
+
+figure 1:	study of weight parameter ¦Ë using
+rouge-1 on duc1 data set
+gradually adjust the value of ¦Ë  and the results show that combining both internal and external information leads to better performance.
+1. conclusions
+¡¡in this paper  we propose a new multi-document summarization framework based on sentence-level semantic analysis  slss  and symmetric non-negative matrix factorization  snmf . slss is able to capture the semantic relationships between sentences and snmf can divide the sentences into groups for extraction. we conduct experiments on duc1 and duc1 data sets using rouge evaluation methods  and the results show the effectiveness of our proposed method. the good performance of the proposed framework benefits from the sentence-level semantic understanding  the clustering over symmetric similarity matrix by the proposed snmf algorithm  and the within-cluster sentence selection using both internal and external information.
+acknowledgements
+the project is partially supported by a research grant from nec lab  nsf career award iis-1  and ibm faculty research awards.

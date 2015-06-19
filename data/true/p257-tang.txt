@@ -1,0 +1,290 @@
+many database applications require the analysis and processing of data streams. in such systems  huge amounts of data arrive rapidly and their values change over time. the variations on streams typically imply some fundamental changes of the underlying objects and possess significant domain meanings. in some data streams  successive events seem to recur in a certain time interval  but the data indeed evolves with tiny differences as time elapses. this feature is called pseudo periodicity  which poses a non-trivial challenge to variation management in data streams. this paper presents our research effort in online variation management over such streams  and the idea can be applied to the problem domain of medical applications  such as patient vital signal monitoring. we propose a new method named pattern growth graph  pgg  to detect and manage variations over pseudo periodical streams. pgg adopts the wave-pattern to capture the major information of data evolution and represent them compactly. with the help of wavepattern matching algorithm  pgg detects the stream variations in a single pass over the stream data. pgg only stores the different segments of the pattern for incoming stream  and hence it can substantially compress the data without losing important information. the statistical information of pgg helps to distinguish meaningful data changes from noise and to reconstruct the stream with acceptable accuracy. extensive experiments on real datasets containing millions of data items demonstrate the feasibility and effectiveness of the proposed scheme.  
+categories and subject descriptors: h.1  database management : database applications - data mining general terms: algorithms. 
+keywords: date stream  variation management  pattern growth  pseudo periodicity. 
+1. introduction 
+data stream processing techniques are widely applied in many domains such as stock market analysis  road traffic control  weather forecasting and medical information management. in the data stream model  rapidly arriving data items must be processed online  and the stream shows trends of variation as time elapses. these variations often imply fundamental changes about the underlying objects and possess high domain significance. most existing stream processing methods focus on traditional sql queries  which cannot be employed for detecting variations or finding patterns. moreover  time series mining algorithms are also not adequate for managing variations over data stream  either consuming too much time or requiring complete training sets.    
+online variation management is an important task in data stream mining  and has attracted increasing attention recently  1 . however  few results have been achieved due to three major technical challenges . 
+* complexity of value type: most stream mining tasks are based on discrete and enumerative values or time series data with equidistant intervals  while many meaningful variations are on consecutive data streams with variable sampling frequencies; 
+* non-availability training sets or models: normally  the novelty detection in time series database is based on several training sets or predefined models. however  it is hard to get such aids over data streams because the models also evolve with time. instead  the system is usually required to generate such models by itself;   
+* high requirements for variation management: the users would not be satisfied with only being told  when and how the variation occurs    they also want to know  why the data turns to change in this way  . therefore the data stream management system must report both event time and variation history to the users. 
+some variations over streams have abnormal values  which can be easily handled by outlier detection techniques  1  1  1 . however  typical stream variations involve gradual evolutions rather than burst changes. the data seems to repeat in a certain period  whereas tiny difference exists between pair of consecutive periods  either the key value or the time interval. this kind of stream is called pseudo periodical stream  which is very common in medical applications  such as patient vital signal monitoring. in this paper  we will only focus on the bio-medical signals  including electrocardiograph  ecg   respiration  and so on. although the solution is customized 
+
+ 
+* corresponding author.  
+permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. to copy otherwise  or republish  to post on servers or to redistribute to lists  requires prior specific permission and/or a fee. 
+sigmod'1  june 1  1  beijing  china. 
+copyright 1 acm  1-1-1/1...$1. 
+for medical data stream  our approach can be applied to other application domains with periodical streams  where periodicity is also common  such as economic time series  temperature with seasonal changes  and earthquake waves . here  we use an example of medical signal to illustrate the characteristic of such data stream.  
+example 1: figure 1 records the data evolution over a respiration stream. the respiratory data seems to repeat every 1 seconds. at the beginning  the data in time a and b are almost the same  including two inspiration sections and one expiration section. after 1 minutes  the expiration data in time c transforms to two sections.  in time d  after 1 hours  and e  after 1 hours   the inspiration data merges into one section  while the expiration data evolves into three sections. the variations reflect the evolution of the patient's illness during the five hours.  
+ 
+figure 1. pseudo periodicity of the respiration stream 
+it is a non-trivial challenge to the data stream systems to detect and analyze this kind of variations with marginal space cost and in near real time  because the variations are not only on the values but also on the inner structure given a certain period. they can only be detected by comparing the data of two periods over a longer duration  which brings about two main problems. first  it is hard to capture the periodical data with fixed size windows or buffers  because the length of the period also evolves. second  comparing two periods with different data sizes and time lengths is even more difficult. in many applications  these variations are monitored manually  which is costly and error-prone . therefore  it is useful and necessary to develop algorithms and tools for detecting  recording and understanding such variations over pseudo periodical data streams.  
+in this paper  we propose a novel approach -- pattern growth graph  pgg  to manage the variations over long pseudo periodical data streams. in stream processing  variations are detected by comparing old data with an incoming stream using sequence matching. to efficiently represent the stream  we split the infinite stream into segments  and adopt wave-pattern to capture the major information of data evolution. the wave-pattern adopts line sections to approximate the data using sliding window and bottom-up algorithm . additionally  an efficient wave-pattern matching algorithm is proposed to compute the difference between two stream segments. using the wave-pattern  we can detect the stream variation in a single pass over the data  and maintain the variation history using pgg. pgg organizes the patterns with bi-directional linked lists  and only stores the different pattern parts for incoming stream if the stream pattern is different from the known patterns in pgg. therefore  it can compress the data substantially without losing important information. additionally  the statistical information of pgg helps the system to distinguish meaningful data changes from noise and to reconstruct the stream with acceptable accuracy. our contributions can be summarized as follows: 
+* we propose to use the valley points to split a pseudo periodical stream into segments which can be represented by wave-pattern efficiently. a new pattern matching algorithm is proposed to detect variations in streams.  
+* we introduce a novel structure pgg to record the wave patterns of the stream incrementally and maintain their evolving history with marginal space overhead.  
+* we conduct extensive experiments to prove the effectiveness of pgg using real datasets containing millions of data items. pgg yields higher precision on variation detection with fewer false alarms than existing techniques. most encouragingly  the proposed pgg technique has been implemented as the core module in a j1ee based data stream management system. the system is now used in a major hospital's intense care unit  icu   monitoring over twenty patients a day. 
+the rest of the paper is organized as follows: section 1 briefly discusses related work; section 1 describes concepts and algorithms for detecting variations and recording their history in pgg; section 1 discusses some applications of pgg; section 1 reports the experimental results; finally we summarize the paper in section 1.  
+1. related work  
+the research on data streams has received much attention in recent years  and most of the work can be loosely classified in two categories . 
+data stream management systems  dsms : 
+a large number of projects have been carried out to implement dsms  including stream   aurora   telegraphcq   cougar   and so on. although they have been applied in different domains  the goals are in common that they mainly focus on completing predefined queries over rapid streams in near realtime. given that premise  a series of query technologies  such as scheduling  summary  load shedding  synopsis maintenance  1  are employed. however  as pointed out in reference   the emphasis of the techniques in this category is to support only traditional sql queries. none of them tried to find the data patterns  or to monitor the variations. 
+to the best of our knowledge  there is no dsms applied in domains of pseudo periodical streams  such as the domains of medicine  seismology  and so on. for instance  a typical case of such streams is the medical signals generated from the intensive care unit  icu  of hospitals. but the common systems in icu  such as hp carevue  and va quantitative sentinel system   all use databases to store bio-medical signals. due to storage limitation  they can only sample the data with a rather long interval. none of them can analyze the stream data or detect variations. the tasks of variation management are completed manually by nurses . 
+online data mining 
+another category of the work is data mining on the stream  including clustering  classification  regression and frequent pattern mining. 1  
+variation management is an important part of online data mining. it has been variously referred to as the detection of  unusual subsequence     surprising pattern     alarm    temporal pattern change    burst   novelty  and  abnormality    and so on. these techniques can be divided into three classes according to their algorithms  i.e. symbolic approaches  mathematic transformation and predefined models.  
+tarzan  is a symbolic algorithm to find surprising patterns of time series. tarzan first employs symbolic aggregate approximation  sax   to simplify real number time series to enumerative symbols  then analyzes the symbol's frequency using the markov model. it generates results by comparing with the patterns from a training set. tarzan's time complexity is linear w.r.t the size of series data  but the space complexity is also linear  which is prohibitive for data stream systems. the abnormal patterns are discovered based on different frequency of appearance between the training set and the testing set. it does not consider the value evolutions and changes in pattern structure.  
+in   the authors proposed a one-pass discrete wavelet transform  dwt  on data streams. arbitrary window stream modeling method  awsom   is a dwt based method to find meaningful patterns over longer time periods. continuous querying with prediction  cqp   uses fast fourier transform  fft  to process stream. there is a serious problem when these techniques are applied in practical applications that they can only perform on the data with fixed sampling frequency  and the length of segment is also fixed. for example  the haar wavelet transform typically operates the data using the lengths with power of 1. cqp employs prediction methods to fill future data and awsom processes in a batch mode. they are good in finding meaningful patterns over a relatively long period  but are not suitable for the variation management on pseudo periodical streams. 
+recently  some researchers tried to monitor changes using a series of predefined models. in   the authors used the  up-down-updown  format zigzag model to detect events in financial data streams. a kind of motion model  was also designed to analyze structural time series data . these two approaches are successful in their particular fields  but cannot work on any other streams as their models are domain-specific. and in many applications  users do not know the features or structures of data streams  thus they are unable to set up or predefine models for the algorithm. 
+what is more  some approaches are carried out based on supporting vector regression   density functions  and classifiers . most of them can detect meaningful variations in a specified window  but are hardly used over the whole stream due to due to high time and space overheads. 
+the pgg method is different from existing approaches. it monitors the variations over the whole stream in linear time without any training set or predefined model. instead  pgg can discover such models and update them incrementally. 
+1. the framework of variation management 
+this section presents the proposed pgg framework to detect variations and record their history in pseudo periodical data streams. after specifying the problem  we introduce the framework for the whole system and the details for each module.  
+1 task specification 
+bio-medical signal monitoring is one of the most typical application domains of pseudo periodical stream. a pseudo periodical stream has some properties: 1  the stream can be partitioned into waves that generally have similar durations; 1  the shape of the streams in adjacent waves is highly similar  and 1  changes in the absolute shape of the streams from one wave to another are considered significant. we motivate the problem in accordance with the requirements of real-life icu  the intensive care unit  applications.  
+example 1:  a data series of patient's respiration stream is shown in figure 1 with the sections marked by a-h. there are four key issues: 
+1го wave: the smallest unit in the doctor's concern is not the data value at a single point  but the values in a certain period represented as a wave. as shown in figure 1   the waves a  b  g and h belong to one respiration mode  while c  d and e belong to another mode;   
+1го alarms: the values of waves e and f exceed the warning line. however  f is actually the noise caused by body movements. although the values of wave c are less than the warning line  their shapes also show fundamental changes of patient's condition. in the cases of c and e  the system must send alarms to the doctors instantaneously  since even a delay in the order of seconds may cost the patient's life. it is really a  killer application  for data stream management system in hospital; 
+1го evolution: although waves a  b  g and h belong to the same respiration mode and look the same  a careful study reveals that their concrete values and time lengths are different. these tiny variations reflect the evolution of patient's condition; 
+1го summary:  it is not feasible to store all the details of a data stream  but a summary with acceptable error bound is still very helpful for doctors' future treatment. a typical query example for such system could be  what is the approximation of the patient's respiration over the past two hours    
+
+figure 1. an example of patient's respiratory data 
+another factor that must be considered is the system efficiency. the device's sampling frequency is usually high  about 1 hz   and there are normally dozens of such devices in an icu. therefore  an effectively compressed pattern representation must be generated to simplify the data stream processing. 
+according to the requirements discussed above  we formalize the task as following: 
+task specification: let s be a pseudo periodical stream s= 
+{ x1 t1    x1 t1  ...   xn-1 tn-1    xn  tn  ...}  where xi  is the value at time point ti  the data stream management system should: 
+* split s into wave stream sw with each wave recording the data of a certain section; 
+* generate patterns to reduce the data size without losing important features of each wave; 
+* store the patterns along with their evolving history; 
+* detect variations online by matching generated patterns with incoming streams;  
+* recognize the noises and send alarms only on meaningful variations; 
+* provide the variation history and reconstruct the stream with an acceptable accuracy. 
+based on the above points  we illustrate our proposed system framework in figure 1. we split the oncoming stream into segments which are represented by wave-patterns. we compare each new wave with the previous records in pgg  and update pgg according to new pattern types. with the help of pgg  we can provide different functions  such as stream reconstruction  emergency alarm and so on.  
+
+figure 1. system framework for variation management 
+ 
+1 wave splitting 
+variations are detected by comparing old data with new values  and traditionally this can be done by matching stored sequences with incoming stream. however  the time and space cost are high for using such algorithms over pseudo periodical streams. first  most algorithms compare given sequences with query stream for every incoming point. it costs too much time and even causes system to collapse when huge amounts of data arrive in a short period of time; second  since the whole sequences are stored in memory  the performance of the system will degrade when more new sequences are discovered from the stream.  
+if the system can divide the stream into sections and conduct the comparison between them  the time efficiency will increase substantially. however  due to the pseudo periodical effects  simply dividing the stream in fixed length will accumulate error. hence  the first problem that we have to address is how to split a long pseudo periodical stream effectively. a careful study reveals the following observations: 
+observation 1: pseudo periodical streams are composed of waves with various time lengths and key values. the waves start and end at valley points that are less than a certain value.  
+thus we can divide the stream into segments at the valley points. generally  the upper bound value of the valley points can be specified by users in real stream applications. for example  in the arterial blood pressure stream  the value of valley point is usually less than 1 mmhg. however  the upper bound value may change as the stream evolves. in our system  we can automatically update it using the average value of the past valley points.  
+	n	 
+ub =ж┴ б╞vi  / n
+i=1
+where n is the number of past valley points and ж┴ is an adjustment factor to deal with outliers  and its value depends on the evolution of the stream data. the use of ж┴ can improve the flexibility of the algorithm  as the value of stream might have tiny change. however  the value ofж┴ should be carefully selected  e.g. if it is too small  the value may generate too many false-positive alarms  while a large ж┴ may cause more false-negatives. the optimal value of ж┴is domain-specific  and usually determined by the domain experts. for example  in ecg monitoring  ж┴ =1 yields the best split effect. 
+another issue concerns the valley sections. if the waves are separated by long and approximately flat sections whose values are all less than the upper bound  there may be a high degree of variation in the choice of split valley points. in our approach  we always select the last valley point to split the wave  even if there are multiple valley points and the previous valley point is lower. however  if the flat section is too long  the stream is no longer pseudo periodical and the split algorithm will stop and will send an alarm.    
+in the implementation  we utilize a variable-length buffer to record each wave. the variation monitoring algorithm is applied on each wave. 
+example 1 figure 1 shows four kinds of pseudo periodical streams  i.e. electrocardiogram  ecg   arterial blood pressure  abp   central venous pressure  cvp  and respiration. they are all divided into waves by valley points. 
+ 
+figure 1. waves of pseudo periodical stream 
+1 pattern representation 
+a wave usually includes 1 data points  which need to be represented by smaller patterns to save space and computational cost. there are many existing representations for time series and data stream  such as sax   dwt  1  1  and fft . our experiences show that piecewise linear representation  plr    which uses line segments to approximate the data  has the best compressing effect without losing important features. the plr algorithms can segment the data series in two ways  figure 1 . 
+ 
+figure 1. two different plr representations 
+* plre: given a data series t  produce the best linear representation such that the maximum error for any segment does not exceed the user specified threshold; 
+* plrk: given a data series t  produce the best linear representation using predefined number of segments k. 
+normally  the linear representation is generated in plre style  because the residual error is typically the main concern. but in some special case  plrk is preferred if the users define k. to generate the plr of segments  there exist two mechanisms. 1  sliding window: the algorithm merges the data points along the stream  when the sum of residual error exceeds the predefined threshold  a new segment will be created; 1  bottom up: the algorithm begins by creating the finest possible approximation of the data series  and then iteratively merges the lowest cost pair until a stopping criteria is met. in   an in-depth study was conducted on the two algorithms  the results showed that the time efficiency of the sliding window approach is better than the bottom up approach  but the quality is usually poor. the author mixed the advantages of them and proposed a new algorithm sliding window and bottom-up  swab    which runs as fast as sliding window but produces high quality approximations of the data. taking into account the cost and accuracy  we implement swab to simplify the wave. in our experiments  swab can reduce the data size to 1% with relative error bound of 1%.  
+note that  if we only keep the valley and peak points  then it is equivalent to the result of simplifying the data stream using the zigzag model   which may cause much larger error.  
+1 wave-pattern matching 
+with the old data represented as patterns  the central issue is how to compare an incoming wave with an existing pattern to detect variations  
+traditional matching algorithm compares two sequences by calculating the value differences between data items at the same time point. it is hard for them to compare two sequences with different lengths  because one sequence may have no data item at a certain time point while the other has. 
+in real applications  two sequences are assumed to match if their paths roughly coincide. the plr patterns just record paths of old data  so the variations can be detected by testing whether the incoming streams match the recorded patterns. we can determine the intensity of variation by the matching line segments in the patterns. the ideas are formalized by the following definitions: 
+definition 1  segment matching  let stream subsequence l = 
+{ x1 t1    x1 t1   ...   xm  tm }   segment seg is the set of pairs { x  t  with x=at+b}; given relative error bound eb  we say that seg matches l if  length  l  - length seg  /length  l    eb and for each iб╩ 1 m   erri = | xi-ati-b /xi | б▄ eb  where length   is a function to calculate the time duration of a sequence/segment.  
+definition 1  wave-pattern matching  let wave w = { x1 t1   
+ x1 t1   ...   xn  tn }   pattern p = {seg1  seg1  ... segk } and eb be the relative error bound. suppose that w can be split into a series of continuous subsequences such that w = {l1  l1  ...  lk}   
+ 1  if for each i б╩ 1 k   segi matches li  we say that p  fully matches w; 
+ 1  if only j  j k  segments match  we say that p partially matches w; 
+ 1  if no segment matches  we say that p totally un-matches w. 
+example 1 two cases of wave-pattern matching on ecg stream are shown in figure 1. in 1 a   the pattern consists of 1 segments with time length 1 seconds. and the wave size is 1 points with time length 1 seconds. although the sizes vary a lot  they still match according to definition 1. in 1 b   the wave and pattern partially match on segments 1  1  1 and 1. 
+ 
+figure 1. wave-pattern matching 
+with the above definitions  the problem of wave-pattern matching transforms to the problem of splitting the wave into appropriate subsequences  segments . that is  the system must know which data points are going to be involved in a certain segment. there is a total of cmk 1 =  m-1 !/  m-1-k !*k!  different ways of splitting a wave with m items into k subsequences. therefore  it is not feasible to try all of them in data stream environment. fortunately  the matched waves have similar plr pattern to the old ones. such similarity can be used to help splitting the waves as described in the following theorem. 
+theorem 1: let wave w={ x1 t1    x1 t1   ...   xm  tm }  pattern p = {seg1  seg1  ... segk} and eb is the given relative error bound  p fully matches w if the following three conditions hold: 
+1. w can be simplified by plrk to a k-size pattern p' = {seg1'  seg1'  .. segk'}  and the relative error bound is eb1; 
+1. the relative difference between p' and p is less than eb1; 
+1. eb1 + eb1 + eb1*eb1  eb; 
+proof: since the difference between p' and p is less than eb1; hence for each i б╩ 1 k    ||segi - segi' ||/|| segi ||   eb1 ; where 
+    1- eb1  segi   segi'   1+ eb1  segi ... ... 1  
+suppose w was split into w= {l1  l1  ... lk } under eb1; thus for each i б╩ 1 k   || segi' - li  || /|| segi'||  eb1; where 
+  1 - eb1  segi'   li   1+ eb1  segi' ... ... 1  
+combine  1  and  1   we deduce that  
+  1- eb1  1- eb1 segi   li    1+ eb1  1+ eb1  segi; 
+note that eb1  eb1  hence the above formula can be simplified to ||li- segi ||   eb1+ eb1+ eb1* eb1. therefore  if eb1+ eb1+ eb1* eb1   eb then ||li- segi ||   eb; by definition 1  p matches w. 
+according to theorem 1  a heuristic algorithm is designed for wavepattern matching. 
+algorithm 1 wave-pattern matching  
+input: wave w  pattern p with k segments  error bound eb 
+output:  double pattern-match-error; 
+1го pattern p'   plrk w with k segments. 
+1го eb1   calculate error between w and p'; 
+1го eb1   calculate difference between p and p';  
+1го if  eb1+ eb1+eb1*eb1 eb  // full match 
+1го then pattern-match-error  eb1+ eb1+eb1*eb1; 
+1го else // partially match or un-match 
+1го    split w by the points of p'; 
+1го    for each segment s of p  do 
+1го       match s with corresponding section of w;  
+1го       pattern-match-error += segment match error;   
+1го    end for   
+1го return pattern-match-error; 
+after generating the plr representation with k segments  we calculate the errors  lines 1 . if the match error is less than the error bound  w fully matches p  lines 1   otherwise we need to compare the sections of w with each segment in the pattern to calculate match error  lines 1 . 
+proposition 1 let m be the wave size and k be the pattern size  algorithm 1's time complexity is o m . 
+proof: the major time consumption of the algorithm is for the plr simplification at line 1 and the matching process from line 1 to 1  both of them are o m . the time complexity of error and difference calculation is o k . since k is far less than m  the total time complexity is o m .  
+1 pattern growth graph 
+most variations of a data stream are gradual evolutions rather than burst mutations  and many patterns just have partial segments changed. recording all of them in a pattern list not only ignores their relationship but also causes storage redundancy. to alleviate this problem  a novel data structure pattern growth graph  pgg  is designed to store patterns and their variation history. 
+1.1 recording variation history 
+each pattern in pgg is stored as a bi-directional linked list with a header node that records the pattern information  including pattern id  frequency and the time of each occurrence  of this pattern. each brand new pattern of pgg is called base pattern. it stores the overall features of corresponding wave. all of the pattern's segments are recorded as nodes of the bi-directional linked list. the left and right pointers of each node point to previous and next segments respectively. three possible cases arise when we match the base pattern with an incoming wave: 
+* un-matched: a new base pattern will be generated and added to pgg; 
+* partially matched: the matched parts will be reused and new segments are generated only on un-matched data. the new pattern grows from an old one  and we name it growth pattern; 
+* totally matched: there is no need to generate any new pattern  and we only increase the frequency of matched pattern and record the time of appearance. 
+in this way  pgg not only reduces the amount of storage requirement  but also maintains the variation history by recording the pattern growth.  
+the pattern growth algorithm is presented as the following:  
+algorithm 1 pattern growth over stream 
+input: stream s  pattern growth graph pgg  error bound eb; 
+output: updated pattern growth graph; 
+interior variables: pattern best-match  double min-error; 
+1го for each incoming wave w of the stream s  do 
+1го   initialize  best-match  min-error; 
+1го   for each pattern p of pgg  do 
+1го      match error  wave-pattern matching w  p ; //algo.1 
+1го      if match error   eb then 
+1го  	  increase the pattern p's frequency; 
+1го          break; // totally matched  no more comparison 
+1го      else if match error   min-error then 
+1го         best-match   p; // record the best match pattern 
+1го         min-error   match error; 
+1го   end for   
+1го   if best-match is null then // totally un-matched 
+1го  	generate new base pattern p'; 
+1го  	add p' to pgg;            
+1го   else if min-error   eb then // partially matched 
+1го       remove matched data from w; 
+1го       use plre to generate growth pattern p' from w;  
+1го       update p's each node left and right pointers; 
+1го       add p' to pgg; 
+1го record the occurrence time of the pattern;  
+1го end for 1го return pgg. 
+proposition 1 let n be the number of waves in the data stream and k be the number of patterns in a pgg  the time complexity of algorithm 1 is o n1 . in the worst case  algorithm 1 needs to compare every stream wave with each pattern in pgg  and each incoming wave introduces a new pattern  so the overall time cost is k +  k+1  +  k+1  +...+  k+n-1  = k*n + n* n-1 /1. note that  the comparison could be stopped once a full matched pattern has been found and the majority of waves appear repeatedly in pseudo periodical streams. therefore  the time cost is much smaller in real applications. the proof is straightforward  so we omit the details. 
+example 1 in figure 1  pattern 1 is a base pattern with eight segments. it partially matches the new stream wave on segment 1  1  1 and 1. therefore  a growth pattern  pattern 1  with segments 1'--1' is generated based on the un-matched data. the left pointer of segment 1' points to the previous segment - segment 1  and the right pointer of segment 1' points to the next segment - segment 1. 
+ 
+figure 1. pattern growth graph 
+1.1 construct full wave-pattern using growth patterns 
+ intuitively  the storage cost can be reduced by only storing the variant parts of patterns. however  a new problem arises: the wavepattern matching needs to compare incoming wave with every pattern in an online fashion - which requires that the pattern to be compared with must be a full pattern. therefore the system needs to be able to generate a full pattern from growth patterns as fast as it accesses a base pattern. this process can be completed by propagating the pointers of nodes in growth patterns. the details are presented in algorithm 1. 
+algorithm 1 construct wave-pattern using growth patterns 
+input: pattern growth graph pgg  growth pattern p'; 
+output:  corresponding full pattern p; 
+interior variables: pointer array lp and rp; 
+1го add the nodes of p' to p; 
+1го for each node n of p'  do 
+1го    add n's left pointers to lp; 
+1го    add n's right pointers to rp; 
+1го end for 
+1го while  there exist active pointers in lp or rp  do 
+1го    for each active pointer lp j  and rp i    do 
+1го       add the node nl pointed by lp j  to p; 
+1го       lp j    nl's left pointer; 
+1го       add the node nr pointed by rp i  to p; 
+1го       rp i    nr's right pointer; 
+1го       if  lp j  =  start  then deactivate lp j ; 
+1го       if rp i  =  end  then deactivate rp i ; 
+1го       if  i = j-1 & lp j   = rp i   then    //pointers collide 
+1го          deactivate lp j  and rp i ; 
+1го    end for 
+1го  end while 1го  return p. 
+in this algorithm  we first put each node's left pointer in lp and right pointer in rp  lines 1 . in line 1  we check whether there are active pointers in lp or rp  the original statuses of the pointers are all active. . then  we access the active pointers in two pointer arrays and add the reused nodes into p by propagating pointers  lines 1 . the active pointers are deactivated under three circumstances: 1. the left pointer moves to  start  sign  line 1 ; 1. the right pointer moves to  end  sign  line 1 ; 1. two pointers collide together  lines 1 . when all cursors stop  line 1   the full wave-pattern will be returned. a new example is used to better illustrate the process of algorithm 1. 
+example 1 figure 1 shows the process of computing growth pattern 1 by propagating pointers. at the beginning  only the new nodes 1  and 1  can be read by pattern's id  line 1 of algorithm 1 . four pointers lp1  rp1  lp1 and rp1 are generated  line 1 . in propagating step 1  the nodes pointed by these pointers  1'  1' and 1  are added  line 1 . pointer rp1 reaches the end sign of the pattern  line 1 . in step 1  nodes 1  1'  1 are added; and in the final step  pointer lp1 reaches the start sign  line 1   and pointer lp1 and rp1 collide at node 1  line 1 . when all pointers stop  the algorithm outputs the final result  line 1 . 
+ 
+figure 1. construct full wave-pattern 
+proposition 1 let m be the size of a growth pattern  n be the size of a whole pattern  algorithm 1 costs o m  space and the time complexity is  o m+log1m n-m  . 
+proof: the only extra space needed by the algorithm is to store two m-size pointer arrays. the time to compute the whole pattern is to get n-m nodes via 1m pointers. thus the time complexity is o m+ log1m n-m  .  
+with a little space overhead  the time cost of growth pattern access is even better than reading base pattern directly.  
+1.1 rank the patterns 
+proposition 1 shows that the time complexity for pattern growth is o n1 . when pgg becomes larger  comparing the incoming wave with pgg's patterns one by one is still very time-consuming. online learning algorithms traditionally use  a forgetting function  to get rid of the historical data's influence. however  pgg cannot adopt traditional forgetting policies to delete old patterns. after a careful study on matching patterns we find the following: 
+observation 1 the most frequent pattern and its similar patterns  all the patterns which have the same base pattern  have the highest possibilities to match the incoming wave. 
+thus  we can rank the patterns by their matching frequency and the performances of their  families . let n be the count of pattern frequency  m be the number of its similar patterns  бўxi be the recorded error value of each match  ti be the time point of each matching  ds be the distance between two patterns  we design a matching probability factor for pattern p at time point t as follows: 
+	n	m	n j
+  f  n t  =б╞exp  wi *ждx i   +б╞s j б╞exp  wi *ждxi   
+	i=1	i=1	j=1
+where the time factorwi =  1 ti /t    and the similarity factor 
+s j . 
+this function integrates multiple factors which affect the matching probability of a known pattern including frequency  match error  previous match time and pattern family. for example  the matching probability of a pattern decreases if the match error becomes larger or no new incoming wave matches the pattern. the exp   function helps to amplify the effect of latest matched patterns  because there are typically gradual evolutions in pseudo periodical streams. 
+an index is constructed according to matching possibilities. although the patterns with smaller probability cannot be deleted  they have lower priority to be compared. in addition  if one pattern matches the wave  the system will not only increase its own frequency  but also increase the rank of its  families . in this way  even in the worst case  the time complexity is still o n1 . our experiments show that the average speed will increase about 1% -- 1% as the stream passes by.  
+1. applications of variation management  
+pattern growth graph keeps track of data features and variation history of pseudo periodical streams  which are very useful for user's future study. here  we introduce three typical applications of pgg. 
+1 maintain the pattern evolution 
+variation management requires the system to report both the event time and the history of pattern evolution. with the pgg structure  we store the segment patterns of the data stream in a compressed format. we can also generate the full pattern using the reconstruction algorithm. when a user selects a set of interesting patterns  the system can track the source of them by propagating their pointer arrays. the base pattern records the initial state  and various growth patterns reflect its evolutions over the data stream. additionally  the system can give the first occurring time for each pattern  either the base pattern or the growth pattern.  figure 1  
+ 
+figure 1. track pattern's evolutions 
+pgg also provides the perspective for single pattern family. a base pattern can be seen as the root node of a pattern family tree  the growth patterns are the child nodes  and the pgg is a forest for such trees.  
+1 reconstruct the stream view 
+queries on traditional data stream systems need to be predefined  so it is hard to conduct queries on the historic data since they have passed by. all patterns' occurrence time points have been recorded in the pgg. if a user wants to know a general situation such as  the patient's ecg in the past five hours   the system can search the patterns within this period and reconstruct an approximate stream view. because the patterns are generated strictly under the maximum error bound  the stream view has the same precision.  normally storing the patterns' occurrence times in a pgg only consumes about 1% storage space of the original stream  but it can provide an approximate stream view within 1% relative error bound  achieving excellent compression effects. 
+1 raise the alarm 
+the pgg framework can be used to monitor the evolution of data streams. if the stream variations exceed certain thresholds which are pre-defined by the domain experts  the system raises the alarm. taking the respiration stream as the example  there are mainly two kinds of meaningful variations: first  new mode of respiration wave appears  no matter whether it has unusual values or not  e.g. wave c in figure 1; second  although the wave belongs to an old respiration mode  it has unusual values  e.g. wave e in figure 1: the mode appears after wave c  but in wave e the value exceeds the warning threshold of 1.  
+ 
+figure 1. meaningful variations and noises 
+however  in a successful system  we not only need to give a warning for meaningful variation  but also need to reduce the false alarms which are introduced by noises.  
+noises are common phenomena in pseudo periodical streams. in the medical stream monitoring  a lot of noises are generated by patient's cough or other body movements. these noises contain many unusual values which may cause false alarms. the major problem of noise recognition is that the noises have various styles and are not known in advance. therefore it is not possible to model the noises by training sets or predefinitions.  
+pgg brings about a short cut to the problem: the system does not only send alarms merely by observing unusual values  but also consider the pattern's evolution history. there are three strategies to reduce false alarms: 
+1. unusual values are found in growth patterns. it implies that the patients' condition has been exacerbated  then an alarm should be sent to the doctors; 
+1. a new base pattern is generated  and it matches or partially matches successive waves. this phenomenon means that the underlying pathology mechanism might have some fundamental changes. although the new pattern may not contain unusual values  the alarm will also be sent out; 
+1. a series of new base patterns are generated continually  and they all un-match the following waves. these incoming waves can be simply classified as noises.  
+in the practical applications  the final judge and noise deletion still depend on professional doctors  and the system just adds suspicion tags to facilitate their judgments.  
+1. experimental results  
+in this section  a thorough experimental study on pgg is conducted. first we evaluate some factors that affect the performance of proposed pgg; then we compare it with some existing techniques; followed by a short discussion.  
+1 experimental setup 
+as the idea is motivated by application problems  we used real datasets instead of synthetic ones. three kinds of pseudo periodical streams are used in the experiments: 
+1. medical streams: six real pathology signals including ecg  respiration  pulse oxymetry  pleth  are recorded during a six hour period simultaneously from a pediatric patient with traumatic brain injury. the sample rates of the signals are from 1 hz to 1 hz  varying according to the states of illness. the whole dataset includes over 1 1 data points; 
+1. earthquake waves : the pacific earthquake wave data is downloaded from the nga project at the pacific earthquake engineering research center at uc berkeley. the sample rates are from 1hz to 1hz. the data size is about 1 data points; 
+1. sunspot data : provided by the national schools' observatory of uk  the dataset includes all the sunspot records between the year 1 and 1  and it contains about 1 data points. it is not a strict stream due to the long time range  but the data is also pseudo periodical. 
+the above datasets are produced by different equipments or sensors using multiple formats. the value ranges and data units vary a lot in different sources. so we use relative error percentage as error bound for pattern generation and matching in the experiments.  
+for performance evaluation metric  we use the processing efficiency  the effectiveness in variation detection and noise recognition. traditionally  two important measurements are used in detecting variations. 
+* sensitivity  high positive rate : the probability that the algorithm can find meaningful variations in a data stream; 
+* selectivity  low negative rate : the probability that the algorithm does not send false alarms on noises.  
+the two measurements are conflict in a sense that increasing sensitivity to find more variations will inevitably cause more false alarms  i.e. the lower selectivity. 
+the experiments were conducted on an intel pentium 1.1ghz cpu with 1gb ram  and the experimental environment is windows xp professional  jdk 1.1. 
+1 performance on pgg 
+1.1 effectiveness of the rank function 
+as we introduced in section 1.1  pgg needs to examine all the existing patterns to match the incoming stream. the naive approach is to scan the patterns sequentially. however  we notice that the frequent patterns have higher probability to be matched. the first experiment is to test the effectiveness of the rank function  which sorts the patterns in pgg according to their frequencies. the experiment was carried out on the largest ecg dataset with 1 1 data points. the numbers of data points processed per second  with and without the pattern ranking function  are recorded in figure 1. the performances decrease when more streams come  as both approaches need to examine the stored patterns for pattern match and update.  the incoming streams inevitably increase the number of stored patterns.   at the beginning  the effect of pattern ranking is insignificant. but after three million data points  when more patterns are generated  the naive algorithm's performance decreases rapidly. in the end  the rank algorithm outperforms the original algorithm by about 1%. 
+ 
+figure 1. ranked vs sequential scan results 
+ 
+figure 1. numbers of patterns 
+1.1 pattern evolution 
+figure 1 records the numbers of base patterns and growth patterns under a 1% relative error bound. as expected  more than 1% of the patterns are evolved from the rest 1% patterns. another interesting discovery is that among the six medical streams  the numbers of growth patterns increase with the stream size  while the numbers of base patterns are nearly the same. moreover  we can use a relatively small number of patterns to represent a long data stream  e.g. ecg dataset has more than 1m data points  which can be represented with only 1 patterns using the pgg.  
+1.1 space cost 
+we also carried out experiments on the space cost of pgg. note that  the space cost includes the information of frequency of patterns and every occurrence time of patterns  which is essential to reconstruct stream view. figure 1 shows the space costs of pgg with different error thresholds in reconstructing the ecg stream. pgg can achieve over 1% accuracy with a storage cost that is less than 1% of the original stream. this amazing result is achieved due to two factors. the swab can reduce the size of patterns to about 1% of the original size  and pgg further reduces it to 1% by compressing the repeating and similar patterns. in this 1% storage cost  pgg itself only needs 1%  the rest 1% stores the occurrence time of the patterns - which must be recorded for stream reconstruction and almost impossible to be compressed. 
+ 
+figure 1. storage cost of pgg 
+ 
+figure 1. online updating vs training testing 
+1.1 pattern update 
+another problem we consider is whether it is necessary for pgg to update patterns for all incoming streams. an experiment was designed to compare the online updating  ou  style with trainingtesting  tt  style. we asked three professional doctors to tag out 1 meaningful variations and 1 noise sections on the respiration stream with 1 1 points. in tt  we only generated the pgg using the training data stream  e.g. the first 1 points  about 1%  of the stream are employed as the training set in this experiment. figure 1 shows the results obtained under 1% relative error threshold. in both styles  the ratios of the false alarms are almost the same  but the training-testing style's sensitivity decreases when more stream data comes. if no new pattern is added  the algorithm cannot figure out whether the new variation is meaningful or just a noise  and hence may ignore it and do not send any alarm.  
+1 comparison with other methods 
+we compared pgg with three most relevant methods  i.e. sax  symbolic approaches    discrete haar wavelet transformation  mathematic transformation    zigzag  predefined models  . pgg only needs the user to define a relative error bound  while some other algorithms require the user to define a window. because the haar dwt algorithm typically operates the data using the lengths with power of 1  we used a 1 fixed-size window if necessary. the dwt algorithm can be only applied on time series in fixed sampling frequency and most of the above datasets do not satisfy this condition. we have to choose such sub-sequences from original datasets for dwt. the size of that chosen sets is about 1% of the original data. all the algorithms are implemented in java on eclipse 1.1. 
+1.1 processing efficiency 
+the first experiment is about processing efficiency. the four algorithms were compared on all the eight pseudo periodical streams. the average numbers of data points processed per second are recorded in figure 1. 
+ 
+figure 1. results on process efficiency 
+the results show that zigzag yields the best performance. the reason is that the zigzag model only records and compares the extreme values. all algorithms perform worst on the ecg stream  as ecg has the largest size and the maximum number of variations. however  even the worst algorithm  dwt on ecg  can handle over 1 points per second  much higher than what the real applications require. with better hardware environment  the performance can be further improved.  
+1.1 variation detection and noise recognition 
+this experiment was carried out on respiration stream. it is the only dataset with fixed sampling frequency  1 data points per second   so that dwt can run on the whole stream. as described in 1.1  1 meaningful variations and 1 noise sections are tagged on the stream.  
+since both selectivity and sensitivity are strongly influenced by the parameters  we carried out the experiments with different thresholds. in an icu environment  missing a meaningful variation may cost the patient's life  so sensitivity is much more important than selectivity. figure 1 shows the performances of the four algorithms on detecting meaningful variations  along with the numbers of their false alarms.  
+ 
+figure 1. results on effectiveness 
+the result indicates that the zigzag based algorithm  with the highest time efficiency  has difficulty finding out meaningful variations. instead it sends false alarm at almost every noise section. this behavior is caused by the characteristic of the zigzag model. it only compares the extreme points  while most noises have outliers with very high or low values. the dwt and sax methods also perform poorly. they miss over 1% meaningful variations but send about 1% false alarms  indicating that they nearly cannot make distinction between real variations and noises. the pgg approach performs the best. it finds out all the variations with only 1 false alarms.  
+manually tagging all meaningful variations and noises in a long stream is a heavy burden for a human being and is not feasible in our comparison. so in the experiments on other datasets  we take precision as the main measurement. the three algorithms  dwt doesn't work any more  found out 1 variations on each dataset. and a professional doctor examined the result  judged whether they are meaningful variations or just false alarms. the results are reported in figure 1. 
+ 
+figure 1. precision on detected variations 
+the results show that pgg performs accurately and stably over all datasets  while the performance of zigzag is volatile with different datasets. three blood pressure signals  abp  cvp and icp  are seldom influenced by patient's movements  and most of their variations appear due to unusual extreme values  and hence zigzag's accuracy is high. however  the extreme values in the pleth stream are almost the same  and the meaningful variations are mainly due to the changes of inner structures. therfore zigzag almost cannot work properly in the latter case.  
+1 discussion  
+why do the competitors perform poorly in variation detection on pseudo periodical stream   
+1. the main drawback of zigzag is that it only focuses on extreme data points. it may work well on some zigzag style streams like blood signals or stock market data  but on other streams  the results will be strongly influenced even by one or two outliers. 
+1. sax is a kind of statistical algorithm  which needs large training dataset to be effective. sax is good at finding novelty or surprising patterns in a long period using frequency statistics  but it lacks the power to detect inner changes of shorter waves instantly. the experiments indicate that it is more suitable for time series mining than data stream management.  
+1. the mathematical transformation methods  such as dwt and fft  are effective for fixed-size data patterns  especially for the signals with strict periods  whereas data stream's pseudoperiodicity greatly reduces their accuracy. 
+then why does pgg work well in the experiments   
+pgg captures the main features of pseudo periodical data streams: 
+ 1  most waves are structurally similar with tiny difference in details; and  1  the variations are gradual evolutions rather than mutations. the wave-pattern matching algorithm is not strict on point variations  but it seeks common ground while preserving structural differences. thus  pgg is capable of finding the variations that other algorithms may ignore. in addition  pgg not only stores new patterns  but also records their variation history. the recorded pattern history provides sufficient information to help distinguish between meaningful variations and noises. in other word  with the effective data structure  pgg discovers and records as much features of the data stream as possible. 
+1. conclusion  
+in this paper  we addressed the problem of variation management for pseudo periodical streams. upon studying real-time application requirements  we proposed a new pattern growth graph  pgg  based method for variation detection management  and history recording. in pgg  the streams are represented by wave-patterns efficiently. we proposed to detect the stream variation using pattern matching algorithm in a single pass over data  and store the variation history with small storage overhead. pgg can effectively distinguish meaningful variations from noise  and reconstruct the stream view within an acceptable accuracy. extensive experiments have been conducted to show the superiority of the pgg variation management for pseudo periodical streams.   
+in the near future  we plan to extend pgg to multiple streams monitoring and to implement the pgg method in other application domains such as weather forecasting and financial analysis.  
+1. acknowledgments 
+the authors would like to thank jiawei han  yuqing wu  shiwei tang for their helpful discussion and comments on the research carried out in this paper; haibin liu  huiguan ma  chi zhang  yu fan  zijing hu and jianlong gao for system implementation; and the anonymous reviewers for their feed back.  the work described in this paper was supported by nsfc under grant number 1. 

@@ -1,0 +1,12 @@
+　the required text classification for computing a topical profile differs slightly from the typical categorization task  described in  . we do not need to assign binary labels whether a document belongs to a certain category or not. a similarity measure showing to which extend an article belongs to a given category is already sufficient. hence  the task falls back to the known domain of ranking a set of documents given a query. in fact  an abstract language model describing a topical concept is nothing but an exceptional long query. we used in the experiments the nllr measure  described in a later section  which is also applied to compute a score for the initial query. only the smoothing factor λ is set smaller in this case. firstly  because the exceptional query length makes smoothing less important  and secondly  to increase differences between the models.
+　in order to speed up the computation of topical profiles as well as the later ranking procedure the score computation is performed offline. for each classifier in the set of topical concepts a score vector is maintained  holding the individual scores for all documents within the collection.
+　after the classification task is done  topical profiles can be computed in the following way. similar to temporal profiles explained previously  the set r of the 1 top ranked documents given the query is determined. the score for a specific topic cate-
+gory ti is then defined by the sum of all document scores in r for this category. the intensity value  as introduced in the last section  is computed accordingly:
+
+an example topical profile is displayed in fig. 1.
+1 clarification forms
+compared to the profiles shown in the last section  fig. 1 and fig. 1  a user does not need to see the whole spectrum of the profile. instead it seems sufficient to cut out the most relevant part of it  which means the highest temporal or topical peaks. for the experiments  we just displayed the 1 top ranked topics  but all identified temporal peaks. in practice their number never exceeds 1.
+　besides providing a preview on the query results  our clarification forms allow to refine the query. in
+
+
+figure 1: clarification form of topic 1: transportation tunnel disastersfigure 1: subject profile of topic 1: transportation tunnel disasters

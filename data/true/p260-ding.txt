@@ -1,0 +1,258 @@
+green's function for the laplace operator represents the propagation of influence of point sources and is the foundation for solving many physics problems. on a graph of pairwise similarities  the green's function is the inverse of the combinatorial laplacian; we resolve the zero-mode difficulty by showing its physical origin as the consequence of the von neumann boundary condition. we propose to use green's function to propagate label information for both semi-supervised and unsupervised learning. we also derive this learning framework from the kernel regularization using reproducing kernel hilbert space theory at strong regularization limit. green's function provides a well-defined distance metric on a generic weighted graph  either as the effective distance on the network of electric resistors  or the average commute time in random walks. we show that for unsupervised learning this approach is identical to ratio cut and normalized cut spectral clustering algorithms. experiments on newsgroups and six uci datasets illustrate the effectiveness of this approach. finally  we propose a novel item-based recommender system using green's function and show its effectiveness.
+categories and subject descriptors
+i.1  artificial intelligence : learning; i.1  pattern recognition : clustering
+general terms
+algorithms  experimentation  performance
+copyright 1 association for computing machinery. acm acknowledges that this contribution was authored or co-authored by an employee  contractor or affiliate of the u.s. government. as such  the government retains a nonexclusive  royalty-free right to publish or reproduce this article  or to allow others to do so  for government purposes only.
+kdd'1  august 1  1  san jose  california  usa.
+copyright 1 acm 1-1-1/1 ...$1
+keywords
+green's function  semi-supervised  label propagation
+1. introduction
+in semi-supervised learning  we have a large amount of unlabeled data  but only a very small fraction of them are labeled. this situation is common due to ever increasing amount of data being accumulated  and most of them are unlabeled or partially labeled because labeling data requires human skills and extensive labor. the learning task is to classify the unlabeled data based on labeled data.
+there are many different approaches to this problem  1  1 .  a  the classification-based approach  in which a classifier is first trained on the small labeled data and is gradually improved by incorporating unlabeled data. earlier methods mostly follow this approach .  b  the clustering-based approach  in which a clustering algorithm is used on the whole data  labeled and unlabeled   with the labeled data serve as penalty or regularization or prior information. recent methods mostly follow this approach  such as spectral clustering based methods  1  1 .  c  special mechanisms  such as gaussian process   graph mincut   entropy minimization   etc.
+in this paper  we focus on the label information propagation point of view. given a dataset with pairwise similarities  w   the semi-supervised learning can be viewed as label propagation from labeled data to unlabeled data. in its simplest form  the label propagation is like a random walk on a similarity-graph w . using diffusion kernel  1  1  1   the semi-supervised learning is like a diffusive process of the labeled information. the harmonic function approach  emphasizes the harmonic nature of the diffusive function; and consistency labeling approach   emphasizes the spread of label information in an iterative way. our work is inspired by these prior works  especially by the work of zhou et al .
+in physics  diffusion is a process of particle random walk driven by a heat gradient  which emphasizes the local and random nature of the process. we believe  however  label information propagation is more like the field response to the presence of point charges  which emphasizes the global and coherent nature of influence propagation. this response function is the green's function of the laplace operator.
+in this paper  we formalize the above ideas into a concrete learning algorithm as outlined in ¡ì1. we introduce green's function as the kernel for the laplace operator in  ¡ì1 . we resolve the zero-mode problem of the combinatorial laplacian by showing its physics origin as the von neumann boundary condition  ¡ì1 .
+we further justify the green's function approach in ¡ì1 by showing that green's function is a well-defined similarity metric on a graph  utilizing a well-established  but not widely known  remarkable results on the effective resistance on an electric resistor network  which also can be derived from random walk perspective. in ¡ì1  we derive the green's learning framework independently from the kernel regularization theory of reproducing kernel hilbert space at strong regularization limit.
+in ¡ì1  we discuss the unsupervised learning aspects of green's function approach and show the green's function approach is equivalent to ratio cut and normalized cut spectral clustering algorithms. in ¡ì1  we explore the relations of green's function approach with the harmonic function approach. in ¡ì1  we present the experimental results on internet news groups and six uci datasets. in ¡ì1 we propose a novel item-based recommender system using green's function approach. finally ¡ì1 summarize our most important contribution.
+1. green's function learning algorithm
+combinatorial laplacian
+given a mesh/graph with edge weights w  the combinatorial laplacian is defined to be
+l = d   w 
+where the diagonal matrix contains row sums of w: d = diag we    e =  1¡¤¡¤¡¤1 t.
+green's functions
+we define green's function for a generic graph as the inverse of l = d   w with zero-mode discarded.  the complete discussion of zero-mode and its physical origin is one of the main contributions of this paper and is discussed in ¡ì1 .
+we construct the green's function using eigenvectors of l:
+               lvk = ¦Ëkvk  vptvq = ¦Äpq.  1  where 1 = ¦Ë1 ¡Ü ¦Ë1 ¡Ü ¡¤¡¤¡¤ ¡Ü ¦Ën are the eigenvalues. we assume the graph is connected  otherwise we deal with each connected component one at a time . the first eigenvector is a constant vector v1 = e/n1 with zero eigenvalue and multiplicity one. this zero-mode is discarded  see ¡ì 1 . the green's function is then the positive definite part of l
+	.	 1 
+where  d w + indicates that zero eigen-mode is discarded. green's function can also be defined on the generalized eigenvectors of the laplacian matrix:
+¡¡¡¡¡¡¡¡¡¡luk = ¦Ækduk  utp duq = ztp zq = ¦Äpq.  1  where 1 = ¦Æ1 ¡Ü ¦Æ1 ¡Ü ¡¤¡¤¡¤ ¡Ü ¦Æn are the eigenvalues and the zero-mode is u1 = e/n1. we have
+	.	 1 
+ see eq.1 for derivation . in practice  we truncate the expansion at k terms and store the k   1 vectors. g is computed on the fly. so the storage requirement is o kn .
+semi-supervised learning
+suppose we have labeled data . and unlabeled data . the algorithm is a simple influence propagation from labeled data points to unlabeled data points  and can be written as
+`
+	yj = signxgjiyi  `   j ¡Ü n.	 1 
+i=1
+for 1-class problems  yi = ¡À1   or
+if 
+	1	otherwise
+ 1 
+for k-class problems where y =  y1 ¡¤¡¤¡¤ yk   yik = 1 if the xi is a labeled as class k  yik = 1 otherwise. this algorithm is derived from eq. 1  and more formally in ¡ì1.
+unsupervised learning
+in semi-supervised learning  the influence propagates only once  and propagates only from labeled data to unlabeled data. in unsupervised learning  we let influence propagate from any points to any other points; and repeat multiple times until convergence 
+	if	
+jk	1	otherwise
+                                        1  this ensures labels are consistent with influence propagation. given an initial guess of the labeling for parts or all of the data  we run the above algorithm until convergence. this algorithm is derived in ¡ì1.
+we often use vector/matrix notation and write eq. 1  for 1-class semi-supervised learning as
+	y = sign gy1 	 1 
+eq. 1  for multi-class semi-supervised learning as
+	y = arg max gy1 	 1 
+and eq. 1  for multi-class unsupervised learning as
+               h t+1  = argmax gh t    1  where arg max is a row-by-row operation and interpreted as in eq. 1 . for example  a = argmaxb is done by going through all rows of b  and for each row of b  we select the largest element and set the corresponding element in a as 1 and 1 for the rest of the row.
+1. green's function of the laplace operator
+we give an introduction to laplace operator and green's function.
+the laplace operator
+
+describes the most fundamental spatial variations in nature  which determines all major physical phenomenon: heat flow  wave propagation  quantum physics  etc. for example  given the electric charge distribution ¦Ñ r   a source  and proper boundary condition  the equation  1f r  =  1¦Ð¦Ñ r  governs the scalar electric field f r   which determines the static and induced charge distributions.
+green's function plays essential role in solving partial differential equations by transforming them to integral equations. given a linear differential operator l and source function s r   the differential equation
+	lf r  = s r 	 1 
+can be solved by f r  = l 1s r  ¡Ô z g r r1 s r1 dr1  1 
+the kernel g r r1  of the integral operator is the green's function  which captures the field response at r duo to a single source at r1 represented by ¦Ä r   r1 :
+	lg r r1  = ¦Ä r   r1 .	 1 
+in 1d with open boundary condition  the green's function for the laplace operator is the well-known columb's inverse law: g r r1  = g r   r1  = 1/||r   r1||.
+semi-supervised learning via green's function
+suppose we have labeled data  and unlabeled data . our assumption is that labeled data points are the  electric charges  xi .
+their influence on unlabeled data point at r is given by eq. 1   or 
+`
+	q r  =g r r1 ¦Ñ r1 dr1 = xyig r xi .	 1 
+                           i=1 in nature  there are two types charges  the positive and negative charges. this correspond to 1-class problems  which gives eq. 1  or eq. 1  in vector-matrix form.
+we can generalize this to k types of charges. different type of charges propagate with the same green's function.
+the final charge type of the destination point depends on the competition among different charge types  same as in the positive-negative charge case. this generalization corresponds to the k-class classification problems.
+1. zero-mode of the combinatorial laplacian
+the purpose of the detailed discussion of the laplacian operator is to show the physical origin of the zero-mode of the combinatorial laplacian l = d   w and why we should discard it in constructing the green's function of l as in ¡ì1.
+on a discretized space specified with the weights w of a graph  the laplacian operator becomes  1f ¡ú  clf where l is a matrix  f is a vector defined on the nodes of the graph  and c is a constant depending on the discretization. for a 1d regular grid 
+.
+where a =  x is the spacing between gridpoints. now the matrix l and c can be inferred from this equation. c =  1/a1. under discretization  green's function g r r1  becomes a matrix gr r1. eq. 1  implies
+	lg = i 	or	g = l 1.
+i.e.  green's function g r r1  is the inverse of l. we will see below there are two specific forms of l  the combinatorial laplacian and the physical laplacian.
+1 boundary condition
+physical problems are determined by  1  the differential equation and  1  the boundary condition. the laplacian matrix l extracted from the laplacian operator depends on the boundary condition.
+consider a semi-supervised learning problem on a graph  which consists of the interior domain v and the boundary  v . nodes on the boundary are labeled  say yi = ¡À1  i ¡Ê  v  . nodes on the interior domain v are unlabeled. the problem is to determine the labels on unlabeled data v .
+two common boundary conditions are:  1  dirichlet boundary condition: f ri  = 1   ri ¡Ê  v .  1  von neumann boundary condition:  f r / r = 1   ri ¡Ê  v . the discretized laplacian operator differs for different boundary conditions. let weights of the graph can be decomposed as
+
+as a main contribution of this paper  we provide the following new results:
+theorem 1.  1  under the von neumann boundary condition  the resulting matrix representing the laplace operator is the combinatorial laplacian
+	lc = duu   wuu 	 1 
+where the diagonal matrix duu = diag wuue   i.e.   duu ii = the sum of i-th row in wuu.  1  under the dirichlet boundary condition  the resulting matrix representing the laplace operator is the physical laplacian
+	lp = duu + dul   wuu 	 1 
+where diagonal matrix dul = diag wule   i.e.   dul ii = the sum of i-th row in wul.
+the proof is skipped due to lack of space. an important consequence of theorem 1 a  is the presence of the zeromode in the combinatorial laplacian l = d   w. when the derivatives are specified on the boundary  the function value could differ by an overall additive constant. more formally  the solution of the problem is not unique: for any solution f x   f x  + const  is also a solution. this gives rise to the zero-mode e of l : le = 1. thus the zero-mode of l being a constant vector is not accidental:
+corollary 1. a consequence of using von neumann boundary condition in deriving the combinatorial laplacian l = d   w is that the zero-mode must be a constant vector. a physical operator and its ezero mode   d1 ¡¤¡¤¡¤ dn t is not we note that the operator l = i d 1wd 1 is not
+ see footnote in ¡ì1   while is a kernele  see ¡ì1 . a constant vector. as a consequence   not a kernel
+due to this zero-mode  strictly speaking  the green's function of the combinatorial laplacian l = d   w does not exist. to our knowledge  previous work using green's function skipped this zero mode without giving a justification or even mentioning it.
+by clarifying the situation  we see that the overall constant due to the zero-mode does not affect the final results in influence propagation and thus we can discard this zeromode in computing l 1.
+another consequence of theorem 1 is that the physical laplacian matrix of theorem 1 b  show show up in the harmonic function approach   see ¡ì1 . there we do not use von neumann boundary condition; instead we fixed the boundary to the known labels  which is equivalent to dirichlet boundary condition. for this reason  by theorem 1  we expect the physical laplacian matrix. we summarize this as
+corollary 1. in semi-supervised learning setting  we view data points with known labels as boundary points. this is equivalent to dirichlet boundary condition and the results of the laplacian operator approach will involve the physical laplacian  rather than the combinatorial laplacian.
+green's function using generalized laplacian
+the standard approach to green's function is to use the eigenvectors of eq. 1 . however  we show here that the generalized eigenvectors defined in eq. 1  is equally suitable to define the inverse of  d   w +. we rewrite the generalized eigenvalue problem of eq. 1  as a standard eigenvalue problem
+	wfz = d 1wd 1z = ¦Îkzk  ¦Îk = 1   ¦Æk.	 1 
+from this  we have
+		 1 
+	k=1	 
+since d 1z = uk  we obtain eq. 1 .
+1. a generic distance metric using electric resistor network and random walks
+green's function has a rich content. in this section  we point out that the green's function relates closely to a wellestablished  but not widely known  distance metric on a generic weighted graph.1
+there are two equivalent ways to define this distance:  1  the effective resistance distance of a network of electric resistors  1  average number of random walks between two nodes on a graph.
+1 electric resistor networks
+we view a generic weighted graph as a networks of electric resistors  where the edge connecting nodes i j is a resistor with resistance rij. the graph edge weight  the pairwise similarity  between nodes i j is wij = 1/rij.  two nodes not connected by a resistor are viewed as equivalently connected by a resistor with rij = ¡Þ or wij = 1 .
+the most common task on a resistor network is to calculate the effective resistance between different nodes. the effective resistance rij between nodes i j is equal to 1/ total current between i and j  when i is connected to voltage 1 and j is connected to voltage 1.
+let g =  dbe the green's function on the graph.
+a remarkable result established in 1s 1  1  is
+	rij =  ei   ej tg ei   ej  = gii + gjj   1gij 	 1 
+where ei is a vector of all 1's except an  1  at i-th entry  recall that the distance in a metric space is d1 xi xj  =  xi xj tm xi xj  . clearly  we can view rij as a distance metric on a graph.
+1 random walks
+random walks on a graph is a well studied subject  1  1 . given a graph with nonnegative edge weights w  one can do random walk  transition probability tij = p i ¡ú j  = wij/di  or t = d  w.
+consider the average number of hops that a walker commutes from i to j and comes back to i. this is called average commute time. it is shown in  1  1  that this quantity is proportional to rij. thus rij is a distance metric from random walk point of view. this shows the critical role of the green's function.
+
+1
+ in these graphs  the edge weight measures the similarity between the two end-nodes.
+1 green's function as a kernel
+by definition  green's function is the kernel of the integral operator as in eq. 1 . here we list some properties. first  g is clearly a semi-positive definite function. second  any function¡¤¡¤¡¤ f ¡Ê  n can be expanded¡Ì in the basis of g  i.e   u1   un  plus a constant e/ n = u1.
+third  for a kernel function k  kij measures the similarity between two objects i j. indeed  gij can be viewed as an effective similarity between nodes i and j from the effective resistance in ¡ì1 or the average commute time in ¡ì1. we can see this in the following way. in statistics  given pairwise similarity s =  sij   a standard way to convert to distance is dij = sii + sjj   1sij.  from eq. 1   we have sij = gij + const. ignore the additive constant  g is the similarity metric that underlie the effective resistor distance metric. we therefore conclude that green's function is a well-defined similarity function among pairs of nodes. thus the green's function is a bona fide kernel.
+1. reproducing kernel hilbert space
+in this section  we derive the green's function learning algorithm of ¡ì1 from the theory of reproducing kernel hilbert space  rkhs  at strong regularization limit.
+suppose we have labeled data	 with labels.
+we wish to learn the mapping function f x  such as pi ||yi  f xi ||1 is minimized. in statistics  we often add a penalty  regularization  term to ensure smoothness of certain quantities such as derivatives. rkhs uses kernel as the regularization term. let the kernel has the spectral expansion  k = pj ¦Ãjujutj   and¡¤ define cj =  f uj  = ftuj. rkhs find the function f    that minimizes
+		 1 
+rkhs theory is equivalent to the uniform convergence theory of vapnik . when the loss function  yi   f xi  1 is replaced by the hinge function  1 yif xi  +  the dual space solution gives svm.
+solution of rkhs for the quadratic loss of is well-known:
+	f = k k + ¦Âi  1y.	 1 
+at the large ¦Â limit  we get the solution
+	f .	 1 
+now  setting the kernel as the green's function: k = g  using only the leading order and ignoring the proportional constant  this gives the learning algorithm eq. 1  or eq. 1  of ¡ì1. standard kernel machines are used for supervised learning with yi = ¡À1. for semi-supervised learning we set yi = 1 for those unlabeled data.
+1 kernel regularization using laplacian
+the above generic results is valid for any type of kernels. here we focus on the kernel being the green's function of laplacian operator. regularization approach is generally used to control smoothness of certain derivatives. the laplacian operator  a scalar quantity constructed from second order derivatives is sometimes used as the regularization term     1 . our focus here is to show that different laplacian regularization's at strong regularization limit can be captured by green's functions. this leads to a simple and efficient algorithm.
+we write the second term in rkhs explicitly 
+f
+since f  we can write
+	.	 1 
+the solution to this variational problem can be easily derived. we write j f  = ||y   f||1 + ¦Âft k 1f  where k 1 =
+ d
+obtain	  + that  i + ¦Âk 1  1 = k k + ¦Âi  1  this recovers eq. 1 .
+zhou et al  propose the consistency framework that minimizes the functional
+
+and obtain
+	f .	 1 
+ or ¦Ì =f1   in practice. where w is defined in eq. 1 . they set  1 + ¦Ì  1 = 1
+n the strong regularization limit  ¦Ì ¡ú 1  eq.1 becomes  ignoring a proportional constant  f =  i   w  1y. discard-
+ing the zerois a green's function formulation of  which  strictly speaking
+however  is not a kernel1. f f
+1. unsupervised learning
+in this section  we show how the semi-supervised learning in ¡ì1 can be extend to unsupervised learning. this is based on the following three observations/perspectives.
+ a  a key feature in the rkhs based formalism for the semi-supervised learning in ¡ì1 is that the green's function learning is carried out in the parameter region where the regularization term is dominant i.e.  the regression term is only a small perturbation to the regularization term which determines the unsupervised learning.
+ b  in the semi-supervised learning using green's function  on the labeled data points  the class labels are re-calculated using eq. 1  or eq. 1 . it is important to note that the recalculated labels may differ from the original ones. when
+
+1strictly speaking  i   wf  is not a kernel  because not all functions in  n can be expanded by the eigenvectors of  i  w + plus a constant  due to the fact that the excluded constant vector  seef
+zero-mode	which is not a this happens  we consider the newly computed labels as the correct label  because they are consistently computed in the same way as the labels on the unlabeled data points. thus this mechanism allows us to correct mistakes on partially observed labels.
+ c  because of  a  and  b   we may consider the partially observed labels as temporary information  and the entire labels should be determined in a self-consistent manner. in this way  we can do the unsupervised learning by  1  temporarily assign label information to some or all data points and  1  iterate the label propagation a number of times until they are self-consistent. this is the rational for the unsupervised learning using green's function  as explained in eqs. 1 .
+1 unsupervised learning as a maximization problem
+in this section  we capture the essence of the unsupervised learning by showing they are identical to the ratio cut and normalized cut spectral clustering. this shows the inherent consistency of the green's function learning framework.
+for simplicity  we write the influence propagates as
+	h t+1  = gh t .	 1 
+proposition 1. in the unsupervised learning using eq. 1   the converged solution is the optimal solution to the optimization problem maxh tr htgh   with proper orthogonality condition.
+proof. it is a well-known in matrix computation theory that the solution for maxtr htgh  can be obtained by the subspace iteration algorithm using eq. 1  subject to the appropriate orthogonality condition. u-
+1 equivalence to spectral clustering
+a main results of this paper is to show that green's function frame is equivalent to spectral clustering  the ratio cut and the normalized cut. it is known that ratio cut can be formulated as the optimization problem
+	h = argmaxtr htg 1 h .	 1 
+hth=i
+similarly the normalized cut can be formulated as
+	h = argmax tr htg 1 h .	 1 
+htdh=i
+both optimization problems can be solved using the green's function influence propagation approach with proper orthogonality. therefore  our green's function learning is equivalent to spectral clustering.
+in recent years spectral clustering using the laplacian of the graph emerges as solid approach for data clustering. here we focus on the ratio cut  and the normalized cut  clustering objective functions. we are interested in the multi-way clustering objective functions 
+		 1 
+where ¦Ñ ck  = |ck| for ratio cut  and ¦Ñp ck  =ppi¡Êcpk di for normalized cut  and s cp cq  = i¡Êcp j¡Êc wij.
+the multi-way clustering relaxation is studied in . using cluster indicators h =  h1 ¡¤¡¤¡¤hk   the ratio-cut becomes the minimization problem
+	ratio-cut:	min tr ht d   w h 	 1 
+hth=i
+the normalized cut becomes the minimization problem
+	norm-cut:	min	tr ht d   w h 	 1 
+htdh=i
+we now show that the ratio cut optimization problem of eq. 1  is equivalent to the optimization problem of eq. 1  and the normalized cut optimization problem of eq. 1  is equivalent to the optimization problem of eq. 1 .
+theorem 1. the iteration the algorithm of eq. 1  with orthogonality hth = i converges to an optimal solution of the multi-way ratio cut. the iteration the algorithm of eq. 1  with orthogonality htdh = i converges to an optimal solution of the multi-way normalized cut.
+thus we have	h	==arg maxtr ht  d   w +  1h .proof. clearly t the null space of  d   w  does not contribute to h  d   w h. this can be seen by doing eigen expansion of l = d w and the zero-eigenvalue modes drop out. only the positive definite part of  d   w  contribute.
+hth=i
+this is tr htg 1  1h .	the orthogonality of the eigenvectors contained in g 1  is consistent with the hth = i orthogonality. this proves the case for ratio cut. for normalized cut  the proof is identical.	the d-orthogonality of the eigenvectors contained in g 1  is consistent with the htdh = i orthogonality. this proves the case for normalized cut.	u-
+1. harmonic function approach
+there exists a very large amount work on semi-supervised learning and we have mentioned several of them in ¡ì1. among them  the closest to our green's function approach are  1  the consistency framework of zhou et al   which is discussed in ¡ì1 and  1  the harmonic function approach of zhu et al.   which is discussed below. in ¡ì1  we do extensive experiments on seven datasets and compare our approach to these two methods.
+ harmonic function  refers to that fact the solution to  1f r  = 1 has the property that f ri  equals to the average of f r  at ri's neighbors. in their approach for semi-supervised learning  fi is fixed to the label for labeled point i; separating labeled and unlabeled nodes  the laplace equation lf = 1 becomes
+
+focus on fu part  we obtain
+	fuhf =	 dul + duu   wuu  1wulfl.	 1 
+note the presence of the physical laplacian
+lp = dul + duu   wuu 
+as discussed in corollary 1  ¡ì1 . zhu et al.  obtain fu =  duu   wuu  1wulfl  which differs slightly from eq. 1 : dul is missing.
+1. experiments
+we apply green's function  gf  approach to 1 datasets. we compare to prior methods which are closest to gf approach:  a  the consistent framework  cf  approach  and  b  the harmonic function  hf  approach .
+datasets. the seven datasets include internet newsgroups and 1 datasets from uci repository . we use a 1-newsgroup subset of the standard 1-newsgroup dataset consisting of the following 1 categories: comp.graphics  rec.motorcycles  rec.sport.baseball  sci.space  and talk.politics.mideast. these 1 datasets are representative of real applications. their data size  data dimension and number of classes are summarized
+in table 1.
+
+#samples# dimensions# classesnewsgroup11soybean11housing11protein11wine11balance11iris11
+table 1: dataset descriptions
+semi-supervised learning
+we first study semi-supervised learning. we randomly selection 1% of data points and treat them as labeled data. the rest in the dataset are unlabeled data. we run the three methods. to get good statistics  we rerun these test 1 times so the labeled datasets are different from each run. final results are the averages over these 1 runs. they are listed in table 1. on one dataset  housing  all three methods are compatible. on other 1 datasets  our green's function  gf  approach generally outperforms hf and cf methods  sometime very significantly.
+
+gfhfcfnewsgroup111soybean111housing111protein111wine111balance111iris111
+table 1: classification accuracy  in percentage  with 1% of data labeled. cf: consistent framework.
+semi-supervised learning with noisy labels
+for each dataset  1% data points are randomly selected and are given correct labels. another 1% data points are randomly selected and are given incorrect labels  to emulate the noises. all 1 learning methods are applied to the 1 datasets. results for the average of 1 runs of random samples are listed in table 1. in general  accuracies in table 1 are slightly worse than those in table 1  as expected. in the line with  gf-mp   we present the results of doing multiple propagations. the results are generally improved from the single propagation.
+
+gfgf-mphfcfnewsgroup1111soybean1111housing1111protein1111wine1111balance1111iris1111
+table 1: classification accuracy  in percentage  for 1 datasets with 1% correctly labeled and another 1% incorrectly labeled.
+effects of dimension reduction
+in the learning formula eq. 1  for cf  we apply the dimension reduction technique by expressing the function  i 
+ restricted in the first k principal eigenspace of w
+ see  . we applied this dimension reduction  dr  ver-f
+sion of cf and the results are shown in table 1. the first 1 columns are for the 1% labeled case as in table 1. the second 1 columns are for the noise label case as in table 1. dimension reduction significantly and consistently improves the performance.
+
+cfcf-drcfcf-dr% labeled data1%1%1%1%% incorrectly labeled1%1%1%1%newsgroup1111soybean1111housing1111protein1111wine1111balance1111iris1111
+table 1: results on dimension reduction
+unsupervised learning
+we study the unsupervised learning using green's function approach. we use the results of k-means as initial starts  and run the influence propagation of eq. 1 . the results are given in table 1. for 1 out of 1 datasets  the accuracy values are improved.
+kmeansgreen functionnewsgroup11soybean11housing11protein11wine11balance11iris11
+table 1: results on unsupervised learning
+1. item-based recommendation via label propagationusing green's function
+recommendation systems  as the personalized information navigation and filtering techniques used to identify a set of items that will be of interest to certain users  have been active and enjoying a growing amount of attentions with the explosive growth of world-wide-web and the emergence of e-commerce  1  1 . they have been widely used to recommend products such as books  movies and musics to customers  1  1  and to filter news stories  1  1 . various approaches for recommender systems have been developed by utilizing demographic  content  or historical information  1  1  1  1 . among these methods  memory-based collaborative filtering has been widely used in practice  1  1  1 .
+memory-based methods for collaborative filtering aim at predicting user ratings for given items based on a collection of rating examples by averaging ratings between pairs of similar users or items. these methods can be further divided into user-based collaborative filtering  1  1  1  and item-based collaborative filtering  1  1  1 . to estimate an unknown rating of a given item by a test user  userbased methods first measure the similarities between the test user and other users  then the unknown rating is approximated by averaging the weighted known ratings of the given item by similar users. similarly  item-based methods first measure the similarities between the test item and other items  the unknown rating is then calculated by averaging the known ratings of similar items by the test user.
+despite their success  however  there are still some major limitations with these recommendation methods such as data sparsity  recommendation reliability and scalability  1  1 . in this section  we propose a novel item-based recommendation scheme via label propagation using green's function. many researchers have shown that item-based recommendation algorithms can recommend a set of items more quickly  with the recommendation results comparable to user-based methods . we take a novel view by treating the itembased recommendation as the label information propagation. given item similarity matrix w  the item recommendation can be viewed as label propagation from labeled data  i.e.  items with ratings  to unlabeled data.
+1 notations and framework
+in a typical recommendation system  there is a set of users u = {u1 u1 ¡¤¡¤¡¤ um} and a set of items i = {i1 i1 ¡¤¡¤¡¤ in}. and we can construct an m ¡Á n user-item matrix r  with its  p q -th entry rpq equal to the rating of the user up to the item iq. if user up has not rated for item iq  then rpq = 1. note that these ratings may either ordinal  as in movielens  or continuous  as in jester . we use up to denote the p-th row of r  which is called the user vector of up  and iq to denote the q-th column of r  which is called the item vector of iq.
+definition 1  item graph . an item graph is an undirected weighted graph g =  v e   where
+ 1  v = i is the node set  i is the item set  which means that each item is regarded as a node on the graph g ;  1  e is the edge set. associated with each edge epq ¡Ê e is a weight wpq subject to wpq ¡Ý 1 wpq = wqp .
+typical similarity calculation methods include the cosine similarity  conditional probability  and exponential cosine similarity  1  1 . in our study  we use the cosine similarity to build the item graph.
+1 item-based recommendation
+the recommendation on item graph can be viewed as a label propagation problem. let yt =  y1 ¡¤¡¤¡¤ yn  be the rating for a user. given an incomplete rating y 
+the question is to predict those missing values. usually  the number of missing values are far greater than the number of known values. in the green's function learning framework  we set
+y 
+and compute the complete rating as the linear influence propagation of eq. 1 
+	y = gy1 	 1 
+where g is the green's function built from the item graph.
+given a user-item matrix r  with its  p q -th entry rpq equal to the rating of the user up to the item iq. let r1 contains the incomplete rating. item-based recommendation is
+	 	 1 
+one can see this is an extremely simple algorithm.
+1 experiments
+in this section we experimentally evaluate the performance of our recommendation algorithm using green's function and compare it with that of the traditional recommendation algorithms.
+dataset we use the movielens  in our experiments. the movielens dataset is collected from a web-based research recommender system movielens  which is debut in fall 1. the dataset now contains the records of over 1 users who have rated over 1 different movies  with the ratings being integer values from 1 to 1. in our experiments  we use a subset of the 1 million movielens dataset  which contains 1 records including the ratings of 1 users to 1 movies. we randomly divided this dataset into a training set  including 1 records  and a testing set  including 1 records   and the two sets have no intersections.
+evaluation measures. we use the following three different measures in our experiments and we expect these measures would give us enough insights:
+mean absolute error  mae : given the target ratings r and the predicted ratings r1  mae is the average deviation of the prediction from the target  i.e. 
+n
+mae r1  = 1 x|r1 i    r i | n
+i=1
+where n is the number of predicted ratings.
+mean zero-one error  mzoe : mzoe is defined by
+n
+mzoe r1  = 1 x1 i =1 r i   n
+i=1
+i.e.  it calculates the fraction of incorrect predictions.

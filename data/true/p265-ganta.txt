@@ -1,0 +1,236 @@
+privacy is an increasingly important aspect of data publishing. reasoning about privacy  however  is fraught with pitfalls. one of the most significant is the auxiliary information  also called external knowledge  background knowledge  or side information  that an adversary gleans from other channels such as the web  public records  or domain knowledge. this paper explores how one can reason about privacy in the face of rich  realistic sources of auxiliary information. specifically  we investigate the effectiveness of current anonymization schemes in preserving privacy when multiple organizations independently release anonymized data about overlapping populations.
+1. we investigate composition attacks  in which an adversary uses independently anonymized releases to breach privacy. we explain why recently proposed models of limited auxiliary information fail to capture composition attacks. our experiments demonstrate that even a simple instance of a composition attack can breach privacy in practice  for a large class of currently proposed techniques. the class includes k-anonymity and several recent variants.
+1. on a more positive note  certain randomization-based notionsof privacy  such as differential privacy  provably resist composition attacks and  in fact  the use of arbitrary side information. this resistance enables  stand-alone  design of anonymization schemes  without the need for explicitly keeping track of other releases.
+we provide a precise formulation of this property  and prove that an important class of relaxations of differential privacy also satisfy the property. this significantly enlarges the class of protocols known to enable modular design.
+categories and subject descriptors
+h.1  database management : general
+
+ supported by national science foundation grant #1.
+permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. to copy otherwise  to republish  to post on servers or to redistribute to lists  requires prior specific permission and/or a fee.
+kdd'1  august 1  1  las vegas  nevada  usa.
+copyright 1 acm 1-1-1/1 ...$1.
+general terms
+management  security  theory
+keywords
+privacy  anonymization  adversarial attacks
+1. introduction
+¡¡privacy is an increasingly important aspect of data publishing. the potential social benefits of analyzing large collections of personal information  census data  medical records  social networks  are significant. at the same time  the release of information from such repositories can be devastating to the privacy of individuals or organizations . the challenge is therefore to discover and release the global characteristics of these databases without compromising the privacy of the individuals whose data they contain.
+¡¡reasoning about privacy  however  is fraught with pitfalls. one of the most significant difficulties is the auxiliary information  also called external knowledge  background knowledge  or side information  that an adversary gleans from other channels such as the web or public records. for example  simply removing obviously identifying information such as names and address does not suffice to protect privacy since the remaining information  such as zip code  gender and date of birth   may still identify a person uniquely when combined with auxiliary information  such as voter registration records . schemes that resist such linkage have been the focus of extensive investigation  starting with work on publishing contingency tables   and more recently  in a line of techniques based on  k-anonymity  .
+¡¡this paper explores how one can reason about privacy in the face of rich  realistic sources of auxiliary information. this follows lines of work in both the data mining  1  1  1  and cryptography  1  1  communities that have sought principled ways to incorporate unknown auxiliary information into anonymization schemes.
+¡¡specifically  we investigate the effectiveness of current anonymization schemes in preserving privacy when multiple organizations independently release anonymized data about overlapping populations. we show new attacks on some schemes and also deepen the current understanding of schemes known to resist such attacks. our results and their relation to previous work are discussed below.
+¡¡schemes that retain privacy guarantees in the presence of independent releases are said to compose securely. the terminology  borrowed from cryptography  which borrowed  in turn  from software engineering   stems from the fact that schemes which compose securely can be designed in a stand-alone fashion without explicitly taking other releases into account. thus  understanding independent releases is essential for enabling modular design. in fact  one would like schemes that compose securely not only with independent instances of themselves  but with arbitrary external knowledge. we discuss both types of composition in this paper.
+¡¡the dual problem to designing schemes with good composition properties is the design of attacks that exploit independent releases. we call these composition attacks. a simple example of such an attack  in which two hospitals with overlapping patient populations publish anonymized medical data  is presented below. composition attacks highlight a realistic and important class of vulnerabilities. as privacy preserving data publishing becomes more commonly deployed  it is increasingly difficult to keep track of all the organizations that publish anonymized summaries involving a given individual or entity. schemes that are vulnerable to composition attacks will be consequently difficult to use safely.
+1 contributions
+¡¡our contributions are summarized briefly in the abstract  above  and discussed in more detail in the following subsections.
+1.1 compositionattacksonpartition-basedschemes
+¡¡we introduce composition attacks and study their effect on a popular class of partitioning-based anonymization schemes. very roughly  computer scientists have worked on two broad classes of anonymization techniques. randomization-based schemes introduce uncertainty either by randomly perturbing the raw data  a technique called input perturbation  randomized response  e.g.   1  1  1    or post-randomization  e.g.     or by injecting randomness into the algorithm used to analyze the data  e.g.   1  1  . partition-based schemes cluster the individuals in the database into disjoint groups satisfying certain criteria  for example  in k-anonymity   each group must have size at least k . for each group  certain exact statistics are calculated and published. partition-based schemes include k-anonymity  as well as several recent variants  e.g.   1  1  1  1  1  1  1  1 .
+¡¡because they release exact information  partition-based schemes seem especially vulnerable to composition attacks. in the first part of this paper we study a simple instance of a composition attack called an intersection attack. we observe that the specific properties of current anonymization schemes make this attack possible  and we evaluate its success empirically.
+example. suppose two hospitals h1 and h1 in the same city release anonymized patient-discharge information. because they are in the same city  some patients may visit both hospitals with similar ailments. tables 1 a  and 1 b  represent  hypothetical  independent k-anonymizations of the discharge data from h1 and h1 using k = 1 and k = 1  respectively. the sensitive attribute here is the patient's medical condition. it is left untouched. the other attributes  deemed non-sensitive  are generalized  that is  replaced with aggregate values   so that within each group of rows  the vectors of non-sensitive attributes are identical. if alice's employer knows that she is 1 years old  lives in zip code 1 and recently visited both hospitals  then he can attempt to locate her in both anonymized tables. alice matches four potential records in h1's data  and six potential records in h1's. however  the only disease that appears in both matching lists is aids  and so alice's employer learns the reason for her visit.
+intersection attacks. the above example relies on two properties of the partition-based anonymization schemes:  i  exact sensitive value disclosure: the  sensitive  value corresponding to each member of the group is published exactly; and  ii  locatability: given any individual's non-sensitive values  non-sensitive values are exactly those that are assumed to be obtainable from other  public information sources  one can locate the group in which individual has been put in. based on these properties  an adversary can
+non-sensitivesensitivezip codeagenationalitycondition1** 1*aids1** 1*heart disease1** 1*viral infection1** 1*viral infection1
+1
+1
+1**
+1**
+1**
+1**¡Ý1
+¡Ý1
+¡Ý1
+¡Ý*
+*
+*
+*cancer
+heart disease
+viral infection
+viral infection1**1**cancer1**1**cancer1**1**cancer1**1**cancer a 
+non-sensitivesensitivezip codeagenationalitycondition1** 1*aids1** 1*tuberculosis1** 1*flu1** 1*tuberculosis1** 1*cancer1** 1*cancer1
+1
+1
+1
+1
+1**
+1**
+1**
+1**
+1**
+1**¡Ý1
+¡Ý1
+¡Ý1
+¡Ý1
+¡Ý1*
+*
+*
+*
+*
+*cancer
+cancer
+cancer
+tuberculosis
+viral infection
+viral infection¡Ý
+ b 
+table 1: a simple example of a composition attack. tables  a  and  b  are 1anonymous  respectively  1-anonymous  patient data from two hypothetical hospitals. if an alice's employer knows that she is 1  lives in zip code 1 and visits both hospitals  he learns that she has aids.
+narrow down the set of possible sensitive values for an individual by intersecting the sets of sensitive values present in his/her groups from multiple anonymized releases.
+¡¡properties  i  and  ii  turn out to be widespread. the exact disclosure of sensitive value lists is a design feature common to all the schemes based on k-anonymity: preserving the exact distribution of sensitive values is important  and so no recoding is usually applied. locatability is less universal  since it depends on the exact choice of partitioning algorithm  used to form groups  and the recoding applied to the non-sensitive attributes. however  some schemes always satisfy locatability by virtue of their structure  e.g.  schemes that recursively partition the data set along the lines of a hierarchy that is subsequently used for generalization  1  1   or schemes that release the exact set of non-sensitive attribute vectors for each group  . for other schemes  locatability is not perfect but our experiments suggest that using simple heuristics one can locate a individual's group with high probability.
+¡¡even with these properties  it is difficult to come up with a theoretical model for intersection attacks because the partitioning techniques generally create dependencies that are hard to model analytically.  if the sensitive values of the members of a group could be assumed to be statistically independent of their non-sensitive attribute values  then an analytic solution would be tractable; however  the assumption is does not fit the data we considered .
+experimental results. instead  we evaluated the success of intersection attacks empirically. we ran the intersection attack on two popular census databases anonymized using partition-based schemes. we evaluated the severity of the attack by measuring the number of individuals who had their sensitive value revealed. our experimental results confirm that partitioning-based anonymization schemes including k-anonymity and its recent variants  -diversity and t-closeness  are indeed vulnerable to intersection attacks. section 1 elaborates our methodology and results.
+related work on modeling background knowledge. it is important to point out that the partition-based schemes in the literature were not designed to be used in contexts where independent releases are available. thus  we do not view our results as pointing out a flaw in these schemes  but rather as directing the community's attention to an important direction for future work.
+¡¡it is equally important to highlight the progress that has already been made on modeling sophisticated background knowledge in partition-based schemes. one line has focused on taking into account other  known releases  such as previous publications by the same organization  called  sequential  or  incremental  releases   1  1  1  1  1   and multiple views of the same data set . in this paper  we deal with the case when the publisher is not aware of other anonymized releases. another line has considered incorporating knowledge of the partitioning algorithm used to group individuals . most relevant to this paper are works that have sought to model unknown background knowledge. martin et al.  and chen et al.  provide complexity measures for an adversary's side information  roughly  they measure the size of the smallest formula within a cnf-like class that can encode the side information . both works design schemes that provably resist attacks based on side information whose complexity is below a given threshold.
+¡¡independent releases  and hence composition attacks  fall outside the models proposed by these works. the sequential release models do not fit because they assume that other releases are known to the anonymization algorithm. the complexity-based measures do not fit because independent releases appear to have complexity that is linear in the size of the data set.
+1.1 composing randomization-based schemes
+¡¡composition attacks appear to be difficult to reason about  and it is not initially clear whether it is possible at all to design schemes that resist such attacks. even defining composition properties precisely is tricky in the presence of malicious behavior  for example  see  for a recent survey about composability of cryptographic protocols . nevertheless  a significant family of anonymization definitions do provide guarantees against composition attacks  namely schemes that satisfy differential privacy . recent work has greatly expanded the applicability of differential privacy and its relaxations  both in the theoretical  1  1  1  1  1  1  and applied  1  1  1  literature. however  certain recently developed techniques such as sampling   instance-based noise addition  and data synthesis  appear to require relaxations of the definition.
+¡¡both the strict and relaxed variants of differential privacy compose well  see lemma 1 . less trivially  however  one can prove that strictly differentially-private algorithms also provide meaningful privacy in the presence of arbitrary side information  dwork and mcsherry   . in particular  these schemes compose well even with completely different anonymization schemes.
+¡¡it is natural to ask if there are weaker definitions which provide similar guarantees. certainly not all of them do: one natural relaxation of differential privacy  which replaces the multiplicative distance used in differential privacy with total variation distance  fails completely to protect privacy  see example 1 in  .
+¡¡in this paper  we prove that two important relaxations of differential privacy do  indeed  resist arbitrary side information. first  we provide a bayesian formulation of differential privacy which makes its resistance to arbitrary side information explicit. second  we prove that the relaxed definitions of  1  1  still imply the bayesian formulation. the proof is non-trivial  and relies on the  continuity  of bayes' rule with respect to certain distance measures on probability distributions. our result means that the recent techniques mentioned above  1  1  1  1  can be used modularly with the same sort of assurances as in the case of strictly differentially-private algorithms.
+¡¡in this paper  we won't be dealing with the utility aspects of differential privacy. interested readers are referred to recent papers  1  1  1  1  1  1  1  1  that explore the relation between utility and differential privacy.
+1. partition-based schemes
+¡¡let d be a multiset of tuples where each tuple corresponds to an individual in the database. let r be an anonymized version of d. from this point on  we use the terms tuple and individual interchangeably  unless the context leads to ambiguity. let a = a1 a1 ... ar be a collection of attributes and t be a tuple in r; we use the notation t a  to denote  t a1  ... t ar   where each t ai  denotes the value of attribute ai in table r for t.
+¡¡in partitioning-based anonymization approaches  there exists a division of data attributes into two classes  sensitive attributes and non-sensitive attributes. a sensitive attribute is one whose value and an individual's association with that value should not be disclosed. all attributes other than the sensitive attributes are nonsensitive attributes.
+¡¡definition 1  quasi-identifier . a set of non-sensitive attributes {q1 ... qr} is called a quasi-identifier if there is at least one individual in the original sensitive database d who can be uniquely identified by linking these attributes with auxiliary data.
+¡¡previous work in this line typically assumed that all the attributes in the database other than the sensitive attribute form the quasiidentifier.
+¡¡definition 1  equivalence class . an equivalence class for a table r with respect to attributes in a is the set of all tuples t1 t1 ... ti ¡Ê r for which the projection of each tuple onto attributes in a is the same  i.e.  t1 a  = t1 a ... = ti a .
+¡¡partition-based schemes cluster individuals into groups  and then recode  i.e.  generalize or change  the non-sensitive values so that each group forms an equivalence class with respect to the quasiidentifiers. sensitive values are not recoded. different criteria are used to decide how  exactly  the groups should be structured. the most common rule is k-anonymity  which requires that each equivalence class contain at least k individuals.
+¡¡definition 1  k-anonymity  . a release r is k-anonymous if for every tuple t ¡Ê r  there exist at least k 1 other tuples t1 t1 ... tk 1 ¡Ê r such that t a  = t1 a  = ... = tk 1 a  for every collection a of attributes in quasi-identifier.
+in our experiments we also consider two extensions to k-anonymity.
+¡¡definition 1  entropy -diversity  . for an equivalence class e  let s denote the domain of the sensitive attributes  and p e s  is the fraction of records in e that have sensitive value s  then-diverse if:
+
+a table is -diverse if all its equivalence classes are -diverse.
+¡¡definition 1  t-closeness  . an equivalence class e is t-close if the distance between the distribution of a sensitive attribute in this class and distribution of the attribute in the whole table is no more than a threshold t. a table is t-close if all its equivalence classes are t-close.
+locatability. as mentioned in the introduction  many anonymization algorithms satisfy locatability  that is  they output tables in which one can locate an individual's group based only on his or her non-sensitive values.
+¡¡definition 1  locatability . let q be the set of quasiidentifier values of an individual in the original database d. given the k-anonymized release r of d  the locatability property allows an adversary to identify the set of tuples {t1 ... tk} in r  where k ¡Ý k  that correspond to q.
+¡¡locatability does not necessarily hold for all partition-based schemes  since it depends on the exact choice of partitioning algorithm  used to form groups  and the recoding applied to the non-sensitive attributes. however it is widespread. some schemes always satisfy locatability by virtue of their structure  e.g.  schemes that recursively partition the data set along the lines of a hierarchy always provide locatability if the attributes are then generalized using the same hierarchy  or if  min max  summaries are used  1  1  . for other schemes  locatability is not perfect but our experiments suggest that using simple heuristics can locate a person's group with good probability. for example  microaggregation  clusters individuals based on euclidean distance. the vectors of non-sensitive
+values in each group are replaced by the centroid  i.e.  average  of the vectors. the simplest heuristic for locating an individual's group is to choose the group with the closest centroid vector. in experiments on census data  this correctly located approximately 1% of individuals. in our attacks  we always assume locatability. this assumption was also made in previous studies  1  1 .
+1 intersection attack
+¡¡armed with these basic definitions  we now proceed to formalize the intersection attack  algorithm 1 .
+
+algorithm 1 intersection attack
+
+1: r1 ... rn ¡û n independent anonymized releases
+1: p ¡û set of overlapping population
+1: for each individual i in p do
+1:	for j = 1 to n do
+1:	eij ¡û get equivalence class rj i 
+1:	sij ¡û sensitive value set eij 
+1:	end for
+1:	si ¡û si1 ¡É si1 ¡É ... ¡É sin
+1: end for
+1: return s1 ... s|p|
+¡¡let r1 ... rn be n independent anonymized releases with minimum partition-sizes of k1 ... kn  respectively. let p be the overlapping population occurring in all the releases. the function get equivalence class returns the equivalence class into which an individual falls in a given anonymized release. the function sensitive value set returns the set of  distinct  sensitive values for the members in a given equivalence class.
+¡¡definition 1  anonymity . for each individual i in p  the anonymity factor promised by each release rj is equal to the corresponding minimum partition-size kj.
+¡¡however  as pointed out in   the actual anonymity offered is less than this ideal value and is equal to number of distinct values in each equivalence class. we call this as the effective anonymity
+¡¡definition 1  effective anonymity . for an individual i in p  the effective anonymity offered by a release rj is equal to the number of distinct sensitive values of the partition into which the individual falls into. let eij be the equivalence class or partition into which i falls into with respect to the release rj  and let sij denote the sensitive value set for eij. the effective anonymity for i with respect to the release rj is: eaij = |sij|.
+¡¡for each target individual i  eaij is the effective prior anonymity with respect to rj  anonymity before the intersection attack . in the intersection attack  the list of possible sensitive values associated to the target is equal to intersection of all sensitive value sets sij  j = 1 ... n. so the effective posterior anonymity  eac i  for i is: eac i = |{¡Ésij}| j = 1 ... n.
+¡¡the difference between the effective prior anonymity and effective posterior anonymity quantifies the drop in effective anonymity.
+	anondropi =	min {eaij}   eac i .
+j=1 ... n
+¡¡the vulnerable population  vp  is the number of individuals  among the overlapping population  for whom the intersection attack leads to a positive drop in the effective anonymity.
+vp = {i ¡Ê p : anondropi   1} .
+¡¡after performing the sensitive value set intersection  the adversary knows only a possible set of values that each individual's sensitive attribute can take. so  the adversary deduces that with equal probability  under the assumption that the adversary does not have any further auxiliary information  the individual's actual sensitive value is one of the values in the set {¡Ésij} j = 1 ... n. so  the adversaries confidence level for an individual i can be defined as:
+¡¡definition 1  confidence level ci . for each individual i  the confidence level ci of the adversary in identifying the
+individual's true sensitive value through the intersection attack is defined as .
+eai
+¡¡now  given some confidence level c  we denote by vpc and pvpc the set and the percentage of overlapping individuals for whom the adversary can deduce the sensitive attribute value with a confidence level of at least c.
+vpc = {i ¡Ê p : ci ¡Ý c} 
+pvp .
+1. experimental results
+¡¡in this section we describe our experimental study1. the primary goal is to quantify the severity of such an attack on existing schemes. although the earlier works address problems with kanonymization and adversarial background knowledge  to the best of our knowledge  none of these studies deal with attacks resulting from auxiliary independent releases. furthermore  none of the studies so far have quantified the severity of such an attack.
+1 setup
+¡¡we use three different partitioning-based anonymization techniques to demonstrate the intersection attack: k-anonymity  -diversity  and t-closeness. for k-anonymity  we use the mondrian multidimensional approach proposed in  and the microaggregation
+
+1 a more comprehensive experimental evaluation is available in . the code  parameter settings  and complete results are made available at: http://www.cse.psu.edu/ ranjit/ kdd1.
+attributedomain sizeclassage1quasi idwork class1quasi ideducation1quasi idmarital status1quasi idrace1quasi idgender1quasi idnative country1quasi idoccupation1sensitivetable 1: description of the adult census database.
+attributedomain sizeclassage1quasi idwork class1quasi ideducation1quasi idmarital status1quasi idrace1quasi idsex1quasi idbirth place1quasi idoccupation1sensitivetable 1: description of the ipums census database.
+technique proposed in . for -diversity and t-closeness  we use the definitions of entropy -diversity and t-closeness proposed in  and   respectively.
+¡¡we use two census-based databases from the uci machine learning repository . the first one is the adult database that has been used extensively in the k-anonymity based studies. the database was prepared in a similar manner to previous studies  1  1   also explained in table 1 . the resulting database contained individual records corresponding to 1 people. the second database is the ipums database that contains individual information from the 1 census studies. we only use a subset of the attributes that are similar to the attributes present in the adult database to maintain uniformity and to maintain quasi-identifiers. the ipums database contains individual records corresponding to a total of 1 people. this data set was prepared as explained in table 1.
+¡¡from both adult and ipums databases  we generate two overlapping subsets  subset 1 and subset 1  by randomly sampling individuals without replacement from the total population. we fixed the overlap size to p = 1. for each of the databases  the two subsets are anonymized independently and the intersection attack is run on the anonymization results. all the experiments were run on a pentium 1 system running windows xp with 1gb ram.
+1 severity of the attack
+¡¡our first goal is to quantify the extent of damage possible through the intersection attack. for this  we consider two possible situations:  i  perfect breach and  ii  partial breach.
+1.1 perfect breach
+¡¡a perfect breach occurs when the adversary can deduce the exact sensitive value of an individual. in other words  a perfect breach is when the adversary has a confidence level of 1% about the individual's sensitive data. to estimate the probability of a perfect breach  we compute the percentage of overlapping population for whom the intersection attack leads to a final sensitive value set of size 1. figure 1   a  and  b   plots this result.
+¡¡we consider three scenarios for anonymizing the two overlapping subsets:  i  mondrian on both the data subsets   ii  microaggregation on both the data subsets  and  iii  mondrian on the first subset and microaggregation on the second subset.  k1 k1  represents the pair of k values used to anonymize the first and the second subset  respectively. in the experiments  we use the same k values for both the subsets  k1 = k1 . note that for simplicity  from now on we will be defining confidence level in terms of percentages.
+¡¡in the case of adult database we found that around 1% of the population is vulnerable to a perfect breach for k1 = k1 = 1. for the ipums database  this value is much more severe around 1%. as the degree of anonymization increases or in other words  as the value of k increases  the percentage of vulnerable population goes down. the reason for that is that as the value of k increases  the partition sizes in each subset increases. this leads to a larger intersection set and thus lesser probability of obtaining an intersection set of size 1.
+1.1 partial breach
+¡¡our next experiment aims to compute a more practical quantification of the severity of the intersection attack. in most cases  to inflict a privacy breach  all that the adversary needs to do is to boil down the possible sensitive values to a few values which itself could reveal a lot of information. for example  for a hospital discharge database  by boiling down the sensitive values of the disease/diagnosis to a few values  say   flu    fever   or  cold   it could be concluded that the individual is suffering from a viral infection. in this case  the adversary's confidence level is 1 = 1%. figure 1   c  and  d   plots the percentage of vulnerable population for whom the intersection attack leads to a partial breach for the adult and ipums databases.
+¡¡here  we only use the first anonymization scenario described earlier in which both the overlapping subsets of the database are anonymized using mondrian multidimensional technique. observe that the severity of the attack increases alarmingly for slight relaxation on the required confidence level. for example  in the case of ipums database  around 1% of the population was vulnerable for a confidence level of 1% for k1 = k1 = 1. for the adult database  although this value is not as alarming  more than 1% of the population was affected.
+1 drop in anonymity
+¡¡our next goal is to measure the drop in anonymity occurring due to the intersection attack. to achieve this  we first take a closer look at the way these schemes work. as described in the earlier sections  the basic paradigm in partitioning-based anonymization schemes is to partition the data such that each partition size is at least k. the methodology behind partitioning and then summarizing varies from scheme to scheme. the minimum partition-size  k  is thus used as a measure of the anonymity offered by these solutions. however  the effective  or true  anonymity supported by these solutions is far less than the presumed anonymity k  refer to the discussion in section 1 .
+¡¡figure 1 plots the average partition sizes and the average effective anonymities for the overlapping population. here again  we only consider the scenario where both the overlapping subsets are anonymized using mondrian multidimensional technique. observe that the effective anonymity is much less than the partition size for both the data subsets. also  note that these techniques result in partition sizes that are much larger than the minimum required of k. for example  the average partition size observed in the ipums database for k = 1 is close to 1. to satisfy the k-anonymity definition  there is no need for any partition to be larger than 1k + 1. the reasoning for this is straightforward as splitting the partition of size greater than 1k + 1 into two we get partitions of size at least k. additionally  splitting any partition of size 1k + 1 or more only results in preserving more information. the culprit behind the larger average partition sizes is generalization-based on user-
+
+figure 1: severity of the intersection attack - perfect breach  a  adult database and  b  ipums database. severity of the intersection attack - partial breach  c adult database and  d  ipums database.
+defined hierarchies. since generalization-based partitioning cannot be controlled at finer levels  the resulting partition sizes tend to be much larger than the minimum required value.
+¡¡for each individual in the overlapping population  the effective prior anonymity is equal to the effective anonymity. we define the average effective prior anonymity with respect to a release as effective prior anonymities averaged over the individuals in the overlapping population. similarly  the average effective posterior anonymity is the effective posterior anonymities averaged over the individuals in the overlapping population. the difference between the average effective prior anonymity and average effective posterior anonymity gives the average drop in effective anonymity occurring due to the intersection attack. figure 1 plots the average effective prior anonymities and the average effective posterior anonymities for the overlapping population. observe that the average effective posterior anonymity is much less than the average effective prior anonymity for both subsets. also note that we measure drop in anonymities by using effective anonymities instead of presumed anonymities. the situation only gets worse  drops get larger  when presumed anonymities are used.
+1 -diversity and t-closeness
+¡¡we now consider the -diversity and t-closeness extensions to the original k-anonymity definition. the goal again is to quantify the severity of the intersection attack by measuring the extent to which a partial breach occurs with varying levels of adversary confidence levels. figure 1 plots the percentage of vulnerable population for whom the intersection attack leads to a partial breach for the ipums databases. here  we anonymize both the subsets of the database with the same definition of privacy. we use the mondrian multidimensional k-anonymity with the additional constraints as defined by -diversity and t-closeness. figure 1 a  plots the result for the -diversity using the same  value for both the subsets    and with k = 1. figure 1 b  plots the same for t-closeness. even though these extended definitions seem to perform better than the original k-anonymity definition  they still lead to considerable breach in case of an intersection attack. this result is fairly intuitive in the case of -diversity. consider the definition of -diversity: the sensitive value set corresponding to each partition should be  well     diverse. however  there is no guarantee that the intersection of two well diverse sets leads to a well diverse set. t-closeness fares similarly. also  both these definitions tend to force larger partition sizes  thus resulting in heavy information loss. figure 1 c  plots the average partition sizes of the individuals corresponding to the overlapping population. it compares the partition sizes observed for k-anonymity  -diversity  and t-closeness. for the ipums database  with a value of k = 1  k-anonymity produces partitions with an average partition size of 1. while  for the same value of k = 1  with a value of l = 1  the average partition size obtained was close to 1. the partition sizes for t-closeness get even worse  where a combination of k = 1 and t = 1 yield partitions of average size close to 1.
+1. differential privacy
+¡¡in this section we give a precise formulation of  resistance to arbitrary side information  and show that several relaxations of differential privacy imply it. the formulation follows the ideas originally due to dwork and mcsherry  stated implicitly in . this is  to our knowledge  the first place such a formulation appears explicitly. the proof that relaxed definitions  and hence the schemes of  1  1  1   satisfy the bayesian formulation is new. these results are explained in a greater detail in a separate technical report . in this paper we just reproduce the relevant parts from .
+¡¡we represent databases as vectors in dn for some domain d  for example  in the case of the relational databases above  d is the product of the attribute domains . there is no distinction between  sensitive  and  insensitive  information. given a randomized algorithm a  we let a d  be the random variable  or  probability distribution on outputs  corresponding to input d.
+¡¡definition 1  differential privacy  . a randomized algorithm a is -differentially private if for all databases d1 d1 ¡Ê dn that differ in one individual  and for all subsets s of outputs  pr .
+¡¡this definition states that changing a single individual's data in the database leads to a small change in the distribution on outputs. unlike more standard measures of distance such as total variation  also called statistical difference  or kullback-leibler divergence  the metric here is multiplicative and so even very unlikely events must have approximately the same probability under the distributions a d1  and a d1 . this condition was relaxed somewhat in other papers  1  1  1  1  1  1  1 . the schemes in all those papers  however  satisfy the following relaxation:
+definition -differential privacy  . a ra-
+ndomized algorithm a is   ¦Ä -differentially private if for all data-bases d1 d1 ¡Ê dn that differ in one individual  and for all subsets s of outputs  pr 
+¡¡the relaxations used in  1  1  1  were in fact stronger  i.e.  less relaxed  than definition 1. one consequence of the results below is that all the definitions are equivalent up to polynomial changes in the parameters  and so given the space constraints we work only with the simplest notion of definition definition 1
+
+1
+that said  some of the other relaxations  such as probabilistic dif-
+
+	 a 	 b 
+figure 1: comparison of presumed anonymity  actual partition sizes  and effective anonymity  a  adult database and  b  ipums database.
+
+	 a 	 b 
+figure 1: average drop in effective anonymity due to the intersection attack  a  adult database and  b  ipums database.
+
+figure 1: severity of the intersection attack for the ipums database  a  -diversity and  b  t-closeness. part  c  depicts the average partition sizes for -diversityand t-closeness for the ipums database
+¡¡the following well-known lemma shows that -differential privacy composes well  cf.  1  1  1  .
+¡¡lemma 1  composition . if a randomized algorithm a runs k algorithms a1 ... ak  where-differentially private  and outputs a function of the results  that is  a x  = g a1 x   a1 x  ... ak x   for some probabilistic algorithm g   then a is
+-differentially private.
+here  we are interested in stronger guarantees. in the remainder of
+
+ferential privacy of   could lead to better parameters in theorem 1.
+this section  we show differential privacy resists arbitrary amount of side information  a stronger property than composition .
+1 semantics of differential privacy
+¡¡there is a crisp  semantically-flavored interpretation of differential privacy  due to dwork and mcsherry  and explained in : regardless of external knowledge  an adversary with access to the sanitized database draws the same conclusions whether or not my data is included in the original data.  the use of the term  semantic  for such definitions dates back to semantic security of encryp-
+tion  .
+we require a mathematical formulation of  arbitrary external knowledge   and of  drawing conclusions . the first is captured via a prior probability distribution b on dn  b is a mnemonic for  beliefs  . conclusions are modeled by the corresponding posterior distribution: given a transcript t  the adversary updates his belief about the database d using bayes' rule to obtain a posterior bb:
+a d  = t b d 
+	.	 1 
+in an interactive scheme  the definition of a depends on the adversary's choices; for simplicity we omit the dependence on the adversary in the notation. also  for simplicity  we discuss only discrete probability distributions. our results extend directly to the interactive  continuous case.
+¡¡for a database d  define d i to be the vector obtained by replacing position i by some default value in d  any value in d will do . this corresponds to  removing  person i's data. we consider n+1 related scenarios   games   in the language of cryptography   numbered 1 through n. in game 1  the adversary interacts with a d . this is the interaction that takes place in the real world. in game i  for 1 ¡Ü i ¡Ü n   the adversary interacts with a d i . game i describes the hypothetical scenario where person i's data is not included.
+¡¡for a particular belief distribution b and transcript t  we consider the n + 1 corresponding posterior distributions. the posterior bb1 is the same as  defined in eq. 1  . for larger i  the i-th posterior distribution bi represents the conclusions drawn in
+game i  that is
+a d i  = t b d 
+.
+ 
+¡¡given a particular transcript t  privacy has been breached if there exists an index i such that the adversary would draw different conclusions depending on whether or not i's data was used. it turns out that the exact measure of  different  here does not matter much. we chose the weakest notion that applies  namely statistical difference. if p and q are probability measures on the set x  the statistical difference between p and q is defined as:
+sd p q  = max| p  s    q s |.
+s x
+¡¡definition 1. an algorithm-semantically private if for all prior distributions b on dn  for all databases d ¡Ê dn  for all possible transcripts t  and for all i = 1 ... n 
+sd
+this can be relaxed to allow a probability ¦Ä of failure.
+¡¡definition 1. an algorithm is -semantically private if  for all prior distributions b  with probability at least 1   ¦Ä over pairs  d t   where the database d ¡û b  d is drawn according to b  and the transcript t ¡û a d   t is drawn according to a d   
+for all
+¡¡dwork and mcsherry proposed the notion of semantic privacy  informally  and observed that it is equivalent to differential privacy.
+¡¡proposition 1  dwork-mcsherry . -differential privacy implies b-semantic privacy  where.
+we show that this implication holds much more generally:
+	theorem 1	 main result .	 -differential privacy im-
+plies	-semantic privacy where and
+.
+¡¡theorem 1 states that the relaxations notions of differential privacy used in some previous work still imply privacy in the face of arbitrary side information. this is not the case for all possible relaxations  even very natural ones. for example  if one replaced the multiplicative notion of distance used in differential privacy with total variation distance  then the following  sanitizer  would be deemed private: choose an index i ¡Ê {1 ... n} uniformly at random and publish the entire record of individual i together with his or her identity  example 1 in  . such a  sanitizer  would not be meaningful at all  regardless of side information.
+¡¡finally  the techniques used to prove theorem 1 can also be used to analyze schemes which do not provide privacy for all pairs of neighboring databases d1 and d1  but rather only for most such pairs  neighboring databases are the ones that differ in one individual . specifically  it is sufficient that those databases where the  indistinguishability  condition fails occur with small probability.
+¡¡definition -indistinguishability . two random variables x y taking values in a set-indistinguishable if for all sets sand
+pr 
+	theorem 1. let a be a randomized algorithm.	let e =
+{d1 ¡Ê dn :   neighbors d1 of d1  a d1  and a d1  are
+-indistinguishable}. then a satisfies -semantic privacy for any prior distribution b such that b e  = prd1¡ûb d1 ¡Ê
+e  ¡Ý 1   ¦Ä with.
+1 proof sketch for main results
+¡¡the complete proofs are described in . here we sketch the main ideas behind both the proofs. let y |x=a denote the conditional distribution of y given that x = a for jointly distributed random variables x and y . the following lemma  proof omitted  plays an important role in our proofs.
+¡¡lemma 1  main lemma . suppose two pairs of random variables -indistinguishable
+ for some randomized algorithms . then with probability at least   equivalently    the random variables-indistinguishable with.
+let a be a randomized algorithm  in the setting of theorem 1 
+-differentially private algorithm . let b be a belief distribution  in the setting of proposition 1  b is a belief with b e  ¡Ý 1   ¦Ä . the main idea behind both the proofs is to use lemma¡Ì 1 to show that with probability at least 1   o  ¦Ä  over pairs  d t  where d ¡û b and t ¡û a d   sd.
+taking a union bound over all coordinates i  implies that with prob-
+
+aability at least 1 o n¡Ì¦Ä  over pairs  d t`  where|	d ¡û| b andit ¡û¡ä
+ d   for all i = 1 ... n  we have sd b a d =t b a d	 =t
+. for proposition 1  it shows that a satisfies -semantic privacy for b. in the theorem 1 setting where-differentially private and b is arbitrary  it shows that -differential privacy implies -semantic privacy. acknowledgements
+we would like to thank kristen lefevre for sharing the mondrian multidimensional anonymity code. we would also like to thank patrick mcdaniel and daniel kifer for valuable comments.

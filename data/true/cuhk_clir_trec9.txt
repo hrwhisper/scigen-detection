@@ -1,0 +1,99 @@
+we investigated the dictionary-based query translation method combining the translation disambiguation process using statistic cooccurrence information trained from the provided corpus.
+we believe that neighboring words tend to be related in contextual meaning and have higher chance of co-occurrence particularly if adjacent words  two or more  compose a phrase.the correct translation equivalents of co-occurrence pattern in a source language are more likely to co-occur in a target language documents than in conjunction with any incorrect translation equivalents within a certain range of contextual window size .
+in this work  we tested several methods to calculate the degree of co-occurrence and used
+them as the basis of disambiguation. different
+from most disambiguation 	methods which
+usually select one best translation equivalent for a word  we select the best translation equivalent pairs for two adjacent words. the final translated queries are the concatenation of all overlapped adjacent word translation pairs after disambiguation.
+system description
+the well-known vector space modeled smart information retrieval system  version 1  is used as our platform. we adopted the weighting strategy for documents and queries as lnu.ltu  1   which has been proved more successful than cosine normalization.
+the queries were produced after query translation and ambiguity resolution. we fed them to the smart system to get the retrieval result.
+query translation
+bilingual dictionaries
+a bilingual english to chinese machine readable dictionary  mrd  produced by earth village  http://www.samlight.com/ev/eng/ is used as our translation resource.this mrd has many entries exactly 	the same with those in the bilingual dictionary edited by ldc  http://morph.ldc.upenn.edu/projects/chinese . the reason we chose earth village was that earth village provided 	pos  parts of speech  information.we thought it was useful at the early stage of our experiments but ended up not using it. for phrase translation purpose  we
+combined three sources: a chinese to english
+mrd
+ http://www.mindspring.com/~paul denisowski/ cedict.html   earth village  	and the one from ldc. the chinese to english mrd was converted to english - chinese and we extracted all the phrase translations from the above resources and 	complied a single phrase level english chinese mrd. from our previous experiments  we found 	the more the	 number of translations for a word  the higher the 	chance  of introducing extraneous translations for this word. for this reason	  we used only earth village
+mrd as our word level translation resource	.
+there are 1 entries  1 translations in average for each word. however  for the 1 queries in trec-1  each word in the source language  english  has 1 translations in chinese after the translation by earth village mrd.
+phrase level translation was performed before word level translation. all english words were morphologically transformed to its original word
+root by using 	wordnet
+ http://www.wordnet.com .the root was used as the key to search for its corresponding translations in the dictionary. 	to perform phrase level translation  we created from 	bigrams to five-grams composed by adjacent words	 first in the queries . if a higher gram translation failed  a
+lower one would be tried until 	bigram was
+reached. if it still failed  word level translation was adopted . otherwise  phrase level translation was performed a nd the same procedure starting from the next word position was repeated .
+chinese segmentation
+the corpus and the translated queries were segmented by using the 	perl coded software developed by erik peterson
+ http://www.mandarintools.com . but 	we replaced the original word list 	dictionary with our own  a word list of hong kong style words.
+post processing after translation
+after the initial translation  we did some pruning based on our previous 	experience and some ad hoc rules.earth village is basically a mainland chinese language style dictionary while the corpus used is in hong kong style chinese. for the same concept  two styles may have totally
+different representations in the bilingual dictionary. for the translated segmented quer ies  mainland style    we did the following pruning:
+1. delete the translations having longer than five chinese characters unless there 's only one translation: if a translation is too long  exceed five characters for example    this translation is highly likely the description of the word meaning instead of direct translation of the word.
+1. delete the translated entries being segmented unless there	's only one translation. if a translated word is segmented  very probably it is because  1  there's no entry in the dictionary for the word segmentation   1  it has different translations in china and hong kong.
+1. keep only the 	first three translations with the highest term frequency  	tf  in 	the corpus. from our previous experiments  translations with high term frequency in the target language tend to have higher chance of being the correct translations than rare appearing ones.
+after the above processing  each word has no more than three translation candidates	.
+disambiguation
+there are several scenarios of resolving translation ambiguity by using co-occurrence  co  information.
+first  a nlp parser can be used to recognize all the grammatical sub-components such as a phrase. then the co information is used 	to calculate the coherent values in the target language among the composite words within a phrase.the translation for this phrase is the one that has the highest coherent values among all the translation combinations for the phrase. however  a parser is not always 	reliable. further  individual words which are not associated to any phrases are isolated in meaning	; we can do nothing to resolve their translation ambiguity.
+second  ambiguity is resolved in sentence level rather than phrase level like method one. we create all the translation combinations in the target language for a sentence and choose the one that has the highest coherent values as the final translation. obviously  as a sentence is usually much longer than a phrase  the number of translation combinations in this method is much larger and thus the computation cost can be too high.another problem with this method is that when the corpus is not large enough  the coherent values trained from it may be misleading.the longer a sentence is   the more costly is the computation and the larger the corpus is required . the rate of increase of both computation cost and size of the corpus required is exponential.
+third  the disambiguation is done between two adjacent words. among all the translation combinations between two words  we choose the pair with the highest coherent values as the final translation.the cost is low and the corpus size requirement is much less restricted. we adopted this method for its easy computation and the corpus condition.
+co-occurrence information such as mutual information  mi   	1  was used to calculate the degree of cohesion 	between two words. mi measure 	however 	strongly favors rarely
+appearing words. we apply the methods to calculate the similarity values between all adjacent word pairs in queries to reduce the translation errors .
+if two words always co-occur within a particular contextual range such as adjacent positions  a sentence or even a whole document  they should have similar distribution pattern within that contextual range throughout the document collection. higher similar distribution means higher degree of co-occurrence pattern or coherent values. 	the correct translation equivalents of co-occurrence pattern in source language is more likely to co-occur in 	the target language documents than in conjunction with any incorrect translation equivalents within a
+certain range of contextual window size	.
+we calculate this degree of similarity as the inner product of two vectors each representing a word distribution in the collection. for disambiguation purpose  a fine-grained context for a cooccurrence scope is essential.we chose the window size to be a sentence in target language. the dimension of the vectors are the number of windows  or the number of sentences in the collection . the value of each dimension is 1 if a word appears in that sentence and 1 otherwise. we made two assumptions here : a word always appears no more than once in a sentence and the variation of sentence length can be ignored. by considering only the distribution throughout the corpus as the normalization factor  we assigns idf value to each dimension of a vector of a word as the weight   i.e. 
+idf = log n / nc 
+where n is the total number of documents in the corpus and nc is the nu mber of documents where the word appears. the similarity of two words by their inner product isthe sum of
+tf  ab *idf  a *idf  b 
+in each dimension where 	tf ab  is the cooccurrence indicator  1 or 1 	 in sentence scope and idf a   idf b   are the 	idf value s for word s a and b respectively.
+we calculate similarity value	s for all possible pairs of translation between two adjacent nonstopword words in queries and select the translated pairs with the highest similarity value in the target lan guage as the final translations.
+the final translated queries are the concatenation of all overlapped adjacent word translation pairs after disambiguation.
+our method is different from others in that we did not select the best translation candidate for a word. we select the best translation pairs instead. by considering all overlapping pairs  each word in fact has two translations  except the first and the last words in a sentence .but if a translation has strong similarity value with the translation of the word adjacently before and after it  two translations should be the same.
+there are several features for this arrangement: first  no grammatical boundary such asphrase boundary recognition is needed during disambiguation. second  even if two adjacent words are not a phrase  many of them are related in contextual meaning and have a higher chance of co -occurrence. overlapped concatenation makes each word's translation be selected twice. if two translations are the same  such a word appearing in queries in the target language would have higher weighting than a word having two different translations when the tf value is considered in query weighting.we believe the former case would produce more correct translations.if this is the case  more correct translations would enforce higher weighting values  which would help the retrieval performance.
+experiments
+we submitted two official runs. one was monolingual and the other cross-lingual.
+however  we will describe more runs here to support our analysis.
+we used all three parts of 	a 	query: title  description and narratives.all our queries are
+long queries.we used smart 	lnu.ltu
+weighting and smart rocchio query expansion
+ mono run  before and after query translation  xlingual run .three parameters of expansion were set to alpha=1  beta=1  gamma=1. for monolingual query expansion  we added 1 terms extracted from the top 1 documents. from our previous experiment  we trained the optimal number of terms to be 1 terms.but as there was a copyright statement at the end of each document  we increased the number 	to 1 terms. for the same reason  the number to be added for cross-lingual run is increased from 1 terms to 1 terms from the top 1 documents.we also did query expansion before query translation using the corpus from 	trec data vol. 1	  the foreign broadcast information service  fbis  files. fbis is more than 1 mb in size and contains many international related documents. the number of expanded terms were 1 terms from the top 1 documents. the 	translation for
+the added terms 	in the source language 	were done by selecting the first two translations in the dictionary. all the parameters mentioned above were trained from our pre	vious experiments if not otherwise stated.
+table 1:official run results
+run1-pointrelevantr precisionchuhk1ch1.11chuhk1xec1.11table 1 is our official run results.
+chuhk1ch1 is the monolingual run and chuhk1xec1 is the cross-lingual run .
+there are 1 relevant documents altogether in trec-1.table 1	 is the component result for monolingual chuhk1ch1 run and table 1 is
+the component result for cross-lingual
+chuhk1xec1 run.
+table 1: monolingual component results
+run1-pointlnu.ltu1above+expansion  top 
+1 docs  1 terms 1 
+ +1% table 1: cross-lingual component results
+run1-pointlnu.ltu1above+expansion before query translation  top 1 docs  1 
+terms 1above+expansion after query 
+translation  top 1 docs  1 
+terms 1there are some interesting phenomena from the results.our final cross-lingual run exceeds its corresponding monolingual run  the performance ratio is 1/1=1%.however  if we compare the performance before any query expansions  that ratio is 1/1=1%.
+for the 	cross-lingual run  the improvement of query expansion  from 1 to 1  before query translation is as high as 1%. we contribute the drastic improvement to the following reasons: first  the corpus 	 foreign broadcast information service   seems to contain many relevant documents to the queries in the source language and thus it is ideal for the source of blind relevance feedback. second  selecting the first two translations for the expanded terms seems to be very successful in this context. due to the time limitation  we could not investigate carefully on how to select the best translation candidates for isolated terms.
+by looking at the results produced from the final query expansion  the improvement for monolingual is 1%  from 1 to 1   which is reasonable. however  the query expansion after translation led to performance degradation  from 1 to 1 even though the retrieved relevant documents increased from 1 to 1.
+table 1 concludes our performance comparing with other groups.
+table 1: result comparison
+runbestmedianworstchuhk1ch1 mono 11chuhk1xec1 xlingual 11analysis
+in this section  we present the results from more runs to support our analysis. we aim to compare our proposed method with other related ones such as mi  mutual information  and highest term frequency methods. to do this  we did the following experiments.
+1. the disambiguation is done by selecting the translation pairs withthe highest mi value  denoted as sim mi . mi is calculated as
+p x  y 
+i a b  = log1 p x  y 
+1. the disambiguation is done by selecting the translation candidate with the highest term frequency appeared in the target corpus  denoted as htf . the similarity measure used in our official runs was used here except idf normalization  i.e.  the disambiguation is done by selecting the translation pairs with the highest value of co- occurrence numbers  denoted as sim tf .
+table 1 shows the retrieval results for the above runs in average precision  	1-point . these runs were all done by query expansion before and after query translation with the same parameters used in our official cross-lingual runs.
+table 1: comparative results
+run1-point 
+ b 1-point 
+ a mi11htf11sim tf11mi method was worse than the 	others while htf  sim tf and our 	sim idf performed better. it is surprising that htf  the simplest method produced
+such a good result considering the efforts it takes. the result of 	sim tf reveals similar message: high term frequency translations in the target are good indication of good translations. mi has the disadvantage of strongly favoring rarely appearing words.
+we performed a final experiment trying to support our hypothesis that our overlapped concatenation of 	best selected translation pairs would enforce more correct translations to have higher weighting if the term frequency factor in the query is properly considered. if this 	is the case  it would be helpful for retrieval
+performance.to test this  we did lnu.ntu weighting retrieval where term frequency factor
+is 	 augmented  comparing with 	lnu.ltu weighting.
+the average 1-point recall precision is 	1 before the query expansion and 	1 after the query expansion. although the increase is not obvious  1 and 1 in our official crosslingual run   this result gives the highest figure comparing with all lnu.ltu runs.
+we also observed consistent retrieval degradation after the final query expansion in all cross-lingual runs.
+conclusion:
+we presented our disambiguation method by using similarity values between all adjacent words in the target language. it is based on 	the co-occurrence numbers within a sentence scope in the whole collection. on top of that  	idfvalues of a word pair are used to normalize the cooccurrence numbers. we have shown that both co-occurrence number with or without normalization worked better than mi method. in particular  	idf normalization is 1%  1/1  better than mi method in our experiments.more tests will be performed to further verify the improvement reported here.
+this is our first participation in trec. we reckon that this is a good start for our future research.
+acknowledgements
+this project is partially supported by darpa 
+usa  under the tides	 program  grant no.: n1-1  and research grant committee  hong kong 	 under the direct grant initiative  project no.: 1 .

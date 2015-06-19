@@ -1,0 +1,236 @@
+subgroup discovery is a learning task that aims at finding interesting rules from classified examples. the search is guided by a utility function  trading off the coverage of rules against their statistical unusualness. one shortcoming of existing approaches is that they do not incorporate prior knowledge. to this end a novel generic sampling strategy is proposed. it allows to turn pattern mining into an iterative process. in each iteration the focus of subgroup discovery lies on those patterns that are unexpected with respect to prior knowledge and previously discovered patterns. the result of this technique is a small diverse set of understandable rules that characterise a specified property of interest. as another contribution this article derives a simple connection between subgroup discovery and classifier induction. for a popular utility function this connection allows to apply any standard rule induction algorithm to the task of subgroup discovery after a step of stratified resampling. the proposed techniques are empirically compared to state of the art subgroup discovery algorithms.
+categories and subject descriptors
+h.1  database applications : data mining;
+i.1  learning : induction
+general terms
+algorithms  performance
+keywords
+subgroup discovery  sampling  prior knowledge
+1. introduction
+¡¡the discipline of knowledge discovery in databases is about finding useful and novel patterns  hidden in huge amounts of real-world data. common problems are that the applied data mining techniques either find an unmanageable number of patterns  e.g. frequent itemsets  or that
+permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. to copy otherwise  to republish  to post on servers or to redistribute to lists  requires prior specific permission and/or a fee.
+kdd'1  august 1  1  chicago  illinois  usa.
+copyright 1 acm 1-1-x/1 ...$1.
+they are limited to finding  obvious  patterns only  which are already known to domain experts.
+¡¡this work presents an approach towards mining interesting patterns sequentially. the most obvious patterns may either be elicited from domain experts beforehand  or they may be the result of a first application of data mining tools. the main question that arises in an iterative data mining framework is how to pre-process the data  so that subsequent steps do not report previously found patterns again  but focus on uncorrelated new patterns.
+¡¡the interestingness of patterns is a crucial notion when formalising this task. a basic assumption underlying this work is that patterns are interesting to the degree to which they deviate from the user's expectation. hence  a straightforward heuristic for rule interestingness is the degree of deviation from the user's specified domain knowledge and from previously found patterns.
+¡¡for simplicity this work confines itself to probabilistic rules as the representation language. the main ideas from the literature on subgroup discovery are adopted  but extended to respecting prior knowledge. in subgroup discovery the interestingness of rules is evaluated by a utility function. this function can be regarded as a user specified parameter of the learning task. the goal of subgroup discovery is to identify subsets of the population that show an unusually high frequency of a specified property of interest. the task of characterising groups of car drivers with an unusually high risk of accidents is considered as an intuitive toy example. assuming that the default probability  computed from all registered drivers  is about 1% per year  sufficiently large subgroups having a risk of 1% might be interesting. this illustrates a major difference to classification  where rules are only useful if they predict the most probable class. in this work subgroups are identified with their corresponding population in the database at hand  rather than with their syntactical descriptions. this makes a difference  since many databases allow to identify the same or similar populations using correlated attributes  but these correlations are often not subject to the data mining step. for instance the subgroup of young drivers is almost identical to the subgroup of people that recently acquired their driving license. if the former subgroup is known to have a high risk of accidents then the same is expected for the latter. hence  there is no need to report both rules.
+¡¡the presented iterative data mining procedure will identify a new subgroup in each iteration  favouring subgroups that are new with respect to formalised prior knowledge and all previously found patterns.
+¡¡the remainder of this paper is organised as follows: after the formal framework and basic definitions are given in section 1  existing work on subgroup discovery is described in section 1. as the main contribution a generic sampling technique to incorporate prior knowledge into subgroup discovery is presented in section 1. an algorithm operationalising this idea is presented in section 1  which is empirically evaluated in section 1. section 1 concludes the paper.
+1. background
+¡¡two different learning tasks are subject to this paper  subgroup discovery and classifier induction. both tasks are supervised  so the learning step is based on a classified sample. examples are defined as classified elements of an instance space x  assumed to be sampled i.i.d with respect to a distribution d : x ¡ú ir+. to simplify formal aspects x is assumed to be finite  although all results are easily generalised to continuous domains. the probability to observe an instance x ¡Ê x under d is denoted as prx¡«d x . the probability to observe an instance from a subset w   x is denoted as prd  w . if the underlying distribution is clear from the context the subscripts are omitted. each example is assigned a label from y  the set of all possible labels by the target function c : x ¡ú y. this work considers only supervised learning  unless noted otherwise with a boolean target attribute y = {1}. c is assumed to be fixed but unknown to the learner  whose task is to find a good approximation. for subgroup discovery  the main learning task in this work  horn logic rules are the main representation language for patterns.
+¡¡definition 1. a horn logic rule consists of a body a  which is a conjunction of atoms over attributes describing x  and a head b  predicting a value for the target attribute. it is notated as a ¡ú b. if the body evaluates to true the rule is said to be applicable  if the head also evaluates to true it is called correct.
+the focus of this work lies on propositional logic  so the bodies of rules are conjunctions of attribute-value pairs. rules can be identified with the subset they apply for  defined by an indicator function h : x ¡ú {1}  and the label they predict. to ease notation the following abbreviations are used whenever y = {1}:
+
+	h := {x ¡Ê x | h x  = 1}	 	h := x   h
+	y+ := {x ¡Ê x | c x  = 1}	 	y  := x   y+
+using this notation  the horn logic rules predicting a boolean target are of the form h ¡ú y+ and h ¡ú y . the former rule states that the target class is positive  y+  if the rule is applicable  h   the latter that it is negative in this case.
+¡¡as illustrated by the example of road accidents  rules are not expected to match the data exactly. it is sufficient if they point to interesting regularities in the data  for example that the subgroup of young drivers faces an unusually high risk of accidents. hence  the intended semantics is that the conditional probability pr y+|h   or pr y |h   is higher than the class prior p y+   or p y   . probabilistic rules are often annotated by their corresponding conditional probabilities:
+h ¡ú y+  1% 	: 	prx¡«d  c x  = 1 | h x  = 1  = 1%
+for now any form of prior knowledge is assumed to be represented by rules of this form. subsection 1 extends the presented techniques to more general forms of prior knowledge.
+¡¡performance metrics are functions that heuristically assign a utility score to each rule under consideration. for the notion of rule interestingness different formalisations have been proposed in the literature  e.g.  . in this work interestingness is considered equal to unexpectedness. the following paragraphs discuss a few of the most important metrics for rule selection.
+¡¡the goal when training classifiers is to select a predictive model that separates positive and negative examples accurately.
+definition 1. the accuracy of rule a ¡ú b is defined as
+
+	acc a ¡ú b 	:=	pr  a ¡É b  + pr a ¡É b 
+¡¡definition 1. the precision of a rule is defined as its probability of being correct  given that it is applicable:
+prec a ¡ú b  := pr b | a 
+subgroup discovery has a different focus. rules are interesting only  if for the covered subset the target attribute's distribution deviates from the default distribution.
+¡¡definition 1. the bias of a rule is the difference between conditional and default probability  prior  of the target:
+bias a ¡ú b  := pr b | a    pr b 
+the following metric has been used to measure interest in the domain of frequent itemset mining . in the supervised context it measures the change in the target attribute's frequency for the subset covered by a rule.
+definition 1. for any rule a ¡ú b the lift is defined as
+lift
+	prec a	b 
+	=	¡ú
+pr  b 
+the lift is the multiplicative counterpart to the bias  and is often more convenient in the scope of this work. both metrics capture the value of  knowing  the prediction for estimating the probability of the target attribute. for independent events a and b we have lift a ¡ú b  = 1 and bias a ¡ú b  = 1  for positively correlated events a and b we have lift a ¡ú b    1 and bias a ¡ú b    1. in the latter case the conditional probability of b given a is higher than the default probability pr  b .
+¡¡if h characterises the subgroup of young drivers  y+ denotes the event of having an accident  and if pr y+  = 1% is the default probability of this event  then the above rule h ¡ú y+  1%  has a bias of 1%  which is the absolute difference between conditional and default probability  and a lift of 1  reflecting the increase in terms of a relative factor.
+¡¡knowing the lift of rules allows to combine them in a simple way to predict the conditional probability of a target class. if a new attribute is defined according to the prediction of each rule  then predictions can be combined by means of classifier induction techniques. the underlying assumption of na¡§ ve bayes  is that all attributes are conditionally independent given the class. these classifiers work surprisingly well in practice  often even if the underlying assumption is known to be violated. when mining rules iteratively  using the sampling technique proposed in section 1  the conditional independence assumption is not as unrealistic as one might expect. the reason is that all correlations  reported  by previously found patterns are  removed  from subsequently constructed samples.
+¡¡let {hi ¡ú y+/  | 1 ¡Ü i ¡Ü n} denote a set of rules  hh1 ... hni x  the corresponding vector  y = hy 1 ... y ni  y  ¡Ê yn  of predictions. then for a given example x ¡Ê x and class yc the na¡§ ve bayes classifier estimates
+pr yc | hh1 ...hni x  = y  
+pr yc 
+	=	h	i	¡¤ pr hh1 ...hni x  = y  | yc 
+pr   h1 ...hn  x  = y  
+¡Ö pr  hh1 ... hnc i x  = y   ¡¤ y pr  i x  = y i | yc  pr  y
+h
+1¡Üi¡Ün
+	=	pr  ych  ¡¤	i pr hi x  = y i  y pr yc | hi x  = y i 
+	pr   h1 ... hni x  = y  	pr yc 
+1¡Üi¡Ün
+defining
+
+allows to rewrite this term to
+lift  hi x  = y i  ¡ú yc .
+for boolean y it is easier to consider the odds ¦Â x  := pr y+ | hh1 ... hni x  = y  
+pr  y  | hh1 ... hni x  = y  
+pr y
+	=	+  y lift  hi x  = y i  ¡ú¡ú y+    1 
+¡¡¡¡¡¡¡¡¡¡¡¡¡¡pr  y   1¡Üi¡Ün lift  hi x  = y i  y   as ¦Á x  cancels out  but it is still possible to recalculate
+		 1 
+based on eqn.  1 . so following the conditional independence assumption it is possible to combine rules to predict class probabilities  just knowing their lift and the class priors. eqn.  1  has an intuitive interpretation. the first factor reflects the positive-negative ratio  which is 1 for the prior pr y+  = 1%. the lift-ratios specify how to update these positive-negative ratios in relative terms  if it is known whether a specific rule is applicable or not. if the driver under consideration is young  then there is a known factor associated to the corresponding rule  which allows to update the previously computed ratio  increasing it from 1 to 1. the same holds for further  subsequently discovered rules  each of which may be annotated by an empirically estimated lift-ratio.
+¡¡it is not necessary to restrict rules to the case in which they are applicable. please note that
+
+lift h ¡ú y+    1   lift h ¡ú y     1 
+but the precisions of both rules may differ. this is easily seen considering an example. if  compared to the average driver  young drivers have a higher risk of accidents  then the average risk of the remaining drivers has to be lower  since removing a subgroup with higher risk always decreases the overall risk. so each rule  h ¡ú y+/   should rather be con-
+
+sidered to partition the instance space into h and h  making a prediction for both subsets. as a consequence any two rules overlap. thus  for any known degree of overlap between a rule r1 that is part of the prior knowledge and a rule candidate r1 under consideration  there is an expectation for lift r1  based on lift r1 . this expectation reflects the assumption that r1 does not introduce a lift of its own  but simply shares a biased subset with r1. if this assumption is met  then the rule candidate is redundant and should be ranked low. the lift of a rule should change in the presence of prior knowledge. a corresponding technique is introduced in section 1.
+1. subgroup discovery
+¡¡subgroup discovery aims at finding interesting subsets of the instance space that deviate from the overall distribution. different search strategies led to several algorithms  which are briefly described in subsection 1. in all cases the search is guided by a utility function  a specific type of rule selection metric  which can be regarded as a parameter of the learning task itself. choosing this function carefully allows to direct the search towards different kinds of interesting rules  e.g. rules having a lower bias but a higher coverage compared to those found via standard classifier induction. for a specific utility function some recently proposed subgroup discovery algorithms are limited to  there is a simple way to transform the corresponding formal data mining problem into a classifier induction problem. this transformation is presented in subsection 1 and it will be used later on to evaluate the proposed techniques empirically. the benefits of incorporating prior knowledge into subgroup discovery and some existing approaches are discussed in subsection 1  before the generic knowledge-based sampling approach is presented in section 1.
+1 existing approaches
+¡¡the common goal of all subgroup discovery strategies is to find interesting and novel patterns in datasets. to this end utility functions are used that formalise a trade-off between the size of the subgroup and its unusualness in terms of a target attribute's observed frequency. each subgroup is represented by a horn logic rule. a popular utility function is the weighted relative accuracy . it is used for subgroup discovery since explora   and it is the default utility function of midos .
+¡¡definition 1. the weighted relative accuracy  wracc  of a rule a ¡ú b multiplies coverage  pr a   with bias:
+wracc a ¡ú b  := pr a  ¡¤ bias a ¡ú b 
+several other functions have been suggested in the literature   basically putting more emphasis on either coverage or bias. this work only makes use of the commonly used wracc metric for mainly two reasons. first of all it allows the underlying formal data mining problem to be tackled with approved rule induction algorithms  subsection 1   which simplifies the evaluation in practice. the second reason is that it is sufficient to compare the presented approach to the reweighting schemes that have recently been proposed in the scope of subgroup discovery .
+¡¡there are two different strategies of searching for interesting rules: exhaustive and heuristic search. explora  and midos  tackle subgroup discovery by exhaustively
+evaluating the set of rule candidates. the set of rules are ordered by generality  which allows to prune large parts of the search space. the advantage of this strategy is that it allows to find the n best subgroups reliably. finding subgroups on subsamples of the original data is a straightforward method to speed up the search process. as shown in  most of the utility functions commonly used for subgroup discovery are well suited to be combined with adaptive sampling. this sampling technique reads examples sequentially  continuously updating upper bounds for the sample errors  based on the data read so far. in this way  the required sample size allowing to give a probabilistic guarantee of not missing any of the n best subgroups can be reduced. heuristic search strategies are fast  but do not come with any guarantee to find the most interesting patterns. one recent example implementing a heuristic search is a variant of cn1. by adapting its rule selection metric to wracc the well known cn1 classifier has been turned into cn1-sd . as a second modification the iterative cover approach of cn1 has been replaced by a heuristic weighting scheme. example weights are either changed by a constant factor or by an additive term each time the example has been covered by a rule. in section 1 a new generic weighting scheme is proposed that allows to overcome some shortcomings of cn1-sd.
+1 missing features
+¡¡a drawback of classical subgroup discovery lies in a lack of expressiveness. especially interesting exceptions to rules are hard to be detected using standard techniques  for mainly two reasons. first of all  due to the syntactical structure imposed by horn logic it is often hard to exclude exceptions from rules  even if this improves the score assigned by the utility function. the syntactical bias is important  however  because results are required to be understandable and because it is the main reason for diversity within the n best subgroups. the syntactical bias might not be sufficient to avoid sets of similar rules. redundancy filters are a common technique to overcome this problem . overlapping patterns like exceptions to rules are not found reliably that way. exceptions could still be represented by separate rules. this fails for the second reason  namely that utility functions evaluate rules globally. interactions between rules do not affect their scores.
+¡¡for the task of finding exception rules some efficient algorithms have been developed . they focus on mining pairs of a strong rule and a corresponding exception  which is too specific for subgroup discovery in general. subgroups do not necessarily have exceptions  and they may overlap in arbitrary ways.
+¡¡as a strategy for pruning rulesets to cover different aspects  roc analysis was suggested in . according to the false positive and false negative rates all rules are plotted in roc space . only rules lying on the convex hull are deemed relevant and may be turned into a single classifier by weighted majority vote. a major drawback of this filter is that it systematically discards one of two rules covering disjoint subsets and having almost the same performance. as soon as one of these rules is superior in both true positive and false negative rates the other rule is considered to be redundant. this is not desirable in descriptive scenarios  as the only rule covering a specific subset of the instance space should not easily be discarded  nor for predictive settings  as diversity of base classifiers is crucial for reaching high predictive accuracy. the latter has empirically been shown by the success of random forests  and similar ensemble methods.
+¡¡a way to improve the interestingness and diversity of rulesets is to make use of previously found patterns and formalised prior knowledge during construction. incorporating prior knowledge like bayesian networks into existing data mining techniques is an active field of research. some approaches like  1  1  try to utilise prior knowledge to compensate for a lack of data. in these scenarios the models are fitted to both  the prior knowledge and the dataset at hand. in contrast  the goal of subgroup discovery is to find rules that contradict expectation  as this is assumed to indicate interestingness. in such a scenario any available information that allows to compute estimates of the user's expectation may help to refine the metric for selecting interesting rules. a similar idea has recently been proposed in the scope of frequent itemset mining .
+¡¡following this idea  a subgroup pattern may be interesting relative to prior knowledge  only  as illustrated by the following example:
+	pr y+ | a  = pr y+  = 1	for a rule	a ¡ú y+.
+y is distributed in a just as in the overall population  so this rule would not be deemed interesting by any reasonable utility function. now assume that in the prior knowledge there is a statement about a superset of a:
+	b ¡ú y+  1 	with	a   b.
+this rule predicts a higher conditional probability of y+ given b. in this context the rule a ¡ú y+ becomes interesting as an exception to the prior knowledge  because one would rather expect pr y+ | a  = pr  y+ | b . the reason is that the prediction for b   x is more specific than the general class priors.
+¡¡to the best of the author's knowledge the only approach towards incorporating available knowledge into subgroup discovery reported in the literature so far  is the ilp system rsd . it uses background knowledge exclusively to propositionalise relational data  a step which is out of the scope of this work. for the learning step itself cn1-sd is used. the next section shows a generic technique to incorporate prior knowledge into subgroup discovery and similar supervised learning tasks.
+1. knowledge-based sampling
+¡¡this section introduces a sampling-based technique to incorporate prior knowledge into supervised data mining algorithms. subsection 1 discusses the overall idea before some constraints for sampling are defined in subsection 1. these constraints define a unique distribution as shown in 1. the last subsection 1 shows how to use stratified sampling in order to solve specific subgroup discovery tasks by means of classifier induction algorithms.
+1 weighting examples by prior knowledge
+¡¡the most crucial question in an iterative data mining framework is how to pre-process the training data so that subsequent learning steps do not yield previously found patterns again. the goal is to find uncorrelated new patterns  so that the resulting ruleset is compact  but still allows for a precise characterisation of the target attribute. the two example subgroups mentioned in the introduction  one containing all young drivers  and the other containing all persons who recently acquired their driving license  illustrates how a stand-alone evaluation of each rule may result in highly overlapping rulesets. this bears the risk of almost redundant rules.
+¡¡the algorithm proposed in this work allows to focus on previously undiscovered patterns by means of sampling. target samples are constructed in a way that does not allow to rediscover the available prior knowledge  because the target attribute is made independent of the available predictions. at the same time it is taken care  that the remaining patterns part of the original data remain intact. similar techniques are found in the boosting literature  1  1  1 . please note  that boosting was first introduced in terms of altering an initial distribution function and a corresponding sampling technique .
+¡¡the technique which is shown to be capable of sampling out prior knowledge in the following sections is called rejection sampling . it allows to sample with respect to a distribution d1  given a procedure to sample from another distribution d: assume that an example set of size n at hand has been sampled from distribution dn. then each example x is assigned a weight
+
+rather than sampling directly with respect to d1  which may be infeasible. a sample
+xm ¡« d1 with 
+may then be constructed by weight-proportionate resampling. alternatively  the weights may be interpreted as factors of being over- or underrepresented by all subsequently applied algorithms.
+¡¡rejection sampling has also been approved as a generic way to incorporate costs into the data mining step. in  a proof is given  that this kind of sampling does not increase the sample complexity in the agnostic pac learning framework for cost sensitive classification. as illustrated in the next subsections  rejection sampling even allows to generically incorporate a user-given or previously discovered probabilistic model into the data mining step. for this purpose a knowledge-based sampling scheme based on altering the original distribution underlying a dataset is introduced. depending on the application  examples may be weighted or resampled.
+1 constraints for resampling
+¡¡before going into detail the idea of removing prior knowledge by means of sampling is formulated in terms of constraints. formally  this step means to define a new distribution d1  as close to the original function d as possible  but independent of the estimates produced by available prior knowledge. switching from the initial distribution to the resampled data is a step of applying prior knowledge by means of sampling. as a result the previously discussed rule selection metrics - when applied to these kind of samples - are  blinded  regarding the parts of rules that could already be concluded from prior knowledge. all that is accounted for is the unexpected component of each rule.
+the scenario is discussed along the simplified case of a single rule as available prior knowledge:
+r : h ¡ú y+
+the distribution to be constructed should no longer support rule r  so h and y+ should be independent events:
+	prd1  y+ | h  = prd1  y+ 	 1 
+if r predicts a higher accident probability for young drivers  for example  then in the constructed sample this subgroup should share the default probability of accidents.
+¡¡as further constraints the probabilities of events part of the rule should not change  since it is sufficient to remove their correlation. this means that the class priors and the probability of r being applicable to a randomly drawn instance are equal for both distributions:
+	prd1  h 	=	prd  h 	 1 
+	prd1  y+ 	=	prd  y+ 	 1 
+for the example rule the probability of accidents and the probability of seeing a young driver will not change from the original training set to the constructed sample.
+prd1 x | h ¡É y+ =prd x | h ¡É y+  1 prd1 x | h ¡É y  =prd x | h ¡É y   1 ¡¡finally  within each partition sharing the same class and prediction of r the new distribution is defined proportionally to the initial one. the simple reason is that having just r as prior knowledge all instances within one partition are indistinguishable. changing the conditional probabilities within one partition would mean to prefer some instance over others despite their equivalence with respect to the available prior knowledge. for the boolean rule r these constraints translate into the following equalities:
+	prd1 x | h ¡É y+ 	=	prd x | h ¡É y+ 	 1 
+	prd1 x | h ¡É y  	=	prd x | h ¡É y  	 1 
+hence  if the probability of seeing a specific driver halves from the original to the new distribution  then the same will happen to all other drivers sharing both  the property of being young or not  and the property of having had an accident or not. all that changes are the marginal probabilities of the partitions.
+¡¡given a database and pattern r it is possible to apply any data mining technique after sampling with respect to d1. further interesting patterns  even if they are overlapping with r  are still observable in the new sample. for instance subgroups that are subsets of h and have an even significantly higher or much lower lift than rule r are just rescaled proportionally. for instance  if unexperienced persons driving a specific kind of car tend to be involved in accidents even more frequently than young drivers in general  then this more specific rule can be found in a subsequent step. as motivated in subsection 1  various exceptions to previously found rules and patterns overlapping in some other way can be found  analogously.
+1 constructing a new distribution function
+¡¡in subsection 1 the idea of sampling with respect to an altered distribution function has been presented. intuitively  prior knowledge and known patterns are  filtered out . this subsection proves that the proposed constraints  1 - 1  induce a unique target distribution.
+¡¡definition 1. the lift of an example x ¡Ê x for a rule h ¡ú y+ is defined as
+1   : lift h ¡ú¡ú¡ú¡ú y+   for x ¡Ê¡Ê¡Ê¡Ê h ¡É¡É¡É¡É y+
+lift h ¡ú y+ x  :=lift h	y    for x	h	y  lift h	y+   for x	h	y+
+	lift h	y    for x	h	y 
+¡¡theorem 1. for any initial distribution d and given rule r the constraints  1 - 1  are equivalent to prx¡«d1 x  = prx¡«d x  ¡¤  liftd r x   1 .
+up to a constant factor they induce d1 : x ¡ú ir+ uniquely.
+¡¡proof. the proof is exemplarily shown for the partition  h ¡É y+   in which the rule under consideration is both applicable and correct. assuming that the constraints hold d1 can be rewritten in terms of d and lift r x :
+  x ¡Ê h ¡É y+ :prd1 x =prd1 x | h ¡É y+  ¡¤ prd1  h ¡É y+ ==prd  h ¡É y+  ¡¤	d	¡¤	d	+
+prd x  ¡¤  liftd h ¡ú y+   1	=		pr	 h  pr	 y  
+the other three partitions can be rewritten analogously. on the other hand  it can easily be validated that d1 as defined by theorem 1 is in fact a distribution satisfying the constraints:
+	prd1  h ¡É y+ 	=	prd  h ¡É y+  ¡¤  liftd r x   1
+	=	prd  h  ¡¤ prd  y+ 
+and analogously for the other partitions. this directly implies constraints  1 - 1  by marginalising out. constraints  1 - 1  are met  because for all four partitions d1 is defined proportionally to d. 
+please recall  that the lift simply reflects the factor by which a label is overrepresented in a considered subset  compared to the label's prior. for the example rule the lift is 1  since the risk for young drivers is 1 times higher than for the average driver. hence  the probability to see a specific young driver who had an accident in the target sample is reduced by a factor of 1 compared to the original data. each of the four partitions that are defined by a combination of prediction and true label is rescaled in the same fashion. theorem 1 defines a new distribution to sample from  given a single rule r as prior knowledge. the same strategy may be applied iteratively  defining a new distribution after each selected rule. section 1 introduces an appropriate algorithm and evaluates it empirically.
+¡¡please note  that without any changes to theorem 1 more complex forms of prior knowledge may be incorporated. ensembles of base learners like propositional rules are valid background theories  for example  as long as the predictions are discrete. straightforward generalisations of constraints  1 - 1  allow to incorporate probabilistic predictions: let the prior knowledge ¦È be associated to a function pr
+.
+assuming the class priors pr c x  = y  to be known for each y ¡Ê y and applying the definition of the lift the corresponding estimated lift can easily be computed as
+
+given a procedure for sampling examples x ¡« d i.i.d.  the following distribution that generalises theorem 1 can be used to weight examples:
+	d1 x  = d x  ¡¤  liftd x ¡ú c x  | ¦È   1	 1 
+to remove prior probabilistic knowledge  for example from a data stream  it is sufficient to assign to each example x a ingly simple and well suited to apply rejection sampling.d ¡ú | weight of  lift x c x  ¦È   1. this strategy is surpris-
+¡¡up to here no assumptions about the utility function for evaluating rule candidates were made. in fact any utility function can be used in combination with knowledge-based sampling.
+1 a connection to classifier induction
+¡¡this subsection shows a simple connection between subgroup discovery limited to the utility function wracc and the better known task of classifier induction.
+¡¡the goal when inducing a classifier from data generally is to select a predictive model that separates positive and negative examples with high predictive accuracy. many algorithms and implementations exist for this purpose  1  1   basically differing in the set of models  hypothesis space h  and search strategies. subgroup discovery demands the definition of a property of interest  which can be assumed to be present in the form of a target attribute. in this sense this task is also supervised. the process of model selection is guided by a utility function. in the following definition subgroup discovery is simplified to finding the most interesting rule.
+¡¡definition 1. let h denote the set of models  rules  valid as output and d denote a distribution function over x. the task of classifier induction is to find
+h  := maxarg acc h .
+h¡Êh
+for a given utility function q : h ¡ú ir the task of subgroup discovery is to find h  := maxarg q h . h¡Êh
+for boolean target attributes common classifier induction algorithms do not benefit from finding rules with a precision below 1%. in contrast  for subgroup discovery it is sufficient if the precision of a rule is higher than the corresponding class prior. choosing the utility function wracc we can transform subgroup discovery as defined above into classifier induction by a simple sampling technique to overcome imbalanced class distributions.
+¡¡definition 1. for d : x ¡ú ir+  c : x ¡ú y the stratified random sample distribution d1 of d  and c  is defined by
+
+d1 is defined by rescaling d so that the class priors are equal. this definition allows to state the following theorem.
+input:
+- labelled example set e = hx1 y1i ... hxm ymi - integer n output:
+- set of n  probabilistic  horn logic rules
+kbs e  n :
+1. let d1 denote the uniform distribution over e.
+1. for each c ¡Ê y define ¦Ð c  := prx¡«d1 c x  = c .
+1. let d1 xi  := ¦Ð yi  1 for i ¡Ê {1 ... n}.
+1. for k = 1 to n do
+ a  rk ¡û ruleinduction dk  e   b  compute liftdk rk xi  applying definition 1.
+ c  let dk+1 xi  := dk xi  ¡¤  liftdk rk xi   1.
+1. output the set of rules {r1 ... rn} and their lifts.
+figure 1: algorithm kbs
+
+¡¡theorem 1. for every rule h ¡ú y+ the following equalities hold if d1 is the stratified random sample distribution of d:
+accd1 h ¡ú y+  = 1wraccd1 h ¡ú y+  + 1
+	=	wracc
+irrelevant for ranking rules }
+proof. the first equality can be proved by rewriting ac-
+
+curacy in terms of wracc  exploiting pd1 c  = pd1 c . the second equality follows by applying the definition of d1 to wraccd1 h ¡ú y+   reaching at a reformulation in terms of the original distribution d. 
+¡¡for a full proof please refer to   for a broader discussion of rule selection metrics to  1  1 . as a consequence of theorem 1 subgroup discovery tasks with utility function wracc can as well be solved by rule induction algorithms optimising predictive accuracy after stratified resampling. the induced rankings of rules are equivalent.
+1. algorithms
+¡¡this section discusses three subgroup discovery algorithms  which have been integrated into the learning environment yale . the first of these is the knowledge-based sampling algorithm  kbs  shown in figure 1. it applies sampling as presented in subsection 1. more precisely  the implementation allows to use example reweighting if the training data fits into main memory. as discussed in subsection 1 the probabilities computed by rejection sampling procedures may as well be interpreted as example weights.
+¡¡the kbs algorithm iteratively selects a single rule corresponding to a subgroup with high wracc  updates the distribution according to theorem 1  and selects the next rule according to the updated distribution. theorem 1 implies that high predictive accuracy on stratified samples directly translates into high wracc on the original data. to this end lines 1 define a distribution d1 by reweighting the training examples e with respect to definition 1. each loop in line 1 induces a single rule with high predictive accuracy  characterising a new subgroup. the rule induction algorithm used in the experiments is conjunctiverule  part of the weka learning environment . it iteratively constructs the body of rules comparing the information gain of each candidate literal  and it prunes rules applying the reduced error pruning heuristic.
+¡¡as distribution updates are computed according to theorem 1  line 1c  all constraints defined in subsection 1 hold. constraint  1  implies that all subsequently defined distributions share the stratification property of d1. the corresponding distributions without stratification are very similar to the distributions actually used. they can be reconstructed by rescaling with respect to the original class priors.
+¡¡in a prediction scenario significance tests help to avoid overfitting  in a descriptive setting they avoid to report rules which could easily be valid just by chance. for simplicity significance tests are avoided in the experiments  but the mining step is restricted to n iterations. rules are selected by wracc  a metric proportional to coverage  so rules are not expected to overfit if n is chosen small enough.
+¡¡the selected rules annotated by the lifts allow to compute predictions for the target attribute. if the property of interest is boolean1  then all rules ri are of the form hi ¡ú y+/ . an application of the na¡§ ve bayes strategy for combining predictions  see section 1  yields
+	¦Â x  = prd1 y+  ¡¤ y liftdii  hi ¡ú¡ú y+  x 	 1 
+	prd1 y  	1¡Üi k liftd   hi	y   x 
+	|	=:¦Â{iz x 	}
+for the odds  eqn.  1  . estimating each ¦Âi with respect to di prevents poor approximations in case of violated conditional independence. if the precision of a selected rule is 1 then eqn.  1  is not applicable  but the covered subset may simply be removed during training.
+¡¡the reweighting performed by kbs is very similar to eqn.  1 . enumerator and denominator of the product in  1  approximate the lifts for positives and negatives  respectively  e.g.:
+ 
+where ¦È denotes the set of probabilistic rules {r1 ...rk}. it can easily be seen that after stratification the algorithm weights examples inverse proportionally to these estimates. in the next section kbs is compared to the only two other reweighting strategies reported in the subgroup discovery literature so far . these strategies just affect the reweighting step of the algorithm shown in figure 1: after a positive example e has been covered by i rules its new weight is computed as either
+additive update: or
+multiplicative update: wi e  := ¦Ãi for given ¦Ã ¡Ê  1 
+accordingly  two versions of subgroup discovery ruleset induction  sdri  have been implemented  which are similar
+
+1
+ this restriction is only made for simplicity  as it is always possible to estimate each class against all the others.
+datasetexamplesdiscr.cont.minoritykdd cup1-1.1%adult111%ionosphere1-1.1%credit domain11.1%voting-records1-1%mushrooms11-1%table 1: data characteristics: size  number discrete/continuous attributes  frequency min. class
+to cn1-sd. the variant that applies conjunctiverule on stratified samples after additive updates is referred to as sdri+  the one with multiplicative updates as sdri . weights are updated after each iteration. the class explicitly predicted by a rule is defined to be the positive one  as fixing one of the classes as positive gave worse experimental results. multiple occurrences of rules in the ruleset are allowed  reflecting the importance of patterns that are still observable after reweighting. the rulesets constructed by sdri are combined as in cn1-sd rather than by applying na¡§ ve bayes: the predicted target class distributions of all applicable rules are averaged.
+1. experiments
+¡¡a primary goal of subgroup discovery is to find a small set of understandable rules that characterise a target variable. in more formal terms the probabilistic classifiers built from the rulesets should be accurate. this property is commonly measured by the area under the roc curve metric  auc . the proposed idea of sequential sampling-based subgroup discovery has been evaluated on five datasets from the uci machine learning library  and a 1k sample taken from the kdd cup 1 quantum physics dataset1. all datasets have boolean target attributes. further characteristics are listed in table 1.
+¡¡figure 1 to 1 show how the auc performance changes with an increasing number of iterations. all values have been estimated by 1fold cross-validation1. the columns n and auc in table 1 list the average performances of rulesets from the cross-validation experiments for the empirically best choice of n. for the kdd cup data and the adult dataset the number of iterations were limited. to further evaluate the differences between the algorithms another ruleset was induced for each variant  using the same value for parameter n. for evaluation the same set was used as for training  as common for descriptive learning tasks. table 1 shows the resulting average coverages  cov  and average weighted relative accuracies  wracc . the roc filter for rulesets discussed in subsection 1 was applied to both sdri variants  denoted as rf in table 1.
+¡¡the column div reflects the diversities of rulesets. the entropy of predictions is an appropriate measure for diversity of classifier ensembles in general . each rule can be considered to predict the conditional distribution of the target  given whether it is applicable or not. for a boolean target  a set of n rules with pi x  := pr y+ | hi x    and a
+
+1 http://kodiak.cs.cornell.edu/kddcup/ 1for sdri  results are reported for the empirically best ¦Ã from the candidate set {.1 .1 .1 .1 .1 .1 .1 .1 .1 .1}.
+set of m examples the diversity was computed as
+	m	n
+1
+m x n x pi xk log pi xk    1 pi xk  log 1 pi xk  
+¡¡¡¡k=1 i=1 after removing multiple occurrences of rules.
+¡¡throughout the figures 1 to 1 the kbs algorithm outperforms sdri with both reweighting strategies  while none of the sdri variants is clearly superior to the other one. in figure 1 all three algorithms manage to find useful rules repeatedly. sdri+ performs best for sets of 1 to 1 rules  but for larger rulesets and for any other dataset and number of iterations kbs is superior. in figures 1 to 1 kbs improves auc much quicker than sdri  although for the smallest dataset  fig. 1  it overfits after the 1rd iteration. for the credit domain data  fig. 1  the auc values of the sdri rulesets improve non-monotonically. inspecting the rulesets reveals many duplicates. for the voting-records  figure 1  sdri effectively finds just 1 useful rules with both reweighting strategies  improving auc by about 1% compared to the first iteration. kbs selects 1 rules and improves auc by about 1%. finally  in the experiment shown in figure 1 kbs reaches 1% auc with just 1 rules  while sdri hardly improves over the performance of the first rule at all. for the smaller datasets the roc filter basically just removes duplicates from the rulesets  which has a marginal impact on the performance metrics. for the large datasets the filter prunes the ruleset at the price of a reduced auc performance and diversity.
+¡¡although the kbs rulesets often have a smaller coverage and wracc their predictions outperform those of the other algorithms. it is interesting to note that for all datasets the kbs rulesets have the highest diversity  but according to the standard deviation of the auc performance  column  ¡À   they are nevertheless most robust against minor changes to the data.
+1. conclusion
+¡¡in this paper the idea of knowledge-based sampling has been presented  a generic technique of making rule selection metrics sensitive to prior knowledge. the interestingness of rules is often relative to a user's expectation or previously found patterns. a set of intuitive constraints has been proposed  that formalise how to construct samples which are independent of prior knowledge  so that subsequently applied rule induction techniques focus on novel patterns. the constraints have been shown to uniquely define a new distribution  which can easily be operationalised by either resampling or defining example weights.
+¡¡incorporating prior knowledge has been shown to be beneficial for the learning task of subgroup discovery. evaluating rules globally results in overlapping patterns. to cover various aspects of a dataset it is more appropriate to construct sets of smaller rules  each of which captures a new pattern. knowledge-based sampling is a way to shift the focus of subgroup discovery to undiscovered patterns  which allows to construct small sets of rules with high diversity. a new subgroup discovery technique based on stratification  iterative reweighting  and an arbitrary embedded rule learner has been presented. experiments with six real world datasets indicate that the algorithm outperforms state of the art subgroup discovery algorithms which are based on alternative reweighting strategies.
+
+
+1	1	1 iterations
+figure 1: kdd cup1	1 iterations
+figure 1: adult1	1 iterations
+figure 1: ionosphere1
+1	1	1	1 iterations
+figure 1: credit domain1 iterations
+figure 1: voting-records1	1 iterations
+figure 1: mushrooms1algorithmnauccovwraccdivalgorithmnauccovwraccdivkbs1.1.1.1%11kbs1.1.1.1%11sdri+1.1.1.1%11sdri+1.1.1.1%11sdri+  rf1.1.1.1%11sdri+  rf1.1.1.1%11sdri 1.1.1.1%11sdri 1.1.1.1%11sdri   rf1.1.1.1%11sdri   rf1.1.1.1%11	¡À	¡À
+	kdd cup	adult
+algorithmnauccovwraccdivalgorithmnauccovwraccdivkbs1.1.1.1%11kbs1.1.1.1%11sdri+1.1.1.1%11sdri+1.1.1.1%11sdri+  rf1.1.1.1%11sdri+  rf1.1.1.1%11sdri 1.1.1.1%11sdri 1.1.1.1%11sdri   rf1.1.1.1%11sdri   rf1.1.1.1%11	¡À	¡À
+	ionosphere	credit domain
+algorithmnauccovwraccdivalgorithmnauccovwraccdivkbs1.1.1.1%11kbs111%11sdri+1.1.1.1%11sdri+1.1.1.1%11sdri+  rf1.1.1.1%11sdri+  rf1.1.1.1%11sdri 1.1.1.1%11sdri 1.1.1.1%11sdri   rf1.1.1.1%11sdri   rf1.1.1.1%11	¡À	¡À
+	voting-records	mushrooms
+table 1: performance of different subgroup discovery algorithms.
+
+1. acknowledgements
+¡¡thanks to timm euler for carefully proof-reading some drafts  and to the anonymous reviewers for several useful hints.

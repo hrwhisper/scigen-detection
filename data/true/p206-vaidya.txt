@@ -1,0 +1,247 @@
+privacy and security concerns can prevent sharing of data  derailing data mining projects. distributed knowledge discovery  if done correctly  can alleviate this problem. the key is to obtain valid results  while providing guarantees on the  non disclosure of data. we present a method for k-means clustering when different sites contain different attributes for a common set of entities. each site learns the cluster of each entity  but learns nothing about the attributes at other sites.
+categories and subject descriptors
+h.1  database management : database applications- data mining; h.1  database management : database administration-security  integrity  and protection; h.1
+ database management : systems-distributed databases
+general terms
+security
+keywords
+privacy
+1. introduction
+¡¡data mining and privacy are often perceived to be at odds  witness the recent u.s. senate proposal of a  data mining moratorium act . data mining results rarely violate privacy  as they generally reveal high-level knowledge rather than disclosing instances of data. however  the concern among privacy advocates is well founded  as bringing data together to support data mining makes misuse easier. the problem is not data mining  but the way data mining is done.
+permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. to copy otherwise  to republish  to post on servers or to redistribute to lists  requires prior specific permission and/or a fee.
+sigkdd '1  august 1  1  washington  dc  usa copyright 1 acm 1-1/1 ...$1.
+¡¡imagine the following scenario. a law enforcement agency wants to cluster individuals based on their financial transactions  and study the differences between the clusters and known money laundering operations. knowing the differences and similarities between normal individuals and known money launderers would enable better direction of investigations. currently  an individual's financial transactions may be divided between banks  credit card companies  tax collection agencies  etc. each of these  presumably  has effective controls governing release of the information. these controls are not perfect  but violating them  either technologically or through insider misuse  reveals only a subset of an individual's financial records. the law enforcement agency could promise to provide effective controls  but overcoming these controls now gives access to an individual's entire financial history. this raises justifiable concerns among privacy advocates.
+¡¡privacy and data mining can coexist. the problem with the above scenario is not the data mining results  but how they are obtained. current u.s. regulations require banks to report certain transactions  e.g.  large cash deposits   but law enforcement does not have full access to accounts. if the results were obtained without sharing information  between the data sources  and the results could not be used to deduce private information  data mining would not reduce privacy. using these results to devise more effective regulations on what transactions must be reported could actually improve both privacy and the ability to detect criminal activity.
+¡¡while obtaining globally meaningful results without sharing information may seem impossible  it can be done. algorithms have been developed to efficiently solve several types of distributed computations in a secure manner. this paper presents a method for k-means clustering in scenarios like the above  demonstrating how results from secure multiparty computation can be used to generate privacypreserving data mining algorithms. we assume vertically partitioned data: the data for a single entity are split across multiple sites  and each site has information for all the entities for a specific subset of the attributes. we assume that the existence of an entity in a particular site's database may be revealed  it is the values associated with an entity that are private. the goal is to cluster the known set of common entities without revealing any of the values that the clustering is based on.
+¡¡k-means clustering 1  1  is a simple technique to group items into k clusters. the basic idea behind k-means clus-
+
+figure 1: two dimensional problem that cannot be decomposed into two one-dimensional problems.
+tering is as follows:
+initialize the k means ¦Ì1 ...¦Ìk to 1. arbitrarily select k starting points ¦Ì1 ...¦Ì1k repeat
+assign ¦Ì1 ...¦Ì1k to ¦Ì1 ...¦Ìk respectively for all points i do
+assign point i to cluster j if distance d i ¦Ìj  is the minimum over all j.
+end for
+calculate new means ¦Ì1 ...¦Ì1k.
+until the difference between ¦Ì1 ...¦Ìk and ¦Ì1 ...¦Ì1k is acceptably low.
+each item is placed in its closest cluster  and the cluster centers are then adjusted based on the data placement. this repeats until the positions stabilize.
+¡¡the results come in two forms: assignment of entities to clusters  and the cluster centers themselves. we assume that the cluster centers ¦Ìi are semiprivate information  i.e.  each site can learn only the components of ¦Ì that correspond to the attributes it holds. thus  all information about a site's attributes  not just individual values  is kept private; if sharing the ¦Ì is desired  an evaluation of privacy/secrecy concerns can be performed after the values are known.
+¡¡at first glance  this might appear simple - each site can simply run the k-means algorithm on its own data. this would preserve complete privacy. figure 1 shows why this will not work. assume we want to perform 1-means clustering on the data in the figure. from y's point of view  looking solely at the vertical axis   it appears that there are two clusters centered at about 1 and 1. however  in two dimensions it is clear that the difference in the horizontal axis dominates. the clusters are actually  left  and  right   with both having a mean in the y dimension of about 1. the problem is exacerbated by higher dimensionality.
+¡¡given a mapping of points to clusters  each site can independently compute the components of ¦Ìi corresponding to its attributes. assigning points to clusters  specifically computing which cluster gives the minimum d i ¦Ìj   requires cooperation between the sites. we show how to privately compute this in section 1. briefly  the idea is that site a generates a  different  vector  of length k  for every site  including itself  such that the vector sum of all the site vectors is ~1. each site adds its local differences |point   ¦Ìi| to its vector. at the same time  the vector is permuted in an order known only to a. each site  except a single holdout  sends their permuted vector to site b. site b sums the received vectors  then the holdout site and b perform a series of secure additions and comparisons to find the minimum i without learning distances. b now asks a the real index corresponding to i  giving the proper cluster for the point.
+¡¡the second problem is knowing when to quit  i.e.  when the difference between ¦Ì and ¦Ì1 is small enough; we show how to privately compute this in algorithm 1. this makes use of secure sum and secure comparison  described in section 1. we will begin with details of the algorithm. we will introduce background work as necessary  particularly in the security discussion of section 1. we discuss mitigating the risks from colluding parties in section 1  and communication cost in section 1. we conclude with a discussion of related work  as well as suggestions for future research.
+1. privacy preserving k-means algorithm
+¡¡we now formally define the problem. let r be the number of parties  each having different attributes for the same set of entities. n is the number of the common entities. the parties wish to cluster their joint data using the k-means algorithm. let k be the number of clusters required.
+¡¡the final result of the k-means clustering algorithm is the value/position of the means of the k clusters  with each side only knowing the means corresponding to their own attributes  and the final assignment of entities to clusters. let each cluster mean be represented as ¦Ìi i = 1 ... k. let ¦Ìij represent the projection of the mean of cluster i on party j. thus  the final result for party j is
+  the final value/position of ¦Ìij i = 1...k
+  cluster assignments: clusti for all points  i = 1 ... n 
+¡¡the k-means algorithm also requires an initial assignment  approximation  for the values/positions of the k means. this is an important issue  as the choice of initial points determines the final solution. research has led to mechanisms producing a good initial assignment . their technique uses classic k-means clustering done over multiple subsamples of the data  followed by clustering the results to get the initial points. for simplicity  we assume that the k means are selected arbitrarily. since the underlying operations in  involve k-means clustering  it is quite easy to extend our algorithm to search for and start off with good initial means. thus  for i = 1...k  every party selects its share ¦Ì1ij of any given mean. this value is local to each party and is unknown to the other parties.
+¡¡the basic algorithm directly follows the standard k-means algorithm. the approximations to the true means are iteratively refined until the improvement in one iteration is below a threshold. at each iteration  every point is assigned to the proper cluster  i.e.  we securely find the cluster with the minimum distance for each point  this is described in section 1.  once these mappings are known  the local components of each cluster mean can be computed locally. we then use algorithm 1  checkthreshold  to test termination: was the improvement to the mean approximation in that iteration below a threshold  this is shown formally in algorithm 1.
+
+algorithm 1 privacy preserving k-means clustering
+require: r parties  k clusters  n points.
+1: for all sites j = 1...r do
+1:	for all clusters i = 1...k do
+1:	initialize ¦Ì1ij arbitrarily
+1:	end for
+1: end for
+1: repeat
+1:	for all j = 1...r do1:for i = 1...k do1:¦Ìij ¡û ¦Ì1ij1:cluster i  =  1:end for1:end for1:for g = 1...n do1:for all j = 1...r do1:{compute the distance vector x~j  to each cluster  for point g.}1:for i = 1...k do1:xij = |datagj  d ¦Ìij|1:end for1:end for1:each site puts g into cluster closest cluster  {closest cluster is algorithm 1}1:end for1:for all j = 1...r do1:for i = 1...k do1:	¦Ì1ij	¡û mean of j's attributes for points in
+cluster i 1:end for1:	end for
+1: until checkthreshold {algorithm 1}
+algorithm 1 checkthreshold: find out if the new means are sufficiently close to old means
+
+require: th is a threshold for termination  random number generator rand produces values uniformly distributed over 1..n   1 spanning  at least  twice the domain of the distance function  d.
+1: for all j = 1...r do
+1:	dj ¡û 1
+1:	for i = 1...k do
+1:	dj ¡û dj + |¦Ì1ij  d ¦Ìij|
+1:	end for 1: end for
+1: {securely compute if	dj ¡Ü th.}
+1: at p1: m = rand   p
+1: for j=1 ...r-1 do
+1:	pi sends m + dj  mod n  to pj+1
+1: end for
+1: at pr: m = m + dr
+1: at p1: th1 = th + r
+1: p1 and pr return secure add and compare m   th1  mod n    th1   m  mod n   {secure comparison is described in section 1.}
+
+¡¡the checkthreshold algorithm  algorithm 1  is straightforward  except that to maintain security  and practicality  all arithmetic must be modn. this results in a nonobvious threshold evaluation at the end  consisting of a secure addition/comparison. intervals are compared rather than the actual numbers. since th   n/1 and the domain of  d   n/1  if the result of m th1 is positive  it will be less than n/1  and if it is negative  due to the modulo operation  it will be greater than n/1. thus  m th1   th1 m modn  if and only if m   th1  and the correct result is returned.
+1 securely finding the closest cluster
+¡¡this algorithm is used as a subroutine in the k-means clustering algorithm to privately find the cluster which is closest to the given point  i.e.  which cluster should a point be assigned to. thus  the algorithm is invoked for every single data point in each iteration. each party has as its input the component of the distance corresponding to each of the k clusters. this is equivalent to having a matrix of distances of dimension k¡Ár. for common distance metrics; such as euclidean  manhattan  or minkowski; this translates to finding the cluster where the sum of the local distances is the minimum among all the clusters.
+¡¡the problem is formally defined as follows. consider r parties p1 ... pr  each with their own k-element vector x~i:
+	x1	x1	x1r
+	x1   1	  x1  	r	  x1r  
+p1 has x~1 =     ...      p has     k...1      ... p has     ...     .
+	  xk1	x	xkr
+the goal is to compute the index l that represents the row with the minimum sum. formally  find
+	argmin 	xij 
+	i=1..k	j=1x..r
+for use in k-means clustering  xij = |¦Ìij   pointj|  or site pj's component of the distance between a point and the cluster i with mean ¦Ìi.
+the security of the algorithm is based on three key ideas.
+1. disguise the site components of the distance with random values that cancel out when combined.
+1. compare distances so only the comparison result islearned; no party knows the distances being compared.
+1. permute the order of clusters so the real meaning ofthe comparison results is unknown.
+the algorithm also requires three non-colluding sites. these parties may be among the parties holding data  but could be external as well. they need only know the number of sites r and the number of clusters k. assuming they do not collude with each other  they learn nothing from the algorithm. for simplicity of presentation  we will assume the non-colluding sites are p1  p1  and pr among the data holders. using external sites  instead of participating sites p1  p1 and pr  to be the non-colluding sites  is trivial.
+¡¡the algorithm proceeds as follows. site p1 generates a length k random vector v~i for each site i  such that ri=1 v~i = ~1. p1 also chooses a permutation ¦Ð of 1..k. p1 then engagesp
+each site pi in the permutation algorithm  see section 1  to generate the sum of the vector v~i and pi's distances x~i.
+the resulting vector is known only to pi  and is permuted by ¦Ð known only to p1  i.e.  pi has ¦Ð v~i +x~i   but does not
+know ¦Ð or v~i. p1 and p1 ...pr 1 send their vectors to pr.
+¡¡sites p1 and pr now engage in a series of secure addition / comparisons to find the  permuted  index of the minimum distance. specifically  they want to find if ri=1 xli + vli   pri=1 xmip+ vmi. since  l pri=1 vli = 1  the resultp is ri=1 xli   ri=1 xmi  showing which cluster  l or m  is closest to the point.p pr has all components of the sum except x~1 + v~1. for each comparison  we use a secure circuit evaluation  see section 1  that calculates a1+ar   b1+br  without disclosing anything but the comparison result. after k 1 such comparisons  keeping the minimum each time  the minimum cluster is known.
+¡¡p1 and pr now know the minimum cluster in the permutation ¦Ð. they do not know the real cluster it corresponds to  or the cluster that corresponds to any of the others items in the comparisons.  for this  they send the minimum i back to site p1. p1 broadcasts the result ¦Ð 1 i   the proper cluster for the point.
+the full algorithm is given in algorithm 1. several opti-
+
+algorithm 1 closest cluster: find minimum distance clus-
+ter
+
+require: r parties  each with a length k vector x~ of distances. three of these parties  trusted not to collude  are labeled p1  p1  and pr.
+1: {stage 1: between p1 and all other parties}
+1: p1 generates r random vectors v~i summing to ~1  see algorithm 1 .
+1: p1 generates a random permutation ¦Ð over k elements
+1: for all i = 1...r do
+1: t~i  at pi  = add and permute v~i ¦Ð at p1  x~i at pi   {this is the permutation algorithm described in section 1}
+1: end for 1: p1 computes t~1 = ¦Ð x~1 + v~1 
+1:
+1: {stage 1: between all but p1 and pr}
+1: for all i = 1...r   1 do
+1:	pi sends t~i to pr
+1: end for
+1: pr computes y~ = t~1 +	ri=1 t~i
+1:	p
+1: {stage 1: involves only p1 and pr}
+1: minimal ¡û 1: for j=1..k do
+1:	if secure add and compare yj + t1j   yminimal +
+t1minimal  then
+1:	minimal ¡û j
+1:	end if
+1: end for
+1:
+1: {stage 1: between pr  or p1  and p1}
+1: party pr sends minimal to p1: p1 broadcasts the result ¦Ð 1 minimal 
+
+mizations are possible  we discuss these when analyzing the complexity of the algorithm in section 1. we now describe the two key building blocks borrowed from the secure multiparty computation literature. we first give the permutation algorithm. we then describe the secure addition comparialgorithm 1 genrandom: generates a  somewhat  random matrix vk¡Ár
+
+require: random number generator rand producing values uniformly distributed over 1..n   1 spanning  at least  the domain of the distance function  d. ensure: the sum of the resulting vectors is ~1.
+1: for all i = 1 ...k do
+1:partsumi ¡û 1:for j = 1 ...r do1:vij ¡û rand  1:partsumi ¡û partsumi + vij  mod n 1:end for1:vi1 ¡û  partsumi  mod n 1: end for
+
+figure 1: closest cluster - stage 1
+son  which builds a circuit that has two inputs from each party  sums the first input of both parties and the second input of both parties  and returns the result of comparing the two sums. this  simple  circuit is evaluated securely using the generic algorithm described in section 1. following these  we will prove the security of the method. a graphical depiction of stages 1 and 1 is given in figures 1 and 1.
+1 permutation algorithm
+¡¡the secure permutation algorithm developed by du and atallah simultaneously computes a vector sum and permutes the order of the elements in the vector. we repeat the idea here for completeness  for more details see . we do present a more formal proof of the security of the algorithm than that in   this is given as part of the overall security proof of our algorithm in section 1.
+¡¡the permutation problem is an asymmetric two party algorithm  formally defined as follows. there exist 1 parties  a and b. b has an n-dimensional vector x~ =  x1 ... xn   and a has an n-dimensional vector v~ =  v1 ... vn . a also has a permutation ¦Ð of the n numbers. the goal is to give b the result ¦Ð x~ +v~    without disclosing anything else. in particular  neither a nor b can learn the other's vector  and
+
+figure 1: closest cluster - stage 1
+b does not learn ¦Ð. for our purposes  the v~ is a vector of random numbers from a uniform random distribution  used to hide the permutation of the other vector.
+¡¡the solution makes use of a tool known as homomorphic encryption. an encryption function h : r ¡ú s is called additively homomorphic if there is an efficient algorithm plus to compute h x + y  from h x  and h y  that does not reveal x or y. many such systems exist; examples include systems by benaloh  naccache and stern   okamoto and uchiyama  and paillier . this allows us to perform addition of encrypted data without decrypting it.
+the permutation algorithm consists of the following steps:
+1. b generates a public-private keypair  ek dk  for a homomorphic encryption scheme.
+1. b encrypts its vector x~ to generate the encrypted vector x~1 =  x1 ... x1n  x1i = ek xi .
+1. b sends x~1 and the public key ek to a.
+1. a encrypts its vector v~ generating the encrypted vector v~1 =  v1  ... vn1   vi1 = ek vi .
+1. a now multiplies the components of the vectors x~1 and v~1 to get t~1 =  t1 ... t1n .
+due to the homomorphic property of the encryption  x
+so t~ ... t
+1. a applies the permutation ¦Ð to the vector t~1 to get t~p1 = ¦Ð t~1   and sends t~p1 to b.
+1. b decrypts the components of t~p1 giving the final result t~p =  tp1 ... tpn  tpi = xpi + vpi.
+1 general secure multiparty computation / secure comparison
+¡¡secure two party computation was first investigated by yao  and was later generalized to multiparty computation. the seminal paper by goldreich proves that there exists a secure solution for any functionality. the approach used is as follows: the function f to be computed is first represented as a combinatorial circuit  and then the parties run a short protocol for every gate in the circuit. every participant gets  randomly selected  shares of the input wires and the output wires for every gate. since determining which share goes to which party is done randomly  a party's own share tells it nothing. upon completion  the parties exchange their shares  enabling each to compute the final result. this protocol can be proven to both give the desired result and to do so without disclosing anything other than the result. this approach  though appealing in its generality and simplicity  means that the size of the protocol depends on the size of the circuit  which depends on the size of the input.
+¡¡this is impractical for large inputs and many parties  as in data mining. however  for a limited number of simple twoparty operations  such as the secure add and compare function used in algorithms 1 and 1  the complexity is reasonable. for two parties  the message cost is o circuitsize   and the number of rounds is constant. we can add and compare numbers with o m = log number of entities   bits using an o m  size circuit.
+1. security discussion
+¡¡we first need to define formally what we mean by secure. for this  we turn to the definitions of secure multiparty computation.
+1 secure multi-party computation
+¡¡to prove that our k-means algorithm preserves privacy  we need to define privacy preservation. we use the framework defined in secure multiparty computation.
+¡¡yao first postulated the two-party comparison problem  yao's millionaire protocol  and developed a provably secure solution. this was extended to multiparty computations by goldreich et al.. they developed a framework for secure multiparty computation  and in  proved that computing a function privately is equivalent to computing it securely.
+¡¡we start with the definitions for security in the semihonest model. a semi-honest party follows the rules of the protocol using its correct input  but is free to later use what it sees during execution of the protocol to compromise security. a formal definition of private two-party computation in the semi-honest model is given below.
+definition 1.  privacy w.r.t. semi-honest behavior :
+¡¡let f : {1}  ¡Á {1}  1 ¡ú {1}  ¡Á {1}  be probabilistic  polynomial-time functionality  where f1  x y   respectively  f1  x y   denotes the first  resp.  second  element of f  x y  ; and let ¦° be two-party protocol for computing f.
+¡¡let the view of the first  resp.  second  party during an execution of protocol ¦° on  x y   denoted view1¦°  x y   resp.  view1¦°  x y    be  x r1 m1 ... mt   resp.   y r1 m1 ... mt  . r1 represent the outcome of the first  resp.  r1 the second  party's internal coin tosses  and mi represent the ith message it has received.
+¡¡the output of the first  resp.  second  party during an execution of ¦° on  x y  is denoted output¦°1  x y   resp.  output¦°1  x y   and is implicit in the party's view of the execution.
+¡¡¦° privately computes f if there exist probabilistic polynomial time algorithms  denoted s1 s1 such that
+{ s1  x f1  x y   f1  x y  }x y¡Ê{1}  ¡Ôc
+view output
+nox y¡Ê{1} 
+{ f1  x y  s1  x f1  x y   }x y¡Ê{1}  ¡Ôc
+output view
+nox y¡Ê{1} 
+where ¡Ôc denotes computational indistinguishability.
+¡¡the above definition states that a computation is secure if the view of each party during the execution of the protocol can be effectively simulated knowing only the input and the output of that party. this is not quite the same as saying that private information is protected. if information can be deduced from the final result  it is obviously not kept private under this definition. for example  if two entities map to different clusters  they must have some attribute values that are different. if one site has exactly the same values for those entities  it has learned the  private  information that those entities have different values in the attributes held by some other site. this cannot be helped  as this information can always be deduced from the result and the site's own input. a key result we use is the composition theorem. we state it for the semi-honest model. a detailed discussion of this theorem  as well as the proof  can be found in .
+¡¡theorem 1.  composition theorem for the semi-honest model : suppose that g is privately reducible to f and that there exists a protocol for privately computing f. then there exists a protocol for privately computing g.
+	proof. refer to .	
+¡¡our protocols are somewhat stronger than the semi-honest model. the proofs hold in any situation where the parties do not collude to discover information; a single malicious party may disrupt the results  but cannot learn private information that would not be revealed by the result. this will become apparent in the proofs below.
+1 permutation algorithm
+¡¡the permutation algorithm reveals nothing to a  so a's view must be simulated using only it's own input. b gets the result vector.
+¡¡theorem 1. the permutation algorithm  section 1  privately computes a permuted vector sum of two vectors  where one party knows the permutation ¦Ð and the other gets permuted sum ¦Ð x~ + v~  .
+proof.
+a1s view:
+a receives an encryption key ek and a encrypted vector x~1 of size n. it can simulate the encryption key by generating a single random number from a uniform random distribution. assuming security of encryption and since a knows the n  the vector x~1 can also be simulated simply by generating n randoms from an uniform distribution. using its own vector v~ and the simulated input  the simulator for a can perform steps 1 to complete the simulation of a's view.
+b1s view:
+the simulator for b performs steps 1 and 1 to generate ek and x~1. in step 1 b receives a size n vector t~p1. to simulate t~p1  b encrypts the components of the result tp = ¦Ð x~ +v~  :
+t1pi = ek tpi .
+¡¡the simulator for both runs in time linear in the size of the input vectors  meeting the requirement for a polynomialtime simulation. 
+1 closest cluster computation
+¡¡algorithm 1 returns the index of the closest cluster  i.e.  the row with the minimum row sum . to prove this algorithm is privacy preserving  we must show that each party can construct a polynomial time simulator for the view that it sees  given only its own input and this closest cluster index.
+¡¡theorem 1. algorithm 1 privately computes the index of the row with the minimum row sum  revealing only this result assuming parties do not collude to expose other information.
+¡¡proof. the simulator is constructed in stages  corresponding to the stages of the algorithm.
+stage 1. the only communication occurring in this stage occurs in the r 1 calls to the permutation algorithm. thus  we simply need to apply the composition theorem stated in theorem 1  with g being the closest cluster computation algorithm and f being the permutation algorithm. what remains is to show that we can simulate the result ti. the simulator for p1 is exactly the algorithm used by p1  without sending any data. for the remaining sites  since the vi are unknown and chosen from a uniform distribution on  1..n  1   vi+xi will also form a uniform distribution on  1..n 1 . each pi i = 1...r can simulate the vector t~i by selecting values randomly from a uniform distribution on  1..n   1 . this is indistinguishable from what it sees in the algorithm.
+stage 1. all the parties other than p1 and pr send their permuted result vectors to the receiver. since only pr sees new information  we need only concern ourselves with simulating what it sees. the received vectors can be simulated by pr exactly as they were simulated by the pi in stage 1. the vector y~ is equal to the actual distances minus t~1. however  since t~1 consists of values uniformly distributed over  1..n   1   y~ is effectively distances   v  and is thus also uniformly distributed over  1..n 1 . however  we cannot simulate it by generating random values  as we must preserve the relationship y~ = t~1 + rj=1 tj  mod n . fortunately  the sum of the simulator-generatedp t~i will give a vector y~ that both meets this constraint and is uniformly distributed over  1..n   1   giving a view that is indistinguishable from the real algorithm.
+stage 1. here p1 and pr engage in a series of comparisons. again  we use the composition theorem. each comparison is secure  so we need only show that we can simulate the sequence of comparison results.
+¡¡the simulator uniformly chooses a random ordering of the k clusters from the k! possible orderings. we regard this as the distance-wise ordering of the clusters relative to the point. this ordering is used to choose the appropriate result  ¡Ü or    for each comparison. effectively  the simulator runs steps 1  but makes the comparisons locally based on the random ordering. the probability of any given ordering is 1/k!  the same as the probability of any given ordering achieved after the permutation ¦Ð in the actual view. therefore  the probability of any given sequence of comparison results is the same under the ordering as under the view seen in the actual algorithm.
+¡¡note that all of the possible 1 k 1  sequences are not equally likely  e.g.  the sequence of all  s corresponds to only one ordering  while the sequence of all ¡Üs corresponds to  k 1 ! orderings. however  selecting random total orderings generates sequences matching the  non-uniform  probability distribution of the actual sequences of comparisons.
+stage 1. pr  or p1  sends the index i to p1. since the true index it is the final result known to all the parties  and p1 decides upon the permutation ¦Ð  the simulator generates ¦Ð it  = i as the message it receives.
+¡¡the final result it is sent to all parties. since this is the final result  obviously all the parties can simulate it.
+¡¡since this simulator is also linear in the size of the input  and we have proven the permutation algorithm to be secure  application of the composition theorem proves that algorithm 1 preserves privacy. 
+1 stopping criterion
+¡¡before analyzing the security of the entire k-means algorithm  we prove the security of the threshold checking algorithm 1.
+¡¡theorem 1. algorithm 1 determines if |¦Ì1ij  d ¦Ìij|   th|  revealing nothing except the truth of this statement.p
+¡¡proof. steps 1 and 1 are the only steps of algorithm 1 requiring communication  so the simulator runs the algorithm to this point. in step 1  party p1 first sends m + d1  mod n  where m is the random number known to p1. each of the parties pj j = 1...r receive a message m + ij=1 dj from their left neighbor. since m is chosen from a uniformp distribution on  1...n 1   and all arithmetic is mod n  this sum forms a uniform distribution on  1...n 1  and can be simulated by generating a random number over that distribution:
+j
+prv iewjalgorithm 1 step 1 = x=	pr  m + x di = x#
+i=1
+j
+	=	pr  m = x   x di#
+i=1
+1
+	=	
+n
+	=	pr  simulatorj = x 
+¡¡the secure add and compare algorithm gives only the fith. step 1 is easily simulated knowing that result.p nal result m
+¡¡this simulator runs in the o k  time required by the algorithm  and is thus polynomial. applying the composition theorem with algorithm 1 as f and secure add and compare algorithm as g  along with the other facts given above  proves that algorithm 1 is secure. 
+1 overall k-means algorithm
+¡¡we now analyze the security of the entire k-means algorithm. in every iteration  the following things are revealed to the parties:
+  each party's local share of the k cluster means.
+  the cluster assignment for every point.
+¡¡these values are the desired result of the final iteration. since it is impossible to know in advance the number of iterations required to halt  the number of iterations needs to be accepted as part of the final output. the results from the intermediate iterations may be used to infer information beyond this result. for example  if the cluster centers for site j do not change between iterations  and a point moves between two clusters  site j knows that those two clusters are both relatively close to the point across the sum of the other sites. however  since the location of the point in the other dimensions is not known  this information is of little use. in any iteration the final assignment of points to clusters is the same for every party. if this intermediate assignment should not be revealed  either a genuine third party will be required or else the algorithm will be quite inefficient. allowing the intermediate results to be accepted as part of overall results allows an efficient algorithm with provable security properties. forbidding knowledge of intermediate results would prevent each site from computing the next iteration locally  making the entire computation much more expensive.
+¡¡we therefore state the proven overall security properties in the following theorem.
+¡¡theorem 1. algorithm 1 is a private algorithm computing the k clusters of the combined data set  revealing at most the point assignment to clusters at each iteration and the number of iterations required to converge.
+¡¡proof. all of the communication in algorithm 1 all occurs in the calls to algorithms 1 and 1. the results of algorithm 1 are point assignments to clusters  and can be simulated from the known result for that iteration. the results of algorithm 1 are easily simulated; for all but the final iteration it returns false  in the final iteration it returns true. applying the composition theorem shows that within the defined bounds the k-means algorithm is secure. 
+1. handling collusion
+¡¡parties p1  and pr have more information than the others during the execution of the above algorithm. specifically  p1 knows
+1. the permutation ¦Ð  and
+1. the values of the random splits  i.e.  the random matrix
+vk¡Ár .
+pr learns
+1. the permuted result vectors of the permutation algorithm  t~i  for all the parties other than p1  and
+1. the comparison results.
+ note that p1 also learns the comparison results.  while we have proven that this information is meaningless in isolation  collusion between p1 and pr provides enough information to derive the distances between each point and each party's means. it is necessary to carefully select these two parties so that all parties are confident the two will not collude.
+¡¡the assumption of non-collusion is often implicitly made in the real world. for example  take the case of lawyers for parties on opposite sides in court. while no technical means prevent collusion  safeguards exist in the form of severe punishments for breaking this rule as well as the business penalty of lost reputation. similar legal and reputation safeguards could be enforced for privacy-preserving data mining. in addition  if there were not at least two parties who did not want to share information  there would be no need for a secure algorithm. since collusion between p1 and pr reveals p1's information to pr  p1 would be unlikely to collude simply out of self-interest.
+¡¡however  technical solutions are more satisfying. let p  1 ¡Ü p ¡Ü r   1  be a user defined anti-collusion security parameter. we present a modification of the algorithm that guarantees that at least p+1 parties need to collude to disclose additional information. the problem is in algorithm 1. the key idea is that stage 1 is run p times  each time selecting a new party to act as p1. thus  the permutation ¦Ð and the random matrix vk¡Ár is different for every run  however the row sum of each v matrix is ~1  so the total sum is still the actual distance. in stage 1  to get the true index from the permuted index  the p parties apply their inverse permutations in order. thus  the true index is ¦Ð1 ¦Ð1 ... ¦Ðp 1 i1  ...  .
+1. communication analysis
+¡¡we give a bottom-up analysis of the communication cost of one iteration of the algorithm. the total cost is dependent on the number of iterations required to converge  which is dependent on the data. assume r parties  n data elements  and that encrypted distances can be represented in m bits.
+¡¡the permutation algorithm requires only two rounds of communication. for length-n vectors  the total bit cost is 1n   m + public key size = o n  bits.
+¡¡the secure add and compare algorithm is a two party protocol  implemented using secure circuit evaluation. there are several general techniques for implementing circuit evaluation that optimize different parameters such as computation cost  communication cost  number of rounds or total number of bits   etc. the basic tool used  one out of two oblivious transfer  can also be implemented in several ways. methods exist that require a constant number of rounds of communication  by parallelizing the oblivious transfers  with bit communication cost linear in the number of gates in the circuit. an excellent survey is given in. the secure add and compare algorithm requires two addition circuits and one comparison circuit  all of m = logn bits  where n is based on the resolution of the distance . both addition and comparison require a number of gates that is linear in m. therefore this step requires a constant number of rounds and o m  bits of communication.
+¡¡in algorithm 1  closest cluster  communication occurs in several places. steps 1 make r 1 calls to the permutation algorithm with size k vectors. steps 1   1 require r   1 rounds of communication and  r 1  k m bits. steps 1 use k   1 calls to the secure add and compare algorithm. steps 1   1 require two rounds with o r logk  bit cost. thus the total cost is 1 r   1  + r   1 +  k   1    const ¡Ö 1r+const k = o r+k  rounds and 1k m  r 1 +k m   r 1 + k 1  const  logn  ¡Ö 1 m kr+kclogn = o kr  bits.
+¡¡the collusion resistant variant of section 1 multiplies the cost of steps 1   1 and step 1 by a factor of p. this gives o pr + k  rounds and o pkr  bits.
+¡¡we now give a communication analysis of algorithm 1. step 1 involves r 1 rounds of communication  with bit cost  r 1  m. step 1 makes one call to secure add and compare  for constant rounds and o m  bits. thus  the total cost is o r  rounds and o rm  bits.
+¡¡finally  we come to the analysis of the entire algorithm. we do not count any setup needed to decide the ordering or role of the parties. one iteration of the k-means algorithm requires one call to the closest cluster computation for every  point and one call to the checkthreshold algorithm. since all points can be processed in parallel  the total number of rounds required is o r + k . the bit communication cost is o nrk .
+1 optimizations
+¡¡the cost of secure comparisons in stage 1 of algorithm 1 can be eliminated with a security compromise that would often be innocuous. first  the random vector generated in step 1 is generated so the rows sum to randomly chosen r instead of 1. in stage 1  all parties  including p1  send their permuted vectors to pr. now pr can independently find the index of the row with the minimum row sum. thus  the communication cost is 1 r   1  + r   1 + 1 ¡Ö 1r = o r  rounds and 1k m  r 1 +k m  r 1 +1 logk  ¡Ö 1krm bits.
+¡¡the problem with this approach is that pr learns the relative distance of a point to each cluster  i.e.  it learns that p is 1 units farther from the second nearest cluster than from the cluster it belongs to. it does not know which cluster the second nearest is. effectively  it gets k equations  one for each cluster  in k + 1 unknowns.  the unknowns are the location of the point  the location of all clusters but the one it belongs in  and the distance to the closest cluster center.  since the permutation of clusters is different for each point  as is the random r  combining information from multiples points still does not enable solving to find the exact location of a point or cluster. however  probabilistic estimates on the locations of points/clusters are possible. if the parties are willing to accept this loss of security in exchange for the communication efficiency  they can easily do so.
+¡¡let us now compare our communication cost with that of the general circuit evaluation method. for one iteration of the algorithm a circuit evaluation would be required for each point to evaluate the cluster to which the point is assigned. even with an optimized circuit  the closest cluster computation requires at least r   1 addition blocks for each cluster. i.e.  it requires approximately kr addition circuits  and k 1 comparison blocks. these blocks are all of width at least m bits. the best known general method still requires at least r1 bits of communication for every circuit. thus  a lower bound on the amount of bits transferred is o kmr1  bits.
+¡¡a simple upper bound on non-secure distributed k-means is obtained by having every party send its data to one site. this gives o n  bits in one round. privacy is adding a factor of o r+k  rounds and o rk  bit communication cost. while this tradeoff may seem expensive  if the alternative is not to perform data mining at all  it seems quite reasonable.
+1. conclusions
+¡¡there has been work in distributed clustering that does not consider privacy issues  e.g.   1  1 . generally  the goal of this work is to reduce communication cost. the idea is to find important data points or patterns locally and utilize these to compute the global patterns. however  sharing local patterns inherently compromises privacy. our work ensures reasonable privacy while limiting communication cost.
+¡¡there recently been a surge in interest in privacy-preserving data mining. one approach is to add  noise  to the data before the data mining process  and using techniques that mitigate the impact of the noise from the data mining results 1  1  1  1 .
+¡¡the approach of protecting privacy of distributed sources was first addressed for the construction of decision trees. this work closely followed the secure multiparty computation approach discussed below  achieving  perfect  privacy  i.e.  nothing is learned that could not be deduced from one's own data and the resulting tree. the key insight was to trade off computation and communication cost for accuracy  improving efficiency over the generic secure multiparty computation method. there has since been work to address association rules in horizontally partitioned data 1  1   em clustering in horizontally partitioned data  association rules in vertically partitioned data  and generalized approaches to reducing the number of  on-line  parties required for computation. while some of this work makes trade-offs between efficiency and information disclosure  all maintain provable privacy of individual information and bounds on disclosure  and disclosure is limited to information that is unlikely to be of practical concern.
+¡¡clustering in the presence of differing scales  variability  correlation and/or outliers can lead to unintuitive results if an inappropriate space is used. research has developed robust space transformations that permit good clustering in the face of such problems . such estimators need to be calculated over the entire data. an important extension to our work would be to allow privacy preserving computation of such estimators  giving higher confidence in clustering results. similarly  extending this work to the more robust em-clustering algorithm  1  1  under the heterogeneous database model is a promising future direction. another problem is to find the set of common entities without revealing the identity of entities that are not common to all parties.
+¡¡we have made use of several primitives from the secure multiparty computation literature. recently  there has been a renewed interest in this field  a good discussion can be found in . currently  assembling these into efficient privacypreserving data mining algorithms  and proving them secure  is a challenging task. our paper has demonstrated how these can be combined to implement a standard data mining algorithm with provable privacy and information disclosure properties. our hope is that as the library of primitives and known means for using them grow  standard methods will develop to ease the task of developing privacy-preserving data mining techniques.
+1. acknowledgments
+¡¡we thank patricia clifton for comments  corrections  and catching a flaw in an earlier proof of stage 1. we also thank the anonymous reviewers for their detailed suggestions for improving the paper and acknowledge murat kantarcioglu for a synopsis of secure multiparty computation definitions and relationship to this work.

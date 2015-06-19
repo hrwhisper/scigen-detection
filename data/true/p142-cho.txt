@@ -1,0 +1,224 @@
+we present an approach to reconstructing chemical reaction networks from time series measurements of the concentrations of the molecules involved. our solution strategy combines techniques from numerical sensitivity analysis and probabilistic graphical models. by modeling a chemical reaction system as a markov network  undirected graphical model   we show how systematically probing for sensitivities between molecular species can identify the topology of the network. given the topology  our approach next uses detailed sensitivity profiles to characterize properties of reactions such as reversibility  enzyme-catalysis  and the precise stoichiometries of the reactants and products. we demonstrate applications to reconstructing key biological systems including the yeast cell cycle. in addition to network reconstruction  our algorithm finds applications in model reduction and model comprehension. we argue that our reconstruction algorithm can serve as an important primitive for data mining in systems biology applications.
+categories and subject descriptors: h.1  database management : database applications - data mining; i.1  artificial intelligence : learning - induction
+general terms: algorithms  measurement  experimentation.
+keywords: systems biology  graphical models  markov networks  ordinary differential equations  network reconstruction.
+1. introduction
+¡¡algorithms in computational biology and bioinformatics are helping rapidly yield new insights into biological and biochemical processes. while much of today's excitement is focused on analyzing data from high-throughput screens  e.g.  microarrays  rnai assays   significant research is also being conducted in constructing and simulating mathematical models of key biological processes  such as the cell cycle   circadian rhythms  and entire signaling pathways .
+permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. to copy otherwise  to republish  to post on servers or to redistribute to lists  requires prior specific permission and/or a fee.
+kdd'1  august 1  1  las vegas  nevada  usa. copyright 1 acm 1-1-1/1 ...$1.
+these models capture not only qualitative properties of the underlying process but also quantitative traits as revealed by mutant experiments . as shown in fig. 1  such mathematical modeling typically begins with a chemical reaction network  crn   which is then converted to a set of simultaneous ordinary differential equations  odes   which are then numerically simulated to yield time series profiles of the participating molecular species. these profiles are then matched with real data and the model is adjusted to account for discrepancies. more sophisticated methods involving bifurcation plots and phase portraits shed further insight into the qualitative dynamics of the underlying system.
+¡¡in this paper  we study the inverse problem  i.e.  analyzing time series profiles of the molecular species to reconstruct the crn  see fig. 1  dotted lines . this finds uses in not just systems biology  as studied here  but also in any domain where chemical reaction systems form the origins of the underlying numerical model  ode   such as petrochemical plant engineering  environmental engineering  food processing  and manufacturing.
+¡¡reconstructing crns is relevant not just for system identification but also for model reduction. for instance  it is well acknowledged that models of key biological processes are notoriously complex and difficult to comprehend for humans . a key task therefore is to reduce the reaction system to a smaller system  involving fewer reactions and/or molecules  but yet retain the essential dynamical properties of the system. given a complex mathematical model of  say  a biochemical process  we can simulate the model to generate data and reconstruct a  potentially  smaller model by mining the generated dataset. such a model ¡ú data ¡ú model transformation is currently a hot topic in computational systems biology .
+¡¡pertinent data for mining crns can hence be gathered from either experimental observations or computational simulation. the former is the subject of works such as  and requires 'wet-lab' machinery as described in . in this paper  we focus on data from computational simulations of mathematical models for three reasons: the ease of generating data on demand from the given crn in a controlled fashion  the capability to systematically perturb the crn and observe the modified dynamics  and the desire to verify our algorithms on some 'ground truth.' table 1 summarizes the input-output description of the network reconstruction problem studied here as well as the methods available to observe  interrupt  or otherwise modify the behavior of the system. this setting of the crn mining problem is pertinent in computational modeling and systems biology contexts.
+
+figure 1: crn mining is the inverse problem of reverse-engineering a set of chemical reactions that can reproduce the dynamics observed in a given time series dataset.¡¡our primary contributions in this paper are four fold. first  we introduce crn mining as a new kdd problem and cast crn mining as the task of mining an undirected graphical model followed by annotating edges and groups of edges with chemical reaction type information. in essence  we capture the dynamics of the network by modeling each species as a random variable and by looking for independence relations between them.
+¡¡a key issue in mining graphical models among a given set of random variables is to decide whether to detect dependencies or  conditional  independencies. if we choose to detect dependencies  we must take care to distinguish between direct and indirect dependencies. to avoid this issue  classical algorithms  e.g.  see   are hence almost exclusively based on detecting independencies  either by explicitly identifying such constraints and summarizing them into a network  or by defining the score of a network based on such relationships and searching in the space of networks. our second contribution is to show how the novel setting of crn mining permits us to mine dependencies and yet avoid detecting indirect dependencies  a feature not achievable in traditional  discrete  graphical model mining contexts. further  our algorithm for crn mining involves a o n1  computation  where n is the number of species  in contrast to algorithms that have exponential running time complexity in the worst case for mining graphical models.
+¡¡our third contribution is the notion of 'sensitivity tables' as pattern matching constraints to identify reaction types  such as whether it is a reversible or irreversible reaction  enzyme catalyzed or not  and the precise ratios between the molecules of reactants and products. we hasten to add that we cannot unambiguously distinguish between all possible chemical reaction types and we precisely state the distinctions that we are  un able to make.
+¡¡finally  we demonstrate the application of crn mining to reconstructing many important biochemical networks in systems biology applications  including prokaryotic gene expression regulation and the cdc-cyclin1 interaction forming the core of the budding yeast cell cycle.
+1. related research
+¡¡crns have been well studied in bioinformatics applications. most of the dynamic behavior of cells can be reduced to the underlying  bio chemistry of how molecules such as genes  proteins  and rna interact  catalyze reactions  and contribute to the proper functioning of cells. hence studying a biological system by casting it as a crn is typically the table 1: setting of the crn mining problem.
+given
+number of species
+identities of species
+time series profiles of molecular concentrations
+to find
+reaction network
+properties of individual reactions
+perturbation capabilities
+can buffer given species  either singly or in subsets 
+can knock-out given species  either singly or in subsets first step in mathematical modeling. for our purposes here  we focus on research that attempts to reconstruct crns.
+¡¡the 1 paper by arkin  shen  and ross in science  is credited with creating interest in crn mining; it also presented an all-pairs correlation method for reconstructing the underlying network  with applications to the glycolysis metabolic process. however  the method described in  cannot distinguish between direct and indirect dependencies and can thus result in spurious edges. in addition  it assumes that all species are eventually connected and hence cannot recognize disconnected components  such as the simultaneous set of chemical reactions: {a ¡û¡ú b  c ¡û¡ú d}.
+¡¡there have been many papers that were motivated by the arkin  shen  and ross work described above. for instance  wiggins and nemenman  present a method to analyze time series to infer process pathway  which can be construed as representing calling invocations of one pathway by another. however  their method is aimed at producing a general network of relationships from genomic data and not at reconstructing chemical reaction networks. a more theoretical approach is taken in  but its strong guarantees of the soundness of network reconstruction are obtained by restricting the focus to discrete dynamical systems  which capture the functional behavior of regulatory networks but not crns. more recently  karnaukhov et al.  focus on the reaction identification problem by assuming a general parameterized form for the kinetics of the reaction and fitting rate constants by least squares fitting. this work builds on earlier work by the same authors . crn mining as studied here subsumes reaction identification as a sub-goal. thus  our formulation of crn mining is novel for its attempt to model both the dependence structure of chemical species and the properties of individual reactions.
+1. some chemistry for data miners
+¡¡before we present our algorithm for reconstructing chemical reaction networks  we review some basic chemistry and established practices in the mathematical modeling of chemical reactions. this is the subject of many excellent books  such as  which especially focus on modeling for bioinformatics applications. for the data mining audience  we present an abridged version of this literature involving only topics necessary to understand the ensuing algorithm.
+1 modeling a single reaction
+¡¡the simplest example of a chemical reaction is the irreversible isomerization reaction
+k1
+	a  ¡ú b.	 1 
+where k1 denotes the rate at which species a is converted into b. if the concentrations of the species a and b are represented by xa and xb  the dynamics of  1  can be formulated by a set of ordinary differential equations  odes 
+ 
+ 1 
+a typical trajectory of xa and xb in this simple system is shown in figure 1  a .
+¡¡the reaction  1  is a special case of the reversible isomerization reactions
+k1
+	a ¡û¡ú b.	 1 
+k1
+the corresponding odes are:
+dxa
+	dxdtb	=	 k1xa + k1xb 	 1 
+	=	k
+	dt	1xa   k1xb.
+a typical trajectory for this system is shown in figure 1  b .
+¡¡both reactions  1  and  1  are linear. the simplest nonlinear example is the bimolecular reaction
+k
+a + b ¡ú1 c.
+the corresponding odes are given below. 1  
+ 1 
+a typical trajectory of equation  1  is shown in figure 1  c .
+¡¡the kinetics in reactions  1    1  and  1  are simple mass action kinetic laws. but equations can be more complicated. consider the enzyme-substrate reactions
+		 1 
+here e represents enzyme species  whose total concentration e1 = xe + xes remains as a constant in this chemical process. the corresponding odes are
+ 
+ 1 
+when k1 and k 1 are much larger than k1  we can assume the first two reactions in  1  reach partial equilibrium. this partial equilibrium assumption can be formulated by
+	k1xexs = k 1xes.	 1 
+when k1 is in a similar magnitude of k 1  the equilibrium assumption  1  does not hold any more. but a steady state assumption can be made. it assumes that the concentration of es remains a steady state after a transient period  which is formulated as
+	k1xexs =  k 1 + k1 xes.	 1 
+it turns out that  1  is a special case of  1 . let km =
+k1+k 1
+k1 . with the assumption that e1 is much smaller than xs  we can derive
+	.	 1 
+let. the equation  1  is called the michaelis-
+menten equation. it reduces the enzyme-substrate reaction  1  into a simple reaction
+	s e¡úp.	 1 
+denoting that substrate s is catalyzed by enzyme e to form product p. but  1  is fundamentally different from the simple reaction  1  because it follows the nonlinear enzyme kinetics  1 . a typical trajectory of the reaction  1  is shown in figure 1  d .
+1 modeling sets of reactions
+¡¡a chemical reaction network  crn  is composed of many reactions. suppose n species are involved in m reaction channels in a crn. let the concentration of these species be denoted by xi  i = 1 ¡¤¡¤¡¤  n and the reaction channels be denoted by rj  j = 1 ¡¤¡¤¡¤  m. the dynamics of the system can be formulated as
+	 	 1 
+where . here ¦Í is called the stoichiometric matrix. ¦Íij is the unit change of xi caused by the reaction channel rj and rj x  is the reaction rate function for the reaction channel rj. for example  in the simple reaction  1   there are two species and one reaction channel. ¦Í =   1  1  and r1 x  = k1xa. in the bimolecular reaction  1   ¦Í =   1   1  1  and r1 x  = k1xaxb. in the reduced enzyme-substrate reaction  1   ¦Í =   1  1  and
+.
+¡¡but often the state space in  1  can be reduced by applying conservation laws and partial equilibrium or steady state assumptions. examples of the partial equilibrium assumption and steady state assumption are given in  1  and  1  for the enzyme-substrate reaction  1 . conservation laws can be applied for all examples shown above. for example  for reaction systems  1  and  1   the sum of xa and xb remains as a constant. that can be formulated as
+	xa + xb = c1.	 1 
+with this conservation law  we only need to formulate the dynamics of one variable. the other can be directly calculated from  1 . thus the dimension of the state space in both equations  1  and  1  can be reduced by 1. in the bimolecular reaction  1   there are two conservation laws
+	xa + xc	=	c1 
+ 1 
+	xb + xc	=	c1.
+with the two constraints  the dimension of the state space in equation  1  can be reduced to 1.
+
+	k1	e
+	 a  a  ¡ú b c  a + b ¡úc	 d  s ¡úp
+figure 1: dynamics of reactions 1  1  1  and 1  respectively. parameters used in the above plots:  a  k1 = 1  xa 1  = 1 and xb 1  = 1.  b  k1 = 1  k1 = 1  xa 1  = 1 and xb 1  = 1.  c  k1 = 1  xa 1  = 1  xb 1  = 1 and xc 1  = 1.  d  k1 = 1  k 1 = 1  k1 = 1  xs 1  = 1 and xp 1  = 1.for a complex crn  the odes and the algebraic con-
+straints can be put together. then we obtain a set of differentialalgebraic equations  daes 
+x¡ä=f x y   1 1=g x y   1 where  1  is the differential part and  1  is the algebraic part.
+1 sensitivity analysis
+¡¡sensitivity analysis is widely used in optimization  parameter estimation  uncertainty and stability analysis.  here we demonstrate its applications to data mining and network reconstruction.  for a crn represented by a set of daes  the system often contains uncertainty due to unknown kinetic rates  environment fluctuations  and other unknown possible reaction pathways. they can be represented as parameters in daes. we can rewrite the equation  1  as
+	x¡ä	=	f x y p  	 1 
+	1	=	g x y p  	 1 
+with initial conditions x1 = x1 p  and y1 = y1 p . sensitivity reflects the change rates of the state variables x and y with respect to the change in the parameter p  which are
+calculated by dxdp and dydp.
+¡¡the sensitivity functions   and dydp t  can be obtained from the numerical time series data or estimated by finite difference methods during the process of solving the original daes and derived sensitivity equations. software such as daspk  in fortran   and cvodes  which comprises the cvode   kinsol  and ide software components in c  have in-built capabilities to perform sensitivity analysis of daes.
+1. using systematic probing to identify crns
+¡¡referring back to the experimental context in table 1  we present an approach to reconstructing chemical reaction networks by systematically perturbing the network to identify relationships between the given species.  although such perturbations are well studied in biochemistry  leading to the notion of minimal cut sets in biochemical networks   they have primarily been used for engineering flux patterns  not for crn mining.  as table 1 shows  there are two main classes of perturbations available: buffering and knock-out experiments.
+1 buffering experiments
+¡¡buffering involves providing enough supply  intake  of some species  thus forcing it to stay constant. in the corresponding daes  this is equivalent to replace the corresponding differential equation by a simple algebraic equation. note that buffering will break the corresponding conservation constraints.
+for example  consider a simple chain reaction system
+	k1	k1
+	a  ¡ú b  ¡ú c.	 1 
+the corresponding equations are
+dxa
+	dt	=	 k1xa 
+	 	dxdtc	=	k1xb 	 1 
+	: xa + xb + xc	=	c1.
+if we perturb the initial value of a  let xa 1  = p   we can calculate the corresponding change resulted in
+we then know a and c are connected in the system. if b is buffered  xb stays as a constant. then the equations become
+dxa
+	dt	=	 k1xa 
+  dxdtc = k1xb   1  : xb = b1.
+we conduct the sensitivity analysis again and we will get dxc
+ dp = 1! this shows that after b is buffered  a and c become disconnected. we can then conclude about the structure of this network: a affects c through b.
+1 knock-out experiments
+¡¡a second type of perturbation that is common in biology is the knock-out  i.e.  to remove a molecule completely by rendering it inactive or unable to participate in the reaction. engineered biological systems by knocking out key molecules are referred to as mutants. in the corresponding dae  knock-outs correspond to a special form of buffering  namely replacing the respective species variables to zero.
+¡¡however  knock-outs  while useful at understanding lossof-function  are not very revealing for reconstructing crns.
+for instance  compare the chain reaction:
+a ¡úb ¡úc
+with the enzyme catalyzed reaction:
+
+by buffering b  we can distinguish between the two cases by detecting whether dxdpc = 1  first case  or whether  second case . here p is the initial value of a as before. however  if we knock out b from the respective equations  both of them result in dxdpc = 1! for this reason  in this paper  we exclusively focus on buffering as a means to probe crns.
+1 crns and graphical models
+¡¡the above observations hint at the relationship between crns and undirected graphical models . we first setup the correspondence between a given crn and a corresponding graphical model. for ease of presentation  in the following lemmas and results  we assume only bimolecular reactions  i.e.  each reaction connects only two species  although our algorithmic implementation and experimental results involve both bimolecular and trimolecular reactions.
+¡¡definition 1. given a crn n  a set of molecular species and a set of chemical reactions between them  we define the undirected graph g n  corresponding to n as the graph whose nodes corresponds to the species in n and whose edges connect nodes that participate in a common reaction.
+¡¡note that different crns might induce the same undirected graphical model. for instance  the reaction sets a ¡û¡ú
+b ¡û¡ú c and a  ¡ú b  ¡ú c induce the same graph even though the former involves reversible reactions and the latter involves irreversible reactions. nevertheless  the following results  stated without proof due to space limitations  demonstrate that mining graphical models is an useful first step to reconstructing crns.
+¡¡lemma 1. given a network n and its undirected graph g n   node n1 is conditionally independent of node n1 given a set of nodes nx in g n  iff the following applies: after buffering nx in n  the sensitivity of n1 to n1  and vice versa  is zero.
+¡¡a direct application of lemma 1 would require us to search through an exponential set of possible conditioning contexts. instead  as stated earlier  we will seek to identify dependencies.
+¡¡lemma 1. given a network n and its undirected graph g n   an edge exists between node n1 and node n1 in g n  iff the following applies: the sensitivity of n1 to n1  or vice versa  after buffering all other molecules in n is non-zero.
+¡¡unlike lemma 1  lemma 1 requires only a search through o n1  conditioning contexts. then why don't traditional markov network learning algorithms utilize a similar approach  this is because to verify each of the o n1  conditional dependencies  the conditioning set involve n  1 variables and  even if each variable takes on only two values  we will have to investigate 1n 1 settings for conditioning contexts. besides the exponential complexity  projecting to n 1 variables typically will retain very few tuples  typically not sufficient to estimate dependence. other works such as  acknowledge these issues and  in fact  incorporate the size of the conditioning context in their analysis of algorithm complexity. however  in crn mining  these limitations do not apply since there is a proportional  rather than exponential  cost to a buffering experiment w.r.t. the size of the conditioning context  i.e.  the number of buffered molecules . furthermore  the limitations of sample data sizes do not obviously arise in a buffering experiment.
+1. algorithms for chemical reaction network reconstruction
+¡¡our approach to crn reconstruction begins by first reconstructing the underlying graphical model  algorithm 1: infergraphicalmodel  followed by cataloging the individual edges or groups of edges into reactions  algorithm 1: findreactions . these are detailed next.
+
+algorithm 1 infergraphicalmodel
+
+input: v odev
+output: s for all i j ¡Ê v  i   j  do
+¡¡ s i j  s j i   ¡û bufferedsim i j v   {i j} odev   end for
+
+
+algorithm 1 findreactions
+
+input: v s
+output: bi tri for all i j ¡Ê v  i   j  do
+if |s i j | ¡Ý stol or |s j i | ¡Ý stol then
+e ¡û e ¡È {i j}
+end if
+end for
+initialize all elements of cv to be 1 si ¡û sign s stol  for all ek em ¡Ê e  k   m  do
+if ek and em share a vertex b s.t. ek = {a b} and em = {b c} and tri.find {a b c}  = false then
+reactions ¡û lookuptrireaction {a b c} si  if reactions is not empty then tri.add {a b c} reactions  set cv  {a b}  cv  {b c}  cv  {c a}  to be 1
+end if
+end if
+end for for all e = {h i} ¡Ê e do
+if cv  {h i}  = 1 then
+reactions ¡û lookupbireaction {h i} si  if reactions is not empty then
+¡¡bi.add {h i} reactions  end if
+end if
+end for
+
+1 reconstructing network topology
+¡¡infergraphicalmodel takes as input v   the set of all chemical species whose dynamics are given by the system of odes in odev . as stated earlier  it conducts a o n1  buffered simulation to identify sensitivities between all pairs of molecules  in both directions . here  s i j  denotes the sensitivity of j to the initial concentration of i. infergraphicalmodel produces as output the sensitivity matrix s whose non-zero entries encode the graphical model.
+¡¡the next algorithm  findreactions  takes as input the set of chemical species as before and the just computed sensitivity matrix s. it produces as output the list of detected bimolecular reactions in bi and trimolecular reactions in tri. first  it thresholds the sensitivity matrix s into si. the array cv is used to hold a cover for the molecular species and their dependencies  i.e.  to see if a dependency detected in infergraphicalmodel has been 'explained' by a chemical reaction. initially no dependencies are explained  hence cv   indexed by the dependencies  is initialized to zero. algorithm findreactions then proceeds to look for trimolecular reactions that fit the sensitivity profiles computed in si  using table 1  explained in the next section  and if a suitable reaction is found  the array cv is updated suitably. only after all trimolecular combinations are exhausted does it proceed to look for bimolecular reactions. at this point  it is important to mention that the algorithm lookuptrireaction  not detailed here  searches through all permutations of the given triple of molecules in establishing a correspondence to sensitivity profiles.
+1 reconstructing reaction properties
+¡¡it remains to be detailed how lookuptrireaction and lookupbireaction work. the advantage to these algorithms is that they use sensitivities between pairs of molecules which can actually be computed alongside the reconstruction algorithm. tables 1 and 1 contain the relevant information for disambiguating reaction types. the same information is also summarized graphically in fig. 1. rather than go through each entry sequentially  we explain below how the sensitivity table patterns can be used to make important distinctions.
+¡¡sensitivity changes with time. let sa b t  be the time series of sensitivity of b to the initial concentration of a. we first discretize this time series into '+'  '-'  and 1 values. the sign of the sensitivity profile  s a b   is then defined as the sign of sa b ti  where ti is the time point at which |sa b ti | is maximum. we index into tables 1 and 1 using these signs and identify reaction types. recall that table 1 is meant to be used for identifying reactions between pairs of molecules after table 1 has been used to identify reactions between triples. also  table 1 is richer in detail than table 1 since it gives the signs of sensitivities of six basic trimolecular reactions: a  b¡ú c  a ¡û¡ú b + c  a  ¡ú b + c  a  a¡ú
+b + c  a  b¡ú b + c  and a + b  ¡ú c  and under three different buffering conditions.
+¡¡we should point out that not all distinctions can be made unambiguously. for instance  in table 1  there are five possible reactions but only three distinct sensitivity patterns. hence some rows lead to multiple hypotheses. a direction of future work is to develop a constraint engine that can reason about such multiple hypotheses  across adjacent sensitivity profiles  to achieve greater discrimination of detection.
+1.1 reversible versus irreversible
+¡¡distinguishing between reversible and irreversible reactions is straightforward  e.g.  table 1 can be readily used to distinguish between a  ¡ú b and a ¡û¡ú b by assessing the sign of s b a .
+1.1 multiple reactants
+¡¡this situation requires us to distinguish between the trimolecular reaction a + b  ¡ú c and the combined set of two bimolecular reactions {a  ¡ú c  b  ¡ú c}. s a b  and s b a  are zero for the two bimolecular reactions but
+
+1
+ a note about the asterisk in this table: due to the process of enzyme-substrate complex formation  the entry s b a  is negative for the initial reaction and later changes its sign to a plus as shown in table 1. if we assume that the  initial  concentration of b is much smaller than the concentration of a  then this entry can be treated as a '+'.
+s a b  and s b a  are negative in the trimolecular reaction  thus enabling the distinction.
+1.1 multiple products
+¡¡this situation is the converse of the previous case. note that a  ¡ú b + c and the combined set of two bimolecular reactions {a  ¡ú b  a  ¡ú c} have the same signs of sensitivities according to tables 1 and 1. thus  a  ¡ú b + c and {a  ¡ú b  a  ¡ú c} cannot be distinguished in our approach.
+1.1 stoichiometry
+¡¡stoichiometry refers to the relative ratios of molecules that participate in a reaction. thus  the only distinction between the reactions: a ¡û¡ú b and 1a ¡û¡ú b is one of stoichiometry. using only the signs of the sensitivity entries  these reactions cannot be disambiguated. on the other hand  if information about the magnitude of the sensitivity is available  e.g.  if we know that  and   then we can conclude the existence of reaction ca ¡û¡ú b in steady state.
+1.1 enzyme catalysis
+¡¡an enzyme-substrate reaction can be modeled with either mass action kinetics or michaelis-menten kinetics. when the enzyme-substrate reaction is modeled with mass action kinetics  the sensitivity profiles are identical for a  b¡ú c and a+b  ¡ú c  see row 1 of table 1 . on the other hand  if the enzyme-substrate reaction is modeled with michaelismenten kinetics  then these reactions can be disambiguated  see row 1 of table 1 .
+1.1 auto-catalysis
+¡¡auto-catalysis is the situation where a molecule catalyzes a reaction that it itself participates in. it is easier to detect if the catalyst is the product  rather than the reactant. for instance  as can be seen in table 1  a  ¡ú b and b have the same sensitivity profile  whereas a  ¡ú b and a  b¡ú b can be distinguished. similarly  in table 1  a  ¡ú
+b + c and a  a¡ú b + c have the same sensitivity profile  see row 1  and thus cannot be distinguished.
+1.1 detecting groups of reactions
+¡¡the last two rows of table 1 are especially designed to detect common groups of reactions. the '+' sign for s c a  in both these rows helps detect the existence of a loop back from molecule c to a which is not the case  for instance  in rows 1 and 1 of table 1. within the last two rows  further disambiguation about rate laws can be made using the sign of s a b .
+1.1 more complex dynamics
+¡¡by capturing more of the dynamics  these tables can be put to further use in reaction identification. for instance  consider the task of distinguishing a  b¡ú c from a+b  ¡ú c  using rows 1 and 1 of table 1 . when a is buffered  s a c  and s b c  grow boundlessly in a  b¡ú c. whereas  in a + b  ¡ú c  s a c  is limited by b. hence  s a c  stops increasing after reaching steady state.
+table 1: the 'all but 1' sensitivity table used to identify chemical reactions involving 1 molecules.
+reaction s a bufferedb bufferedc buffereds b c s c b s a c s c a s a b s b a a ¡û¡ú b + c--++++1+1+1a  b¡ú c or a + b  ¡ú c+1+1--a  b¡ú c  michaelis-menten +1+1-a  b¡ú b + c+1+1+-a  b¡ú c or a + b  ¡ú c with c  ¡ú a+1++--a  b¡ú c with c  ¡ú a  michaelis-menten +1++1-table 1: the bimolecular sensitivity table used to identify chemical reactions involving 1 molecules.
+reactions a b s b a a  ¡ú b or a  a¡ú b+1a ¡û¡ú b or 1a ¡û¡ú b++a  b¡ú b+ -
+figure 1: a graphical notation  not meant to be a probabilistic graphical model  of the information from tables 1 and 1. a solid arrow from node x to node y exists if sensitivity of y to initial value of x is positive. a dashed arrow from node x to node y exists if sensitivity of y to initial value of x is negative. no arrow denotes a sensitivity of zero.
+1. limitations and possible solutions
+¡¡thus far  we have made two critical assumptions that are necessary to the success of our reconstruction algorithm:
+1. between a given pair or triple of molecules  there is atmost one reaction.
+1. the rate laws governing the reactions fall into the categories of either the mass-action formulation  equations 1  or michaelis-menten kinetics  equation 1 .
+¡¡these assumptions are not difficult to surmount but their removal is beyond the scope of this paper. consider for instance the network in fig. 1 governing how cells in frog egg
+
+figure 1: crn governing cell-cycle transitions in frog egg extracts.
+extracts divide. the core of this network involves a clique of four nodes  molecules  with six overlapping reactions between them! to recognize such a circuit  where dynamics between a given set of molecules are best explained by multiple reactions  we must be able to decompose observed sensitivity profiles into additive combinations of smaller components  each of which corresponds to a basic reaction. the second problem is applicable in situations where reaction rates do not fall into the two basic types studied here. for instance  rate laws can be highly non-linear and involve more than one enzyme to catalyze a given reaction. further  very fast rate constants can cause drastic changes in concentrations  too quick to be detectable by analyzing data.
+¡¡both these problems can be alleviated by numerical modeling of sensitivity profiles rather than the discrete approach of sensitivity tables as studied here. for instance  numerical optimization can be used to find fits to parameterized reaction laws and by repeatedly modeling the residual  we can detect multiple reactions spanning a given set of molecules. the last two rows of our 'all but 1' sensitivity table  table 1  provide a limited capability in this regard and which we have used in the studies described below.
+¡¡finally  we mention that  in real applications  data collected from wet-lab experiments always contain some errors. we have to be aware that these errors are usually much larger than the numerical errors in the case studies described below. however  one advantage of our algorithm is its robustness. we do not require an accurate measurement of the sensitivity  just the signs of the sensitivities  relative to our threshold of 1 which can be tuned based on reliability of the measurements .
+1. experimental results
+¡¡our experimental results are focused on reconstructing key crns underlying important biological processes  see ta-
+
+table 1: summary of crns reconstructed and evaluation statistics.
+ode/sensitivitycrn miningmodel# species# reactionsrecallprecisionsolution time  1s time  1s cdc-cyclin1 interaction loop  fig. 1 11111arkin's computational circuit  fig. 1 111.1prokaryotic gene expression model11111frog egg extracts  fig. 1 1111.1generic yeast cell cycle model  fig. 1 1111.1figure 1: the cdc-cyclin1 interaction loop forming the core of the budding yeast cell cycle. courtesy john tyson.
+
+figure 1: a crn designed to serve as a computational element  i.e.  as a logic gate .
+ble 1 . here we depict the number of species and reactions for each system but hasten to add that the complexity of a crn cannot be judged merely on these factors alone. for instance  the rather innocuous looking system from fig. 1  referred to as the 'oregonator'  forms the model for many reaction-diffusion systems and can exhibit very complex dynamics including sustained oscillations. it is hence the range of qualitative behaviors that can be exhibited by the system that constitutes its complexity.
+¡¡for each crn studied here  we formulated the corresponding ode as described in section 1  and generated data corresponding to each ode using the cvode software . all rate law equations were modeled using either mass action kinetics or michaelis menten kinetics. for each pair of molecules  the buffering algorithm buffers all but these two molecules  and the sensitivity profiles between these figure 1: generic crn of the budding yeast cell cycle. regulatory modules are given by the shaded rectangles. the different symbols denote different classes of proteins  e.g.  the 'pacman' denotes active forms of regulated proteins. courtesy john tyson.
+molecules are computed. a tolerance of 1 was used to discretize the computed sensitivities. this information drives the reconstruction of topology and reaction characteristics. the results are evaluated using metrics of recall  number of correctly reconstructed reactions as a fraction of true reactions  and precision  number of correctly reconstructed reactions as a function of all reconstructed reactions . in assessing correctness  to allow partial matches  we evaluate reversible reactions in both directions  i.e.  if the algorithm reconstructs the reaction in only one direction  we count it as one out of two reactions inferred correctly .
+¡¡the crns considered here span a variety of model systems in biology. the cdc-cyclin1 interaction loop  fig. 1   is the core signaling pathway driving progression through the cell cycle. it is embedded inside the larger yeast cell cycle model described in fig. 1 . a less complex model drives cell cycle transitions in frog egg extracts  as described earlier in fig. 1. two other models considered here are a crn underlying gene expression regulation in prokaryotes  which are primitive organisms such as bacteria that do not contain membrane-bound organelles  not shown due to space considerations  and a crn meant to serve as a generic logic gate  fig. 1 .
+¡¡as table 1 reveals  our algorithm achieves consistently high values of recall and precision across these crns. the three reasons it fails to find correct reactions or infers spurious reactions are: the inherent inability to distinguish between certain types of reactions  as discussed earlier   rapid reaction rates that mistakenly cause the algorithm to infer lack of connectivity between some species  and the restriction to at most one reaction between a given pair or triple of molecules. even with these caveats  it is clear that the algorithm can be used as a primitive to identify key circuits underlying a collection of molecules.
+¡¡table 1 also tabulates the time taken to reconstruct each crn along with the time taken to solve the ode as well as the associated buffering/sensitivity analysis experiments. observe that the latter is a function of not just the size of the crn but also the stiffness of the underlying ode.  a stiff equation requires that the ode integrator use an extremely small stepsize due to components varying at different time scales or because of underlying numerical instability. 
+1. discussion
+¡¡we have presented a novel application of data mining methodology to chemical reaction system identification with a marriage of numerical methods and graphical models. our work is the first to address crn mining using kdd concepts and methodology. the o n1  buffering experiments required for our algorithm is not a severe constraint and special purpose combinatorial equipment can be utilized in larger systems. the supplementary website http://bioinfor matics.cs.vt.edu/crnmining provides sufficient details to reproduce the experiments described here.
+¡¡our future work focuses on three directions. first  we would like to employ an apriori like approach to searching for groups of reactions in a given sensitivity matrix  so that if a given reaction can be ruled out from being present  so can all its supersets. however  this requires careful understanding of the areas where monotonicity constraints over the dynamics of crns apply. second  we desire to connect our work better to theories of system identification  especially as a way to control the complexity of network reconstruction. our work has focused exclusively on the time domain and more powerful analysis tools that work in the frequency domain can be brought to bear here. finally  we wish to use our data mining algorithm as a aid to network comprehension  i.e.  to summarize a complex crn in terms of its information processing capabilities. for instance  groups of chemical reactions can be viewed as forming switches  amplifiers  or signal transducers . by directly recognizing such circuit motifs  we can aid in reconstructing not just the structure of crns but their functional aspects as well.

@@ -1,0 +1,183 @@
+locality sensitive hash functions are invaluable tools for approximate near neighbor problems in high dimensional spaces. in this work  we are focused on lsh schemes where the similarity metric is the cosine measure. the contribution of this work is a new class of locality sensitive hash functions for the cosine similarity measure based on the theory of concomitants  which arises in order statistics. consider n i.i.d sample pairs  { x1 y1   x1 y1  ...  xn yn } obtained from a bivariate distribution f x y  . concomitant theory captures the relation between the order statistics of x and y in the form of a rank distribution given by prob rank yi =j|rank xi =k . we exploit properties of the rank distribution towards developing a locality sensitive hash family that has excellent collision rate properties for the cosine measure.
+﹛the computational cost of the basic algorithm is high for high hash lengths. we introduce several approximations based on the properties of concomitant order statistics and discrete transforms that perform almost as well  with significantly reduced computational cost. we demonstrate the practical applicability of our algorithms by using it for finding similar images in an image repository.
+categories and subject descriptors
+g.1  probability and statistics : probabilistic algorithms;
+h.1  database management : database applications- image databases; h.1  information storage and retrieval : clustering
+general terms
+algorithms  theory  experimentation
+keywords
+locality sensitive hashing  order statistics  concomitants  image similarity
+permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. to copy otherwise  to republish  to post on servers or to redistribute to lists  requires prior specific permission and/or a fee.
+kdd'1  august 1  1  las vegas  nevada  usa. copyright 1 acm 1-1-1/1 ...$1.
+1.	introduction
+﹛this paper is about a new family of locality sensitive hash functions for the cosine distance measure. traditionally  nearest neighbor search in high dimensional spaces has been expensive  because with increasing dimensionality indexing schemes such as kd trees very quickly deteriorate to a linear scan of all the items. locality sensitive hash functions  were introduced to solve the approximate nearest neighbor problem in high dimensional spaces and several advancements  1  1  1  1  have been done in this area. simply put  a locality sensitive hash function is designed in such a way that if two vectors are close in the intended distance measure  the probability that they hash to the same value is high; if they are far in the intended distance measure  the probability that they hash to the same value is low. thus the hashes of the objects can be used to create an index whereby approximate close neighbor search could be achieved efficiently. the details of what 'close' and 'far' mean depend on the distance measure used  and there are different exact formulations depending on the distance measure.
+﹛in this work  we are concerned with cosine similarity  i.e.  the case where the similarity between two vectors v1 and v1 is measured as cos v1 v1   and the distance is measured as 1   cos v1 v1 . the cosine measure of similarity is a popular one for a variety of applications such as in document retrieval   natural language processing  and image retrieval . in this paper we show that it is an appropriate measure of similarity in the image similarity setting where we use pca sift  descriptors to represent images.
+﹛the most successful existing lsh scheme for cosine similarity is the random hyperplane method . the random hyperplane method suffers from a rapid loss in collision rate with increasing hash length. the contribution of this work is a new family of locality sensitive hash functions for the cosine measure based on the concomitant order statistics of the bivariate normal distribution  which overcomes the above issue. we will compare our scheme with the random hyperplane method and demonstrate its improved collision rate both on a theoretical basis and the resulting impact in a practical setting.
+﹛the rest of the paper is structured as follows. in sec. 1  we introduce notation and basics that sets up the rest of the paper. in sec. 1  we review the random hyperplane hash family. sec. 1 introduces the theory behind concomitants  which we use to develop the concomitant hash family. in sec. 1  we extend the concomitant hash family to generate multiple hashes per vector. in their most simple form  the computational cost of concomitant based hash functions rise exponentially with the length of the hash. in sec. 1 and sec. 1  we provide approximations to the hash function that significantly reduce the computational cost of these hash functions. in sec. 1  we present the superior performance of our hashing algorithm in an image similarity setting.
+1.	basics
+definition 1  locality sensitive hashing  . a locality sensitive hashing scheme is a distribution on a family f of hash functions on a set of items  such that for two items x and y 
+           prh﹋f  h x  = h y   = f sim x y    1  where  sim x y  is some similarity function defined on the item collection and f is a monotonically increasing function.
+definition 1  cosine similarity . the cosine of two vectors a ﹋ rm and b ﹋ rm is defined as
+﹛when the the two vectors are zero centered  i.e. the mean of the vectors is zero   the cosine measure is the same as the correlation coefficient between the vectors 1. in some applications where the vectors are very high dimensional and sparse  e.g. in the vector model of document retrieval  the vectors are not zero centered  but the mean of the vectors is very close to zero anyway  due to the sparseness and high dimensionality.
+definition 1  cosine hash family . a set of functions h = {h1 h1 ...} constitute a cosine hash family over rm iff for some finite u   n 
+  hk ﹋ h : rm ↙ u
+  for any four vectors a a1 b b1 in rm where cos a a1  = cos b b1   the following is true:
+prh﹋h h a  = h a1   = prh﹋h h b  = h b1  
+  for any four vectors a a1 b b1 in rm where cos a a1    cos b b1   the following is true:
+prh﹋h h a  = h a1     prh﹋h h b  = h b1  
+definition 1  collision rate . let h be a cosine hash family over rm and 老 a real number such that  1 ≒ 老 ≒ 1. let a and b be two vectors in rm such that cos a b  = 老. then the collision rate of h for 老  designated as ch 老   is defined as follows:
+ch 老  = prh﹋h h a  = h b  
+1	false positive rate and hash length
+﹛in order to compare two hash functions  it is not enough to compare their collision rate for the case where the distance between the two vectors is low  i.e. the true positive rate. we also need to compare the collision rate when the two vectors are distant from each other  i.e. the false positive rate. in the case of the hash functions designed for the cosine measure  the false positive rate is simple to define: it is the collision probability for the case when the two vectors are uncorrelated  i.e. when the cosine is zero.
+definition 1  false positive rate . for a family h of cosine hash functions over rm  the false positive rate is the collision rate at 老 = 1  i.e. ch 1 .
+it is worth noting that for all the hash families considered in this paper  the false positive rate corresponds to the collision rate had we chosen the hashes randomly from the universe u. in fact  we set the false positive rate by choosing the size of u. the bigger the size of u  the 'stronger' the hash  and it improves the precision of the hash. at the same time  increasing the size of u reduces the collision rate for values of 老 close to one  i.e. it reduces the recall rate. the right choice for the size of u depends on the hash family  and on the application. we will have more to say on this in the experimental section.
+﹛instead of using |u|  we use log1 |u|  to characterize the strength of the hash family  and we call it the length of the hash family. the rationale is simple: dlog1 |u| e is the minimum number of bits required to encode the output of the hash function. it seems easier to visualize  an eight bit hash function  than  a hash function with an output universe of size 1 .
+1.	random hyperplane hash family
+﹛in this section  we introduce the basic cosine hash function called the random hyperplane class . the random hyperplane hash algorithm works as follows: for a desired hash length of l  generate an m ℅ l matrix m of real numbers  where each element is chosen independently and at random from a n 1  distribution. the hash of a vector a ﹋ rm is computed in two steps 
+  compute the vector p = am
+  the hash of a is the l-bit integer whose ith bit is 1 if pi   1  and 1 otherwise.
+the l-bit random hyperplane hash family denoted as 朵l is the set of hash functions corresponding to all possible values of m. using the results in   it is easy to show that 朵l is a cosine hash family  and that its collision rate is c朵l 老  =
+. the false positive rate  i.e. 
+and the hash length is l.
+﹛the problem with the random hyperplane hash is that for moderate values of l  for example l = 1  the collision rate is quite small even for values of 老 close to one. for example  if l = 1 and 老 = 1  the collision rate is 1. in other words  with a 1 bit hash only 1% of the vectors with 1 similarity will have the same hash. our hash algorithm with the same false positive rate setting  as introduced in the next section  has a collision rate of 1 for 老 = 1  i.e. more than twice random hyperplane's collision rate.
+1.	theory of concomitants
+﹛we introduce a new class of hash functions based on the concomitant rank order statistics of bivariate normal distributions. the basic set up from which we proceed is as follows: let  x1 y1   x1 y1 ... xn yn  be n independent samples of a bivariate normal distribution with correlation 肉. in   david et al. call yk as the concomitant of xk. let xk be the smallest of x1 x1 ...xn. what is the probability that yk is the smallest of y1 y1 ... yn  in other words  what is the probability that the concomitant of the smallest of xi is the smallest of yi  in   the authors
+
+correlation coefficient
+figure 1: plot giving the dependence between and correlation coefficient for different sample sizes n.
+use  to denote this probability. more generally  they use 旭nr s to denote the probability that the concomitant of the rth smallest of xi is the sth smallest of yi.
+﹛the above question is addressed by the theory of concomitants   which arises naturally in order statistics. consider a medical testing or an interviewing scenario  where two tests  a cheap one and a more reliable expensive test needs to be conducted on a large set of subjects in a cost effective way. the common practise is to administer the cheap test on all the subjects and rank them based on the results. a smaller subset is constructed from the top of the rank set and the expensive test is now conducted on the subset. the success of the methodology lies in the statistical dependency between the results of the two tests.
+﹛the link between concomitant order statistics and cosine hash families is provided later through lemma 1  where we show that  is the collision rate for our concomitant based hash family. but before we get there  we need to further explore   and in particular show that for a given n  it is a monotonically increasing function of 肉. in   it is shown that
+           z ﹢ z ﹢ 米z ﹢ z ﹢  n 1 旭n1 = n f x y  f x y  dx dy
+	 ﹢	 ﹢	x	y
+ 1 
+where f x y  is the bivariate distribution function for x y . of course  we are interested in the case where the distribution is bivariate normal  thus
+  
+theorem 1.  is a monotonically increasing function with respect to the correlation coefficient 肉.
+﹛proof. using the bivariate normal assumption1  considering 肉 ≡ 1 and  substituting  and y =  u + p cx 	1   肉1 in eqn. 1  we get:
+		 1 
+where  and 耳 represent the standard normal probability density function and the cumulative density function respectively. differentiating eqn. 1 
+
+using leibniz integral rule 
+
+every term under the integral in eqn. 1 is positive and a similar result can be proved for 肉   1. ut
+﹛while there is no closed form solution for   we can use the simplified form shown in eqn. 1 to apply numerical integration techniques such as laguerre gauss quadrature  and hermite gauss  to closely approximate it. fig. 1 illustrates the monotonic relation between  and the correlation coefficient 肉 for different values of n where the rank distribution was computed using two methods based on numerical integration and monte carlo simulations. another useful property of the rank distribution under the bivariate normal assumption is a symmetry relation given by
+  which we exploit a bit later in this work in sec. 1.
+
+figure 1: collision rate comparison for a false positive rate of 1
+1	concomitant hash family
+﹛the main contribution of this work is to use the above theory of concomitants to develop a hash function for cosine similarity. the link is provided by the following key lemma:
+lemma 1. let a ﹋ rm and b ﹋ rm be two real vectors  where cos a b  = 老. let m ﹋ rm℅n be a matrix of real numbers  each element of which is drawn independently and at random from a standard normal distribution  n 1 . let p = am and q = bm. then  p1 q1   p1 q1  ...  pn qn  are i.i.d. samples from a bivariate normal distribution with correlation coefficient 老.
+﹛the proof of this lemma follows straightforwardly from the basic results of random projection mentioned in . based on this lemma  here is the most basic of our hash function for rm:
+hash family 1  concomitant min hash algorithm . the algorithm is as follows: generate a random matrix m ﹋ rm℅n in which each element is generated independently from a standard normal distribution n 1 . the concomitant min hash of a vector a ﹋ rm is computed in two steps:
+  compute the vector p = am
+  the hash of a is given by k where k is the index of the smallest element of p.
+the choice of n determines the hash length l  which is given by l = log1 n   as log1 n  bits are required to encode a number between 1 and n. the l-bit concomitant min hash family  designated as  l  is the family of concomitant hash functions corresponding to all possible m.
+﹛using the concomitant rank distribution result from   thm. 1 and lemma. 1  it is easy to prove that  l is a cosine hash family  and that the collision rate is  corresponding to 肉 = 老. furthermore  from definition. 1  the false positive rate can be proved to be . for the 1-bit case  it can be shown that the concomitant min hash algorithm and the random hyperplane hash algorithm are identical.
+1 comparison with the random hyperplane hash family
+﹛fig. 1 shows the collision rate for the 1-bit random hyperplane hash family 朵1  and the 1-bit concomitant min hash family  1 . for visual clarity  the collision rate plots throughout this paper focus on cosine similarity ranging from 1 to 1. the collision rate for the concomitant min hash family was obtained through monte carlo simulations. it is clear that the collision rate for high values of 老  is significantly higher for the  1 family than the 朵1 family. fig. 1 also includes the performance of both families for the 1-bit hash case for which their collision rates are identical.
+1.	multi-hash families
+﹛a common shortcoming of lsh schemes is that the collision probabilities rapidly decreases with decreasing similarity  so that even for relatively similar items the collision probability is quite low. the remedy has been to use multiple independent lsh functions to construct several hash tables in order to improve the collision probability. there is no advantage to be gained by joining the hash tables  since the output of two different hash functions matching does not have any significance in terms of the similarity. alternatively  sampling techniques  have been used in a query setting to overcome the above issue.
+﹛an appealing property of our concomitant based hash algorithm is that it can be naturally extended to generate a set of integers as the hash  rather than just one integer. we call the set of integers created by the hash function for a given item the multi-hash of the item. we define two multi-hashes to collide if they are not disjoint.
+﹛the basic idea is as follows: as before  choose a projection matrix m of i.i.d. instances of the n 1  distribution. to hash a vector a  compute p = am. let the smallest element of p be ps1  the second smallest ps1 etc. then the k-multi-hash of a is the set {s1 s1 ... sk}.
+﹛multi-hashes can then be used for information retrieval in the following way: for each vector in the data base  we compute the k-multi-hash of the vector and add all the elements of this multi-hash to the hash table. to do similarity based retrieval  given the query vector q  compute the k-multihash of q and then query hash table with all the elements of the multi-hash. any of the k hashes that returns a match is considered a positive hit.
+﹛clearly  as we represent a vector by more than one hash  the false positive rate goes up. in order to match the false positive rate of the single hash case  we increase the size of u. the result is a much improved true positive rate with the same false positive rate as before. the cost  of course  is that we have to store more hashes per item in the hash
+table.  u⊿ to refer to the set {s : s   u ＿ |s| = k} i.e.  we use k
+the set of all subsets of u with cardinality k.
+definition 1  cosine multi-hash . for a set u   n  the set
+                   h = {h1 h1 ...} is a cosine k-multi-hash family over rm iff each hk is a function satisfying
+!
+and
+  for any four vectors a a1 b b1 in rm such that cos a a1  = cos b b1  
+prh﹋h h a ﹎h a1  1=    = prh﹋h h b ﹎h b1  1=   
+  for any four vectors a a1 b b1 in rm such that cos a a1    cos b b1  
+prh﹋h h a ﹎h a1  1=      prh﹋h h b ﹎h b1  1=   
+the collision rate of h designated as ch 老   is defined as follows:
+ch 老  = prh﹋h h a  ﹎ h a1  1=   .
+where cos a a1  = 老. as before  false positive rate corresponds to ch 1 .
+definition 1  concomitant min k-multi-hash . let u = {1..n}. let m be an m℅n matrix of real numbers each element of which is generated independently from a standard  1  normal distribution. then the k-multi-hash of the vector a is computed in two steps:
+  compute the vector p = am
+  compute the set {i1 i1 ...ik} where i1 is the index of the smallest element of p  i1 is the index of the second smallest element of p etc. this set is the k-multi-hash
+of a
+the family  kn of hash functions over rm is defined as the set of all such hash functions for all choices of m.
+﹛using the concomitant rank statistic theory  it is possible to prove that  kn is a cosine multi-hash family. we omit the proof in this paper.
+1 collision rate of the concomitant min k-multi-hash family
+﹛though in general the collision rate for this class of hash functions does not have a closed form solution  in the case of 老 = 1 there is a closed form solution.
+theorem 1. the false positive rate for the  kn family is given by
+
+for k = 1 this reduces to . to facilitate the comparison with the other hash functions  we have used the approximation for the false positive rate to be.
+we used monte carlo simulation to compute the value of
+c kn 老  for various values of k n and 老. the graph in fig. 1 shows the collision rate for the three hash families. for the random hyperplane and single concomitant hash  we chose the hash length to be 1. for the k-multi-hash case  we chose k = 1 and n = 1  thus ensuring the same false positive rate for all three hashes  namely 1. as can be seen  the improvement in collision rate for higher values of 老 is spectacular; for example  for 老 = 1  the collision rate for the 1-concomitant-hash is 1  where the collision rate for the single concomitant hash is 1 and for random hyperplane is 1. thus for this value of 老  the collision rate for the 1-concomitant hash is more than 1 times the collision rate for the random hyperplane hash. of course the collision rate for 老 = 1 is the same for all three hashes  i.e. 1.
+1.	cascaded hash families
+﹛when lsh schemes are used in real similarity based retrieval applications  there is a tension between the hash length  the precision of the retrieval operation  and the recall rate. increasing the hash length improves precision  but hurts recall. for every application and hash algorithm  there is an optimum value for the hash length that optimizes the precision/recall ratio.
+﹛while with the random hyperplane algorithm the computational cost of the hash algorithm is linear with the hash length  with the concomitant hash algorithms the computational cost is exponential with the hash length. thus it is impractical to increase the hash length beyond a certain limit. a hash length of 1 needs 1 vector multiplications per hash  which is tolerable  but a hash length of 1 requires 1 1 vector multiplications  which while possible  is clearly too high. the solution is to use cascading. before we go any further  let's define what we mean by cascading.
+definition 1  cascading . the cascade of two l bit integers a and b  written as cascade a b   is the 1l bit integer 1la+b. the cascade of two sets of l bit integers a and b is the set {cascade x y  : x ﹋ a y ﹋ b}.
+
+correlation coefficient r 
+figure 1: collision rate comparison for a false positive rate of 1
+﹛so  to generate a 1 bit cascaded concomitant hash  we generate two 1 bit hashes from two independent hash functions  and cascade them. while the collision rate is not going to be quite so good as the 1 bit concomitant hash  it is still much better than the 1 bit random hyperplane hash. thus instead of spending 1 vector multiplications for generating the hash  we perform 1 vector multiplications twice.
+﹛but we can do even better: instead of doing two independent concomitant hashes  we can exploit a symmetry property of the concomitant rank order statistics  旭n1 = 旭nn n and that 旭 is independent of 旭nn n. so we cascade the max and min indices to construct the cascaded concomitant min & max hash.
+hash family 1  cascaded concomitant min & max
+hash algorithm . the algorithm is as follows: generate a random matrix m ﹋ rm℅n in which each element is generated independently from a standard normal distribution n 1 . the hash of a vector a ﹋ rm is computed in two steps:
+  compute the vector p = am
+  the hash of a is given by cascade j k  where j is the index of the smallest element of p and k is the index of the largest element of p.
+﹛a combination of the k-multi-hash family with the min & max strategy results in the concomitant k1 min & max multi-hash family.
+hash family 1  concomitant k1 min & max multi-
+hash . the algorithm is as follows: generate a random matrix m ﹋ rm℅n in which each element is generated independently from a standard normal distribution n 1 . the hash of a vector a ﹋ rm is computed in two steps:
+  compute the vector p = am
+  the hash of a is given by cascade {a1 a1 ...ak} {b1 b1 ...bk}  where   a1 is the index of the smallest element of p  a1 is the index of the second smallest element of p  etc. and b1 is the index of the largest element of p  b1 is the index of the second largest element of p  etc.
+theorem 1. the false positive rate for the  family is given by
+
+for k = 1  we approximate the false positive rate to be .
+1	empirical comparison
+﹛fig. 1 shows the collision rate for the concomitant 1 min & max hash obtained with n = 1. the hash length for the multi-hash family is set based on thm. 1 in order to ensure the same false positive rate as the 1-bit random hyperplane hash family. we note that the collision rate for the 1 min & max multi-hash case is similar to that of the min 1-multi-hash at a significantly smaller value of n  1 versus 1 for concomitant min 1-multi-hash  which leads to a reduction in computational cost. however  the reduction in computational effort is at the cost of more storage  as we store 1  1-bit hashes compared to 1  1 bit hashes in the concomitant min 1-multi-hash case.
+
+correlation coefficient r 
+figure 1: collision rate comparison for a false positive rate of 1
+﹛the collision rate improvement of our concomitant based schemes over random hyperplane hashing can be visualized in another interesting way. for the sake of this experiment  we fix the collision rate curve for the random hyperplane hash scheme and vary the hash length of the 1 min & max multi-hash scheme. this experiment serves as a relaxation of the strict definition of the false positive rate  which corresponds to the collision rate at zero cosine similarity. depending on the nature of the application  we may require a lower collision rate than the random hyperplane scheme below a certain similarity threshold and a higher collision rate beyond the same threshold. fig. 1  illustrates such desirable behavior obtained by modifying the hash length for the concomitant 1 min & max multi-hash algorithm.
+1. using discrete transforms for concomitant hashing
+﹛the main computational cost of the concomitant hash family described above is the cost of performing the matrix multiplication am  which involves m℅n floating point
+
+figure 1: comparison of collision rate curves left 1 ≒ 老 ≒ 1   right 1 ≒ 老 ≒ 1   for varying hash lengths of the 1 min & max multihash family black  dashed  and n = 1 random hyper plane scheme blue . the curves on the left compare the collision rate performance in the log scale for better illustration. the curves from top to bottom correspond to hash lengths 1 1 for the 1 min & max multi-hash scheme.
+multiplications and additions for generating log n  bits. we found that when m  = n  we can reduce this cost to nlog1 n  operations by using row permutations of orthogonal arrays used in discrete transforms. in this section  we will describe the concomitant hash based on the discrete cosine transform  dct . we also tested the idea with the fast hadamard transform and it works just as well.
+hash family 1  dct hash . let m be a row permutation of the n ℅ n discrete cosine transform matrix  and let l = log1 n . the dct min hash of a vector a ﹋ rn is computed in two steps:
+  compute the vector p = am
+  the hash of a is given by k where k is the index of the smallest element of p.
+﹛the l-bit dct min hash family is the family of hash functions corresponding to all possible m  i.e. all row permutations of the dct matrix.
+﹛of course  the whole point of using the dct hash is that the multiplication am can be performed using the discrete cosine transform  which takes nlog n  steps rather than n1
+steps. to take advantage of the dct  the multiplication matrix must be the original dct matrix  and not a permutation of it. we overcome this problem by performing the random permutation on the input vector and leaving the matrix m to be the dct matrix.
+﹛another point to make regarding the dct hash is that it requires a square matrix  which means that the length of the input vector a has to be the same as n = 1l  where l is the desired hash length. but what if the length of the original vector is less than n  of course we could just append zeroes to the original vector  and this would preserve the cosine  but we found that if the length of the original vector is a small fraction of n  appending zeroes will seriously impact the performance of the hash function  because it will effectively remove the majority of the rows of m from consideration. instead  we transform the original vector  of length m  into another vector of length n by another randomization step such that cosine similarity between vectors is preserved  and the majority of the entries in the resulting vector are non-zero. here is the algorithm we use for achieving this. in this algorithm  b is the original input vector  of length m   a is the input vector to the dct hash  of length n  and s = bn/mc.
+  generate a vector r of length s by randomly sampling the  1  normal distribution s times  and then subtracting the average of the samples from each sample. thus r is zero centered. r is created once and for all  and used for all vectors.
+  create a as follows:
+for 1 ≒ i ≒ m  1 ≒ j ≒ s  amj+i = birj. for ms   i ≒ n  ai = 1.
+﹛it is easy to prove that for any two vectors b b1 of length m and the two corresponding vectors a a1 generated by this algorithm  cos b b1  = cos a a1 . thus we can use the a vectors for generating the hashes.
+﹛multi-hash and cascading versions of the dct hash can be created using exactly the same procedure as we use for the concomitant hash; we omit the description of these for brevity.
+﹛empirical results show that the collision rate for the various versions of the dct hash are almost identical to the collision rate for the corresponding concomitant hash. thus in practice we can use the dct hash for all applications where the size of the input vector is smaller than 1l. we have not been able to establish the theoretical properties of dct hashes in a rigorous way  but for various reasons we feel it has to do with the orthogonality of the columns of the dct matrix. for example  when we remove the majority of the rows of the matrix  by zero padding the input vector   orthogonality no longer applies  and the quality of the hash deteriorates. it is not surprising that we could not develop any rigorous theoretical understanding of the dct hash. as observed in   theoretical understanding of the statistics of p obtained from projection matrices other than the one obtained from an i.i.d. gaussian distribution is an open problem.
+1.	image similarity: a practical application
+﹛in this section  we demonstrate the practical applicability and the good performance of our hashing algorithm by applying it to identify similar images1 in a image repository.
+
+figure 1: distribution of cosine similarity for similar and dissimilar image descriptors
+﹛successful image similarity algorithms involve two main steps. the first being a key point detection algorithm such as sift   which identifies a representative set of keypoints for every image along with a local descriptor vector for each keypoint. in our experiments  we used the pca-sift descriptor used in . the keypoint extraction step is followed by a matching algorithm  which computes the matching keypoint descriptors between pairs of images. the biggest problem that arises in such an approach is one of scalability. consider an image database with 1 images and let each image be represented by 1 keypoints each. a straightforward matching algorithm has to perform 1 ℅ 1 ℅ 1 ℅ 1 descriptor comparison operations to identify all the matches. clearly  such an approach would not scale for larger databases. however  locality sensitive hashing algorithms lsh  can be used in such a setting for performing efficient matching and it has been used for image similarity applications  1  1  1 .
+﹛fig. 1 illustrates the applicability of the cosine measure for image similarity using a distribution of the cosine similarity between matching descriptor pairs belonging to similar images and random descriptor pairs from dissimilar ones. it is important to note that for cosine similarity to work well for image descriptors  they must be zero centered.
+﹛we employ cosine hash family functions namely  random hyperplane hashing and the concomitant hashing scheme for performing the matching operation. the matching algorithm is as follows:
+step 1. for every image  extract 1 sift keypoints1 and obtain the zero-centered 1 dimensional pca-sift descriptor for each keypoint.
+
+figure 1: a representative image set capturing variations between similar images.
+step 1. obtain a single multi  hash for each descriptor and store the hash with its corresponding image id in a list step 1. sort the list based on the hash
+step 1. perform a linear scan of the sorted list to identify matching hashes from different images. create an imageimage map  identifying matching image pairs with their corresponding matching hash count
+step 1. image pairs with matching count   a threshold t are labeled as similar image pairs.
+﹛traditionally  image similarity algorithms are evaluated using synthetic datasets in which a set of images are processed using various image transforms to generate a set of duplicate images. in this work  we adopt a more practical approach and our experiments were performed on a personal image collection of 1 images. fig. 1 shows a set of representative images from our dataset. we are restricted to a 1 image dataset because of our elaborate evaluation scheme  which we describe next.
+﹛evaluation through progressive labeling: the matching algorithm elaborated above is used to obtain a list of the top 1 image pairs sorted based on the matching hash count. for step 1 of the matching algorithm  we experiment with four hashing schemes namely  the random hyperplane hash  single and multi-hash   concomitant hash  single and k1 min & max multi-hash   dct based hash and hadamard transform based hash. the hash lengths for each algorithm were identified using cross validation on a small labeled set. further  we ran the algorithm 1 times for each setting using different random matrices. evaluating the different algorithms involves labeling their top 1 image pairs as similar/dissimilar. towards achieving such an objective  we use a progressive labeling scheme in which we manually label all the image pairs list in progressive fashion  i.e.  an image pair once labeled for a particular setting  need not be labeled again. such an approach clearly limits the total labeling effort. the threshold t mentioned in step 1 is varied to obtain the true positive and false positive count for each t. these counts are then averaged over the different runs of a setting to obtain averaged true positive vs. false positive curves. since  we do not perform an exhaustive labeling of all the 1℅1 image pairs  we present the results in terms of counts rather than rates.
+﹛first  we present the comparative performance of single hash cosine hash family algorithms in fig. 1 a . it shows the significant improvement of the concomitant-min-hash in identifying true positives for the same false positive count. fig. 1 b  presents a similar improvement in the multi hash case where 1 hashes are used to represent each descriptor. further  notice the multi-hash schemes outperform the single hash schemes in a big way. as illustrated earlier through fig. 1  the hash lengths of our scheme can be manipulated so as to provide higher collision rate performance than the random hyperplane hashing beyond a certain similarity threshold while ensuring a lower collision probability below the same threshold. this effect is reflected in the different hash lengths  1 for the random hyperplane hash and 1 for the concomitant hash  at which the two schemes exhibit their best performance.
+﹛fig. 1 illustrates the transform based approximations of the concomitant hash algorithm  which is crucial in ensuring applicability in practical situations. the dct based approximation follows the curves of the concomitant 1 min & max multi-hash algorithm very closely and the more efficient hadamard based approximation curves are slightly worse. this effect is expected as the hadamard matrix is made up of 1s and  1s whereas  the dct matrix is made up of real numbers between  1 and 1 leading to better gaussianity in the dct case.
+
+figure 1: comparison of the performance of multi hash concomitant with its transform based approximations
+	 a 	 b 
+
+	1	1	1	1	1	1	1	1	1
+	false positives	false positives
+figure 1: true positive vs. false positive curves for  left  single hash cosine hash families and  right  multihash cosine hash families
+1.	conclusion
+﹛in this paper  we introduce a novel family of locality sensitive hash functions for the cosine measure based on the theory of concomitant order statistics. we address the rapid collision rate decreasing issue of the state of the art random hyperplane method and show the better collision rate curves of our scheme. we illustrate the real impact of the collision rate improvement through the excellent performance of our algorithm in identifying similar images.
+1.	acknowledgements
+﹛we would like to thank ira cohen  jaap suermondt  lyle ramshaw and charlie dagli for several interesting discussions regarding this work. we thank jaap suermondt for sharing his personal picture collection for this work.

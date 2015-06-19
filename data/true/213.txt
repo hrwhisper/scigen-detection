@@ -1,0 +1,74 @@
+       the multimedia streams transmissions  done over the existing  best-effort  networks  are continuously increasing in number  making network congestion more likely to appear. the paper presents a traffic-based adaptive technique for transmitting pre-recorded multimedia streams  regardless the network condition. the adaptive mechanism is implemented by a feedback-controlled multimedia system which ensures continuous transmissions and play-out of streams even in congested network conditions. the measures taken into account vary the quantity of streamed data with the expense of modifying the streams' quality. experimental results show improved behavior of the system in highly changing network conditions.
+keywords
+adaptive transmission  multimedia streaming  traffic-based  feedback-control
+1. introduction
+       the majority of multimedia transmissions are still done through ip networks  which are unsuitable for the delivery of continuous data with timing constraints. therefore extensive research  e.g. -   has been done in order to propose mechanisms which ensure good quality for the provided services.
+       since a higher percentage of the viewers prefer a continuous play-out of the remotely-transmitted multimedia streams to repeated interrupts for buffering  we decided to trade-off the quality of the stream  which may vary in time  against its continuity.
+       our research is focused on adjusting the traffic our streaming application is responsible for to the overall traffic. therefore we propose an adaptive technique for streaming of pre-recorded multimedia  while maintaining its continuity. the adaptiveness of the streaming process is based on varying the quantity of the transmitted data and  as a result  of the quality of the streamed clip. the adjustments are done according to the feedback information that describe traffic conditions.
+       some experimental results concerning the adaptive multimedia streaming are presented and they show that the proposed traffic-based adaptive technique is feasible and works well in variable traffic network conditions.
+1. system's overview
+in order to deploy the adaptive technique we propose  a feedback-controlled client-server system was implemented.
+the system  whose block-structure is presented in fig. 1  consists of communicating server and client applications.
+
+fig. 1 the block structure of the adaptive multimedia client-server system
+       the capture  encoding  decoding and playing units acquire and compress the multimedia information at the server and respectively decompress and play it at the destination using a canopus amber mpeg encoder/decoder card. the feedback blocks  part of the reliable feedback scheme  in conjunction with the transmission shaper and the database unit  is used to deploy the proposed adaptive mechanism.
+double-channel double-protocol communication
+       the client-server communication is based on a novel principle: the double-channel double-protocol link. first a bidirectional  reliable  tcp connection is created and is used for the transmission of control messages  including the feedback. then an unidirectional udp link is established  allowing multimedia data to be transferred from the server to the client faster  although in a non-reliable manner. both communication managers are in charge with establishing  controlling and
+
+fig. 1 double-channel double-protocol communication principle
+disconnecting of the double-channel double-protocol link.
+client initiated protocol  cip 
+       cip  is an application level protocol with two components that work in conjunction: client initiated streaming protocol  cisp   focused on providing the mechanisms for exchanging control information and client initiated transport protocol  citp   designed to allow for unidirectional data transport.
+       a cisp session consists of a setup procedure  one or more calls to play  pause and stop methods  and a shutdown procedure. also  feedback methods are repeatedly sent to the server. a brief graphical description of some of them is done in figs. 1.
+
+	fig. 1 cisp setup method	fig. 1 cisp shutdown method
+       citp carries multimedia data over the udp channel. because neither the arrival of packets is insured nor for those that arrive their arrival in-order and un-duplicated  the citp header was provided with sequence numbers and time stamps
+ fig. 1 .
+ ip header
+ 1 or 1 bytes udp header
+ 1 bytes citp header
+ 1 bytes  payload
+variable size
+fig. 1 the structure of the citp packet
+transmission shaper
+       the transmission shaper controls  in conjunction with the feedback and connection managers  the multimedia data transmission  fig. 1 . a modified token bucket mechanism  with a variable token generation procedure allows for an adjustable transmission process. the adjustment of streamed data is feedback-controlled.
+
+fig. 1 transmission shaper works in conjunction with feedback and connection managers
+reliable feedback scheme
+the feedback indication unit and the feedback manager implement the reliable feedback scheme  whose goal is to
+inform the server about the network traffic conditions  as reported by the clients.
+       the clients continuously monitor some transmission-related parameters such as delay  jitter  percentage of packets lost or arrived late or out-of-order  receiver buffer occupancy and grade the transmission accordingly. the feedback messages carry the computed quality of transmission grades to the server that analyses them and takes the necessary adaptive measures. the feedback messages are sent using the tcp channel  so the server can rely on receiving them.
+1. traffic based adaptive technique
+       the adaptive technique for pre-recorded multimedia streaming adjusts the transmission to the existing network conditions  while maintaining the streams' continuity. the adjustments refer to the quantity of the transmitted data  with the expense of modifying the quality of the stream and of increasing the necessary storage at the server.
+       the same multimedia stream is mpeg encoded in multiple  different quality streams  e.g. by varying the quantization factor  and therefore with different sizes. for each encoded stream a server state is defined and associated with it. the possible server states for five different quality encoded streams are showed in fig. 1.
+
+fig. 1 five possible server states associated with five different quality encoded streams
+       during the transmissions  the server has a current state. according to the feedback-received qot grades  the server takes decisions about the opportunity to switch its state to a higher or a lower quality one. in consequence both the transmitted quantity of data and the quality of the remotely played-out stream vary.
+       the adaptive scheme has to maintain the continuity of the played-out stream and therefore both starvations of the remote player and jumps from a scene to another have to be avoided. thus adjustments to the transmission frequency and switches of the source of transmission from a stream to a different quality one are done in conjunction. the switches have to be done at well-determined checkpoints  fig. 1  not to affect the quality of the overall stream. therefore we choose the checkpoints at the beginning of each mpeg group of picture. the checkpoints' positions are found and saved in a database during a pre-processing phase when also the different quality streams are registered. the database is used during the transmission for a faster retrieval of the checkpoints' positions.
+       the actual switch between the server states and thus between the streams at the pre-defined checkpoints is done after the analysis of the feedback information.
+
+fig. 1 switching between different quality pre-recorded streams
+1. experimental results
+to show the feasibility of the proposed traffic-based adaptive technique the system was tested both over lan and
+wan.
+       a 1 minutes-long sequence was repeatedly mpeg-encoded with different qualities. the constant bit-rate for the highest quality stream video-component was 1 bps and was reduced by 1 bps  for each of the lower quality streams  decreasing their sizes. the bit-rate of the audio component was not changed.
+
+fig. 1 tests performed over lan with normal traffic conditions
+       in the first graphs of the figs. 1  the variations of the server states during the adaptive transmissions are shown. in better network conditions and during lan transmissions  the server was in higher quality states than the ones experienced during the increased traffic conditions or during streaming over wan.
+
+fig. 1 tests performed over lan experiencing increased traffic conditions
+in the second set of graphs  we show a comparison between the quantity of data actually transmitted  indicated by
+the light colour lines  and the quantity of data to be transferred if only the highest quality stream was to be sent  drawn with dark colour .
+
+fig. 1 tests performed over wan during normal traffic conditions
+the deployment of the adaptive mechanism maintained the continuity of the transmission and of the play-out  but
+affected the quality of transmission that varies in time.
+       a comparison between the quantity of data transmitted in the above-presented cases is done in fig. 1. through normal trafficked lan  1% of the maximum quality data was transmitted  through loaded lan the percentage was 1  while for the transmissions over wan the percentages were 1 and 1 respectively.
+
+fig. 1 tests performed over wan experiencing heavy traffic conditions
+       the loss of quality was measured in terms of how much of the  maximum-quality  data is actually sent. nevertheless  currently there is no quantified information about the viewers perceived quality. perceptual tests involving actual users are required in order to relate the statistical performance data to perceived quality.
+
+fig. 1 transmitted data as percentages of the highest quality stream data in different cases
+1. conclusion
+       this paper presents a mechanism for adjusting pre-recorded multimedia stream transmissions according to the traffic conditions while maintaining their continuity. by switching the source of transmission between different quality pre-recorded versions of the same stream at certain checkpoints  the quantity of data to transmit is varied  affecting therefore the quality of the remotely played-out stream. a reliable feedback scheme allows the server to take the adjustment decisions.
+       the presented experimental results show the feasibility of the proposed traffic-based adjustment mechanism and its potential for further development. of importance may be a detailed study of the effect of the quality variation on the user reception of the played-back streams in order to determine a quantification factor of the effect of quality drop on the viewers.

@@ -1,0 +1,21 @@
+there has been considerable interest in random projections  an approximate algorithm for estimating distances between pairs of points in a high-dimensional vector space. let a ¡Ê rn¡Ád be our n points in d dimensions. the method multiplies a by a random matrix r ¡Ê rd¡Ák  reducing the d dimensions down to just k for speeding up the computation. r typically consists of entries of standard normal n 1 . it is well known that random projections preserve pairwise distances  in the expectation . achlioptas proposed sparse random projections by replacing the n 1  entries in r with entries in { 1 1} with probabilities   achieving a threefold speedup in processing time.
+¡¡we recommend using r of entries in { 1 1} with prob-¡Ì abilitiesfor achieving a significant dfold speedup  with little loss in accuracy.
+categories and subject descriptors
+h.1  database applications : data mining
+general terms
+algorithms  performance  theory
+keywords
+random projections  sampling  rates of convergence
+1. introduction
+¡¡random projections  1  1  have been used in machine learning  1 1 1   vlsi layout   analysis of latent semantic indexing  lsi    set intersections  1   finding motifs in bio-sequences  1   face recognition   privacy preserving distributed data mining   to name a few. the ams sketching algorithm  is also one form of random projections.
+¡¡we define a data matrix a of size n¡Ád to be a collection of n data points {ui}ni=1 ¡Ê rd. all pairwise distances can
+permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and the full citation on the first page. to copy otherwise  to republish  to post on servers or to redistribute to lists  requires prior specific permission and/or a fee.
+kdd'1  august 1  1  philadelphia  pennsylvania  usa.
+copyright 1 acm 1-1/1 ...$1.
+be computed as aat  at the cost of time o n1d   which is often prohibitive for large n and d  in modern data mining and information retrieval applications.
+¡¡to speed up the computations  one can generate a random projection matrix r ¡Ê rd¡Ák and multiply it with the original matrix a ¡Ê rn¡Ád to obtain a projected data matrix
+	b ar	.	 1 
+¡¡the  much smaller  matrix b preserves all pairwise distances of a in expectations  provided that r consists of i.i.d. entries with zero mean and constant variance. thus  we can achieve a substantial cost reduction for computing aat  from o n1d  to o ndk + n1k .
+¡¡in information retrieval  we often do not have to materialize aat. instead  databases and search engines are interested in storing the projected data b in main memory for efficiently responding to input queries. while the original data matrix a is often too large  the projected data matrix b can be small enough to reside in the main memory.
+¡¡the entries of r  denoted by  should be i.i.d. with zero mean. in fact  this is the only necessary condition for preserving pairwise distances . however  different choices of rji can change the variances  average errors  and error tail bounds. it is often convenient to let rji follow a symmetric distribution about zero with unit variance. a  simple  distribution is the standard normal1  i.e.  rji ¡« n 1   e rji  = 1  e`rji1 ¡ä = 1  e`rji1 ¡ä = 1.
+it is  simple  in terms of theoretical analysis  but not in terms of random number generation. for example  a uniform distribution is easier to generate than normals  but the analysis is more difficult.
